@@ -48,41 +48,41 @@ const defaultForm = {
     requires_file: false,
     is_active: true,
     sort_order: 0,
-    checker_position_id: '',
+    checker_division_id: '',
 };
 
 function IndicatorForm({ form, options, onSubmit, submitLabel }) {
-    // Для поиска по должностям
+    // Для поиска по департаментам
     const [checkerSearch, setCheckerSearch] = useState('');
-    const positions = options.positions ?? [];
-    const filteredPositions = checkerSearch.trim() === ''
-        ? positions
-        : positions.filter((pos) =>
-            String(pos.name ?? '').toLowerCase().includes(checkerSearch.trim().toLowerCase())
+    const divisions = options.divisions ?? [];
+    const filteredDivisions = checkerSearch.trim() === ''
+        ? divisions
+        : divisions.filter((div) =>
+            String(div.name ?? '').toLowerCase().includes(checkerSearch.trim().toLowerCase())
         );
 
     return (
         <form className="space-y-4" onSubmit={onSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
-                                {/* Должность (кто будет проверять) */}
+                                {/* Департамент (кто будет проверять) */}
                                 <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-sm font-medium">Должность (кто будет проверять)</label>
+                                    <label className="text-sm font-medium">Департамент (кто будет проверять)</label>
                                     <Input
                                         value={checkerSearch}
                                         onChange={e => setCheckerSearch(e.target.value)}
-                                        placeholder="Поиск должности"
+                                        placeholder="Поиск департамента"
                                     />
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                                        value={form.data.checker_position_id}
-                                        onChange={e => form.setData('checker_position_id', e.target.value)}
+                                        value={form.data.checker_division_id}
+                                        onChange={e => form.setData('checker_division_id', e.target.value)}
                                     >
-                                        <option value="">Выберите должность</option>
-                                        {filteredPositions.map((pos) => (
-                                            <option key={pos.id} value={pos.id}>{pos.name}</option>
+                                        <option value="">Выберите департамент</option>
+                                        {filteredDivisions.map((div) => (
+                                            <option key={div.id} value={div.id}>{div.name}</option>
                                         ))}
                                     </select>
-                                    {form.errors.checker_position_id && <p className="text-sm text-destructive">{form.errors.checker_position_id}</p>}
+                                    {form.errors.checker_division_id && <p className="text-sm text-destructive">{form.errors.checker_division_id}</p>}
                                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Уровень</label>

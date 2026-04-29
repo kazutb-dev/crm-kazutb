@@ -45,6 +45,7 @@ class KpiIndicator extends Model
         'requires_file',
         'is_active',
         'sort_order',
+        'checker_division_id',
     ];
 
     /**
@@ -83,5 +84,10 @@ class KpiIndicator extends Model
     public function isSurveySection(): bool
     {
         return $this->section === self::SECTION_SURVEY;
+    }
+
+    public function checkerDivision()
+    {
+        return $this->belongsTo(\App\Models\Division::class, 'checker_division_id');
     }
 }

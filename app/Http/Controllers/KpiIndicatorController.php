@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KpiEntry;
 use App\Models\KpiIndicator;
-use App\Models\Position;
+use App\Models\Division;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -59,8 +59,8 @@ class KpiIndicatorController extends Controller
                     KpiIndicator::CALCULATION_TYPE_AUTO,
                     KpiIndicator::CALCULATION_TYPE_FORMULA,
                 ],
-                // Добавляем список должностей для селекта
-                'positions' => Position::query()->orderBy('name')->get(['id', 'name']),
+                // Передаем департаменты для селекта
+                'divisions' => Division::query()->orderBy('name')->get(['id', 'name']),
             ],
             'permissions' => [
                 'canManage' => $this->canManage($request),
@@ -142,6 +142,7 @@ class KpiIndicatorController extends Controller
             'requires_file' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0'],
+            'checker_division_id' => ['nullable', 'integer', 'exists:divisions,id'],
         ];
     }
 
