@@ -1,7 +1,9 @@
 import { AppSidebar } from '@/components/app-sidebar';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { Home } from 'lucide-react';
 
 export default function AuthenticatedLayout({ header, headerRight, children }) {
     const { component } = usePage();
@@ -17,14 +19,19 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'AcademicYears/Index': 'Учебные годы',
         'EducationalPrograms/Index': 'Образовательные программы',
         'Users/Index': 'Пользователи',
-        'Kpi/Index': 'KPI-периоды',
-        'Kpi/TeacherForm': 'Моя KPI-форма',
-        'Kpi/TeacherDashboard': 'Моя KPI-форма',
-        'Kpi/ReviewQueue': 'Очередь проверки KPI',
-        'Kpi/ApprovalQueue': 'Очередь утверждения KPI',
+        'Users/AdminAccess': 'Права администратора',
+        'Kpi/Index': 'KPI-сезоны',
+        'Kpi/TeacherForm': 'KPI — Мои показатели',
+        'Kpi/TeacherDashboard': 'KPI — Мои показатели',
+        'Kpi/ReviewQueue': 'Корректировка данных - Кафедра',
+        'Kpi/ApprovalQueue': 'Корректировка данных - Деканат',
+        'Kpi/StructuralQueue': 'Финальное утверждение',
         'Kpi/EntryShow': 'KPI-запись',
         'Kpi/Indicators': 'KPI-индикаторы',
-        'Kpi/Analytics': 'KPI Аналитика',
+        'Kpi/Summary': 'KPI — Сводка',
+        'Kpi/StructuralUnitsManager': 'KPI — Структурные подразделения',
+        'Kpi/StructuralUnitShow': 'KPI — Структурное подразделение',
+        'Kpi/Divisions': 'KPI — Департаменты',
         'Admin/AuditLogs': 'Журнал действий',
         'HR/Dashboard': 'HR / Dashboard',
         'HR/Perco': 'HR / Сотрудники',
@@ -42,36 +49,60 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Certificates/Index': 'Сертификаты',
         'Certificates/Show': 'Сертификат',
         'Calendar/Index': 'Smart Calendar — Календарь',
-        'Calendar/Employees':   'Smart Calendar — Сотрудники',
+        'Calendar/Employees': 'Smart Calendar — Сотрудники',
         'Calendar/Conferences': 'Smart Calendar — Конференции',
-        'Calendar/Analytics':   'Smart Calendar — Аналитика',
-        'Calendar/Settings':    'Smart Calendar — Настройки',
+        'Calendar/Analytics': 'Smart Calendar — Аналитика',
+        'Calendar/Settings': 'Smart Calendar — Настройки',
     };
 
     const pageTitle =
         pageTitles[component] ?? component.split('/').at(-1) ?? 'Страница';
+    const [section = 'Раздел', page = 'Страница'] = component.split('/');
 
     return (
         <SidebarProvider>
+            <Head>
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+                <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
+            </Head>
             <AppSidebar />
             <SidebarInset>
-                <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-                    <SidebarTrigger />
-                    <Separator orientation="vertical" className="h-5" />
-                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                        <p className="truncate text-sm text-muted-foreground">
-                            {pageTitle}
-                        </p>
-                        {headerRight && <div className="shrink-0">{headerRight}</div>}
+                <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                    <div className="absolute left-[-120px] top-[-180px] h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
+                    <div className="absolute right-[-140px] top-[-140px] h-96 w-96 rounded-full bg-amber-300/20 blur-3xl" />
+                </div>
+
+                <header className="admin-shell-topbar">
+                    <div className="admin-shell-topbar-row">
+                        <SidebarTrigger className="h-9 w-9 rounded-md border border-border/80 bg-white/90" />
+                        <Separator orientation="vertical" className="h-5" />
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="border-cyan-200 bg-cyan-50/70 text-cyan-900">{section}</Badge>
+                                <p className="truncate text-sm font-medium text-muted-foreground/90">{page}</p>
+                            </div>
+                            <h1 className="mt-0.5 truncate text-[1.1rem] font-semibold text-[#132844]">{pageTitle}</h1>
+                        </div>
+
+                        <a
+                            href="http://10.0.1.47/"
+                            className="hidden h-9 items-center gap-2 rounded-lg border border-border/80 bg-white/90 px-3 text-sm font-medium text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/30 sm:inline-flex"
+                        >
+                            <Home className="h-4 w-4" />
+                            Главная
+                        </a>
+
+                        {headerRight && <div className="admin-header-actions shrink-0">{headerRight}</div>}
                     </div>
                 </header>
 
                 {header && (
-                    <header className="border-b bg-background">
-                        <div className="mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                    <div className="px-4 pt-4 sm:px-6 sm:pt-6">
+                        <div className="admin-surface p-5 sm:p-6">
                             {header}
                         </div>
-                    </header>
+                    </div>
                 )}
 
                 <main className="flex-1">{children}</main>

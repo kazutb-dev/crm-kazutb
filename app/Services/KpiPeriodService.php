@@ -125,16 +125,30 @@ class KpiPeriodService
         });
     }
 
+    public function deactivate(KpiPeriod $period): KpiPeriod
+    {
+        return DB::transaction(function () use ($period): KpiPeriod {
+            /** @var KpiPeriod $lockedPeriod */
+            $lockedPeriod = KpiPeriod::query()->lockForUpdate()->findOrFail($period->id);
+
+            if ($lockedPeriod->status === KpiPeriod::STATUS_CLOSED) {
+                throw new KpiPeriodClosedException('Закрытый KPI-период нельзя деактивировать.');
+            }
+
+            $lockedPeriod->status = KpiPeriod::STATUS_DRAFT;
+            $lockedPeriod->save();
+
+            return $lockedPeriod->refresh();
+        });
+    }
+
     public function getCurrentOpenPeriod(string $stage, ?int $academicYearId = null): ?KpiPeriod
     {
-        $today = Carbon::today();
-
+        // Date range is no longer a gate — active status alone opens the period for entries.
         $query = KpiPeriod::query()
             ->where('stage', $stage)
             ->where('status', KpiPeriod::STATUS_ACTIVE)
-            ->whereDate('start_date', '<=', $today)
-            ->whereDate('end_date', '>=', $today)
-            ->orderBy('start_date');
+            ->orderByDesc('academic_year_id');
 
         if ($academicYearId !== null) {
             $query->where('academic_year_id', $academicYearId);
@@ -220,11 +234,16 @@ class KpiPeriodService
     private function normalizePayload(array $data, ?KpiPeriod $period = null): array
     {
         $status = $data['status'] ?? $period?->status ?? KpiPeriod::STATUS_DRAFT;
+        $academicYearId = (int) ($data['academic_year_id'] ?? $period?->academic_year_id);
+        $stage = (string) ($data['stage'] ?? $period?->stage);
+
+        $rawName = trim((string) ($data['name'] ?? $period?->name ?? ''));
+        $name = $rawName !== '' ? $rawName : $this->generateSeasonName($academicYearId, $stage);
 
         return [
-            'academic_year_id' => (int) ($data['academic_year_id'] ?? $period?->academic_year_id),
-            'name' => (string) ($data['name'] ?? $period?->name),
-            'stage' => (string) ($data['stage'] ?? $period?->stage),
+            'academic_year_id' => $academicYearId,
+            'name' => $name,
+            'stage' => $stage,
             'start_date' => (string) ($data['start_date'] ?? $period?->start_date),
             'end_date' => (string) ($data['end_date'] ?? $period?->end_date),
             'status' => (string) $status,
@@ -232,5 +251,19 @@ class KpiPeriodService
             'created_by' => $data['created_by'] ?? $period?->created_by,
             'updated_by' => $data['updated_by'] ?? $period?->updated_by,
         ];
+    }
+
+    private function generateSeasonName(int $academicYearId, string $stage): string
+    {
+        $year = AcademicYear::query()->find($academicYearId, ['name', 'start_year', 'end_year']);
+        $yearLabel = $year?->name ?? ($year ? ($year->start_year . '/' . $year->end_year) : (string) $academicYearId);
+
+        $stageLabels = [
+            KpiPeriod::STAGE_PLAN => 'План',
+            KpiPeriod::STAGE_FACT => 'Факт',
+            KpiPeriod::STAGE_REVIEW => 'Рассмотрение',
+        ];
+
+        return $yearLabel . ' · ' . ($stageLabels[$stage] ?? $stage);
     }
 }

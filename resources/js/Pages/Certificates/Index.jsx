@@ -391,7 +391,7 @@ export default function CertificatesIndex({ templates = [] }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-shell-container space-y-6 px-3 pb-5 pt-2 sm:px-4 sm:pb-6 sm:pt-3 lg:px-5">
                 <Card>
                     <CardHeader>
                         <CardTitle>Генерация сертификата</CardTitle>

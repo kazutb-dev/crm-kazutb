@@ -16,7 +16,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
-export default function Index({ divisions }) {
+export default function Index({ divisions, faculties = [] }) {
     const items = divisions?.data ?? [];
     const links = divisions?.links ?? [];
 
@@ -25,19 +25,21 @@ export default function Index({ divisions }) {
     const [editingDivision, setEditingDivision] = useState(null);
 
     const createForm = useForm({
+        faculty_id: '',
         name: '',
         code: '',
         description: '',
     });
 
     const editForm = useForm({
+        faculty_id: '',
         name: '',
         code: '',
         description: '',
     });
 
     const handleDelete = (division) => {
-        if (!window.confirm(`Удалить департамент "\${division.name}"?`)) {
+        if (!window.confirm(`Удалить департамент "${division.name}"?`)) {
             return;
         }
 
@@ -47,6 +49,7 @@ export default function Index({ divisions }) {
     const openEditDialog = (division) => {
         setEditingDivision(division);
         editForm.setData({
+            faculty_id: division.faculty_id ? String(division.faculty_id) : '',
             name: division.name ?? '',
             code: division.code ?? '',
             description: division.description ?? '',
@@ -88,7 +91,7 @@ export default function Index({ divisions }) {
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm">
+                        <Button size="sm" disabled={faculties.length === 0}>
                             <Plus />
                             Добавить департамент
                         </Button>
@@ -97,10 +100,35 @@ export default function Index({ divisions }) {
                         <DialogHeader>
                             <DialogTitle>Новый департамент</DialogTitle>
                             <DialogDescription>
-                                Заполните данные для создания департамента.
+                                {faculties.length === 0
+                                    ? 'Сначала создайте хотя бы один факультет в разделе "Факультеты".'
+                                    : 'Заполните данные для создания департамента.'}
                             </DialogDescription>
                         </DialogHeader>
                         <form className="space-y-4" onSubmit={submitCreate}>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Факультет</label>
+                                <select
+                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    value={createForm.data.faculty_id}
+                                    onChange={(e) =>
+                                        createForm.setData('faculty_id', e.target.value)
+                                    }
+                                >
+                                    <option value="">Выберите факультет</option>
+                                    {faculties.map((faculty) => (
+                                        <option key={faculty.id} value={faculty.id}>
+                                            {faculty.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {createForm.errors.faculty_id && (
+                                    <p className="text-sm text-destructive">
+                                        {createForm.errors.faculty_id}
+                                    </p>
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Название</label>
                                 <Input
@@ -153,7 +181,7 @@ export default function Index({ divisions }) {
                             <DialogFooter>
                                 <Button
                                     type="submit"
-                                    disabled={createForm.processing}
+                                    disabled={createForm.processing || faculties.length === 0}
                                 >
                                     Сохранить
                                 </Button>
@@ -182,6 +210,29 @@ export default function Index({ divisions }) {
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitEdit}>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Факультет</label>
+                            <select
+                                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                value={editForm.data.faculty_id}
+                                onChange={(e) =>
+                                    editForm.setData('faculty_id', e.target.value)
+                                }
+                            >
+                                <option value="">Выберите факультет</option>
+                                {faculties.map((faculty) => (
+                                    <option key={faculty.id} value={faculty.id}>
+                                        {faculty.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {editForm.errors.faculty_id && (
+                                <p className="text-sm text-destructive">
+                                    {editForm.errors.faculty_id}
+                                </p>
+                            )}
+                        </div>
+
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Название</label>
                             <Input
@@ -249,10 +300,11 @@ export default function Index({ divisions }) {
                             </p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[700px] text-sm">
+                                <table className="w-full min-w-[760px] text-sm">
                                     <thead>
                                         <tr className="border-b text-left text-muted-foreground">
                                             <th className="py-3 pe-3 font-medium">Название</th>
+                                            <th className="py-3 pe-3 font-medium">Факультет</th>
                                             <th className="py-3 pe-3 font-medium">Код</th>
                                             <th className="py-3 pe-3 font-medium">Описание</th>
                                             <th className="py-3 text-right font-medium">Действия</th>
@@ -263,6 +315,9 @@ export default function Index({ divisions }) {
                                             <tr key={division.id} className="border-b last:border-0">
                                                 <td className="py-3 pe-3 font-medium">
                                                     {division.name}
+                                                </td>
+                                                <td className="py-3 pe-3 text-muted-foreground">
+                                                    {division.faculty?.name || '-'}
                                                 </td>
                                                 <td className="py-3 pe-3">
                                                     {division.code ? (
@@ -309,7 +364,7 @@ export default function Index({ divisions }) {
                             <div className="mt-6 flex flex-wrap gap-2">
                                 {links.map((link, index) => (
                                     <Button
-                                        key={`\${link.label}-\${index}`}
+                                        key={`${link.label}-${index}`}
                                         variant={link.active ? 'default' : 'outline'}
                                         size="sm"
                                         disabled={!link.url}

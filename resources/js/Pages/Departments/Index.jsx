@@ -136,7 +136,7 @@ export default function Index({ departments }) {
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Описание</label>
                                 <textarea
-                                    className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={createForm.data.description}
                                     onChange={(e) =>
                                         createForm.setData('description', e.target.value)
@@ -215,7 +215,7 @@ export default function Index({ departments }) {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Описание</label>
                             <textarea
-                                className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 value={editForm.data.description}
                                 onChange={(e) =>
                                     editForm.setData('description', e.target.value)
@@ -237,33 +237,30 @@ export default function Index({ departments }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="p-4 sm:p-6 lg:p-8">
-                <Card>
+            <div className="admin-page-wrap">
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Список кафедр</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="admin-empty-state">
                                 Пока нет кафедр. Создайте первую запись.
-                            </p>
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[700px] text-sm">
+                            <div className="admin-table-wrap">
+                                <table className="admin-data-table min-w-[700px]">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Название</th>
-                                            <th className="py-3 pe-3 font-medium">Код</th>
-                                            <th className="py-3 pe-3 font-medium">Описание</th>
-                                            <th className="py-3 text-right font-medium">Действия</th>
+                                        <tr>
+                                            <th>Название</th>
+                                            <th>Код</th>
+                                            <th>Описание</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((department) => (
-                                            <tr
-                                                key={department.id}
-                                                className="border-b last:border-0"
-                                            >
+                                            <tr key={department.id}>
                                                 <td className="py-3 pe-3 font-medium">
                                                     {department.name}
                                                 </td>
@@ -282,7 +279,7 @@ export default function Index({ departments }) {
                                                     {department.description || '-'}
                                                 </td>
                                                 <td className="py-3 text-right">
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="admin-row-actions">
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
@@ -313,7 +310,7 @@ export default function Index({ departments }) {
                         )}
 
                         {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
+                            <div className="admin-pagination">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

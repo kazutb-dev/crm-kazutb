@@ -10,4 +10,14 @@ export default defineConfig({
         }),
         react(),
     ],
+    server: {
+        host: '0.0.0.0',
+        cors: true,
+        hmr: {
+            host: '10.0.1.47',
+        },
+        watch: {
+            ignored: ['**/vendor/**', '**/storage/**', '**/bootstrap/cache/**'],
+        },
+    },
 });

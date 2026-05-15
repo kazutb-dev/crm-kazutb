@@ -7,6 +7,7 @@ use App\Models\CalendarEmployeeExclusion;
 use App\Models\CalendarEmployeeGrant;
 use App\Models\CalendarEvent;
 use App\Models\CalendarSecretaryAccess;
+use App\Models\KpiAccessGrant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -41,6 +42,15 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 'roleSlug' => $request->user()?->resolvedRoleSlug(),
             ],
+            'kpi' => [
+                'grants' => fn () => $request->user()
+                    ? KpiAccessGrant::query()
+                        ->where('user_id', $request->user()->id)
+                        ->where('is_active', true)
+                        ->pluck('permission')
+                        ->all()
+                    : [],
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
@@ -73,11 +83,25 @@ class HandleInertiaRequests extends Middleware
 
         $userId = (int) $user->id;
 
+        // Admins always have access
+        if (in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true)) {
+            return true;
+        }
+
         if (CalendarEmployeeExclusion::query()->where('user_id', $userId)->exists()) {
             return false;
         }
 
         if (CalendarEmployeeGrant::query()->where('user_id', $userId)->exists()) {
+            return true;
+        }
+
+        // Secretaries who were granted access to manage someone else's calendar
+        if (CalendarSecretaryAccess::query()
+            ->where('secretary_id', $userId)
+            ->where('is_active', true)
+            ->whereNull('revoked_at')
+            ->exists()) {
             return true;
         }
 

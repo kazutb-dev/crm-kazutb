@@ -6,21 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('surveys', function (Blueprint $table) {
             $table->id();
             $table->foreignId('student_id')->constrained('students')->cascadeOnDelete();
-            $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete(); // User с role = 'teacher'
+            $table->foreignId('teacher_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('discipline_id')->constrained('disciplines')->cascadeOnDelete();
             $table->foreignId('group_id')->constrained('groups')->cascadeOnDelete();
             $table->enum('status', ['draft', 'in_progress', 'completed', 'cancelled'])->default('draft');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
-            $table->text('notes')->nullable(); // Общие комментарии студента
+            $table->text('notes')->nullable();
             $table->timestamps();
             $table->unique(['student_id', 'teacher_id', 'discipline_id']);
             $table->index('student_id');
@@ -31,9 +28,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('surveys');

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AuthController;
@@ -20,6 +21,7 @@ Route::get('nav/routes', [NavigationRouteController::class, 'index']);
 Route::get('nav/routes/{navigationRoute}', [NavigationRouteController::class, 'show']);
 Route::post('tickets', [TicketController::class, 'store']);
 Route::post('library/reservations', [LibraryReservationController::class, 'store']);
+Route::post('ai/chat', [AiChatController::class, 'chat']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('me', [AuthController::class, 'me']);

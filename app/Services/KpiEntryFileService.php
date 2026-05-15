@@ -7,6 +7,7 @@ use App\Models\KpiEntry;
 use App\Models\KpiEntryFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class KpiEntryFileService
 {
@@ -29,6 +30,23 @@ class KpiEntryFileService
                 'file_size' => $file->getSize(),
                 'uploaded_by' => $uploadedBy,
             ]);
+        });
+    }
+
+    public function purgeForEntry(KpiEntry $entry): void
+    {
+        DB::transaction(function () use ($entry): void {
+            $files = KpiEntryFile::query()
+                ->where('kpi_entry_id', $entry->id)
+                ->get();
+
+            foreach ($files as $file) {
+                if (!empty($file->file_path)) {
+                    Storage::disk($file->file_disk ?: 'public')->delete($file->file_path);
+                }
+
+                $file->delete();
+            }
         });
     }
 }

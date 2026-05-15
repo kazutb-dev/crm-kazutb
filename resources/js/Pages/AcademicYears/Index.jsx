@@ -121,29 +121,29 @@ export default function Index({ academicYears }) {
         >
             <Head title="Учебные годы" />
 
-            <div className="p-4 sm:p-6 lg:p-8">
-                <Card>
+            <div className="admin-page-wrap">
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Список учебных годов</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="admin-empty-state">
                                 Пока нет учебных годов.
-                            </p>
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[560px] text-sm">
+                            <div className="admin-table-wrap">
+                                <table className="admin-data-table min-w-[560px]">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Период</th>
-                                            <th className="py-3 pe-3 font-medium">Статус</th>
-                                            <th className="py-3 text-right font-medium">Действия</th>
+                                        <tr>
+                                            <th>Период</th>
+                                            <th>Статус</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((item) => (
-                                            <tr key={item.id} className="border-b last:border-0">
+                                            <tr key={item.id}>
                                                 <td className="py-3 pe-3 font-medium">{item.name}</td>
                                                 <td className="py-3 pe-3">
                                                     {item.is_active ? (
@@ -170,7 +170,7 @@ export default function Index({ academicYears }) {
                         )}
 
                         {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
+                            <div className="admin-pagination">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

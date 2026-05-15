@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KpiAccessGrant;
 use App\Models\KpiEntry;
 use App\Models\KpiIndicator;
-use App\Models\Division;
+use App\Models\KpiStructuralUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,14 +14,23 @@ use Inertia\Response;
 
 class KpiIndicatorController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $this->abortUnlessCanView($request);
+
+        if (! $request->expectsJson()) {
+            return redirect()->route('kpi.settings', [
+                'tab' => 'indicators',
+                'indicator_entity_type' => $request->query('entity_type'),
+                'indicator_is_active' => $request->query('is_active'),
+            ]);
+        }
 
         $entityType = trim((string) $request->query('entity_type', ''));
         $isActive = trim((string) $request->query('is_active', ''));
 
-        $query = KpiIndicator::query();
+        $query = KpiIndicator::query()
+            ->with(['checkerStructuralUnit:id,code,name']);
 
         if ($entityType !== '') {
             $query->where('entity_type', $entityType);
@@ -59,8 +69,7 @@ class KpiIndicatorController extends Controller
                     KpiIndicator::CALCULATION_TYPE_AUTO,
                     KpiIndicator::CALCULATION_TYPE_FORMULA,
                 ],
-                // Передаем департаменты для селекта
-                'divisions' => Division::query()->orderBy('name')->get(['id', 'name']),
+                'divisions' => KpiStructuralUnit::query()->orderBy('name')->get(['id', 'code', 'name']),
             ],
             'permissions' => [
                 'canManage' => $this->canManage($request),
@@ -76,7 +85,7 @@ class KpiIndicatorController extends Controller
 
         KpiIndicator::query()->create($data);
 
-        return redirect()->route('kpi.indicators.index')
+        return redirect()->route('kpi.settings', ['tab' => 'indicators'])
             ->with('success', 'KPI-индикатор успешно создан.');
     }
 
@@ -88,7 +97,7 @@ class KpiIndicatorController extends Controller
 
         $indicator->update($data);
 
-        return redirect()->route('kpi.indicators.index')
+        return redirect()->back()
             ->with('success', 'KPI-индикатор успешно обновлен.');
     }
 
@@ -97,13 +106,13 @@ class KpiIndicatorController extends Controller
         $this->abortUnlessCanManage($request);
 
         if (KpiEntry::withTrashed()->where('indicator_id', $indicator->id)->exists()) {
-            return redirect()->route('kpi.indicators.index')
+            return redirect()->route('kpi.settings', ['tab' => 'indicators'])
                 ->with('error', 'Нельзя удалить индикатор, так как по нему уже есть KPI-записи.');
         }
 
         $indicator->delete();
 
-        return redirect()->route('kpi.indicators.index')
+        return redirect()->route('kpi.settings', ['tab' => 'indicators'])
             ->with('success', 'KPI-индикатор удален.');
     }
 
@@ -142,15 +151,14 @@ class KpiIndicatorController extends Controller
             'requires_file' => ['required', 'boolean'],
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0'],
-            'checker_division_id' => ['nullable', 'integer', 'exists:divisions,id'],
+            'checker_structural_unit_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id'],
+            'scoring_rules' => ['nullable', 'string', 'max:2000'],
         ];
     }
 
     private function abortUnlessCanView(Request $request): void
     {
-        $role = $request->user()?->resolvedRoleSlug();
-
-        if (!in_array($role, ['admin', 'superadmin'], true)) {
+        if (!$this->canView($request)) {
             abort(403);
         }
     }
@@ -164,6 +172,34 @@ class KpiIndicatorController extends Controller
 
     private function canManage(Request $request): bool
     {
-        return $request->user()?->resolvedRoleSlug() === 'admin';
+        $role = $request->user()?->resolvedRoleSlug();
+        $userId = $request->user()?->id;
+
+        return in_array($role, [
+            'admin',
+            'teacher',
+            'department_head',
+            'hod',
+            'dean',
+            'department',
+        ], true)
+            || ($userId !== null && KpiAccessGrant::userHas($userId, KpiAccessGrant::PERM_INDICATORS));
+    }
+
+    private function canView(Request $request): bool
+    {
+        $role = $request->user()?->resolvedRoleSlug();
+        $userId = $request->user()?->id;
+
+        return in_array($role, [
+            'admin',
+            'superadmin',
+            'teacher',
+            'department_head',
+            'hod',
+            'dean',
+            'department',
+        ], true)
+            || ($userId !== null && KpiAccessGrant::userHas($userId, KpiAccessGrant::PERM_INDICATORS));
     }
 }

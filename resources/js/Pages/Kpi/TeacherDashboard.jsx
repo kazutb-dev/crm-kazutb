@@ -13,8 +13,44 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { LoaderCircle, Paperclip, Plus, Send, Trash2, Upload } from 'lucide-react';
+import { BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+const SECTION_SHORT = {
+    teaching: 'УМР',
+    science: 'НИР',
+    social: 'СВР',
+    qualification: 'УПК',
+    survey: 'К5',
+    educational: 'ОП',
+    staff: 'ПР',
+    international: 'МД',
+    other: '—',
+};
+
+const SECTION_LABELS = {
+    teaching: 'УМР — Учебно-методическая работа',
+    science: 'НИР — Научно-исследовательская работа',
+    social: 'СВР — Социально-воспитательная работа',
+    qualification: 'УПК — Учебно-педагогическая квалификация',
+    survey: 'К5 — Опросы / студенческие оценки',
+    educational: 'ОП — Образовательные программы',
+    staff: 'ПР — Персонал',
+    international: 'МД — Международная деятельность',
+    other: 'Прочее',
+};
+
+const SECTION_ICON_COLOR = {
+    teaching: 'bg-blue-50 text-blue-700',
+    science: 'bg-violet-50 text-violet-700',
+    social: 'bg-emerald-50 text-emerald-700',
+    qualification: 'bg-amber-50 text-amber-700',
+    survey: 'bg-cyan-50 text-cyan-700',
+    educational: 'bg-pink-50 text-pink-700',
+    staff: 'bg-indigo-50 text-indigo-700',
+    international: 'bg-teal-50 text-teal-700',
+    other: 'bg-muted text-muted-foreground',
+};
 
 const statusLabels = {
     draft: 'Черновик',
@@ -84,23 +120,650 @@ function formatFileSize(value) {
     return `${parsed} Б`;
 }
 
+function fmtDateTime(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+    }).format(d);
+}
+
+function parseNumber(value, fallback = 0) {
+    if (value === null || value === undefined || value === '') {
+        return fallback;
+    }
+
+    const normalized = String(value).replace('−', '-').replace(',', '.');
+    const parsed = Number(normalized);
+
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function extractNumberNear(text, needle, fallback = null) {
+    const source = String(text ?? '').toLowerCase().replace(/−/g, '-');
+    const index = source.indexOf(needle);
+
+    if (index === -1) {
+        return fallback;
+    }
+
+    const window = source.slice(Math.max(0, index - 24), Math.min(source.length, index + 48));
+    const match = window.match(/[-+]?\d+(?:[.,]\d+)?/);
+
+    if (!match) {
+        return fallback;
+    }
+
+    return parseNumber(match[0], fallback ?? 0);
+}
+
+function parseOptionRules(rawRules) {
+    const text = String(rawRules ?? '').replace(/\s+/g, ' ').trim();
+    if (!text) {
+        return [];
+    }
+
+    const parts = text
+        .split(/\s*[\/;]\s*/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    const options = [];
+
+    parts.forEach((part) => {
+        const normalized = part.replace(/−/g, '-');
+        const colonMatch = normalized.match(/^(.+?)\s*:\s*([-+]?\d+(?:[.,]\d+)?)\s*б/i);
+
+        if (colonMatch) {
+            const label = colonMatch[1].trim();
+            const points = parseNumber(colonMatch[2], NaN);
+            if (Number.isFinite(points)) {
+                options.push({ value: String(points), label: `${label} (${points} б.)` });
+            }
+            return;
+        }
+
+        const rangeMatch = normalized.match(/^([-+]?\d+(?:[.,]\d+)?)\s*балл(?:а|ов)?\s+за\s+(.+)$/i);
+        if (rangeMatch) {
+            const points = parseNumber(rangeMatch[1], NaN);
+            const label = rangeMatch[2].trim();
+            if (Number.isFinite(points)) {
+                options.push({ value: String(points), label: `${label} (${points} б.)` });
+            }
+        }
+    });
+
+    return options;
+}
+
+function detectRuleSpec(indicator) {
+    const rawRules = String(indicator?.scoring_rules ?? '').trim();
+    const lowerRules = rawRules.toLowerCase();
+
+    if (!rawRules) {
+        return { kind: 'none', label: '', rawRules };
+    }
+
+    if (lowerRules.includes('1 место') && lowerRules.includes('2 место') && lowerRules.includes('3 место')) {
+        const first = extractNumberNear(lowerRules, '1 место', 70);
+        const second = extractNumberNear(lowerRules, '2 место', 50);
+        const third = extractNumberNear(lowerRules, '3 место', 30);
+
+        return {
+            kind: 'podium',
+            label: 'Баллы зависят от места',
+            rawRules,
+            options: [
+                { value: String(first), label: `1 место (${first} б.)` },
+                { value: String(second), label: `2 место (${second} б.)` },
+                { value: String(third), label: `3 место (${third} б.)` },
+            ],
+        };
+    }
+
+    if (lowerRules.includes('улучш') && lowerRules.includes('ухудш')) {
+        const upToTen = extractNumberNear(lowerRules, 'до 10', 0.5);
+        const overTen = extractNumberNear(lowerRules, 'более 10', 1);
+        const worsen = extractNumberNear(lowerRules, 'ухудш', -2);
+
+        return {
+            kind: 'improvement',
+            label: 'Баллы зависят от улучшения/ухудшения',
+            rawRules,
+            options: [
+                { value: String(upToTen), label: `Улучшение до 10 (${upToTen} б.)` },
+                { value: String(overTen), label: `Улучшение более 10 (${overTen} б.)` },
+                { value: String(worsen), label: `Ухудшение (${worsen} б.)` },
+            ],
+        };
+    }
+
+    if (lowerRules.includes('соавтор') && lowerRules.includes('п.л')) {
+        const perSheet = extractNumberNear(lowerRules, 'балл', parseNumber(indicator?.base_points, 20));
+
+        return {
+            kind: 'coauthors',
+            label: 'Баллы зависят от п.л. и числа соавторов',
+            rawRules,
+            perSheet,
+        };
+    }
+
+    const genericOptions = parseOptionRules(rawRules);
+    if (genericOptions.length >= 2) {
+        return {
+            kind: 'optionRate',
+            label: 'Баллы зависят от выбранной категории',
+            rawRules,
+            options: genericOptions,
+        };
+    }
+
+    if (lowerRules.includes('руководитель') && lowerRules.includes('исполнитель')) {
+        const leader = extractNumberNear(lowerRules, 'руководитель', 100);
+        const executor = extractNumberNear(lowerRules, 'исполнитель', 50);
+
+        return {
+            kind: 'roleSplit',
+            label: 'Баллы зависят от роли',
+            rawRules,
+            options: [
+                { value: String(leader), label: `Руководитель (${leader} б.)` },
+                { value: String(executor), label: `Исполнитель (${executor} б.)` },
+            ],
+        };
+    }
+
+    if ((lowerRules.includes('q1') || lowerRules.includes('q2')) && (lowerRules.includes('wos') || lowerRules.includes('scopus'))) {
+        const highTier = extractNumberNear(lowerRules, 'q1', 5);
+        const baseTier = extractNumberNear(lowerRules, 'остальные', 3);
+
+        return {
+            kind: 'quartile',
+            label: 'Баллы зависят от категории публикации',
+            rawRules,
+            options: [
+                { value: String(highTier), label: `Q1/Q2 или CiteScore>=50 (${highTier} б.)` },
+                { value: String(baseTier), label: `Остальные WoS/Scopus (${baseTier} б.)` },
+            ],
+        };
+    }
+
+    return {
+        kind: 'none',
+        label: '',
+        rawRules,
+    };
+}
+
+function resolveManualPoints(indicator, formData, ruleSpec) {
+    const quantity = parseNumber(formData.value, 0);
+
+    if (quantity <= 0) {
+        return null;
+    }
+
+    switch (ruleSpec.kind) {
+        case 'podium': {
+            const pointsForPlace = parseNumber(formData.rule_place_points, NaN);
+            if (!Number.isFinite(pointsForPlace)) {
+                return null;
+            }
+            return quantity * pointsForPlace;
+        }
+        case 'improvement': {
+            const rate = parseNumber(formData.rule_improvement_rate, NaN);
+            if (!Number.isFinite(rate)) {
+                return null;
+            }
+            return quantity * rate;
+        }
+        case 'coauthors': {
+            const coauthors = Math.max(1, parseNumber(formData.rule_coauthors_count, 1));
+            const sheets = parseNumber(formData.rule_sheet_count, 0);
+            const perSheet = parseNumber(ruleSpec.perSheet, parseNumber(indicator?.base_points, 0));
+            return quantity * perSheet * sheets / coauthors;
+        }
+        case 'roleSplit': {
+            const rolePoints = parseNumber(formData.rule_role_points, NaN);
+            if (!Number.isFinite(rolePoints)) {
+                return null;
+            }
+            return quantity * rolePoints;
+        }
+        case 'quartile': {
+            const tierPoints = parseNumber(formData.rule_tier_points, NaN);
+            if (!Number.isFinite(tierPoints)) {
+                return null;
+            }
+            return quantity * tierPoints;
+        }
+        case 'optionRate': {
+            const optionPoints = parseNumber(formData.rule_option_points, NaN);
+            if (!Number.isFinite(optionPoints)) {
+                return null;
+            }
+            return quantity * optionPoints;
+        }
+        default:
+            return null;
+    }
+}
+
+function buildCalculationDetails(indicator, formData, ruleSpec, computedPoints) {
+    if (!indicator || ruleSpec.kind === 'none' || computedPoints === null) {
+        return null;
+    }
+
+    const quantity = parseNumber(formData.value, 0);
+    const details = {
+        rule_kind: ruleSpec.kind,
+        rule_text: String(indicator.scoring_rules ?? ''),
+        quantity,
+        computed_points: Number(computedPoints.toFixed(2)),
+    };
+
+    const resolveOptionLabel = (options, value) => {
+        const found = (options ?? []).find((item) => String(item.value) === String(value));
+        return found?.label ?? null;
+    };
+
+    if (ruleSpec.kind === 'podium') {
+        details.selection_points = parseNumber(formData.rule_place_points, 0);
+        details.selection_label = resolveOptionLabel(ruleSpec.options, formData.rule_place_points);
+    }
+
+    if (ruleSpec.kind === 'improvement') {
+        details.selection_points = parseNumber(formData.rule_improvement_rate, 0);
+        details.selection_label = resolveOptionLabel(ruleSpec.options, formData.rule_improvement_rate);
+    }
+
+    if (ruleSpec.kind === 'coauthors') {
+        details.per_sheet_points = parseNumber(ruleSpec.perSheet, parseNumber(indicator?.base_points, 0));
+        details.sheet_count = parseNumber(formData.rule_sheet_count, 0);
+        details.coauthors_count = Math.max(1, parseNumber(formData.rule_coauthors_count, 1));
+    }
+
+    if (ruleSpec.kind === 'roleSplit') {
+        details.selection_points = parseNumber(formData.rule_role_points, 0);
+        details.selection_label = resolveOptionLabel(ruleSpec.options, formData.rule_role_points);
+    }
+
+    if (ruleSpec.kind === 'quartile') {
+        details.selection_points = parseNumber(formData.rule_tier_points, 0);
+        details.selection_label = resolveOptionLabel(ruleSpec.options, formData.rule_tier_points);
+    }
+
+    if (ruleSpec.kind === 'optionRate') {
+        details.selection_points = parseNumber(formData.rule_option_points, 0);
+        details.selection_label = resolveOptionLabel(ruleSpec.options, formData.rule_option_points);
+    }
+
+    return details;
+}
+
+const SELECT_CLS =
+    'h-9 rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors hover:border-ring focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+
+const ACTION_LABELS = {
+    return: 'Возвращено',
+    review: 'Проверено',
+    approve: 'Утверждено',
+    reject: 'Отклонено',
+    lock: 'Заблокировано',
+};
+
+const ACTION_COLORS = {
+    submit: 'text-blue-700 bg-blue-50 border-blue-200',
+    return: 'text-orange-700 bg-orange-50 border-orange-200',
+    review: 'text-violet-700 bg-violet-50 border-violet-200',
+    approve: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    reject: 'text-red-700 bg-red-50 border-red-200',
+    lock: 'text-muted-foreground bg-muted/40 border-border',
+};
+
+// ─── result score card ───────────────────────────────────────────────────────
+
+function ResultScoreCard({ result }) {
+    if (!result) return null;
+    const rVal = Number(result.rank_score ?? 0);
+    const hasAnyScore = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].some((k) => result[k] > 0);
+
+    return (
+        <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
+                <div>
+                    <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
+                    <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
+                        {formatScore(rVal)}
+                    </p>
+                </div>
+                {hasAnyScore && (
+                    <div className="flex gap-4">
+                        {['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].map((k, i) => (
+                            <div key={k} className="text-center min-w-[2.5rem]">
+                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">K{i + 1}</p>
+                                <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
+                                    {formatScore(result[k])}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {result.approved_entries !== undefined && (
+                    <div className="ml-auto text-right">
+                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
+                        <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── stat card ───────────────────────────────────────────────────────────────
+
+const ACCENT_TOP = {
+    green: 'before:bg-emerald-500', blue: 'before:bg-blue-500',
+    amber: 'before:bg-amber-500', red: 'before:bg-red-500', teal: 'before:bg-teal-500',
+    default: 'before:bg-border/60',
+};
+const ACCENT_VALUE = {
+    green: 'text-emerald-600', blue: 'text-blue-600',
+    amber: 'text-amber-600', red: 'text-red-600', teal: 'text-teal-600',
+    default: 'text-foreground',
+};
+
+function StatCard({ icon: Icon, label, value, accent = 'default' }) {
+    const isEmpty = value === 0 || value === '0.00';
+    return (
+        <div className={[
+            'relative overflow-hidden rounded-xl border border-border/80 bg-white/90 px-4 py-3.5 backdrop-blur',
+            'before:absolute before:inset-x-0 before:top-0 before:h-0.5',
+            ACCENT_TOP[accent] ?? ACCENT_TOP.default,
+            'shadow-[0_6px_18px_rgba(15,36,63,0.07)]',
+        ].join(' ')}>
+            <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80 mb-1">{label}</p>
+                    <p className={['text-2xl font-bold tabular-nums leading-none', isEmpty ? 'text-muted-foreground/60' : (ACCENT_VALUE[accent] ?? 'text-foreground')].join(' ')}>
+                        {value}
+                    </p>
+                </div>
+                {Icon && <div className="shrink-0 rounded-lg bg-muted/50 p-1.5"><Icon className="h-4 w-4 text-muted-foreground/60" /></div>}
+            </div>
+        </div>
+    );
+}
+
+function EntryHistory({ history }) {
+    if (!history?.length) {
+        return <p className="text-xs text-muted-foreground italic">История действий отсутствует.</p>;
+    }
+
+    return (
+        <div className="mt-3 space-y-1.5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">История утверждения</p>
+            <div className="relative pl-4 before:absolute before:left-1.5 before:top-1 before:bottom-1 before:w-px before:bg-border/60 space-y-2">
+                {history.map((log, i) => (
+                    <div key={log.id ?? i} className="relative flex items-start gap-2.5">
+                        <span className={[
+                            'absolute -left-[1.05rem] top-1 h-2 w-2 rounded-full border-2 border-white ring-1',
+                            log.action === 'approve' ? 'bg-emerald-500 ring-emerald-300' :
+                                log.action === 'reject' ? 'bg-red-500 ring-red-300' :
+                                    log.action === 'return' ? 'bg-orange-500 ring-orange-300' :
+                                        'bg-muted-foreground/40 ring-border',
+                        ].join(' ')} />
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className={[
+                                    'inline-flex items-center rounded border px-1.5 py-0.5 text-[0.65rem] font-semibold',
+                                    ACTION_COLORS[log.action] ?? ACTION_COLORS.lock,
+                                ].join(' ')}>
+                                    {ACTION_LABELS[log.action] ?? log.action}
+                                </span>
+                                <span className="text-xs font-medium text-foreground/80">{log.actor_name}</span>
+                                <span className="text-[0.65rem] text-muted-foreground">{fmtDateTime(log.created_at)}</span>
+                            </div>
+                            {log.comment && (
+                                <p className="mt-0.5 text-xs text-muted-foreground italic">"{log.comment}"</p>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntryId, submitEntry, deleteEntry, openEditEntry }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <>
+            <tr
+                className="border-b hover:bg-muted/50 cursor-pointer"
+                onClick={() => setExpanded((v) => !v)}
+            >
+                <td className="ps-3 py-3">
+                    <div className="flex items-center gap-1">
+                        {expanded ? (
+                            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                        ) : (
+                            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                        )}
+                    </div>
+                </td>
+                <td className="py-3 text-xs font-mono text-muted-foreground">{entry.indicator?.code ?? '—'}</td>
+                <td className="py-3 font-medium">{entry.indicator?.name ?? '—'}</td>
+                <td className="py-3 text-right tabular-nums text-sm">{entry.plan_value ?? '—'}</td>
+                <td className="py-3 text-right tabular-nums text-sm">{entry.fact_value ?? '—'}</td>
+                <td className="py-3 text-right tabular-nums font-semibold text-sm">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
+                <td className="py-3">
+                    <Badge variant={statusVariants[entry.status] ?? 'outline'} className="text-[0.7rem]">
+                        {statusLabels[entry.status] ?? entry.status}
+                    </Badge>
+                    {isFileMissing && <p className="mt-1 text-[0.65rem] text-amber-700 font-semibold">Нужен файл</p>}
+                </td>
+                <td className="pe-3 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                        <Button asChild size="sm" variant="outline">
+                            <Link href={route('kpi.entries.show', entry.id)}>Открыть</Link>
+                        </Button>
+                        {isEditable && (
+                            (entry.status === 'returned' || entry.status === 'rejected') ? (
+                                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openEditEntry(entry); }}>
+                                    <Pencil className="h-3 w-3" />
+                                    Исправить
+                                </Button>
+                            ) : (
+                                <Button size="sm" onClick={(e) => { e.stopPropagation(); submitEntry(entry.id); }} disabled={isFileMissing}>
+                                    <Send className="h-3 w-3" />
+                                </Button>
+                            )
+                        )}
+                        {entry.status !== 'approved' && (
+                            <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); deleteEntry(entry); }}>
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        )}
+                    </div>
+                </td>
+            </tr>
+            {expanded && (
+                <tr className="bg-muted/20 border-b">
+                    <td colSpan={8} className="ps-3 py-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="sm:col-span-2">
+                                <EntryHistory history={entry.history} />
+                            </div>
+                            {entry.external_source_url && (
+                                <div>
+                                    <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Источник</p>
+                                    <a href={entry.external_source_url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline-offset-2 hover:underline break-all">
+                                        {entry.external_source_url}
+                                    </a>
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Файлы</p>
+                                {(entry.files?.length ?? 0) > 0 ? (
+                                    <div className="space-y-1">
+                                        {entry.files.map((file) => (
+                                            <a
+                                                key={file.id}
+                                                href={file.file_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center gap-2 text-xs text-sky-700 underline-offset-2 hover:underline"
+                                            >
+                                                <Paperclip className="h-3 w-3 shrink-0" />
+                                                <span className="truncate">{file.file_name}</span>
+                                                <span className="text-muted-foreground">({formatFileSize(file.file_size)})</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">{entry.indicator?.requires_file ? 'Файл обязателен' : 'Не прикреплены'}</p>
+                                )}
+                                {isEditable && (
+                                    <label className="mt-2 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-sky-700">
+                                        {uploadingEntryId === entry.id ? (
+                                            <LoaderCircle className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                            <Upload className="h-3 w-3" />
+                                        )}
+                                        <span>Загрузить</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            disabled={uploadingEntryId === entry.id}
+                                            onChange={(event) => {
+                                                const file = event.target.files?.[0] ?? null;
+                                                uploadFile(entry, file);
+                                                event.target.value = '';
+                                            }}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+}
+
+function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, uploadingEntryId, submitEntry, deleteEntry, openEditEntry }) {
+    const grouped = useMemo(() => {
+        const result = {};
+        items.forEach((entry) => {
+            const section = entry.indicator?.section ?? 'other';
+            if (!result[section]) {
+                result[section] = [];
+            }
+            result[section].push(entry);
+        });
+        return result;
+    }, [items]);
+
+    const allSections = Object.entries(grouped);
+    if (allSections.length === 0) return null;
+
+    return (
+        <div className="space-y-6">
+            {allSections.map(([section, entries]) => {
+                const sectionTotal = entries.reduce((s, e) => s + Number(e.points_for_display ?? e.manual_points ?? e.calculated_points ?? 0), 0);
+                const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-muted text-muted-foreground';
+
+                return (
+                    <div key={section}>
+                        <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${iconCls}`}>
+                                    {SECTION_SHORT[section] ?? section}
+                                </span>
+                                <span className="text-sm font-medium text-foreground/80">
+                                    {SECTION_LABELS[section] ?? section}
+                                </span>
+                            </div>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                                Итого: <span className="text-foreground">{formatScore(sectionTotal)}</span> б.
+                            </span>
+                        </div>
+                        <div className="admin-table-wrap">
+                            <table className="admin-data-table min-w-[800px]">
+                                <thead>
+                                    <tr>
+                                        <th className="ps-3 w-6"></th>
+                                        <th className="w-16">Код</th>
+                                        <th>Показатель</th>
+                                        <th className="w-20 text-right">План</th>
+                                        <th className="w-20 text-right">Факт</th>
+                                        <th className="w-20 text-right">Баллы</th>
+                                        <th className="w-28">Статус</th>
+                                        <th className="w-32 text-right pe-3">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {entries.map((entry) => (
+                                        <EntryRow
+                                            key={entry.id}
+                                            entry={entry}
+                                            isEditable={isEditableEntry(entry)}
+                                            isFileMissing={isFileMissing(entry)}
+                                            uploadFile={uploadFile}
+                                            uploadingEntryId={uploadingEntryId}
+                                            submitEntry={submitEntry}
+                                            deleteEntry={deleteEntry}
+                                            openEditEntry={openEditEntry}
+                                        />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 export default function TeacherDashboard({
+    currentUser = {},
     period = null,
+    academicYear = null,
+    result = null,
     summary = {},
     entries,
     indicators = [],
     modules = [],
     groupCodesByModule = {},
     filters = {},
+    filterOptions = {},
+    activeSeasons = [],
     statusOptions = [],
+    permissions = {},
 }) {
     const { flash, errors } = usePage().props;
     const items = entries?.data ?? [];
     const links = entries?.links ?? [];
 
+    const userLevelLabels = {
+        teacher: 'ППС',
+        department_head: 'Заведующий кафедрой',
+        dean: 'Декан',
+    };
+    const userLevelLabel = userLevelLabels[permissions.userLevel] ?? 'Преподаватель';
+
     const [createOpen, setCreateOpen] = useState(false);
     const [uploadingEntryId, setUploadingEntryId] = useState(null);
     const [createFileName, setCreateFileName] = useState('');
+    const [editingEntryId, setEditingEntryId] = useState(null);
 
     const filterForm = useForm({
         stage: filters.stage ?? 'plan',
@@ -109,15 +772,25 @@ export default function TeacherDashboard({
         group_code: filters.group_code ?? '',
     });
 
+    const initialAcademicYearId = filters.academic_year_id ?? activeSeasons[0]?.academic_year_id ?? '';
+
     const createForm = useForm({
-        stage: filters.stage ?? 'plan',
+        academic_year_id: initialAcademicYearId ? String(initialAcademicYearId) : '',
+        stage: 'fact',
         module: modules[0]?.value ?? '',
         group_code: '',
         indicator_id: '',
         value: '',
+        rule_place_points: '',
+        rule_improvement_rate: '',
+        rule_coauthors_count: '',
+        rule_sheet_count: '',
+        rule_role_points: '',
+        rule_tier_points: '',
+        rule_option_points: '',
         comment: '',
         external_source_url: '',
-        file: null,
+        files: [],
         action: 'draft',
     });
 
@@ -141,6 +814,18 @@ export default function TeacherDashboard({
         () => indicatorOptions.find((indicator) => String(indicator.id) === String(createForm.data.indicator_id)) ?? null,
         [indicatorOptions, createForm.data.indicator_id],
     );
+
+    const selectedRuleSpec = useMemo(
+        () => detectRuleSpec(selectedIndicator),
+        [selectedIndicator],
+    );
+
+    const calculatedManualPoints = useMemo(() => {
+        const value = resolveManualPoints(selectedIndicator, createForm.data, selectedRuleSpec);
+        return value === null ? null : Number(value.toFixed(2));
+    }, [selectedIndicator, createForm.data, selectedRuleSpec]);
+
+    const hasActiveSeason = activeSeasons.length > 0;
 
     const applyFilters = (event) => {
         event.preventDefault();
@@ -175,14 +860,45 @@ export default function TeacherDashboard({
     const submitCreate = (event, action) => {
         event.preventDefault();
 
-        createForm.setData('action', action);
+        const hasDynamicRule = selectedRuleSpec.kind !== 'none';
+        const effectiveValue = createForm.data.value === '' && hasDynamicRule
+            ? '1'
+            : createForm.data.value;
+
+        const computedData = {
+            ...createForm.data,
+            value: effectiveValue,
+        };
+
+        const manualPoints = resolveManualPoints(selectedIndicator, computedData, selectedRuleSpec);
+        const calculationDetails = buildCalculationDetails(selectedIndicator, computedData, selectedRuleSpec, manualPoints);
+
+        createForm.transform(() => ({
+            ...computedData,
+            action,
+            manual_points: manualPoints === null ? null : Number(manualPoints.toFixed(2)),
+            calculation_details: calculationDetails,
+        }));
 
         createForm.post(route('kpi.my-entries.store'), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 if (action === 'draft') {
-                    createForm.reset('indicator_id', 'value', 'comment', 'external_source_url', 'file');
+                    createForm.reset(
+                        'indicator_id',
+                        'value',
+                        'rule_place_points',
+                        'rule_improvement_rate',
+                        'rule_coauthors_count',
+                        'rule_sheet_count',
+                        'rule_role_points',
+                        'rule_tier_points',
+                        'rule_option_points',
+                        'comment',
+                        'external_source_url',
+                        'files',
+                    );
                     setCreateFileName('');
                 }
 
@@ -190,9 +906,29 @@ export default function TeacherDashboard({
                     setCreateOpen(false);
                     createForm.reset();
                     setCreateFileName('');
+                    setEditingEntryId(null);
                 }
             },
+            onFinish: () => {
+                createForm.transform((data) => data);
+            },
         });
+    };
+
+    const openEditEntry = (entry) => {
+        createForm.setData((prev) => ({
+            ...prev,
+            module: entry.indicator?.section ?? prev.module,
+            group_code: '',
+            indicator_id: String(entry.indicator_id ?? entry.indicator?.id ?? ''),
+            value: entry.fact_value ?? '',
+            comment: entry.comment ?? '',
+            external_source_url: entry.external_source_url ?? '',
+            files: [],
+        }));
+        setCreateFileName('');
+        setEditingEntryId(entry.id);
+        setCreateOpen(true);
     };
 
     const submitEntry = (entryId) => {
@@ -229,7 +965,7 @@ export default function TeacherDashboard({
         });
     };
 
-    const isEditableEntry = (entry) => entry.status === 'draft' || entry.status === 'returned';
+    const isEditableEntry = (entry) => entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected';
 
     const isFileMissing = (entry) => {
         if (!entry.indicator?.requires_file) {
@@ -239,36 +975,57 @@ export default function TeacherDashboard({
         return (entry.files?.length ?? 0) === 0;
     };
 
+    const handleSeasonChange = (value) => {
+        const params = { ...filters };
+        params.academic_year_id = value || undefined;
+        params.period_id = undefined;
+        router.get(route('kpi.my-form'), params, { preserveState: false });
+    };
+
     return (
         <AuthenticatedLayout
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => setEditingEntryId(null)}>
                             <Plus className="h-4 w-4" />
                             Создать запись
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                         <DialogHeader>
-                            <DialogTitle>Новая KPI-запись</DialogTitle>
+                            <DialogTitle>{editingEntryId ? 'Исправление KPI-записи' : 'Новая KPI-запись'}</DialogTitle>
                             <DialogDescription>
-                                Выберите модуль, код блока и конкретный код показателя, затем сохраните как черновик или сразу отправьте на проверку.
+                                {editingEntryId
+                                    ? 'Исправьте данные по замечаниям и отправьте запись повторно на проверку.'
+                                    : 'Выберите активный сезон, модуль и показатель, затем сохраните как черновик или сразу отправьте на проверку.'}
                             </DialogDescription>
                         </DialogHeader>
 
                         <form className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Этап</label>
+                                <div className="space-y-2 sm:col-span-2">
+                                    <label className="text-sm font-medium">Сезон (учебный год)</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                                        value={createForm.data.stage}
-                                        onChange={(event) => createForm.setData('stage', event.target.value)}
+                                        value={createForm.data.academic_year_id}
+                                        onChange={(event) => createForm.setData('academic_year_id', event.target.value)}
                                     >
-                                        <option value="plan">План</option>
-                                        <option value="fact">Факт</option>
+                                        <option value="">Выберите активный сезон</option>
+                                        {activeSeasons.map((item) => (
+                                            <option key={item.academic_year_id} value={item.academic_year_id}>
+                                                {item.label}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {!hasActiveSeason && (
+                                        <p className="text-xs text-amber-600">
+                                            Нет активных KPI-сезонов. Обратитесь к администратору.
+                                        </p>
+                                    )}
+                                    {createForm.errors.academic_year_id && (
+                                        <p className="text-sm text-destructive">{createForm.errors.academic_year_id}</p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -280,6 +1037,13 @@ export default function TeacherDashboard({
                                             createForm.setData('module', event.target.value);
                                             createForm.setData('group_code', '');
                                             createForm.setData('indicator_id', '');
+                                            createForm.setData('rule_place_points', '');
+                                            createForm.setData('rule_improvement_rate', '');
+                                            createForm.setData('rule_coauthors_count', '');
+                                            createForm.setData('rule_sheet_count', '');
+                                            createForm.setData('rule_role_points', '');
+                                            createForm.setData('rule_tier_points', '');
+                                            createForm.setData('rule_option_points', '');
                                         }}
                                     >
                                         <option value="">Выберите модуль</option>
@@ -297,6 +1061,13 @@ export default function TeacherDashboard({
                                         onChange={(event) => {
                                             createForm.setData('group_code', event.target.value);
                                             createForm.setData('indicator_id', '');
+                                            createForm.setData('rule_place_points', '');
+                                            createForm.setData('rule_improvement_rate', '');
+                                            createForm.setData('rule_coauthors_count', '');
+                                            createForm.setData('rule_sheet_count', '');
+                                            createForm.setData('rule_role_points', '');
+                                            createForm.setData('rule_tier_points', '');
+                                            createForm.setData('rule_option_points', '');
                                         }}
                                     >
                                         <option value="">Выберите код блока</option>
@@ -311,7 +1082,16 @@ export default function TeacherDashboard({
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
                                         value={createForm.data.indicator_id}
-                                        onChange={(event) => createForm.setData('indicator_id', event.target.value)}
+                                        onChange={(event) => {
+                                            createForm.setData('indicator_id', event.target.value);
+                                            createForm.setData('rule_place_points', '');
+                                            createForm.setData('rule_improvement_rate', '');
+                                            createForm.setData('rule_coauthors_count', '');
+                                            createForm.setData('rule_sheet_count', '');
+                                            createForm.setData('rule_role_points', '');
+                                            createForm.setData('rule_tier_points', '');
+                                            createForm.setData('rule_option_points', '');
+                                        }}
                                     >
                                         <option value="">Выберите код</option>
                                         {indicatorOptions.map((indicator) => (
@@ -341,7 +1121,125 @@ export default function TeacherDashboard({
                                     </p>
                                     {createForm.errors.value && <p className="text-sm text-destructive">{createForm.errors.value}</p>}
                                 </div>
+
+                                {selectedRuleSpec.kind === 'podium' && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Место</label>
+                                        <select
+                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            value={createForm.data.rule_place_points}
+                                            onChange={(event) => createForm.setData('rule_place_points', event.target.value)}
+                                        >
+                                            <option value="">Выберите место</option>
+                                            {(selectedRuleSpec.options ?? []).map((item) => (
+                                                <option key={item.value + item.label} value={item.value}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {selectedRuleSpec.kind === 'improvement' && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Тип изменения позиции</label>
+                                        <select
+                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            value={createForm.data.rule_improvement_rate}
+                                            onChange={(event) => createForm.setData('rule_improvement_rate', event.target.value)}
+                                        >
+                                            <option value="">Выберите вариант</option>
+                                            {(selectedRuleSpec.options ?? []).map((item) => (
+                                                <option key={item.value + item.label} value={item.value}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {selectedRuleSpec.kind === 'coauthors' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Количество печатных листов</label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={createForm.data.rule_sheet_count}
+                                                onChange={(event) => createForm.setData('rule_sheet_count', event.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Количество соавторов</label>
+                                            <Input
+                                                type="number"
+                                                step="1"
+                                                min="1"
+                                                value={createForm.data.rule_coauthors_count}
+                                                onChange={(event) => createForm.setData('rule_coauthors_count', event.target.value)}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {selectedRuleSpec.kind === 'roleSplit' && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Ваша роль</label>
+                                        <select
+                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            value={createForm.data.rule_role_points}
+                                            onChange={(event) => createForm.setData('rule_role_points', event.target.value)}
+                                        >
+                                            <option value="">Выберите роль</option>
+                                            {(selectedRuleSpec.options ?? []).map((item) => (
+                                                <option key={item.value + item.label} value={item.value}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {selectedRuleSpec.kind === 'quartile' && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Категория публикации</label>
+                                        <select
+                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            value={createForm.data.rule_tier_points}
+                                            onChange={(event) => createForm.setData('rule_tier_points', event.target.value)}
+                                        >
+                                            <option value="">Выберите категорию</option>
+                                            {(selectedRuleSpec.options ?? []).map((item) => (
+                                                <option key={item.value + item.label} value={item.value}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {selectedRuleSpec.kind === 'optionRate' && (
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <label className="text-sm font-medium">Категория/условие</label>
+                                        <select
+                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            value={createForm.data.rule_option_points}
+                                            onChange={(event) => createForm.setData('rule_option_points', event.target.value)}
+                                        >
+                                            <option value="">Выберите вариант</option>
+                                            {(selectedRuleSpec.options ?? []).map((item) => (
+                                                <option key={item.value + item.label} value={item.value}>{item.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
+
+                            {selectedIndicator?.scoring_rules && (
+                                <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
+                                    <p className="mb-1 font-medium text-foreground">Правила баллов</p>
+                                    <p>{selectedIndicator.scoring_rules}</p>
+                                </div>
+                            )}
+
+                            {calculatedManualPoints !== null && (
+                                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                                    Расчет по правилу: <span className="font-semibold">{formatScore(calculatedManualPoints)} б.</span>
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Комментарий</label>
@@ -371,20 +1269,23 @@ export default function TeacherDashboard({
                                     <label className="text-sm font-medium">Файл подтверждения</label>
                                     <label className="flex h-10 cursor-pointer items-center justify-between rounded-md border border-input px-3 text-sm shadow-sm">
                                         <span className="truncate text-muted-foreground">
-                                            {createFileName || 'Выберите файл (до 10 МБ)'}
+                                            {createFileName || 'Выберите файлы (до 10 МБ каждый)'}
                                         </span>
                                         <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
                                         <input
                                             type="file"
+                                            multiple
                                             className="hidden"
                                             onChange={(event) => {
-                                                const file = event.target.files?.[0] ?? null;
-                                                createForm.setData('file', file);
-                                                setCreateFileName(file?.name ?? '');
+                                                const selectedFiles = Array.from(event.target.files ?? []);
+                                                createForm.setData('files', selectedFiles);
+                                                setCreateFileName(selectedFiles.map((file) => file.name).join(', '));
                                             }}
                                         />
                                     </label>
-                                    {createForm.errors.file && <p className="text-sm text-destructive">{createForm.errors.file}</p>}
+                                    {(createForm.errors.files || createForm.errors['files.0']) && (
+                                        <p className="text-sm text-destructive">{createForm.errors.files || createForm.errors['files.0']}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -394,10 +1295,19 @@ export default function TeacherDashboard({
                             </p>
 
                             <DialogFooter className="gap-2">
-                                <Button type="button" variant="outline" onClick={(event) => submitCreate(event, 'draft')} disabled={createForm.processing}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={(event) => submitCreate(event, 'draft')}
+                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id}
+                                >
                                     Сохранить как черновик
                                 </Button>
-                                <Button type="button" onClick={(event) => submitCreate(event, 'submit')} disabled={createForm.processing}>
+                                <Button
+                                    type="button"
+                                    onClick={(event) => submitCreate(event, 'submit')}
+                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id}
+                                >
                                     <Send className="h-4 w-4" />
                                     Отправить на проверку
                                 </Button>
@@ -407,250 +1317,166 @@ export default function TeacherDashboard({
                 </Dialog>
             }
         >
-            <Head title="Моя KPI-форма" />
+            <Head title="KPI — Мои показатели" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-                <Card className="border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-xl">KPI dashboard преподавателя</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Мои баллы</p>
-                            <p className="mt-2 text-2xl font-semibold">{formatScore(summary.total_points)}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Всего записей</p>
-                            <p className="mt-2 text-2xl font-semibold">{summary.total_entries ?? 0}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Черновики</p>
-                            <p className="mt-2 text-2xl font-semibold">{summary.draft_entries ?? 0}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Отправлено</p>
-                            <p className="mt-2 text-2xl font-semibold">{summary.submitted_entries ?? 0}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap">
 
-                {period && (
-                    <Card>
-                        <CardContent className="pt-6 text-sm text-muted-foreground">
-                            Период: <span className="font-medium text-foreground">{period.name}</span>. Этап:{' '}
-                            <span className="font-medium text-foreground">{stageLabels[period.stage] ?? period.stage}</span>. Окно подачи:{' '}
-                            {formatDate(period.start_date)} - {formatDate(period.end_date)}.
-                        </CardContent>
-                    </Card>
-                )}
+                {/* ── Header ─────────────────────────────────────────── */}
+                <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
+                    <div className="flex items-center gap-3.5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#139AA4] to-[#1a6bb5] shadow-sm">
+                            <User className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-base font-bold leading-tight text-[#132844]">
+                                {currentUser.name ?? 'KPI — Мои показатели'}
+                            </h1>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                                {currentUser.title && <span>{currentUser.title}</span>}
+                                {currentUser.faculty_name && (
+                                    <span className="flex items-center gap-1">
+                                        <span className="text-muted-foreground/40">·</span>
+                                        {currentUser.faculty_name}
+                                    </span>
+                                )}
+                                {currentUser.department_name && (
+                                    <span className="flex items-center gap-1">
+                                        <span className="text-muted-foreground/40">·</span>
+                                        {currentUser.department_name}
+                                    </span>
+                                )}
+                                {!currentUser.faculty_name && !currentUser.department_name && currentUser.division && (
+                                    <span className="text-muted-foreground/70">{currentUser.division}</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
 
+                    <div className="flex flex-col items-end gap-2">
+                        {/* Season (academic year) selector */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <select
+                                className={SELECT_CLS + ' pe-8'}
+                                value={filters.academic_year_id ?? ''}
+                                onChange={(e) => handleSeasonChange(e.target.value)}
+                            >
+                                <option value="">— Учебный год —</option>
+                                {(filterOptions.academicYears ?? []).map((y) => (
+                                    <option key={y.id} value={y.id}>{y.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {academicYear ? (
+                                <>
+                                    <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">
+                                        <strong className="text-foreground">{academicYear.name}</strong>
+                                    </span>
+                                    {period?.status === 'active' && (
+                                        <Badge variant="default" className="h-5 text-[0.65rem] px-2">Активный</Badge>
+                                    )}
+                                </>
+                            ) : (
+                                <span className="text-xs text-amber-600 flex items-center gap-1">
+                                    <CalendarRange className="h-3.5 w-3.5" />
+                                    Сезон не выбран
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Flash messages ─────────────────────────────────── */}
                 {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="pt-6 text-sm">
-                            {flash?.success && <p className="text-emerald-700">{flash.success}</p>}
-                            {flash?.error && <p className="text-destructive">{flash.error}</p>}
-                            {errors?.kpi_entry && <p className="text-destructive">{errors.kpi_entry}</p>}
-                        </CardContent>
-                    </Card>
+                    <div className={[
+                        'flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm',
+                        flash?.success ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800',
+                    ].join(' ')}>
+                        {flash?.success && <p>{flash.success}</p>}
+                        {flash?.error && <p>{flash.error}</p>}
+                        {errors?.kpi_entry && <p>{errors.kpi_entry}</p>}
+                    </div>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Фильтры записей</CardTitle>
+                {/* ── Result score card ──────────────────────────────── */}
+                {result ? (
+                    <ResultScoreCard result={result} />
+                ) : (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-muted/30 px-3.5 py-2.5 text-sm text-muted-foreground">
+                        <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
+                        Итоговый рейтинг ещё не сформирован — период не закрыт или расчёт не завершён.
+                    </div>
+                )}
+
+                {/* ── Stat cards ─────────────────────────────────────── */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <StatCard icon={BarChart3} label="Всего записей" value={summary.total_entries ?? 0} />
+                    <StatCard icon={TrendingUp} label="Утверждено" value={summary.approved_entries ?? 0} accent="green" />
+                    <StatCard label="Отклоненные" value={summary.rejected_entries ?? 0} accent="red" />
+                    <StatCard icon={Clock} label="На проверке" value={summary.pending_entries ?? 0} accent="amber" />
+                    <StatCard label="Баллов" value={formatScore(summary.total_points)} accent="teal" />
+                </div>
+
+                {/* ── Entries by section ─────────────────────────────── */}
+                <Card className="admin-surface">
+                    <CardHeader className="pb-3 pt-4">
+                        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
+                            <FileText className="h-4 w-4 text-[#139AA4]" />
+                            Мои записи KPI по разделам
+                            <span className="ml-auto font-normal text-xs text-muted-foreground">
+                                Нажмите на строку для истории утверждения
+                            </span>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <form className="grid gap-4 md:grid-cols-4" onSubmit={applyFilters}>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Этап</label>
+                        {/* Entry filter bar */}
+                        <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={applyFilters}>
+                            <div>
+                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Этап</p>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                    className={SELECT_CLS}
                                     value={filterForm.data.stage}
-                                    onChange={(event) => filterForm.setData('stage', event.target.value)}
+                                    onChange={(e) => filterForm.setData('stage', e.target.value)}
                                 >
                                     <option value="plan">План</option>
                                     <option value="fact">Факт</option>
                                     <option value="review">Рассмотрение</option>
                                 </select>
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Модуль</label>
+                            <div>
+                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Модуль</p>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                    className={SELECT_CLS}
                                     value={filterForm.data.module}
-                                    onChange={(event) => filterForm.setData('module', event.target.value)}
+                                    onChange={(e) => filterForm.setData('module', e.target.value)}
                                 >
                                     <option value="">Все</option>
-                                    {modules.map((module) => (
-                                        <option key={module.value} value={module.value}>{module.label}</option>
-                                    ))}
+                                    {modules.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                                 </select>
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Код блока</label>
+                            <div>
+                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Статус</p>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                                    value={filterForm.data.group_code}
-                                    onChange={(event) => filterForm.setData('group_code', event.target.value)}
-                                >
-                                    <option value="">Все</option>
-                                    {(groupCodesByModule[filterForm.data.module] ?? [])
-                                        .map((item) => (
-                                            <option key={item.value} value={item.value}>{item.label}</option>
-                                        ))}
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Статус</label>
-                                <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                    className={SELECT_CLS}
                                     value={filterForm.data.status}
-                                    onChange={(event) => filterForm.setData('status', event.target.value)}
+                                    onChange={(e) => filterForm.setData('status', e.target.value)}
                                 >
                                     <option value="">Все</option>
-                                    {statusOptions.map((status) => (
-                                        <option key={status} value={status}>{statusLabels[status] ?? status}</option>
-                                    ))}
+                                    {statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}
                                 </select>
                             </div>
-
-                            <div className="md:col-span-4 flex flex-wrap gap-2">
-                                <Button type="submit">Применить</Button>
-                                <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                            </div>
+                            <Button type="submit" size="sm">Применить</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={resetFilters}>Сбросить</Button>
                         </form>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Мои записи</CardTitle>
-                    </CardHeader>
-                    <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Записей пока нет. Создайте первую KPI-запись.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1100px] text-sm">
-                                    <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Код</th>
-                                            <th className="py-3 pe-3 font-medium">Показатель</th>
-                                            <th className="py-3 pe-3 font-medium">План</th>
-                                            <th className="py-3 pe-3 font-medium">Факт</th>
-                                            <th className="py-3 pe-3 font-medium">Источник</th>
-                                            <th className="py-3 pe-3 font-medium">Файлы</th>
-                                            <th className="py-3 pe-3 font-medium">Баллы</th>
-                                            <th className="py-3 pe-3 font-medium">Статус</th>
-                                            <th className="py-3 text-right font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.map((entry) => (
-                                            <tr key={entry.id} className="border-b align-top last:border-0">
-                                                <td className="py-3 pe-3 font-mono">{entry.indicator?.code ?? '—'}</td>
-                                                <td className="py-3 pe-3">
-                                                    <div className="font-medium">{entry.indicator?.name ?? '—'}</div>
-                                                    <div className="text-xs text-muted-foreground">{entry.indicator?.section ?? '—'}</div>
-                                                </td>
-                                                <td className="py-3 pe-3">{entry.plan_value ?? '—'}</td>
-                                                <td className="py-3 pe-3">{entry.fact_value ?? '—'}</td>
-                                                <td className="py-3 pe-3">
-                                                    {entry.external_source_url ? (
-                                                        <a
-                                                            href={entry.external_source_url}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="text-xs text-sky-700 underline-offset-2 hover:underline"
-                                                        >
-                                                            Открыть
-                                                        </a>
-                                                    ) : '—'}
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    <div className="space-y-2">
-                                                        {(entry.files?.length ?? 0) > 0 ? (
-                                                            <div className="space-y-1">
-                                                                {entry.files.map((file) => (
-                                                                    <a
-                                                                        key={file.id}
-                                                                        href={file.file_url}
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="flex items-center gap-2 text-xs text-sky-700 underline-offset-2 hover:underline"
-                                                                    >
-                                                                        <Paperclip className="h-3.5 w-3.5" />
-                                                                        <span className="max-w-[220px] truncate">{file.file_name}</span>
-                                                                        <span className="text-muted-foreground">({formatFileSize(file.file_size)})</span>
-                                                                    </a>
-                                                                ))}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {entry.indicator?.requires_file ? 'Файл обязателен' : 'Файлы не прикреплены'}
-                                                            </p>
-                                                        )}
-
-                                                        {isEditableEntry(entry) && (
-                                                            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-sky-700">
-                                                                {uploadingEntryId === entry.id ? (
-                                                                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                                                                ) : (
-                                                                    <Upload className="h-3.5 w-3.5" />
-                                                                )}
-                                                                <span>Загрузить файл</span>
-                                                                <input
-                                                                    type="file"
-                                                                    className="hidden"
-                                                                    disabled={uploadingEntryId === entry.id}
-                                                                    onChange={(event) => {
-                                                                        const file = event.target.files?.[0] ?? null;
-
-                                                                        uploadFile(entry, file);
-                                                                        event.target.value = '';
-                                                                    }}
-                                                                />
-                                                            </label>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="py-3 pe-3">{formatScore(entry.manual_points ?? entry.calculated_points)}</td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge variant={statusVariants[entry.status] ?? 'outline'}>
-                                                        {statusLabels[entry.status] ?? entry.status}
-                                                    </Badge>
-                                                    {isFileMissing(entry) && (
-                                                        <p className="mt-2 text-xs text-amber-700">Нужен подтверждающий файл</p>
-                                                    )}
-                                                </td>
-                                                <td className="py-3 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button asChild size="sm" variant="outline">
-                                                            <Link href={route('kpi.entries.show', entry.id)}>Открыть</Link>
-                                                        </Button>
-
-                                                        {isEditableEntry(entry) && (
-                                                            <Button size="sm" onClick={() => submitEntry(entry.id)} disabled={isFileMissing(entry)}>
-                                                                <Send className="h-4 w-4" />
-                                                                Отправить
-                                                            </Button>
-                                                        )}
-
-                                                        {entry.status !== 'approved' && (
-                                                            <Button size="sm" variant="destructive" onClick={() => deleteEntry(entry)}>
-                                                                <Trash2 className="h-4 w-4" />
-                                                                Удалить
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="admin-empty-state">
+                                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                                Записей пока нет. Создайте первую KPI-запись.
                             </div>
+                        ) : (
+                            <EntriesBySection items={items} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
                         )}
 
                         {links.length > 3 && (

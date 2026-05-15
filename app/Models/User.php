@@ -10,6 +10,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+// Related models
+use App\Models\Department;
+use App\Models\Division;
+use App\Models\Faculty;
+use App\Models\KpiStructuralUnit;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -80,6 +86,9 @@ class User extends Authenticatable
             'updated_profile_at' => 'datetime',
             'profile_completed_at' => 'datetime',
             'password' => 'hashed',
+            'last_login_at' => 'datetime',
+            'updated_profile_at' => 'datetime',
+            'profile_completed_at' => 'datetime',
         ];
     }
 
@@ -145,6 +154,31 @@ class User extends Authenticatable
     public function roleRef(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function faculty(): BelongsTo
+    {
+        return $this->belongsTo(Faculty::class, 'faculty_id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(Division::class, 'division_id');
+    }
+
+    public function divisions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Division::class, 'user_division');
+    }
+
+    public function kpiStructuralUnits(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(KpiStructuralUnit::class, 'kpi_structural_unit_user', 'user_id', 'kpi_structural_unit_id');
     }
 
     public function resolvedRoleSlug(): string

@@ -6,6 +6,7 @@ use App\Exceptions\Kpi\KpiPeriodException;
 use App\Http\Requests\Kpi\StoreKpiPeriodRequest;
 use App\Http\Requests\Kpi\UpdateKpiPeriodRequest;
 use App\Models\AcademicYear;
+use App\Models\KpiEntry;
 use App\Models\KpiPeriod;
 use App\Services\KpiPeriodService;
 use Illuminate\Http\JsonResponse;
@@ -20,9 +21,13 @@ class KpiPeriodController extends Controller
     {
     }
 
-    public function index(Request $request): Response|JsonResponse
+    public function index(Request $request): Response|JsonResponse|RedirectResponse
     {
         $this->authorize('viewAny', KpiPeriod::class);
+
+        if (! $request->expectsJson()) {
+            return redirect()->route('kpi.settings', $request->query());
+        }
 
         $query = KpiPeriod::query()->with(['academicYear:id,name,start_year,end_year', 'creator:id,name', 'updater:id,name']);
 
@@ -46,6 +51,16 @@ class KpiPeriodController extends Controller
             ->latest('id')
             ->paginate(15)
             ->withQueryString();
+
+        // Auto-ensure academic years exist for a reasonable range so the admin
+        // never hits a "year not found" situation.
+        $currentYear = now()->year;
+        for ($y = max(2022, $currentYear - 3); $y <= $currentYear + 7; $y++) {
+            AcademicYear::firstOrCreate(
+                ['start_year' => $y, 'end_year' => $y + 1],
+                ['name' => $y . '/' . ($y + 1), 'is_active' => false],
+            );
+        }
 
         $academicYears = AcademicYear::query()
             ->orderByDesc('start_year')
@@ -103,7 +118,7 @@ class KpiPeriodController extends Controller
                 ], 201);
             }
 
-            return redirect()->route('kpi.index')->with('success', 'KPI-период успешно создан.');
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-период успешно создан.');
         } catch (KpiPeriodException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -151,7 +166,7 @@ class KpiPeriodController extends Controller
                 ]);
             }
 
-            return redirect()->route('kpi.index')->with('success', 'KPI-период успешно обновлен.');
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-период успешно обновлен.');
         } catch (KpiPeriodException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -177,7 +192,7 @@ class KpiPeriodController extends Controller
                 ]);
             }
 
-            return redirect()->route('kpi.index')->with('success', 'KPI-период активирован.');
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-период активирован.');
         } catch (KpiPeriodException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -203,7 +218,7 @@ class KpiPeriodController extends Controller
                 ]);
             }
 
-            return redirect()->route('kpi.index')->with('success', 'KPI-период закрыт.');
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-период закрыт.');
         } catch (KpiPeriodException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -213,5 +228,68 @@ class KpiPeriodController extends Controller
 
             return back()->withErrors(['kpi_period' => $e->getMessage()]);
         }
+    }
+
+    public function deactivate(Request $request, KpiPeriod $period): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $period);
+
+        try {
+            $deactivated = $this->service->deactivate($period);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'KPI-сезон деактивирован.',
+                    'data' => $deactivated,
+                ]);
+            }
+
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-сезон деактивирован.');
+        } catch (KpiPeriodException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->withErrors(['kpi_period' => $e->getMessage()]);
+        }
+    }
+
+    public function destroy(Request $request, KpiPeriod $period): RedirectResponse|JsonResponse
+    {
+        $this->authorize('delete', $period);
+
+        if ($period->status === KpiPeriod::STATUS_ACTIVE) {
+            $message = 'Сначала деактивируйте сезон, затем удалите его.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['kpi_period' => $message]);
+        }
+
+        $hasEntries = KpiEntry::query()
+            ->where('kpi_period_id', $period->id)
+            ->exists();
+
+        if ($hasEntries) {
+            $message = 'Сезон нельзя удалить: в нём уже есть KPI-записи.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 422);
+            }
+
+            return back()->withErrors(['kpi_period' => $message]);
+        }
+
+        $period->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'KPI-сезон удалён.']);
+        }
+
+        return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-сезон удалён.');
     }
 }

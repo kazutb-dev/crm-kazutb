@@ -3,15 +3,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Eye, Filter, RotateCcw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Eye, Filter, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 
 const statusLabels = {
     draft: 'Черновик',
     submitted: 'Отправлено',
     returned: 'Возвращено',
     reviewed: 'Проверено',
-    pending_dean: 'На рассмотрении у декана',
-    pending_structural: 'На рассмотрении у стр. подр.',
+    pending_dean: 'Корректировка данных - Деканат',
+    pending_structural: 'Финальное утверждение',
     approved: 'Утверждено',
     rejected: 'Отклонено',
     locked: 'Заблокировано',
@@ -33,6 +34,14 @@ const stageLabels = {
     plan: 'План',
     fact: 'Факт',
     review: 'Рассмотрение',
+};
+
+const sectionLabels = {
+    teaching: 'УМР',
+    science: 'НИР',
+    social: 'СВР',
+    qualification: 'УПК',
+    survey: 'К5',
 };
 
 const entityLabels = {
@@ -63,10 +72,66 @@ function formatDate(value) {
 }
 
 function resolvePoints(entry) {
-    const raw = entry.manual_points ?? entry.calculated_points ?? 0;
+    const raw = entry.points_for_display ?? entry.manual_points ?? entry.calculated_points ?? 0;
     const parsed = Number(raw);
 
     return Number.isFinite(parsed) ? parsed.toFixed(2) : '0.00';
+}
+
+function resolveStructuralUnits(entry) {
+    const units = Array.isArray(entry?.indicator?.structural_units)
+        ? entry.indicator.structural_units
+            .map((unit) => formatStructuralUnitLabel(unit))
+            .filter((name) => Boolean(name) && name !== '—')
+        : [];
+
+    if (units.length > 0) {
+        return units;
+    }
+
+    const fallback = formatStructuralUnitLabel(entry?.indicator?.checker_structural_unit);
+
+    return fallback && fallback !== '—' ? [fallback] : [];
+}
+
+function resolveResponsibleReviewer(entry, mode) {
+    if (entry.status === 'submitted') {
+        return 'Заведующий кафедрой';
+    }
+
+    if (['pending_dean', 'reviewed'].includes(entry.status)) {
+        return 'Декан';
+    }
+
+    if (entry.status === 'pending_structural') {
+        const units = resolveStructuralUnits(entry);
+
+        return units.length > 0
+            ? `Структурное подразделение: ${units.join(', ')}`
+            : 'Структурное подразделение';
+    }
+
+    if (['approved', 'rejected', 'locked'].includes(entry.status)) {
+        return 'Финальное решение принято';
+    }
+
+    if (entry.status === 'returned') {
+        return 'Автор записи (доработка)';
+    }
+
+    if (mode === 'review') {
+        return 'Заведующий кафедрой';
+    }
+
+    if (mode === 'approval') {
+        return 'Декан';
+    }
+
+    if (mode === 'structural') {
+        return 'Структурное подразделение';
+    }
+
+    return '—';
 }
 
 function Pagination({ links = [] }) {
@@ -111,7 +176,12 @@ export default function ModerationQueue({
     statusOptions = [],
     filters = {},
     permissions = {},
+    reviewScope = null,
+    structuralScope = null,
     mode = 'review',
+    activeTab = 'scope',
+    unlinkedCount = 0,
+    showTabs = false,
 }) {
     const { auth, flash, errors } = usePage().props;
     const items = entries?.data ?? [];
@@ -119,6 +189,7 @@ export default function ModerationQueue({
     const total = entries?.total ?? items.length;
     const roleSlug = auth?.roleSlug;
     const canModerate = permissions?.canModerate ?? false;
+    const isAdminViewer = roleSlug === 'admin' || roleSlug === 'superadmin';
 
     const filterForm = useForm({
         academic_year_id: filters.academic_year_id ? String(filters.academic_year_id) : '',
@@ -129,10 +200,18 @@ export default function ModerationQueue({
         user_id: filters.user_id ? String(filters.user_id) : '',
     });
 
+    const switchTab = (tab) => {
+        router.get(route(queueRoute), { tab }, {
+            preserveState: false,
+            replace: true,
+        });
+    };
+
     const applyFilters = (event) => {
         event.preventDefault();
 
         router.get(route(queueRoute), {
+            tab: activeTab,
             academic_year_id: filterForm.data.academic_year_id || undefined,
             period_id: filterForm.data.period_id || undefined,
             status: filterForm.data.status || undefined,
@@ -185,20 +264,15 @@ export default function ModerationQueue({
 
     const currentStatus = filterForm.data.status || filters.status || '';
 
-    // Dept head queue (review): submitted → pending_dean or returned
+    // Dept head queue (review): submitted → pending_dean
     const showApproveForwardAction = (entry) => canModerate
         && mode === 'review'
         && entry.status === 'submitted';
 
-    // Dean queue (approval): pending_dean → pending_structural or returned
+    // Dean queue (approval): pending_dean/reviewed → pending_structural
     const showDeanForwardAction = (entry) => canModerate
         && mode === 'approval'
         && ['pending_dean', 'reviewed'].includes(entry.status);
-
-    // Return to teacher: dept head from submitted, dean from pending_dean
-    const showReturnAction = (entry) => canModerate
-        && ((mode === 'review' && entry.status === 'submitted')
-            || (mode === 'approval' && ['pending_dean', 'reviewed'].includes(entry.status)));
 
     // Structural queue: final approve pending_structural → approved
     const showStructuralApproveAction = (entry) => canModerate
@@ -219,39 +293,37 @@ export default function ModerationQueue({
 
     const showAdminRejectAction = (entry) => canModerate
         && roleSlug === 'admin'
+        && mode !== 'structural'
         && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status);
 
     return (
-        <AuthenticatedLayout
-            headerRight={
-                <div className="flex items-center gap-2">
-                    <Button
-                        asChild
-                        size="sm"
-                        variant={mode === 'review' ? 'default' : 'outline'}
-                    >
-                        <Link href={route('kpi.review-queue')}>Проверка</Link>
-                    </Button>
-                    <Button
-                        asChild
-                        size="sm"
-                        variant={mode === 'approval' ? 'default' : 'outline'}
-                    >
-                        <Link href={route('kpi.approval-queue')}>На рассмотрении у декана</Link>
-                    </Button>
-                    <Button
-                        asChild
-                        size="sm"
-                        variant={mode === 'structural' ? 'default' : 'outline'}
-                    >
-                        <Link href={route('kpi.structural-queue')}>Стр. подразделения</Link>
-                    </Button>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title={pageTitle} />
 
             <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+                {showTabs && (
+                    <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
+                        <button
+                            type="button"
+                            onClick={() => switchTab('scope')}
+                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === 'scope' ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            {reviewScope?.type === 'department' ? 'Моя кафедра' : 'Мой факультет'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => switchTab('unlinked')}
+                            className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === 'unlinked' ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        >
+                            Без привязки
+                            {unlinkedCount > 0 && (
+                                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-white leading-none">
+                                    {unlinkedCount}
+                                </span>
+                            )}
+                        </button>
+                    </div>
+                )}
                 <Card className="border-0 bg-gradient-to-r from-amber-50 via-white to-sky-50 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-xl">
@@ -266,6 +338,37 @@ export default function ModerationQueue({
                                 Роль: <span className="font-medium text-foreground">{entityLabels[roleSlug] ?? roleSlug ?? 'Сотрудник'}</span>.
                                 Доступные действия зависят от статуса записи и организационной привязки пользователя.
                             </p>
+                            {reviewScope?.label && (
+                                <p>
+                                    {reviewScope.type === 'department' ? 'Кафедра корректировки:' : 'Факультет корректировки:'}{' '}
+                                    <span className="font-medium text-foreground">{reviewScope.label}</span>
+                                </p>
+                            )}
+                            {structuralScope?.type === 'admin' && (
+                                <p>
+                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
+                                </p>
+                            )}
+                            {structuralScope?.type === 'unrestricted' && (
+                                <p>
+                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
+                                </p>
+                            )}
+                            {structuralScope?.type === 'divisions' && structuralScope?.divisions && (
+                                <div>
+                                    <p>{structuralScope.label}</p>
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                        {structuralScope.divisions.map((div) => (
+                                            <Badge key={div.id} variant="secondary">{formatStructuralUnitLabel(div)}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {structuralScope?.type === 'info' && structuralScope?.label && (
+                                <p>
+                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
+                                </p>
+                            )}
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
@@ -429,6 +532,7 @@ export default function ModerationQueue({
                                                 <th className="py-3 pe-3 font-medium">Показатель</th>
                                                 <th className="py-3 pe-3 font-medium">Период</th>
                                                 <th className="py-3 pe-3 font-medium">Структура</th>
+                                                {isAdminViewer && <th className="py-3 pe-3 font-medium">Привязка / подтверждение</th>}
                                                 <th className="py-3 pe-3 font-medium">Баллы</th>
                                                 <th className="py-3 pe-3 font-medium">Статус</th>
                                                 <th className="py-3 pe-3 font-medium">Действия</th>
@@ -456,6 +560,24 @@ export default function ModerationQueue({
                                                         <div>{entry.faculty?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-muted-foreground">{entry.department?.name ?? '—'}</div>
                                                     </td>
+                                                    {isAdminViewer && (
+                                                        <td className="py-4 pe-3">
+                                                            {(() => {
+                                                                const unitNames = resolveStructuralUnits(entry);
+
+                                                                return (
+                                                                    <>
+                                                                        <div className="text-xs text-muted-foreground">Раздел KPI</div>
+                                                                        <div className="font-medium">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</div>
+                                                                        <div className="mt-1 text-xs text-muted-foreground">Привязан к подразделению</div>
+                                                                        <div>{unitNames.length > 0 ? unitNames.join(', ') : 'Не назначено'}</div>
+                                                                        <div className="mt-1 text-xs text-muted-foreground">Кто подтверждает</div>
+                                                                        <div className="font-medium">{resolveResponsibleReviewer(entry, mode)}</div>
+                                                                    </>
+                                                                );
+                                                            })()}
+                                                        </td>
+                                                    )}
                                                     <td className="py-4 pe-3 font-medium">{resolvePoints(entry)}</td>
                                                     <td className="py-4 pe-3">
                                                         <Badge variant={statusVariants[entry.status] ?? 'outline'}>
@@ -479,18 +601,6 @@ export default function ModerationQueue({
                                                                 >
                                                                     <ShieldCheck className="h-4 w-4" />
                                                                     Одобрить → Декану
-                                                                </Button>
-                                                            )}
-
-                                                            {/* Dept head / Dean: вернуть ППС */}
-                                                            {showReturnAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() => submitAction('kpi.entries.return', entry.id, 'Комментарий к возврату')}
-                                                                >
-                                                                    <RotateCcw className="h-4 w-4" />
-                                                                    Вернуть ППС
                                                                 </Button>
                                                             )}
 

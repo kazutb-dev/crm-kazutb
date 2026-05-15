@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -19,9 +20,18 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user()->loadMissing([
+            'faculty',
+            'department',
+            'divisions',
+            'kpiStructuralUnits',
+            'roleRef',
+        ]);
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            'profile' => $this->buildProfilePayload($user),
         ]);
     }
 
@@ -31,7 +41,7 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request, GreenApiWhatsAppNotifier $whatsAppNotifier): RedirectResponse
     {
         $user = $request->user();
-        $validated = $request->validated();
+        $validated = $this->normalizeProfileData($request->validated());
 
         $newPhone = trim((string) ($validated['phone'] ?? ''));
         $currentPhone = trim((string) ($user->phone ?? ''));
@@ -73,6 +83,12 @@ class ProfileController extends Controller
             $user->email_verified_at = null;
         }
 
+        $user->updated_profile_at = now();
+
+        if ($user->profile_completed_at === null && $this->profileCompletionPercent($user) >= 100) {
+            $user->profile_completed_at = now();
+        }
+
         $user->save();
 
         return Redirect::route('profile.edit');
@@ -97,5 +113,144 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    private function buildProfilePayload(User $user): array
+    {
+        $isAdSynced = $this->isAdSynced($user);
+        $profileCompletionPercent = $this->profileCompletionPercent($user);
+        $profileCompletionLabel = $profileCompletionPercent . '%';
+        $profileVisibility = $this->profileVisibilityValue($user->profile_visibility);
+        $profileVisibilityLabel = $this->profileVisibilityLabel($profileVisibility);
+        $syncLabel = $isAdSynced ? 'AD-синхронизация' : 'Локальный аккаунт';
+        $isStructuralRole = in_array($user->resolvedRoleSlug(), ['department', 'structural'], true);
+        $divisionSource = $isStructuralRole
+            ? $user->kpiStructuralUnits->map(static fn ($unit) => [
+                'id' => $unit->id,
+                'name' => $unit->name,
+            ])->values()
+            : $user->divisions->map(static fn ($division) => [
+                'id' => $division->id,
+                'name' => $division->name,
+            ])->values();
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone ?: null,
+            'ad_phone' => $user->ad_phone ?? null,
+            'position_title' => $user->position_title ?: ($user->ad_title ?: null),
+            'office_location' => $user->office_location ?: ($user->room ?: null),
+            'telegram' => $user->telegram ?: null,
+            'bio' => $user->bio ?: null,
+            'avatar_url' => $user->avatar_url ?: null,
+            'profile_visibility' => $profileVisibility,
+            'profile_visibility_label' => $profileVisibilityLabel,
+            'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
+            'created_at' => $user->created_at?->toIso8601String(),
+            'updated_at' => $user->updated_at?->toIso8601String(),
+            'updated_profile_at' => $user->updated_profile_at?->toIso8601String(),
+            'profile_completed_at' => $user->profile_completed_at?->toIso8601String(),
+            'login_count' => (int) ($user->login_count ?? 0),
+            'role_label' => $user->resolveRoleLabel(),
+            'role_slug' => $user->resolvedRoleSlug(),
+            'sync_status' => $isAdSynced ? 'ad' : 'local',
+            'sync_label' => $syncLabel,
+            'profile_completion_percent' => $profileCompletionPercent,
+            'profile_completion_label' => $profileCompletionLabel,
+            'profile_completion' => $profileCompletionPercent,
+            'faculty' => $user->faculty ? [
+                'id' => $user->faculty->id,
+                'name' => $user->faculty->name,
+            ] : null,
+            'department' => $user->department ? [
+                'id' => $user->department->id,
+                'name' => $user->department->name,
+            ] : null,
+            'divisions' => $divisionSource->all(),
+            'bindings' => [
+                'faculty_label' => $user->faculty?->name,
+                'department_label' => $user->department?->name,
+                'division_labels' => $divisionSource->pluck('name')->values()->all(),
+            ],
+            'snapshot' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?: ($user->ad_phone ?? null),
+                'position_title' => $user->position_title ?: $user->ad_title,
+                'office_location' => $user->office_location ?: $user->room,
+                'telegram' => $user->telegram,
+                'bio' => $user->bio,
+                'avatar_url' => $user->avatar_url,
+                'profile_visibility' => $profileVisibility,
+            ],
+        ];
+    }
+
+    private function normalizeProfileData(array $validated): array
+    {
+        $validated['name'] = trim((string) ($validated['name'] ?? ''));
+        $validated['email'] = mb_strtolower(trim((string) ($validated['email'] ?? '')));
+
+        foreach (['phone', 'position_title', 'office_location', 'telegram', 'bio', 'avatar_url'] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $value = trim((string) ($validated[$field] ?? ''));
+                $validated[$field] = $value === '' ? null : $value;
+            }
+        }
+
+        $validated['profile_visibility'] = trim((string) ($validated['profile_visibility'] ?? 'internal')) ?: 'internal';
+
+        return $validated;
+    }
+
+    private function profileVisibilityValue(?string $visibility): string
+    {
+        return in_array($visibility, ['public', 'internal', 'private'], true)
+            ? $visibility
+            : 'internal';
+    }
+
+    private function profileCompletionPercent(User $user): int
+    {
+        $fields = [
+            $user->name,
+            $user->email,
+            $user->phone ?: ($user->ad_phone ?? null),
+            $user->position_title ?: $user->ad_title,
+            $user->bio,
+            $user->avatar_url,
+        ];
+
+        $filledCount = 0;
+
+        foreach ($fields as $field) {
+            if (filled($field)) {
+                $filledCount++;
+            }
+        }
+
+        return (int) round(($filledCount / count($fields)) * 100);
+    }
+
+    private function isAdSynced(User $user): bool
+    {
+        return filled($user->ad_guid)
+            || filled($user->ad_login)
+            || filled($user->ad_title)
+            || filled($user->ad_department)
+            || filled($user->ad_division)
+            || filled($user->ad_description);
+    }
+
+    private function profileVisibilityLabel(?string $visibility): string
+    {
+        return match ($visibility) {
+            'public' => 'Публичный',
+            'private' => 'Приватный',
+            default => 'Внутренний',
+        };
     }
 }

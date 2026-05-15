@@ -12,64 +12,415 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Search, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import {
+    AlertTriangle,
+    Clock3,
+    Mail,
+    Pencil,
+    RefreshCw,
+    Search,
+    ShieldPlus,
+    Users,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-export default function Index({ users, positions = [], search, adAvailable, pageTitle, searchRouteName, directoryType }) {
-    const form = useForm({
-        q: search ?? '',
+const ROLE_OPTIONS = [
+    { value: 'teacher', label: 'Преподаватель' },
+    { value: 'hod', label: 'Заведующий кафедрой' },
+    { value: 'dean', label: 'Декан' },
+    { value: 'structural', label: 'Структурное подразделение' },
+    { value: 'admin', label: 'Администратор' },
+];
+
+const STAFF_TAB_OPTIONS = [
+    { key: 'teacher', label: 'ППС' },
+    { key: 'hod', label: 'Завед. кафедрой' },
+    { key: 'dean', label: 'Деканы' },
+    { key: 'structural', label: 'Структурные' },
+    { key: 'test_users', label: 'Тестовые пользователи' },
+    { key: 'all', label: 'Все' },
+];
+
+const STUDENT_TAB_OPTIONS = [
+    { key: 'bachelor', label: 'Бакалавриат' },
+    { key: 'master', label: 'Магистратура' },
+    { key: 'all', label: 'Все' },
+];
+
+const ROLE_BADGE_STYLES = {
+    teacher: 'border-sky-200 bg-sky-50 text-sky-800',
+    hod: 'border-amber-200 bg-amber-50 text-amber-900',
+    dean: 'border-violet-200 bg-violet-50 text-violet-900',
+    structural: 'border-teal-200 bg-teal-50 text-teal-900',
+    student: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+    admin: 'border-slate-200 bg-slate-100 text-slate-800',
+    superadmin: 'border-slate-200 bg-slate-100 text-slate-800',
+    default: 'border-slate-200 bg-slate-100 text-slate-700',
+};
+
+const SYNC_BADGE_STYLES = {
+    yes: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    no: 'border-slate-200 bg-slate-100 text-slate-700',
+};
+
+const BINDING_BADGE_STYLES = {
+    ok: 'border-slate-200 bg-slate-100 text-slate-700',
+    missing: 'border-amber-300 bg-amber-50 text-amber-800',
+};
+
+const LAST_LOGIN_TONES = {
+    recent: 'text-emerald-700',
+    neutral: 'text-slate-600',
+    stale: 'text-amber-700',
+    never: 'text-slate-400',
+};
+
+const FACULTY_STRUCTURE = [
+    {
+        faculty: 'Технологический факультет',
+        departments: ['Технология и стандартизация', 'Технология легкой промышленности и дизайна', 'Социально-гуманитарные дисциплины'],
+    },
+    {
+        faculty: 'Факультет экономики и бизнеса',
+        departments: ['Туризм и сервис', 'Экономика и управление', 'Финансы и учёт', 'Государственный и иностранные языки'],
+    },
+    {
+        faculty: 'Факультет инжиниринга и информационных технологий',
+        departments: ['Информационные технологии', 'Компьютерная инженерия и автоматизация', 'Химия, химическая технология и экология'],
+    },
+];
+
+const DEPARTMENT_TO_FACULTY = FACULTY_STRUCTURE.reduce((map, item) => {
+    item.departments.forEach((department) => map.set(normalizeKey(department), item.faculty));
+    return map;
+}, new Map());
+
+function normalizeKey(value) {
+    return String(value ?? '').toLowerCase().replace(/[«»"'`;.,]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function resolveRoleSlug(user) {
+    const slug = String(user?.role_slug ?? '').toLowerCase();
+    if (slug === 'department_head') return 'hod';
+    if (slug === 'department') return 'structural';
+    return slug;
+}
+
+function resolveRoleLabel(user) {
+    const slug = resolveRoleSlug(user);
+    switch (slug) {
+        case 'teacher':
+            return 'Преподаватель';
+        case 'hod':
+            return 'Завед. кафедрой';
+        case 'dean':
+            return 'Декан';
+        case 'structural':
+            return 'Структурное подразделение';
+        case 'admin':
+        case 'superadmin':
+            return 'Администратор';
+        case 'student':
+            return 'Студент';
+        default:
+            return 'Без роли';
+    }
+}
+
+function resolvePositionDisplay(user) {
+    return user.position_name || user.title || '—';
+}
+
+function resolveUnitDisplay(user) {
+    if (user.faculty_name) return { text: user.faculty_name, fromAd: false };
+    if (user.department_name) return { text: user.department_name, fromAd: false };
+    if (user.ad_department) return { text: `${user.ad_department} (из AD)`, fromAd: true };
+    return { text: '—', fromAd: false };
+}
+
+function getRoleBadgeClass(user) {
+    const role = resolveRoleSlug(user);
+    return ROLE_BADGE_STYLES[role] ?? ROLE_BADGE_STYLES.default;
+}
+
+function getSyncBadgeClass(user) {
+    return user.is_synced ? SYNC_BADGE_STYLES.yes : SYNC_BADGE_STYLES.no;
+}
+
+function getBindingBadgeClass(user) {
+    return user.is_binding_missing ? BINDING_BADGE_STYLES.missing : BINDING_BADGE_STYLES.ok;
+}
+
+function getLastLoginTone(user) {
+    if (!user.last_login_at) {
+        return LAST_LOGIN_TONES.never;
+    }
+
+    const date = new Date(user.last_login_at);
+    if (Number.isNaN(date.getTime())) {
+        return LAST_LOGIN_TONES.never;
+    }
+
+    const diffHours = (Date.now() - date.getTime()) / 36e5;
+
+    if (diffHours < 24) {
+        return LAST_LOGIN_TONES.recent;
+    }
+
+    if (diffHours < 24 * 30) {
+        return LAST_LOGIN_TONES.neutral;
+    }
+
+    return LAST_LOGIN_TONES.stale;
+}
+
+function resolveHodFaculty(user) {
+    if (user.faculty_name) {
+        return user.faculty_name;
+    }
+
+    const dep = normalizeKey(user.department_name);
+    if (!dep) {
+        return '—';
+    }
+
+    return DEPARTMENT_TO_FACULTY.get(dep) ?? '—';
+}
+
+function renderHodUnit(user) {
+    const deptName = user.department_name || user.ad_department || null;
+    const facName = user.faculty_name || null;
+
+    if (deptName) {
+        return (
+            <div>
+                <div className="text-sm font-medium text-gray-900">{deptName}</div>
+                {facName && <div className="text-xs text-gray-400">{facName}</div>}
+            </div>
+        );
+    }
+
+    if (facName) {
+        return <span className="text-sm text-gray-500">{facName}</span>;
+    }
+
+    return (
+        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            ⚠ Не привязан
+        </span>
+    );
+}
+
+function isBindingMissing(user) {
+    const role = resolveRoleSlug(user);
+    if (role === 'hod') {
+        return !user.department_id && !user.department_name;
+    }
+    if (role === 'dean') {
+        return !user.faculty_id && !user.faculty_name;
+    }
+    return false;
+}
+
+function formatExactTimestamp(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    }).format(date);
+}
+
+function formatLastLogin(value) {
+    if (!value) {
+        return { label: 'Никогда не заходил', className: 'text-muted-foreground', tooltip: 'Пользователь еще не входил в CRM' };
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return { label: 'Никогда не заходил', className: 'text-muted-foreground', tooltip: '' };
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diffDays = Math.floor(diffMs / dayMs);
+
+    if (diffMs < dayMs) {
+        const hhmm = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(date);
+        return { label: `Сегодня в ${hhmm}`, className: 'text-emerald-700', tooltip: formatExactTimestamp(value) };
+    }
+
+    if (diffDays < 7) {
+        return { label: `${diffDays} дн. назад`, className: 'text-foreground', tooltip: formatExactTimestamp(value) };
+    }
+
+    if (diffDays < 30) {
+        const shortDate = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short' }).format(date);
+        return { label: shortDate, className: 'text-foreground', tooltip: formatExactTimestamp(value) };
+    }
+
+    const longDate = new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+    return { label: longDate, className: 'text-muted-foreground', tooltip: formatExactTimestamp(value) };
+}
+
+export default function Index({
+    users = [],
+    positions = [],
+    departments = [],
+    faculties = [],
+    filters = {},
+    counts = {},
+    pagination = {},
+    pageTitle,
+    searchRouteName,
+    directoryType = 'staff',
+    structuralDivisionOptions = [],
+}) {
+    const routeName = searchRouteName ?? 'users.index';
+    const tabOptions = directoryType === 'students' ? STUDENT_TAB_OPTIONS : STAFF_TAB_OPTIONS;
+
+    const filterForm = useForm({
+        q: filters.q ?? '',
+        tab: filters.tab ?? (directoryType === 'students' ? 'all' : 'teacher'),
+        sort_by: filters.sort_by ?? '',
+        sort_dir: filters.sort_dir ?? 'asc',
+        faculty_id: filters.faculty_id ?? '',
+        department_id: filters.department_id ?? '',
+        synced: filters.synced ?? 'all',
+        last_login_range: filters.last_login_range ?? 'all',
+        per_page: Number(filters.per_page ?? pagination.per_page ?? 50),
+        page: Number(filters.page ?? pagination.current_page ?? 1),
     });
-    const manualForm = useForm({
-        name: '',
-        email: '',
-        login: '',
-        position_id: '',
-        directory_type: directoryType,
-    });
+
     const positionForm = useForm({
         position_id: '',
+        department_id: '',
+        faculty_id: '',
+        division_ids: [],
     });
-    const [manualDialogOpen, setManualDialogOpen] = useState(false);
-    const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+
+    const roleForm = useForm({
+        role: 'teacher',
+    });
+
     const [editingUser, setEditingUser] = useState(null);
+    const [positionDialogOpen, setPositionDialogOpen] = useState(false);
+    const [roleDialogUser, setRoleDialogUser] = useState(null);
+    const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+    const [roleConfirmOpen, setRoleConfirmOpen] = useState(false);
+    const [onlyUnbound, setOnlyUnbound] = useState(false);
+    const skipNextAutoSearchRef = useRef(false);
 
-    const title = pageTitle ?? 'Пользователи';
-    const routeName = searchRouteName ?? 'users.index';
-    const isStudentsPage = directoryType === 'students';
-    const isStaffPage = directoryType === 'staff';
-    const selectedPosition = useMemo(
-        () => positions.find((position) => String(position.id) === String(positionForm.data.position_id)) ?? null,
-        [positions, positionForm.data.position_id],
+    const defaultTab = directoryType === 'students' ? 'all' : 'teacher';
+    const tab = filters.tab ?? filterForm.data.tab ?? defaultTab;
+    const activeTab = tab;
+
+    const totalCount = pagination.total ?? users.length ?? 0;
+
+    const tabClass = (key) => (
+        activeTab === key
+            ? 'inline-flex h-8 items-center gap-1.5 rounded-full border border-[#10263f] bg-[#17314f] px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 transition-all'
+            : 'inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300/90 bg-slate-50/75 px-3 py-1 text-xs font-medium text-slate-600 transition-all hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900'
     );
-    const selectedManualPosition = useMemo(
-        () => positions.find((position) => String(position.id) === String(manualForm.data.position_id)) ?? null,
-        [positions, manualForm.data.position_id],
+
+    const badgeClass = (key) => (
+        activeTab === key
+            ? 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[10px] font-bold text-[#17314f]'
+            : 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-200/70 px-1.5 text-[10px] font-semibold text-slate-700'
     );
 
-    const submit = (e) => {
-        e.preventDefault();
+    const displayedUsers = useMemo(() => {
+        if (!onlyUnbound) return users;
+        return users.filter((user) => isBindingMissing(user));
+    }, [users, onlyUnbound]);
 
-        router.get(
-            route(routeName),
-            { q: form.data.q },
-            {
+    const visibleCount = displayedUsers.length;
+    const summaryLine = directoryType === 'students'
+        ? `Бакалавриат: ${counts.bachelor ?? 0} · Магистратура: ${counts.master ?? 0} · Всего: ${counts.all ?? 0}`
+        : `ППС: ${counts.teacher ?? 0} · Завкаф: ${counts.hod ?? 0} · Деканы: ${counts.dean ?? 0} · Структурные: ${counts.structural ?? 0} · Тестовые: ${counts.test_users ?? 0}`;
+
+    const unboundHodCount = useMemo(
+        () => users.filter((user) => resolveRoleSlug(user) === 'hod' && isBindingMissing(user)).length,
+        [users],
+    );
+
+    const unboundDeanCount = useMemo(
+        () => users.filter((user) => resolveRoleSlug(user) === 'dean' && isBindingMissing(user)).length,
+        [users],
+    );
+
+    const submitFilters = (next = {}, resetPage = true, options = {}) => {
+        const payload = {
+            ...filterForm.data,
+            ...next,
+        };
+
+        if (options.suppressNextSearch) {
+            skipNextAutoSearchRef.current = true;
+        }
+
+        if (resetPage && next.page === undefined) {
+            payload.page = 1;
+            filterForm.setData('page', 1);
+        }
+
+        router.get(route(routeName), payload, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    useEffect(() => {
+        const currentQuery = String(filterForm.data.q ?? '');
+        const serverQuery = String(filters.q ?? '');
+
+        if (skipNextAutoSearchRef.current) {
+            skipNextAutoSearchRef.current = false;
+            return undefined;
+        }
+
+        if (currentQuery === serverQuery) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            router.get(route(routeName), {
+                ...filterForm.data,
+                q: currentQuery,
+                page: 1,
+            }, {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-            },
-        );
-    };
+            });
+        }, 320);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [filterForm.data, filterForm.data.q, filters.q, routeName]);
 
     const openPositionDialog = (user) => {
         setEditingUser(user);
 
-        const matched = positions.find(
-            (position) =>
-                (position.name ?? '') === (user.title ?? '')
-                && (position.division_name ?? '') === (user.department ?? ''),
-        );
+        const selectedDivisionIds = Array.isArray(user?.divisions)
+            ? user.divisions
+                .map((division) => Number(division?.id))
+                .filter((id) => Number.isInteger(id) && id > 0)
+            : [];
 
-        positionForm.setData('position_id', matched ? String(matched.id) : '');
+        positionForm.setData({
+            position_id: user.position_id ? String(user.position_id) : '',
+            department_id: user.department_id ? String(user.department_id) : '',
+            faculty_id: user.faculty_id ? String(user.faculty_id) : '',
+            division_ids: selectedDivisionIds,
+        });
         positionForm.clearErrors();
         setPositionDialogOpen(true);
     };
@@ -77,162 +428,195 @@ export default function Index({ users, positions = [], search, adAvailable, page
     const submitPosition = (e) => {
         e.preventDefault();
 
-        if (!editingUser) {
+        if (!editingUser) return;
+
+        const routeTarget = route('users.position.update', editingUser.local_user_id);
+
+        router.patch(
+            routeTarget,
+            {
+                position_id: positionForm.data.position_id || null,
+                department_id: positionForm.data.department_id || null,
+                faculty_id: positionForm.data.faculty_id || null,
+                division_ids: positionForm.data.division_ids,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setPositionDialogOpen(false);
+                    setEditingUser(null);
+                },
+            },
+        );
+    };
+
+    const openRoleDialog = (user) => {
+        setRoleDialogUser(user);
+        roleForm.setData('role', resolveRoleSlug(user) || 'teacher');
+        roleForm.clearErrors();
+        setRoleDialogOpen(true);
+        setRoleConfirmOpen(false);
+    };
+
+    const createLocalUserFromAd = async (row) => {
+        const confirmed = window.confirm('Создать локальную запись для этого пользователя?');
+        if (!confirmed) {
+            return null;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            window.alert('Не найден CSRF токен. Обновите страницу и повторите.');
+            return null;
+        }
+
+        const response = await fetch('/users/create-from-ad', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                Accept: 'application/json',
+            },
+            body: JSON.stringify({
+                ad_login: row.login,
+                ad_guid: row.guid,
+                email: row.email,
+                name: row.display_name || row.name,
+            }),
+        });
+
+        if (!response.ok) {
+            window.alert('Не удалось создать локальную запись пользователя.');
+            return null;
+        }
+
+        const data = await response.json();
+        if (!data?.user_id) {
+            window.alert('Сервер не вернул ID нового пользователя.');
+            return null;
+        }
+
+        return {
+            ...row,
+            local_user_id: data.user_id,
+            can_edit: true,
+        };
+    };
+
+    const handleEditClick = async (user) => {
+        if (user.local_user_id) {
+            openPositionDialog(user);
             return;
         }
 
-        const payload = {
-            position_id: positionForm.data.position_id,
-            login: editingUser.login ?? '',
-            email: editingUser.email ?? '',
-            display_name: editingUser.display_name ?? '',
-            employee_type: editingUser.employee_type ?? '',
-        };
-
-        const routeTarget = editingUser.local_user_id
-            ? route('users.position.update', editingUser.local_user_id)
-            : route('users.position.update-directory');
-
-        router.patch(routeTarget, payload, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setPositionDialogOpen(false);
-                setEditingUser(null);
-            },
-        });
+        const normalized = await createLocalUserFromAd(user);
+        if (normalized) {
+            openPositionDialog(normalized);
+        }
     };
 
-    const submitManual = (e) => {
-        e.preventDefault();
+    const handleRoleClick = async (user) => {
+        if (user.local_user_id) {
+            openRoleDialog(user);
+            return;
+        }
 
-        manualForm.post(route('users.manual.store'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                manualForm.reset({
-                    name: '',
-                    email: '',
-                    login: '',
-                    position_id: '',
-                    directory_type: directoryType,
-                });
-                setManualDialogOpen(false);
+        const normalized = await createLocalUserFromAd(user);
+        if (normalized) {
+            openRoleDialog(normalized);
+        }
+    };
+
+    const submitRoleChange = () => {
+        if (!roleDialogUser) return;
+
+        router.patch(
+            route('users.role.update', roleDialogUser.local_user_id),
+            { role: roleForm.data.role },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setRoleDialogOpen(false);
+                    setRoleDialogUser(null);
+                    setRoleConfirmOpen(false);
+                },
             },
-        });
+        );
+    };
+
+    const renderSyncBadge = (user) => {
+        return (
+            <Badge variant="outline" className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 py-0 text-[10px] font-semibold ${getSyncBadgeClass(user)}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${user.is_synced ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                {user.is_synced ? 'Да' : 'Нет'}
+            </Badge>
+        );
+    };
+
+    const renderEditButton = (user) => {
+        const missing = isBindingMissing(user);
+
+        return (
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={`h-7 rounded-md border px-2.5 text-[11px] font-medium shadow-sm ${missing ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+                onClick={() => handleEditClick(user)}
+            >
+                <Pencil className="h-3.5 w-3.5" />
+                Редактировать
+            </Button>
+        );
+    };
+
+    const renderRoleButton = (user) => {
+        const missing = isBindingMissing(user);
+
+        return (
+            <Button
+                type="button"
+                size="sm"
+                variant={missing ? 'outline' : 'default'}
+                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold shadow-sm ${missing ? 'border-amber-300 text-amber-800 hover:bg-amber-50' : 'bg-[#17314f] text-white hover:bg-[#10263f]'}`}
+                onClick={() => handleRoleClick(user)}
+            >
+                <ShieldPlus className="h-3.5 w-3.5" />
+                Сменить роль
+            </Button>
+        );
     };
 
     return (
         <AuthenticatedLayout
-            headerRight={
-                <div className="flex items-center gap-2">
-                    <form className="flex items-center gap-2" onSubmit={submit}>
-                        <Input
-                            value={form.data.q}
-                            onChange={(e) => form.setData('q', e.target.value)}
-                            placeholder="Поиск по имени, логину, email"
-                            className="h-8 w-64"
-                        />
-                        <Button size="sm" type="submit">
-                            <Search />
-                            Найти
-                        </Button>
-                    </form>
-                    <Button size="sm" type="button" onClick={() => setManualDialogOpen(true)}>
-                        <Plus className="h-4 w-4" />
-                        Добавить пользователя
-                    </Button>
+            header={(
+                <div className="mx-auto flex w-full max-w-[1540px] min-w-0 flex-col gap-2 overflow-hidden px-4 lg:px-6 xl:px-0 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">Административный реестр</p>
+                        <h2 className="mt-0.5 text-[1.68rem] font-semibold leading-none tracking-[-0.01em] text-slate-950">Пользователи</h2>
+                        <p className="mt-0.5 max-w-3xl text-[12px] leading-5 text-slate-600">
+                            Управление сотрудниками, студентами и структурой доступа
+                        </p>
+                        <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                            {summaryLine}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 lg:justify-end">
+                        <span className="inline-flex h-7 items-center rounded-full border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm">
+                            Всего: {totalCount}
+                        </span>
+                        <span className="inline-flex h-7 items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 text-[11px] font-semibold text-cyan-900 shadow-sm">
+                            Видимых: {visibleCount}
+                        </span>
+                        <span className="inline-flex h-7 items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 shadow-sm">
+                            Без привязки: {users.filter((user) => user.is_binding_missing).length}
+                        </span>
+                    </div>
                 </div>
-            }
+            )}
         >
-            <Head title={title} />
-
-            <Dialog
-                open={manualDialogOpen}
-                onOpenChange={(open) => {
-                    setManualDialogOpen(open);
-                }}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Добавить пользователя вручную</DialogTitle>
-                        <DialogDescription>
-                            Заполните данные. Пользователь будет создан локально.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form className="space-y-4" onSubmit={submitManual}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">ФИО</label>
-                            <Input
-                                value={manualForm.data.name}
-                                onChange={(e) => manualForm.setData('name', e.target.value)}
-                                placeholder="Например: Иванов Иван Иванович"
-                            />
-                            {manualForm.errors.name && (
-                                <p className="text-sm text-destructive">{manualForm.errors.name}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Email</label>
-                            <Input
-                                type="email"
-                                value={manualForm.data.email}
-                                onChange={(e) => manualForm.setData('email', e.target.value)}
-                                placeholder="user@kaztbu.edu.kz"
-                            />
-                            {manualForm.errors.email && (
-                                <p className="text-sm text-destructive">{manualForm.errors.email}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Логин</label>
-                            <Input
-                                value={manualForm.data.login}
-                                onChange={(e) => manualForm.setData('login', e.target.value)}
-                                placeholder="Необязательно"
-                            />
-                            {manualForm.errors.login && (
-                                <p className="text-sm text-destructive">{manualForm.errors.login}</p>
-                            )}
-                        </div>
-
-                        {isStaffPage && (
-                            <>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Должность</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={manualForm.data.position_id}
-                                        onChange={(e) => manualForm.setData('position_id', e.target.value)}
-                                    >
-                                        <option value="">Выберите должность</option>
-                                        {positions.map((position) => (
-                                            <option key={position.id} value={position.id}>
-                                                {position.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {manualForm.errors.position_id && (
-                                        <p className="text-sm text-destructive">{manualForm.errors.position_id}</p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Отдел</label>
-                                    <Input value={selectedManualPosition?.division_name ?? '-'} readOnly />
-                                </div>
-                            </>
-                        )}
-
-                        <DialogFooter>
-                            <Button type="submit" disabled={manualForm.processing}>
-                                Сохранить
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <Head title={pageTitle ?? 'Пользователи'} />
 
             <Dialog
                 open={positionDialogOpen}
@@ -243,11 +627,11 @@ export default function Index({ users, positions = [], search, adAvailable, page
                     }
                 }}
             >
-                <DialogContent>
+                <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Изменить должность</DialogTitle>
+                        <DialogTitle>Редактировать сотрудника</DialogTitle>
                         <DialogDescription>
-                            Выберите должность. Отдел заполнится автоматически.
+                            {editingUser?.display_name ?? '—'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -255,119 +639,544 @@ export default function Index({ users, positions = [], search, adAvailable, page
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Должность</label>
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                                 value={positionForm.data.position_id}
                                 onChange={(e) => positionForm.setData('position_id', e.target.value)}
                             >
-                                <option value="">Выберите должность</option>
+                                <option value="">— Не выбрано —</option>
                                 {positions.map((position) => (
-                                    <option key={position.id} value={position.id}>
-                                        {position.name}
-                                    </option>
+                                    <option key={position.id} value={position.id}>{position.name}</option>
                                 ))}
                             </select>
-                            {positionForm.errors.position_id && (
-                                <p className="text-sm text-destructive">{positionForm.errors.position_id}</p>
-                            )}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Отдел</label>
-                            <Input value={selectedPosition?.division_name ?? '-'} readOnly />
+                            <label className="text-sm font-medium">Кафедра</label>
+                            <select
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                value={positionForm.data.department_id}
+                                onChange={(e) => positionForm.setData('department_id', e.target.value)}
+                            >
+                                <option value="">— Не выбрано —</option>
+                                {departments.map((department) => (
+                                    <option key={department.id} value={department.id}>{department.name}</option>
+                                ))}
+                            </select>
                         </div>
 
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Факультет</label>
+                            <select
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                value={positionForm.data.faculty_id}
+                                onChange={(e) => positionForm.setData('faculty_id', e.target.value)}
+                            >
+                                <option value="">— Не выбрано —</option>
+                                {faculties.map((faculty) => (
+                                    <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {structuralDivisionOptions.length > 0 && (
+                            <div className="space-y-2 rounded-lg border border-border p-3">
+                                <p className="text-sm font-medium">Подразделения</p>
+                                <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2">
+                                    {structuralDivisionOptions.map((division) => {
+                                        const id = Number(division.id);
+                                        const checked = positionForm.data.division_ids.includes(id);
+
+                                        return (
+                                            <label key={division.id} className="flex items-start gap-2 rounded px-2 py-1 hover:bg-muted/40">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => {
+                                                        positionForm.setData(
+                                                            'division_ids',
+                                                            e.target.checked
+                                                                ? [...positionForm.data.division_ids, id]
+                                                                : positionForm.data.division_ids.filter((value) => value !== id),
+                                                        );
+                                                    }}
+                                                />
+                                                <span className="text-xs">{division.name}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         <DialogFooter>
-                            <Button type="submit" disabled={positionForm.processing}>
-                                Сохранить
+                            <Button type="button" variant="outline" onClick={() => setPositionDialogOpen(false)}>
+                                Отмена
                             </Button>
+                            <Button type="submit" disabled={positionForm.processing}>Сохранить</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <div className="p-4 sm:p-6 lg:p-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5" />
-                            {title} из AD
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {!adAvailable && users.length === 0 ? (
-                            <p className="text-sm text-destructive">
-                                Не удалось получить данные из AD. Проверьте подключение и параметры.
-                            </p>
-                        ) : users.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                {isStudentsPage ? 'Студенты не найдены.' : 'Сотрудники не найдены.'}
-                            </p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1000px] text-sm">
-                                    <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">ФИО</th>
-                                            <th className="py-3 pe-3 font-medium">Логин</th>
-                                            <th className="py-3 pe-3 font-medium">Email</th>
-                                            <th className="py-3 pe-3 font-medium">Отдел</th>
-                                            <th className="py-3 pe-3 font-medium">Должность</th>
-                                            <th className="py-3 pe-3 font-medium">Статус</th>
-                                            <th className="py-3 pe-3 font-medium">Синхронизирован</th>
-                                            <th className="py-3 pe-3 font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {users.map((user, index) => (
-                                            <tr key={`${user.login}-${index}`} className="border-b last:border-0">
-                                                <td className="py-3 pe-3 font-medium">
-                                                    {user.display_name || '-'}
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge variant="outline">{user.login || '-'}</Badge>
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {user.email || '-'}
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {user.division || '-'}
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {user.title || '-'}
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {user.status || '-'}
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    {user.is_synced ? (
-                                                        <Badge>Да</Badge>
-                                                    ) : (
-                                                        <Badge variant="outline">Нет</Badge>
-                                                    )}
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    {isStaffPage && (user.local_user_id || user.login || user.email) ? (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openPositionDialog(user)}
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                            Изменить должность
-                                                        </Button>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">-</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+            <Dialog
+                open={roleDialogOpen}
+                onOpenChange={(open) => {
+                    setRoleDialogOpen(open);
+                    if (!open) {
+                        setRoleDialogUser(null);
+                        setRoleConfirmOpen(false);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Сменить роль</DialogTitle>
+                        <DialogDescription>
+                            {roleDialogUser?.display_name ?? '—'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!roleConfirmOpen ? (
+                        <div className="space-y-3">
+                            <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
+                                Текущая роль: <span className="font-medium">{roleDialogUser ? resolveRoleLabel(roleDialogUser) : '—'}</span>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Новая роль</label>
+                                <select
+                                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                    value={roleForm.data.role}
+                                    onChange={(e) => roleForm.setData('role', e.target.value)}
+                                >
+                                    {ROLE_OPTIONS.map((role) => (
+                                        <option key={role.value} value={role.value}>{role.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setRoleDialogOpen(false)}>Отмена</Button>
+                                <Button type="button" onClick={() => setRoleConfirmOpen(true)}>Далее</Button>
+                            </DialogFooter>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                Подтвердите смену роли на{' '}
+                                <span className="font-semibold">{ROLE_OPTIONS.find((r) => r.value === roleForm.data.role)?.label ?? roleForm.data.role}</span>.
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setRoleConfirmOpen(false)}>Назад</Button>
+                                <Button type="button" onClick={submitRoleChange} disabled={roleForm.processing}>Подтвердить</Button>
+                            </DialogFooter>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <div className="admin-page-wrap overflow-x-hidden px-4 lg:px-6">
+                <div className="m-0 mx-auto w-full max-w-[1540px] min-w-0 overflow-hidden">
+                    <Card className="admin-surface min-w-0 overflow-hidden rounded-2xl border-slate-300/80 bg-gradient-to-b from-white via-white to-slate-50/50 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.45)]">
+                        <CardHeader className="border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-5 sm:py-3.5">
+                            <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
+                                <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-950">
+                                    <Users className="h-5 w-5 text-slate-700" />
+                                    {pageTitle ?? 'Пользователи'}
+                                </CardTitle>
+                                <div className="text-[11px] font-medium text-slate-600">
+                                    {summaryLine}
+                                </div>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="min-w-0 space-y-3 p-3 sm:p-4">
+                            <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2">
+                                {tabOptions.map((tabOption) => (
+                                    <button
+                                        key={tabOption.key}
+                                        type="button"
+                                        onClick={() => submitFilters({ tab: tabOption.key, page: 1 }, false, { suppressNextSearch: true })}
+                                        className={tabClass(tabOption.key)}
+                                    >
+                                        {tabOption.label}
+                                        <span className={badgeClass(tabOption.key)}>
+                                            {counts[tabOption.key] ?? 0}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="sticky top-[76px] z-20 rounded-xl border border-slate-200 bg-slate-100/85 p-2.5 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.7)] backdrop-blur">
+                                <div className="grid min-w-0 gap-2 md:grid-cols-2 xl:grid-cols-12">
+                                    <div className="relative md:col-span-2 xl:col-span-5">
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        <Input
+                                            value={filterForm.data.q}
+                                            onChange={(e) => filterForm.setData('q', e.target.value)}
+                                            placeholder="Поиск по ФИО, email, логину, должности"
+                                            className="h-8.5 rounded-lg border-slate-300 bg-white pl-9 text-sm shadow-sm"
+                                        />
+                                    </div>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
+                                        value={filterForm.data.sort_by}
+                                        onChange={(e) => filterForm.setData('sort_by', e.target.value)}
+                                    >
+                                        <option value="">Сортировка</option>
+                                        <option value="name">По ФИО</option>
+                                        <option value="last_login">По последнему входу</option>
+                                        <option value="created_at">По дате добавления</option>
+                                        <option value="login_count">По кол-ву входов</option>
+                                        <option value="synced">По синхронизации</option>
+                                        <option value="role">По статусу</option>
+                                    </select>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
+                                        value={filterForm.data.sort_dir}
+                                        onChange={(e) => filterForm.setData('sort_dir', e.target.value)}
+                                    >
+                                        <option value="asc">A→Я / Старые→Новые</option>
+                                        <option value="desc">Я→A / Новые→Старые</option>
+                                    </select>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
+                                        value={filterForm.data.synced}
+                                        onChange={(e) => filterForm.setData('synced', e.target.value)}
+                                    >
+                                        <option value="all">Синхронизация: все</option>
+                                        <option value="ad">Из AD</option>
+                                        <option value="local">Локальные</option>
+                                    </select>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
+                                        value={filterForm.data.last_login_range}
+                                        onChange={(e) => filterForm.setData('last_login_range', e.target.value)}
+                                    >
+                                        <option value="all">Вход</option>
+                                        <option value="30">30 дн.</option>
+                                        <option value="90">90 дн.</option>
+                                        <option value="never">Никогда</option>
+                                    </select>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
+                                        value={filterForm.data.faculty_id}
+                                        onChange={(e) => filterForm.setData('faculty_id', e.target.value)}
+                                    >
+                                        <option value="">Факультет</option>
+                                        {faculties.map((faculty) => (
+                                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                        ))}
+                                    </select>
+
+                                    <select
+                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
+                                        value={filterForm.data.department_id}
+                                        onChange={(e) => filterForm.setData('department_id', e.target.value)}
+                                    >
+                                        <option value="">Кафедра</option>
+                                        {departments.map((department) => (
+                                            <option key={department.id} value={department.id}>{department.name}</option>
+                                        ))}
+                                    </select>
+
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 pt-1 md:col-span-2 xl:col-span-12">
+                                        <div className="text-[11px] font-semibold text-slate-600">
+                                            Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
+                                        </div>
+                                        <div className="ml-auto flex items-center gap-1.5">
+                                            <Button type="button" className="h-8 rounded-md bg-[#17314f] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#10263f]" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
+                                                Применить
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-8 rounded-md border-slate-300 px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-white"
+                                                onClick={() => {
+                                                    filterForm.setData({
+                                                        q: '',
+                                                        tab,
+                                                        sort_by: '',
+                                                        sort_dir: 'asc',
+                                                        faculty_id: '',
+                                                        department_id: '',
+                                                        synced: 'all',
+                                                        last_login_range: 'all',
+                                                        per_page: filterForm.data.per_page,
+                                                        page: 1,
+                                                    });
+                                                    submitFilters({
+                                                        q: '',
+                                                        sort_by: '',
+                                                        sort_dir: 'asc',
+                                                        faculty_id: '',
+                                                        department_id: '',
+                                                        synced: 'all',
+                                                        last_login_range: 'all',
+                                                        per_page: filterForm.data.per_page,
+                                                        page: 1,
+                                                    }, true, { suppressNextSearch: true });
+                                                }}
+                                            >
+                                                <RefreshCw className="h-4 w-4" />
+                                                Сбросить
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {tab === 'hod' && unboundHodCount > 0 && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-amber-900">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 text-sm font-semibold">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            {unboundHodCount} заведующих кафедрой без привязки
+                                        </div>
+                                        <Button type="button" size="sm" variant="outline" className="border-amber-300 text-amber-800 hover:bg-amber-100" onClick={() => setOnlyUnbound((v) => !v)}>
+                                            {onlyUnbound ? 'Показать всех' : 'Показать только без привязки'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {tab === 'dean' && unboundDeanCount > 0 && (
+                                <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-amber-900">
+                                    <div className="flex items-center gap-2 text-sm font-semibold">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        {unboundDeanCount} деканов без привязки к факультету
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="rounded-2xl border border-slate-300/80 bg-white shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)]">
+                                <div className="admin-table-wrap min-w-0 overflow-x-auto border-0 shadow-none">
+                                    <table className="admin-data-table w-full min-w-0 table-fixed text-[13px] leading-[1.25] [&_td]:px-2.5 [&_td]:py-2.5 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-[0.16em] [&_tr]:border-b [&_tr]:border-slate-200/85 [&_th:nth-child(2)]:border-r-0 [&_td:nth-child(2)]:border-r-0 [&_th:nth-child(3)]:border-l-0 [&_td:nth-child(3)]:border-l-0">
+                                        <thead className="bg-slate-100/95 backdrop-blur">
+                                            <tr>
+                                                <th className="w-[19%] text-slate-700">ФИО</th>
+                                                <th className="w-[11%] pr-3 text-slate-700">Логин</th>
+                                                <th className="w-[17%] pl-4 text-slate-700">Email</th>
+                                                <th className="w-[11%] text-slate-700">Последний вход</th>
+                                                <th className="w-[14%] text-slate-700">Должность / роль</th>
+                                                <th className="w-[17%] text-slate-700">Факультет / кафедра</th>
+                                                <th className="w-[7%] text-center text-slate-700">Входы</th>
+                                                <th className="w-[7%] text-slate-700">Статус</th>
+                                                <th className="w-[6%] text-slate-700">Синхр.</th>
+                                                <th className="w-[11%] text-right text-slate-700">Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="[&_tr:hover]:bg-slate-50/70 [&_tr]:transition-colors">
+                                            {displayedUsers.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">
+                                                        Пользователи не найдены
+                                                    </td>
+                                                </tr>
+                                            ) : displayedUsers.map((user) => {
+                                                const bindingMissing = isBindingMissing(user);
+                                                const lastLoginTone = getLastLoginTone(user);
+
+                                                return (
+                                                    <tr key={user.id}>
+                                                        <td className="align-top">
+                                                            <div className="space-y-0.5">
+                                                                <div className="line-clamp-2 text-[13px] font-semibold leading-[1.15rem] text-slate-900">
+                                                                    {user.display_name || user.name || '—'}
+                                                                </div>
+                                                                <div className="truncate text-[11px] text-slate-500">
+                                                                    {user.login || user.email || '—'}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-middle pe-3">
+                                                            <div className="inline-flex max-w-[120px] items-center rounded-md border border-slate-300/95 bg-slate-100 px-1.5 py-0.5">
+                                                                <span className="block w-full truncate font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-700" title={user.login || ''}>
+                                                                    {user.login || '—'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="min-w-0 align-middle pl-4">
+                                                            <div className="flex min-w-0 items-center gap-2.5">
+                                                                <Mail className="h-3 w-3 shrink-0 text-slate-400" />
+                                                                <span className="block min-w-0 max-w-[190px] truncate text-[11px] leading-[1.05rem] text-slate-500" title={user.email || ''}>
+                                                                    {user.email || '—'}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-top">
+                                                            <div className={`flex items-start gap-1.5 ${lastLoginTone}`} title={user.last_login_exact || ''}>
+                                                                <Clock3 className="mt-0.5 h-3 w-3 shrink-0" />
+                                                                <div className="min-w-0 space-y-0.5">
+                                                                    <div className="truncate text-[12px] font-semibold leading-[1.1rem]">
+                                                                        {user.last_login_human || formatLastLogin(user.last_login_at).label}
+                                                                    </div>
+                                                                    <div className="truncate text-[10px] text-slate-400">
+                                                                        {user.last_login_exact ? formatExactTimestamp(user.last_login_at) : 'Пользователь ещё не входил'}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-top">
+                                                            <div className="space-y-1">
+                                                                <Badge className={`inline-flex h-6 max-w-full items-center rounded-full border px-2 py-0 text-[10px] font-semibold ${getRoleBadgeClass(user)}`}>
+                                                                    {resolveRoleLabel(user)}
+                                                                </Badge>
+                                                                <div className="line-clamp-2 text-[12px] font-medium leading-[1.1rem] text-slate-800" title={resolvePositionDisplay(user)}>
+                                                                    {resolvePositionDisplay(user)}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-top">
+                                                            <div className="space-y-1 text-[12px]">
+                                                                <div className="line-clamp-2 font-medium leading-[1.1rem] text-slate-900" title={user.display_faculty || user.faculty_name || ''}>
+                                                                    {user.display_faculty || user.faculty_name || '—'}
+                                                                </div>
+                                                                <div className="line-clamp-2 text-slate-500" title={user.display_department || user.department_name || user.ad_department || ''}>
+                                                                    {user.display_department || user.department_name || user.ad_department || '—'}
+                                                                </div>
+                                                                {Array.isArray(user.display_divisions) && user.display_divisions.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1 pt-0.5">
+                                                                        {user.display_divisions.slice(0, 2).map((division) => (
+                                                                            <span key={`${user.id}-${division}`} className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                                                                                {division}
+                                                                            </span>
+                                                                        ))}
+                                                                        {user.display_divisions.length > 2 && (
+                                                                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                                                                                +{user.display_divisions.length - 2}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                                {bindingMissing && (
+                                                                    <Badge variant="outline" className={`inline-flex h-6 items-center rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
+                                                                        ⚠ Не привязан
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-top text-center">
+                                                            <div className="inline-flex min-w-[52px] flex-col items-center gap-1">
+                                                                <div className={`text-lg font-semibold tracking-tight ${user.login_count > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
+                                                                    {user.login_count}
+                                                                </div>
+                                                                <div className="h-1 w-12 overflow-hidden rounded-full bg-slate-100">
+                                                                    <div
+                                                                        className={`h-full rounded-full ${user.login_count > 0 ? 'bg-[#17314f]' : 'bg-slate-300'}`}
+                                                                        style={{ width: `${Math.min(100, Math.max(6, user.login_count * 12))}%` }}
+                                                                    />
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-500">входов</div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td className="align-top">
+                                                            <Badge variant="outline" className={`inline-flex h-6 items-center rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
+                                                                {user.binding_label || (bindingMissing ? '⚠ Не привязан' : 'Привязан')}
+                                                            </Badge>
+                                                        </td>
+
+                                                        <td className="align-top">
+                                                            {renderSyncBadge(user)}
+                                                        </td>
+
+                                                        <td className="align-top text-right">
+                                                            <div className="flex min-h-[28px] flex-wrap items-center justify-end gap-1.5">
+                                                                {renderEditButton(user)}
+                                                                {renderRoleButton(user)}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-100/80 px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="text-xs font-medium text-slate-700">
+                                    Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400">На странице</span>
+                                    <select
+                                        className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs shadow-sm"
+                                        value={filterForm.data.per_page}
+                                        onChange={(e) => {
+                                            const value = Number(e.target.value);
+                                            filterForm.setData('per_page', value);
+                                            submitFilters({ per_page: value, page: 1 }, true, { suppressNextSearch: true });
+                                        }}
+                                    >
+                                        <option value={25}>25</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 rounded-md border-slate-300 px-2.5 text-xs shadow-sm"
+                                        disabled={(pagination.current_page ?? 1) <= 1}
+                                        onClick={() => submitFilters({ page: (pagination.current_page ?? 1) - 1 }, false, { suppressNextSearch: true })}
+                                    >
+                                        Назад
+                                    </Button>
+
+                                    {Array.from({ length: Math.max(1, Math.min(5, pagination.last_page ?? 1)) }).map((_, index) => {
+                                        const currentPage = Number(pagination.current_page ?? 1);
+                                        const lastPage = Number(pagination.last_page ?? 1);
+                                        const start = Math.max(1, Math.min(currentPage - 2, lastPage - 4));
+                                        const pageNumber = start + index;
+                                        if (pageNumber > lastPage) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <Button
+                                                key={pageNumber}
+                                                type="button"
+                                                size="sm"
+                                                variant={pageNumber === currentPage ? 'default' : 'outline'}
+                                                className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${pageNumber === currentPage ? 'bg-[#17314f] hover:bg-[#10263f]' : 'border-slate-300 bg-white'}`}
+                                                onClick={() => submitFilters({ page: pageNumber }, false, { suppressNextSearch: true })}
+                                            >
+                                                {pageNumber}
+                                            </Button>
+                                        );
+                                    })}
+
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 rounded-md border-slate-300 px-2.5 text-xs shadow-sm"
+                                        disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)}
+                                        onClick={() => submitFilters({ page: (pagination.current_page ?? 1) + 1 }, false, { suppressNextSearch: true })}
+                                    >
+                                        Далее
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

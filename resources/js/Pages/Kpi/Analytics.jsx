@@ -19,7 +19,7 @@ function score(value) {
 
 function RankingTable({ title, icon: Icon, rows, emptyMessage }) {
     return (
-        <Card className="border-border/80 shadow-sm">
+        <Card className="admin-surface">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <Icon className="h-4 w-4" />
@@ -28,21 +28,21 @@ function RankingTable({ title, icon: Icon, rows, emptyMessage }) {
             </CardHeader>
             <CardContent>
                 {rows.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+                    <div className="admin-empty-state">{emptyMessage}</div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[520px] text-sm">
+                    <div className="admin-table-wrap">
+                        <table className="admin-data-table min-w-[520px]">
                             <thead>
-                                <tr className="border-b text-left text-muted-foreground">
-                                    <th className="py-2 pe-3 font-medium">#</th>
-                                    <th className="py-2 pe-3 font-medium">Название</th>
-                                    <th className="py-2 pe-3 font-medium">Утверждено</th>
-                                    <th className="py-2 pe-3 font-medium">Итоговый балл</th>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Название</th>
+                                    <th>Утверждено</th>
+                                    <th>Итоговый балл</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, index) => (
-                                    <tr key={row.id} className="border-b align-top last:border-0">
+                                    <tr key={row.id}>
                                         <td className="py-3 pe-3">{index + 1}</td>
                                         <td className="py-3 pe-3 font-medium">{row.entity_name}</td>
                                         <td className="py-3 pe-3">{row.approved_entries_count}</td>
@@ -112,8 +112,8 @@ export default function Analytics({
         <AuthenticatedLayout>
             <Head title="KPI Аналитика" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-                <Card className="border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
+            <div className="admin-page-wrap">
+                <Card className="admin-surface border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-xl">
                             <BarChart3 className="h-5 w-5" />
@@ -151,7 +151,7 @@ export default function Analytics({
                     </Card>
                 )}
 
-                <Card>
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle className="text-base">Фильтры</CardTitle>
                     </CardHeader>
@@ -161,7 +161,7 @@ export default function Analytics({
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Учебный год</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
                                         value={form.data.academic_year_id}
                                         onChange={(event) => form.setData('academic_year_id', event.target.value)}
                                     >
@@ -175,7 +175,7 @@ export default function Analytics({
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Период</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
                                         value={form.data.period_id}
                                         onChange={(event) => form.setData('period_id', event.target.value)}
                                     >
@@ -189,7 +189,7 @@ export default function Analytics({
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Уровень</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
                                         value={form.data.entity_type}
                                         onChange={(event) => form.setData('entity_type', event.target.value)}
                                     >

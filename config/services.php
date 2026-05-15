@@ -43,6 +43,11 @@ return [
         'timeout' => env('TOPIC_AI_TIMEOUT', 15),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
+
     'library_catalog' => [
         'endpoint' => env('LIBRARY_CATALOG_ENDPOINT', 'http://10.0.1.8:5173/api/v1/catalog'),
         'timeout' => env('LIBRARY_CATALOG_TIMEOUT', 15),

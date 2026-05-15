@@ -89,11 +89,13 @@ class ActiveDirectoryAuthenticator
 
         foreach ($entries as $entry) {
             $login = $this->extractAttribute($entry, 'samaccountname');
+            $adGuid = $this->extractAdGuid($entry);
 
             $users[] = [
                 'display_name' => $this->extractAttribute($entry, 'displayname')
                     ?? $this->extractAttribute($entry, 'cn')
                     ?? $login,
+                'guid' => $adGuid,
                 'login' => $login,
                 'email' => $this->extractAttribute($entry, 'mail')
                     ?? $this->extractAttribute($entry, 'userprincipalname'),
@@ -104,6 +106,7 @@ class ActiveDirectoryAuthenticator
                 'title' => $this->extractAttribute($entry, 'title'),
                 'status' => $this->extractAttribute($entry, 'pager'),
                 'dn' => isset($entry['dn']) ? (string) $entry['dn'] : null,
+                'is_student' => $this->isStudentDirectoryEntry($entry),
             ];
         }
 
@@ -113,6 +116,50 @@ class ActiveDirectoryAuthenticator
         );
 
         return $users;
+    }
+
+    /**
+     * @return list<array<string, string|null|bool>>|null
+     */
+    public function listStudentUsers(string $search = ''): ?array
+    {
+        $users = $this->listDirectoryUsers($search);
+
+        if ($users === null) {
+            return null;
+        }
+
+        return array_values(array_filter(
+            $users,
+            fn (array $entry): bool => $this->isStudentEntry($entry)
+        ));
+    }
+
+    public function isStudentEntry(array $entry): bool
+    {
+        // Mapped entry from listDirectoryUsers.
+        if (array_key_exists('is_student', $entry)) {
+            return (bool) $entry['is_student'];
+        }
+
+        // Lightweight mapped structure.
+        if (isset($entry['employee_type']) || isset($entry['title']) || isset($entry['dn'])) {
+            $dn = Str::lower(trim((string) ($entry['dn'] ?? '')));
+            if (Str::contains($dn, 'ou=student')) {
+                return true;
+            }
+
+            $employeeType = Str::lower(trim((string) ($entry['employee_type'] ?? '')));
+            if (Str::contains($employeeType, 'student') || Str::contains($employeeType, 'студ')) {
+                return true;
+            }
+
+            $title = Str::lower(trim((string) ($entry['title'] ?? '')));
+            return $this->isDegreeOnlyTitle($title);
+        }
+
+        // Raw LDAP entry.
+        return $this->isStudentDirectoryEntry($entry);
     }
 
     public function countDirectoryUsers(): ?int
@@ -243,7 +290,14 @@ class ActiveDirectoryAuthenticator
             return null;
         }
 
-        return $this->upsertLocalUser($entry, $login);
+        $user = $this->upsertLocalUser($entry, $login);
+
+        $user->last_login = now();
+        $user->last_login_at = now();
+        $user->login_count = (int) ($user->login_count ?? 0) + 1;
+        $user->save();
+
+        return $user;
     }
 
     private function connect()
@@ -396,16 +450,47 @@ class ActiveDirectoryAuthenticator
 
     private function isStudentDirectoryEntry(array $entry): bool
     {
-        $employeeType = Str::lower(trim((string) $this->extractAttribute($entry, 'employeetype')));
-        $status = Str::lower(trim((string) $this->extractAttribute($entry, 'pager')));
         $dn = Str::lower(trim((string) ($entry['dn'] ?? '')));
 
-        return Str::contains($employeeType, 'student')
-            || Str::contains($employeeType, 'студ')
-            || Str::contains($status, 'student')
-            || Str::contains($status, 'студ')
-            || Str::contains($dn, 'ou=students')
-            || Str::contains($dn, 'ou=student');
+        // PRIMARY: check DN path for student OU.
+        if (Str::contains($dn, 'ou=student')) {
+            return true;
+        }
+
+        // SECONDARY: check employeetype field.
+        $employeeType = Str::lower(trim((string) $this->extractAttribute($entry, 'employeetype')));
+        if (Str::contains($employeeType, 'student') || Str::contains($employeeType, 'студ')) {
+            return true;
+        }
+
+        // TERTIARY: check if title is only a degree qualification.
+        $title = Str::lower(trim((string) $this->extractAttribute($entry, 'title')));
+
+        return $this->isDegreeOnlyTitle($title);
+    }
+
+    private function isDegreeOnlyTitle(string $title): bool
+    {
+        if ($title === '') {
+            return false;
+        }
+
+        $degreeOnlyTitles = [
+            'бакалавр',
+            'магистрант',
+            'магистр',
+            'phd студент',
+            'магистрант научно-педагогического направления',
+            'докторант',
+        ];
+
+        foreach ($degreeOnlyTitles as $degree) {
+            if ($title === $degree || $title === ($degree . ' 1 курса') || Str::startsWith($title, $degree . ' ')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

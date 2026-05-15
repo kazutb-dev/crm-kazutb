@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\KpiAccessGrant;
 use App\Models\KpiEntry;
 use App\Models\User;
 
@@ -14,12 +15,12 @@ class KpiEntryPolicy
             || $this->isDepartmentHead($user)
             || $this->isDean($user)
             || $this->isStructuralDivisionUser($user)
-            || $this->isReadOnlySuperadmin($user);
+            || $this->hasAnyKpiGrant($user);
     }
 
     public function view(User $user, KpiEntry $entry): bool
     {
-        if ($this->isAdmin($user) || $this->isReadOnlySuperadmin($user)) {
+        if ($this->isAdmin($user)) {
             return true;
         }
 
@@ -29,16 +30,28 @@ class KpiEntryPolicy
 
         if ($this->isDepartmentHead($user)) {
             $userDepartmentId = $this->userDepartmentId($user);
+            $entryDepartmentId = $this->entryDepartmentId($entry);
+
+            if ($entryDepartmentId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userDepartmentId !== null
-                && (int) $entry->department_id === $userDepartmentId;
+                && $entryDepartmentId !== null
+                && $entryDepartmentId === $userDepartmentId;
         }
 
         if ($this->isDean($user)) {
             $userFacultyId = $this->userFacultyId($user);
+            $entryFacultyId = $this->entryFacultyId($entry);
+
+            if ($entryFacultyId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userFacultyId !== null
-                && (int) $entry->faculty_id === $userFacultyId;
+                && $entryFacultyId !== null
+                && $entryFacultyId === $userFacultyId;
         }
 
         if ($this->isStructuralDivisionUser($user)) {
@@ -59,19 +72,15 @@ class KpiEntryPolicy
 
     public function create(User $user): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
-            return false;
-        }
-
-        return $this->isAdmin($user) || $this->isTeacher($user) || $this->isStructuralDivisionUser($user);
+        return $this->isAdmin($user)
+            || $this->isTeacher($user)
+            || $this->isDepartmentHead($user)
+            || $this->isDean($user)
+            || $this->isStructuralDivisionUser($user);
     }
 
     public function update(User $user, KpiEntry $entry): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
-            return false;
-        }
-
         if (!$entry->canBeEdited()) {
             return false;
         }
@@ -81,6 +90,11 @@ class KpiEntryPolicy
         }
 
         if ($this->isTeacher($user)) {
+            return (int) $entry->user_id === (int) $user->id
+                && $this->isEntryInAccessiblePeriod($entry);
+        }
+
+        if ($this->isDepartmentHead($user) || $this->isDean($user)) {
             return (int) $entry->user_id === (int) $user->id
                 && $this->isEntryInAccessiblePeriod($entry);
         }
@@ -95,10 +109,6 @@ class KpiEntryPolicy
 
     public function submit(User $user, KpiEntry $entry): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
-            return false;
-        }
-
         if (!$entry->canBeSubmitted()) {
             return false;
         }
@@ -108,6 +118,11 @@ class KpiEntryPolicy
         }
 
         if ($this->isTeacher($user)) {
+            return (int) $entry->user_id === (int) $user->id
+                && $this->isEntryInAccessiblePeriod($entry);
+        }
+
+        if ($this->isDepartmentHead($user) || $this->isDean($user)) {
             return (int) $entry->user_id === (int) $user->id
                 && $this->isEntryInAccessiblePeriod($entry);
         }
@@ -122,12 +137,30 @@ class KpiEntryPolicy
 
     public function approve(User $user, KpiEntry $entry): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
+        if ($entry->isLocked()) {
             return false;
         }
 
-        if ($entry->isLocked()) {
-            return false;
+        // Разрешить любому авторизованному пользователю финально утверждать pending_structural.
+        if ($entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+            return true;
+        }
+
+        // Любой structural user может утверждать любую запись в pending_structural
+        if ($this->isStructuralDivisionUser($user) && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+            return true;
+        }
+
+        // Остальная логика для других ролей без изменений
+        if (
+            ($this->hasQueueGrant($user, KpiAccessGrant::PERM_REVIEW_QUEUE)
+                && $entry->status === KpiEntry::STATUS_SUBMITTED)
+            || ($this->hasQueueGrant($user, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+                && in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true))
+            || ($this->hasQueueGrant($user, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL)
+        ) {
+            return true;
         }
 
         if ($this->isAdmin($user)) {
@@ -146,9 +179,15 @@ class KpiEntryPolicy
             }
 
             $userDepartmentId = $this->userDepartmentId($user);
+            $entryDepartmentId = $this->entryDepartmentId($entry);
+
+            if ($entryDepartmentId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userDepartmentId !== null
-                && (int) $entry->department_id === $userDepartmentId;
+                && $entryDepartmentId !== null
+                && $entryDepartmentId === $userDepartmentId;
         }
 
         // Декан: одобряет pending_dean → pending_structural
@@ -158,14 +197,15 @@ class KpiEntryPolicy
             }
 
             $userFacultyId = $this->userFacultyId($user);
+            $entryFacultyId = $this->entryFacultyId($entry);
+
+            if ($entryFacultyId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userFacultyId !== null
-                && (int) $entry->faculty_id === $userFacultyId;
-        }
-
-        // Стр. подразделения: финальное утверждение pending_structural → approved
-        if ($this->isStructuralDivisionUser($user)) {
-            return $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL;
+                && $entryFacultyId !== null
+                && $entryFacultyId === $userFacultyId;
         }
 
         return false;
@@ -182,15 +222,20 @@ class KpiEntryPolicy
 
     public function return(User $user, KpiEntry $entry): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
-            return false;
-        }
-
         $returnableStatuses = [
             KpiEntry::STATUS_SUBMITTED,
             KpiEntry::STATUS_REVIEWED,
             KpiEntry::STATUS_PENDING_DEAN,
         ];
+
+        if (
+            ($this->hasQueueGrant($user, KpiAccessGrant::PERM_REVIEW_QUEUE)
+                && $entry->status === KpiEntry::STATUS_SUBMITTED)
+            || ($this->hasQueueGrant($user, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+                && in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true))
+        ) {
+            return true;
+        }
 
         if ($this->isAdmin($user)) {
             return in_array($entry->status, $returnableStatuses, true);
@@ -203,9 +248,15 @@ class KpiEntryPolicy
             }
 
             $userDepartmentId = $this->userDepartmentId($user);
+            $entryDepartmentId = $this->entryDepartmentId($entry);
+
+            if ($entryDepartmentId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userDepartmentId !== null
-                && (int) $entry->department_id === $userDepartmentId;
+                && $entryDepartmentId !== null
+                && $entryDepartmentId === $userDepartmentId;
         }
 
         // Декан: возвращает из pending_dean
@@ -215,9 +266,15 @@ class KpiEntryPolicy
             }
 
             $userFacultyId = $this->userFacultyId($user);
+            $entryFacultyId = $this->entryFacultyId($entry);
+
+            if ($entryFacultyId === null && $this->isUnlinkedEntry($entry)) {
+                return true;
+            }
 
             return $userFacultyId !== null
-                && (int) $entry->faculty_id === $userFacultyId;
+                && $entryFacultyId !== null
+                && $entryFacultyId === $userFacultyId;
         }
 
         // Стр. подразделения не возвращают, только approve/reject
@@ -226,12 +283,23 @@ class KpiEntryPolicy
 
     public function reject(User $user, KpiEntry $entry): bool
     {
-        if ($this->isReadOnlySuperadmin($user)) {
+        if ($entry->isLocked()) {
             return false;
         }
 
-        if ($entry->isLocked()) {
-            return false;
+        // Разрешить любому авторизованному пользователю финально отклонять pending_structural.
+        if ($entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+            return true;
+        }
+
+
+        // Разрешить всем structural division users отклонять pending_structural
+        if ($this->isStructuralDivisionUser($user) && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+            return true;
+        }
+
+        if ($this->hasQueueGrant($user, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)) {
+            return $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
 
         if ($this->isAdmin($user)) {
@@ -251,14 +319,23 @@ class KpiEntryPolicy
         return false;
     }
 
-    private function isReadOnlySuperadmin(User $user): bool
+    private function hasAnyKpiGrant(User $user): bool
     {
-        return $this->role($user) === 'superadmin';
+        return KpiAccessGrant::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
+    }
+
+    private function hasQueueGrant(User $user, string $permission): bool
+    {
+        return KpiAccessGrant::userHas($user->id, $permission);
     }
 
     private function isAdmin(User $user): bool
     {
-        return $this->role($user) === 'admin';
+        return in_array($this->role($user), ['admin', 'superadmin'], true)
+            || KpiAccessGrant::userHasKpiAdmin($user->id);
     }
 
     private function isTeacher(User $user): bool
@@ -280,7 +357,7 @@ class KpiEntryPolicy
 
     private function isStructuralDivisionUser(User $user): bool
     {
-        return $this->role($user) === 'department';
+        return in_array($this->role($user), ['department', 'structural'], true);
     }
 
     private function role(User $user): string
@@ -315,5 +392,44 @@ class KpiEntryPolicy
         }
 
         return (int) $facultyId;
+    }
+
+    private function entryDepartmentId(KpiEntry $entry): ?int
+    {
+        if ($entry->department_id !== null && $entry->department_id !== '') {
+            return (int) $entry->department_id;
+        }
+
+        $entry->loadMissing('user:id,department_id');
+
+        $userDepartmentId = $entry->user?->department_id;
+
+        if ($userDepartmentId === null || $userDepartmentId === '') {
+            return null;
+        }
+
+        return (int) $userDepartmentId;
+    }
+
+    private function entryFacultyId(KpiEntry $entry): ?int
+    {
+        if ($entry->faculty_id !== null && $entry->faculty_id !== '') {
+            return (int) $entry->faculty_id;
+        }
+
+        $entry->loadMissing('user:id,faculty_id');
+
+        $userFacultyId = $entry->user?->faculty_id;
+
+        if ($userFacultyId === null || $userFacultyId === '') {
+            return null;
+        }
+
+        return (int) $userFacultyId;
+    }
+
+    private function isUnlinkedEntry(KpiEntry $entry): bool
+    {
+        return $this->entryDepartmentId($entry) === null && $this->entryFacultyId($entry) === null;
     }
 }

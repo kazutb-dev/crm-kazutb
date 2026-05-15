@@ -23,7 +23,7 @@ class UpdateKpiPeriodRequest extends FormRequest
     {
         return [
             'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
             'stage' => ['required', 'string', Rule::in([
                 KpiPeriod::STAGE_PLAN,
                 KpiPeriod::STAGE_FACT,

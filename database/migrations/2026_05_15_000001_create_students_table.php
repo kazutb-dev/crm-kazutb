@@ -6,17 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('first_name'); // Имя
-            $table->string('last_name'); // Фамилия
-            $table->string('middle_name')->nullable(); // Отчество
-            $table->string('student_id')->unique(); // Номер студента
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->string('middle_name')->nullable();
+            $table->string('student_id')->unique();
             $table->string('email')->nullable()->unique();
             $table->string('phone')->nullable();
             $table->foreignId('group_id')->constrained('groups')->cascadeOnDelete();
@@ -26,9 +23,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('students');

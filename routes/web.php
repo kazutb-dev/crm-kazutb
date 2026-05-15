@@ -12,12 +12,9 @@ use App\Http\Controllers\DirectoryUserController;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DiplomaController;
 use App\Http\Controllers\KpiEntryController;
+use App\Http\Controllers\KpiAnalyticsController;
 use App\Http\Controllers\KpiIndicatorController;
 use App\Http\Controllers\KpiPeriodController;
-use App\Http\Controllers\KpiDivisionController;
-use App\Http\Controllers\KpiStructuralUnitController;
-use App\Http\Controllers\KpiSettingsController;
-use App\Http\Controllers\KpiSummaryController;
 use App\Http\Controllers\LibraryLoanController;
 use App\Http\Controllers\LibraryReservationAdminController;
 use App\Http\Controllers\PercoController;
@@ -57,7 +54,7 @@ Route::get('/catalog', function () {
 Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
 Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])
+Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
@@ -100,28 +97,10 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('users.students');
     Route::post('users/manual', [DirectoryUserController::class, 'storeManual'])
         ->name('users.manual.store');
-    Route::post('users/create-from-ad', [DirectoryUserController::class, 'createFromAd'])
-        ->name('users.create-from-ad');
     Route::patch('users/{user}/position', [DirectoryUserController::class, 'updatePosition'])
         ->name('users.position.update');
-    Route::patch('users/{user}/role', [DirectoryUserController::class, 'updateRole'])
-        ->name('users.role.update');
-    Route::patch('users/{user}/binding', [DirectoryUserController::class, 'updateBinding'])
-        ->name('users.binding.update');
-    Route::patch('users/{user}/divisions', [DirectoryUserController::class, 'updateDivisions'])
-        ->name('users.divisions.update');
     Route::patch('users/position', [DirectoryUserController::class, 'updatePositionByDirectory'])
         ->name('users.position.update-directory');
-    Route::patch('users/divisions', [DirectoryUserController::class, 'updateDivisionsByDirectory'])
-        ->name('users.divisions.update-directory');
-    Route::patch('users/role', [DirectoryUserController::class, 'updateRoleByDirectory'])
-        ->name('users.role.update-directory');
-    Route::get('users/admin-access', [DirectoryUserController::class, 'adminAccess'])
-        ->name('users.admin-access');
-    Route::post('users/admin-access/grant', [DirectoryUserController::class, 'grantAdmin'])
-        ->name('users.admin-access.grant');
-    Route::post('users/admin-access/revoke', [DirectoryUserController::class, 'revokeAdmin'])
-        ->name('users.admin-access.revoke');
 
     Route::get('announcements', [AnnouncementController::class, 'index'])
         ->name('announcements.index');
@@ -159,33 +138,24 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('kpi.indicators.index');
     Route::post('kpi/indicators', [KpiIndicatorController::class, 'store'])
         ->name('kpi.indicators.store');
-    Route::post('kpi/indicators/{indicator}/update', [KpiIndicatorController::class, 'update'])
-        ->name('kpi.indicators.update.post');
     Route::patch('kpi/indicators/{indicator}', [KpiIndicatorController::class, 'update'])
         ->name('kpi.indicators.update');
     Route::delete('kpi/indicators/{indicator}', [KpiIndicatorController::class, 'destroy'])
         ->name('kpi.indicators.destroy');
-    Route::get('kpi/summary', [KpiSummaryController::class, 'index'])
-        ->name('kpi.summary');
-    Route::match(['get', 'post'], 'kpi/summary/export-excel', [KpiSummaryController::class, 'exportExcel'])
-        ->name('kpi.summary.export-excel');
-    Route::match(['get', 'post'], 'kpi/summary/export-pdf', [KpiSummaryController::class, 'exportPdf'])
-        ->name('kpi.summary.export-pdf');
-    Route::get('kpi/summary/export-rating-pdf', [KpiSummaryController::class, 'exportRatingPdf'])
-        ->name('kpi.summary.export-rating-pdf');
-    Route::get('kpi/summary/export-rating-excel', [KpiSummaryController::class, 'exportRatingExcel'])
-        ->name('kpi.summary.export-rating-excel');
-    Route::get('kpi/settings', [KpiSettingsController::class, 'index'])
+    Route::get('kpi/structural-units', [KpiPeriodController::class, 'index'])
+        ->name('kpi.structural-units.index');
+    Route::get('kpi/divisions', [DivisionController::class, 'index'])
+        ->name('kpi.divisions.index');
+    Route::get('kpi/settings', [KpiPeriodController::class, 'index'])
         ->name('kpi.settings');
-    Route::post('kpi/settings', [KpiSettingsController::class, 'update'])
-        ->name('kpi.settings.update');
-    Route::post('kpi/settings/accesses', [KpiSettingsController::class, 'storeAccess'])
-        ->name('kpi.settings.accesses.store');
-    Route::delete('kpi/settings/accesses/{grant}', [KpiSettingsController::class, 'revokeAccess'])
-        ->name('kpi.settings.accesses.destroy');
-    Route::get('kpi/summary/teacher/{userId}', [KpiSummaryController::class, 'showTeacher'])
-        ->name('kpi.summary.teacher')
-        ->whereNumber('userId');
+    Route::get('kpi/summary', [KpiAnalyticsController::class, 'index'])
+        ->name('kpi.summary');
+    Route::get('kpi/analytics', [KpiAnalyticsController::class, 'index'])
+        ->name('kpi.analytics.index');
+    Route::post('kpi/analytics/export/excel', [KpiAnalyticsController::class, 'exportExcel'])
+        ->name('kpi.analytics.export-excel');
+    Route::post('kpi/analytics/export/pdf', [KpiAnalyticsController::class, 'exportPdf'])
+        ->name('kpi.analytics.export-pdf');
     Route::get('kpi/my-form', [KpiEntryController::class, 'myForm'])
         ->name('kpi.my-form');
     Route::post('kpi/my-entries', [KpiEntryController::class, 'storeMyEntry'])
@@ -205,13 +175,10 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
     Route::post('kpi', [KpiPeriodController::class, 'store'])
         ->name('kpi.store');
     Route::post('kpi/{period}/entries/plan', [KpiEntryController::class, 'savePlan'])
-        ->whereNumber('period')
         ->name('kpi.entries.save-plan');
     Route::post('kpi/{period}/entries/fact', [KpiEntryController::class, 'saveFact'])
-        ->whereNumber('period')
         ->name('kpi.entries.save-fact');
     Route::post('kpi/{period}/entries/submit', [KpiEntryController::class, 'submit'])
-        ->whereNumber('period')
         ->name('kpi.entries.submit');
     Route::post('kpi/entries/{entry}/files', [KpiEntryController::class, 'uploadFile'])
         ->name('kpi.entries.files.store');
@@ -226,57 +193,13 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
     Route::post('kpi/entries/{entry}/reject', [KpiEntryController::class, 'reject'])
         ->name('kpi.entries.reject');
     Route::get('kpi/{period}', [KpiPeriodController::class, 'show'])
-        ->whereNumber('period')
         ->name('kpi.show');
     Route::patch('kpi/{period}', [KpiPeriodController::class, 'update'])
-        ->whereNumber('period')
         ->name('kpi.update');
     Route::post('kpi/{period}/activate', [KpiPeriodController::class, 'activate'])
-        ->whereNumber('period')
         ->name('kpi.activate');
-    Route::post('kpi/{period}/deactivate', [KpiPeriodController::class, 'deactivate'])
-        ->whereNumber('period')
-        ->name('kpi.deactivate');
     Route::post('kpi/{period}/close', [KpiPeriodController::class, 'close'])
-        ->whereNumber('period')
         ->name('kpi.close');
-    Route::delete('kpi/{period}', [KpiPeriodController::class, 'destroy'])
-        ->whereNumber('period')
-        ->name('kpi.destroy');
-
-    // KPI Divisions management
-    Route::get('kpi/divisions', [KpiDivisionController::class, 'index'])
-        ->name('kpi.divisions.index');
-    Route::get('kpi/divisions/tables', [KpiDivisionController::class, 'tables'])
-        ->name('kpi.divisions.tables');
-    Route::post('kpi/divisions', [KpiDivisionController::class, 'store'])
-        ->name('kpi.divisions.store');
-    Route::put('kpi/divisions/{division}', [KpiDivisionController::class, 'update'])
-        ->name('kpi.divisions.update');
-    Route::delete('kpi/divisions/{division}', [KpiDivisionController::class, 'destroy'])
-        ->name('kpi.divisions.destroy');
-    Route::get('kpi/divisions/{division}/employees', [KpiDivisionController::class, 'showEmployees'])
-        ->name('kpi.divisions.employees');
-    Route::post('kpi/divisions/{division}/employees', [KpiDivisionController::class, 'addEmployee'])
-        ->name('kpi.divisions.employees.add');
-    Route::delete('kpi/divisions/{division}/employees/{userId}', [KpiDivisionController::class, 'removeEmployee'])
-        ->name('kpi.divisions.employees.remove');
-
-    // KPI Structural Units management
-    Route::get('kpi/structural-units', [KpiStructuralUnitController::class, 'index'])
-        ->name('kpi.structural-units.index');
-    Route::get('kpi/structural-units/{unit}', [KpiStructuralUnitController::class, 'show'])
-        ->name('kpi.structural-units.show');
-    Route::post('kpi/structural-units/{unit}/users', [KpiStructuralUnitController::class, 'attachUser'])
-        ->name('kpi.structural-units.users.attach');
-    Route::delete('kpi/structural-units/{unit}/users/{user}', [KpiStructuralUnitController::class, 'detachUser'])
-        ->name('kpi.structural-units.users.detach');
-    Route::post('kpi/structural-units', [KpiStructuralUnitController::class, 'store'])
-        ->name('kpi.structural-units.store');
-    Route::put('kpi/structural-units/{unit}', [KpiStructuralUnitController::class, 'update'])
-        ->name('kpi.structural-units.update');
-    Route::delete('kpi/structural-units/{unit}', [KpiStructuralUnitController::class, 'destroy'])
-        ->name('kpi.structural-units.destroy');
 
     Route::get('diplomas', [DiplomaController::class, 'index'])
         ->name('diplomas.index');
@@ -686,6 +609,7 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                 ])
                 ->values();
 
+            // Admin: list of calendar-visible employees + excluded users + granted users
             $calendarEmployees = [];
             $excludedUsers = [];
             $grantedUsers = [];
@@ -695,6 +619,7 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                 $excludedIds = \App\Models\CalendarEmployeeExclusion::pluck('user_id')->all();
                 $grantedIds  = \App\Models\CalendarEmployeeGrant::pluck('user_id')->all();
 
+                // Users visible by title (not excluded)
                 $calendarEmployees = \App\Models\User::query()
                     ->select('id', 'name', 'display_name', 'ad_title', 'email', 'phone')
                     ->whereNotIn('id', $excludedIds)
@@ -715,6 +640,7 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                     ])
                     ->values();
 
+                // Users explicitly granted (not excluded)
                 $grantsMap = \App\Models\CalendarEmployeeGrant::query()
                     ->whereIn('user_id', $grantedIds)
                     ->pluck('id', 'user_id')
@@ -736,6 +662,7 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                     ])
                     ->values();
 
+                // Excluded users
                 $exclusionsMap = \App\Models\CalendarEmployeeExclusion::query()
                     ->whereIn('user_id', $excludedIds)
                     ->pluck('id', 'user_id')
@@ -756,6 +683,7 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                     ])
                     ->values();
 
+                // Users that can be granted (not already visible by title, not already granted, not excluded)
                 $alreadyVisibleIds = $calendarEmployees->pluck('id')->all();
                 $availableForGrant = \App\Models\User::query()
                     ->select('id', 'name', 'display_name', 'ad_title', 'email', 'phone')
@@ -1025,6 +953,8 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
                 }
             }
 
+            // Only non-meeting events block availability (vacation, sick_leave, etc.)
+            // A meeting can coexist with other meetings — that is not a scheduling conflict.
             $blockingTypes = ['vacation', 'sick_leave', 'business_trip', 'personal', 'remote', 'other'];
 
             $ownerConflictEvents = \App\Models\CalendarEvent::query()
@@ -1634,59 +1564,6 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('certificates.issue');
     Route::post('admin/certificates/{certificate}/revoke', [CertificateRegistryController::class, 'revoke'])
         ->name('certificates.revoke');
-
-    // Survey Module Routes
-    // Student Surveys
-    Route::get('surveys', [\App\Http\Controllers\SurveyStudentController::class, 'index'])
-        ->name('surveys.index');
-    Route::get('surveys/{survey}/start', [\App\Http\Controllers\SurveyStudentController::class, 'start'])
-        ->name('surveys.start');
-    Route::post('surveys/{survey}/store-answers', [\App\Http\Controllers\SurveyStudentController::class, 'store'])
-        ->name('surveys.store-answers');
-    Route::post('surveys/{survey}/complete', [\App\Http\Controllers\SurveyStudentController::class, 'complete'])
-        ->name('surveys.complete');
-    Route::get('surveys/{survey}/show', [\App\Http\Controllers\SurveyStudentController::class, 'show'])
-        ->name('surveys.show');
-
-    // Admin Surveys Management
-    Route::get('admin/surveys', [\App\Http\Controllers\SurveyAdminController::class, 'index'])
-        ->name('admin.surveys.index');
-    Route::get('admin/surveys/create', [\App\Http\Controllers\SurveyAdminController::class, 'create'])
-        ->name('admin.surveys.create');
-    Route::post('admin/surveys/bulk-create', [\App\Http\Controllers\SurveyAdminController::class, 'storeBulk'])
-        ->name('admin.surveys.store-bulk');
-    Route::get('admin/surveys/{survey}', [\App\Http\Controllers\SurveyAdminController::class, 'show'])
-        ->name('admin.surveys.show');
-    Route::post('admin/surveys/{survey}/cancel', [\App\Http\Controllers\SurveyAdminController::class, 'cancel'])
-        ->name('admin.surveys.cancel');
-    Route::delete('admin/surveys/{survey}', [\App\Http\Controllers\SurveyAdminController::class, 'destroy'])
-        ->name('admin.surveys.destroy');
-
-    // Survey Questions Management
-    Route::get('admin/survey-questions', [\App\Http\Controllers\SurveyQuestionController::class, 'index'])
-        ->name('admin.survey-questions.index');
-    Route::get('admin/survey-questions/create', [\App\Http\Controllers\SurveyQuestionController::class, 'create'])
-        ->name('admin.survey-questions.create');
-    Route::post('admin/survey-questions', [\App\Http\Controllers\SurveyQuestionController::class, 'store'])
-        ->name('admin.survey-questions.store');
-    Route::get('admin/survey-questions/{question}/edit', [\App\Http\Controllers\SurveyQuestionController::class, 'edit'])
-        ->name('admin.survey-questions.edit');
-    Route::patch('admin/survey-questions/{question}', [\App\Http\Controllers\SurveyQuestionController::class, 'update'])
-        ->name('admin.survey-questions.update');
-    Route::delete('admin/survey-questions/{question}', [\App\Http\Controllers\SurveyQuestionController::class, 'destroy'])
-        ->name('admin.survey-questions.destroy');
-
-    // Survey Analytics
-    Route::get('admin/surveys/analytics/teacher/{teacher}', [\App\Http\Controllers\SurveyAnalyticsController::class, 'teacherAnalytics'])
-        ->name('admin.surveys.analytics.teacher');
-    Route::get('admin/surveys/analytics/discipline/{discipline}', [\App\Http\Controllers\SurveyAnalyticsController::class, 'disciplineAnalytics'])
-        ->name('admin.surveys.analytics.discipline');
-    Route::get('admin/surveys/analytics/system-report', [\App\Http\Controllers\SurveyAnalyticsController::class, 'systemReport'])
-        ->name('admin.surveys.analytics.system-report');
-
-    // API endpoint for survey questions
-    Route::get('api/survey-questions/active', [\App\Http\Controllers\SurveyQuestionController::class, 'getActive'])
-        ->name('api.survey-questions.active');
 });
 
 Route::get('certificate/verify/{certificateNumber}', [CertificateRegistryController::class, 'verify'])
