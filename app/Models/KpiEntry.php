@@ -50,6 +50,7 @@ class KpiEntry extends Model
         'fact_value',
         'calculated_points',
         'manual_points',
+        'calculation_details',
         'comment',
         'external_source_url',
         'status',
@@ -72,9 +73,17 @@ class KpiEntry extends Model
         'fact_value' => 'decimal:2',
         'calculated_points' => 'decimal:2',
         'manual_points' => 'decimal:2',
+        'calculation_details' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'points_for_display',
     ];
 
     public function period(): BelongsTo
@@ -158,7 +167,7 @@ class KpiEntry extends Model
             return false;
         }
 
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_RETURNED], true);
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_RETURNED, self::STATUS_REJECTED], true);
     }
 
     public function canBeApproved(): bool
@@ -178,5 +187,30 @@ class KpiEntry extends Model
     public function isLocked(): bool
     {
         return $this->status === self::STATUS_LOCKED;
+    }
+
+    public function getPointsForDisplayAttribute(): string
+    {
+        if ($this->manual_points !== null) {
+            return number_format((float) $this->manual_points, 2, '.', '');
+        }
+
+        $value = $this->fact_value ?? $this->plan_value;
+        $basePoints = null;
+        if ($this->relationLoaded('indicator')) {
+            $basePoints = (float) ($this->indicator?->base_points ?? 0);
+        } else {
+            $basePoints = (float) ($this->indicator()->value('base_points') ?? 0);
+        }
+
+        if ($value !== null) {
+            return number_format($basePoints * (float) $value, 2, '.', '');
+        }
+
+        if ($this->calculated_points !== null) {
+            return number_format((float) $this->calculated_points, 2, '.', '');
+        }
+
+        return '0.00';
     }
 }

@@ -26,6 +26,12 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
+            'position_title' => ['nullable', 'string', 'max:255'],
+            'office_location' => ['nullable', 'string', 'max:255'],
+            'telegram' => ['nullable', 'string', 'max:100'],
+            'bio' => ['nullable', 'string', 'max:2000'],
+            'avatar_url' => ['nullable', 'url', 'max:2048'],
+            'profile_visibility' => ['nullable', Rule::in(['public', 'internal', 'private'])],
         ];
     }
 }

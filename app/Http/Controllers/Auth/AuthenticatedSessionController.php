@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -33,7 +34,23 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $alreadyTracked = (bool) $request->session()->pull('login_tracked', false);
+        $user = Auth::user();
+
+        if ($user && ! $alreadyTracked) {
+            $user->last_login = now();
+            $user->last_login_at = now();
+            $user->login_count = (int) ($user->login_count ?? 0) + 1;
+            $user->save();
+        }
+
+        try {
+            Artisan::call('dashboard:refresh-cache');
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return redirect()->intended('/dashboard');
     }
 
     /**

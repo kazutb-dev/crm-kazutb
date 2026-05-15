@@ -24,6 +24,13 @@ class EnsureCalendarLeadershipAccess
         }
 
         $userId = (int) $user->id;
+
+        // Admins always have full calendar access
+        $roleSlug = $user->resolvedRoleSlug();
+        if (in_array($roleSlug, ['admin', 'superadmin'], true)) {
+            return $next($request);
+        }
+
         $title = mb_strtolower(trim((string) ($user?->ad_title ?? '')));
 
         if (CalendarEmployeeExclusion::query()->where('user_id', $userId)->exists()) {

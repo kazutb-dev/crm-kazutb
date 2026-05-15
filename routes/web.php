@@ -142,6 +142,14 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('kpi.indicators.update');
     Route::delete('kpi/indicators/{indicator}', [KpiIndicatorController::class, 'destroy'])
         ->name('kpi.indicators.destroy');
+    Route::get('kpi/structural-units', [KpiPeriodController::class, 'index'])
+        ->name('kpi.structural-units.index');
+    Route::get('kpi/divisions', [DivisionController::class, 'index'])
+        ->name('kpi.divisions.index');
+    Route::get('kpi/settings', [KpiPeriodController::class, 'index'])
+        ->name('kpi.settings');
+    Route::get('kpi/summary', [KpiAnalyticsController::class, 'index'])
+        ->name('kpi.summary');
     Route::get('kpi/analytics', [KpiAnalyticsController::class, 'index'])
         ->name('kpi.analytics.index');
     Route::post('kpi/analytics/export/excel', [KpiAnalyticsController::class, 'exportExcel'])

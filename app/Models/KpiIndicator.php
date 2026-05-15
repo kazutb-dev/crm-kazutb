@@ -46,6 +46,8 @@ class KpiIndicator extends Model
         'is_active',
         'sort_order',
         'checker_division_id',
+        'checker_structural_unit_id',
+        'scoring_rules',
     ];
 
     /**
@@ -89,5 +91,23 @@ class KpiIndicator extends Model
     public function checkerDivision()
     {
         return $this->belongsTo(\App\Models\Division::class, 'checker_division_id');
+    }
+
+    public function checkerStructuralUnit()
+    {
+        return $this->belongsTo(KpiStructuralUnit::class, 'checker_structural_unit_id');
+    }
+
+    /**
+     * Many-to-many relationship: indicators can belong to multiple structural units
+     */
+    public function structuralUnits()
+    {
+        return $this->belongsToMany(
+            KpiStructuralUnit::class,
+            'kpi_indicator_structural_unit',
+            'kpi_indicator_id',
+            'kpi_structural_unit_id'
+        )->withTimestamps();
     }
 }

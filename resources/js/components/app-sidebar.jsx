@@ -42,9 +42,12 @@ import {
     Megaphone,
     MapPinned,
 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 export function AppSidebar() {
-    const { auth, calendar } = usePage().props;
+    const page = usePage();
+    const { auth, calendar } = page.props;
+    const currentUrl = page.url;
     const user = auth.user;
     const roleSlug = auth.roleSlug;
     const incomingCalendarCount = Number(calendar?.incoming_count ?? 0);
@@ -62,6 +65,39 @@ export function AppSidebar() {
     const showOnlyKpiMenus = isRatingAccreditationDivision;
     const canUseCalendar = Boolean(calendar?.can_access);
     const isCalendarRoute = route().current('calendar.*');
+    const sidebarContentRef = useRef(null);
+
+    useEffect(() => {
+        const node = sidebarContentRef.current;
+
+        if (!node) {
+            return;
+        }
+
+        const savedScrollTop = Number(sessionStorage.getItem('app_sidebar_scroll_top') ?? 0);
+
+        if (Number.isFinite(savedScrollTop)) {
+            node.scrollTop = savedScrollTop;
+        }
+    }, [currentUrl]);
+
+    useEffect(() => {
+        const node = sidebarContentRef.current;
+
+        if (!node) {
+            return;
+        }
+
+        const handleScroll = () => {
+            sessionStorage.setItem('app_sidebar_scroll_top', String(node.scrollTop));
+        };
+
+        node.addEventListener('scroll', handleScroll, { passive: true });
+
+        return () => {
+            node.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
     const kpiHref = (() => {
         if (roleSlug === 'teacher') {
@@ -167,18 +203,9 @@ export function AppSidebar() {
             icon: BookOpenText,
             active: route().current('educational-programs.*'),
         },
-        ...(isAdminRole
-            ? [{
-                title: 'KPI Индикаторы',
-                href: route('kpi.indicators.index'),
-                icon: SlidersHorizontal,
-                active: route().current('kpi.indicators.*'),
-            }]
-            : []),
     ] : [];
 
-    const kafedras = [
-        // ППС: только свои KPI
+    const kpiSectionItems = [
         ...((['teacher'].includes(roleSlug) || showAllKpiMenus)
             ? [{
                 title: 'KPI — Мои показатели',
@@ -188,7 +215,6 @@ export function AppSidebar() {
             }]
             : []),
 
-        // Зав. кафедрой: очередь проверки (submitted → pending_dean)
         ...((['hod', 'department_head'].includes(roleSlug) || showAllKpiMenus)
             ? [{
                 title: 'KPI — Очередь проверки',
@@ -198,7 +224,6 @@ export function AppSidebar() {
             }]
             : []),
 
-        // Декан: очередь утверждения (pending_dean → pending_structural)
         ...((['dean'].includes(roleSlug) || showAllKpiMenus)
             ? [{
                 title: 'KPI — Утверждение',
@@ -208,7 +233,6 @@ export function AppSidebar() {
             }]
             : []),
 
-        // Структурные подразделения: финальное утверждение (pending_structural → approved/rejected)
         ...((['department'].includes(roleSlug) || showAllKpiMenus)
             ? [{
                 title: 'KPI — На утверждение',
@@ -218,23 +242,67 @@ export function AppSidebar() {
             }]
             : []),
 
-        ...(!showOnlyKpiMenus
+        ...((['teacher', 'hod', 'department_head', 'dean', 'department'].includes(roleSlug) || showAllKpiMenus)
+            ? [{
+                title: 'KPI — Сводка',
+                href: route('kpi.summary'),
+                icon: TrendingUp,
+                active: route().current('kpi.summary') || route().current('kpi.summary.teacher'),
+            }]
+            : []),
+
+        ...(showAllKpiMenus
             ? [
                 {
-                    title: 'Дипломные работы',
-                    href: route('diplomas.index'),
-                    icon: ScrollText,
-                    active: route().current('diplomas.*'),
+                    title: 'KPI — Сезоны',
+                    href: route('kpi.index'),
+                    icon: CalendarRange,
+                    active: route().current('kpi.index'),
                 },
                 {
-                    title: 'Объявления',
-                    href: route('announcements.index'),
-                    icon: Megaphone,
-                    active: route().current('announcements.*'),
+                    title: 'KPI — Настройки',
+                    href: route('kpi.settings'),
+                    icon: SlidersHorizontal,
+                    active: route().current('kpi.settings'),
+                },
+                {
+                    title: 'KPI — Индикаторы',
+                    href: route('kpi.indicators.index'),
+                    icon: BarChart3,
+                    active: route().current('kpi.indicators.*'),
+                },
+                {
+                    title: 'KPI — Структурные подразделения',
+                    href: route('kpi.structural-units.index'),
+                    icon: Building2,
+                    active: route().current('kpi.structural-units.*'),
+                },
+                {
+                    title: 'KPI — Департаменты',
+                    href: route('kpi.divisions.index'),
+                    icon: Building,
+                    active: route().current('kpi.divisions.*'),
                 },
             ]
             : []),
     ];
+
+    const kafedraSectionItems = !showOnlyKpiMenus
+        ? [
+            {
+                title: 'Дипломные работы',
+                href: route('diplomas.index'),
+                icon: ScrollText,
+                active: route().current('diplomas.*'),
+            },
+            {
+                title: 'Объявления',
+                href: route('announcements.index'),
+                icon: Megaphone,
+                active: route().current('announcements.*'),
+            },
+        ]
+        : [];
 
     const hr = isAdminRole ? [
         {
@@ -304,6 +372,39 @@ export function AppSidebar() {
             : []),
     ] : [];
 
+    const survey = isAdminRole ? [
+        {
+            title: 'Дашборд анкетирования',
+            href: route('admin.surveys.dashboard'),
+            icon: ClipboardList,
+            active: route().current('admin.surveys.dashboard'),
+        },
+        {
+            title: 'Группы',
+            href: route('admin.surveys.groups.index'),
+            icon: Users,
+            active: route().current('admin.surveys.groups.*'),
+        },
+        {
+            title: 'Студенты',
+            href: route('admin.surveys.students.index'),
+            icon: GraduationCap,
+            active: route().current('admin.surveys.students.*'),
+        },
+        {
+            title: 'Список анкет',
+            href: route('admin.surveys.list'),
+            icon: FileCheck,
+            active: route().current('admin.surveys.list'),
+        },
+        {
+            title: 'Аналитика',
+            href: route('admin.surveys.analytics.index'),
+            icon: BarChart3,
+            active: route().current('admin.surveys.analytics.index'),
+        },
+    ] : [];
+
     const calendarNavigation = [
         { title: 'Календарь', href: route('calendar.index'), icon: Calendar, active: route().current('calendar.index') },
         ...(sharedCalendarCount > 0
@@ -357,7 +458,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent ref={sidebarContentRef}>
                 <SidebarGroup>
                     <SidebarGroupLabel>Аккаунт</SidebarGroupLabel>
                     <SidebarGroupContent>
@@ -416,12 +517,32 @@ export function AppSidebar() {
                     </SidebarGroup>
                 )}
 
-                {(isAdminRole || isTeacherRole || isDepartmentRole || isRatingAccreditationDivision) && (
+                {(isAdminRole || isTeacherRole || isDepartmentRole || isRatingAccreditationDivision) && kpiSectionItems.length > 0 && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>KPI</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {kpiSectionItems.map((item) => (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
+                                            <Link href={item.href}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
+
+                {(isAdminRole || isTeacherRole || isDepartmentRole || isRatingAccreditationDivision) && kafedraSectionItems.length > 0 && (
                     <SidebarGroup>
                         <SidebarGroupLabel>Кафедра</SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {kafedras.map((item) => (
+                                {kafedraSectionItems.map((item) => (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
                                             <Link href={item.href}>
@@ -462,6 +583,26 @@ export function AppSidebar() {
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 {library.map((item) => (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
+                                            <Link href={item.href}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
+
+                {isAdminRole && !showOnlyKpiMenus && (
+                    <SidebarGroup>
+                        <SidebarGroupLabel>Анкетирование</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {survey.map((item) => (
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
                                             <Link href={item.href}>

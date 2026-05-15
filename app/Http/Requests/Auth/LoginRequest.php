@@ -6,6 +6,7 @@ use App\Services\ActiveDirectoryAuthenticator;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +48,7 @@ class LoginRequest extends FormRequest
         $remember = $this->boolean('remember');
 
         $authenticated = false;
+        $trackedByAd = false;
 
         /** @var ActiveDirectoryAuthenticator $adAuthenticator */
         $adAuthenticator = app(ActiveDirectoryAuthenticator::class);
@@ -55,6 +57,7 @@ class LoginRequest extends FormRequest
         if ($adUser !== null) {
             Auth::login($adUser, $remember);
             $authenticated = true;
+            $trackedByAd = true;
         }
 
         if (! $authenticated) {
@@ -68,6 +71,19 @@ class LoginRequest extends FormRequest
                 'email' => trans('auth.failed'),
             ]);
         }
+
+        $userId = Auth::id();
+
+        if (! $trackedByAd && $userId !== null) {
+            DB::table('users')
+                ->where('id', $userId)
+                ->update([
+                    'last_login_at' => now(),
+                    'login_count' => DB::raw('COALESCE(login_count, 0) + 1'),
+                ]);
+        }
+
+        $this->session()->put('login_tracked', true);
 
         RateLimiter::clear($this->throttleKey());
     }

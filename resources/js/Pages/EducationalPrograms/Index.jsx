@@ -154,7 +154,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Степень</label>
                                     <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                         value={createForm.data.degree}
                                         onChange={(e) =>
                                             createForm.setData('degree', e.target.value)
@@ -178,7 +178,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Кафедра</label>
                                     <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                         value={createForm.data.department_id}
                                         onChange={(e) =>
                                             createForm.setData('department_id', e.target.value)
@@ -200,7 +200,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Учебный год</label>
                                     <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                         value={createForm.data.academic_year_id}
                                         onChange={(e) =>
                                             createForm.setData('academic_year_id', e.target.value)
@@ -275,7 +275,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Степень</label>
                                 <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={editForm.data.degree}
                                     onChange={(e) => editForm.setData('degree', e.target.value)}
                                 >
@@ -295,7 +295,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Кафедра</label>
                                 <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={editForm.data.department_id}
                                     onChange={(e) =>
                                         editForm.setData('department_id', e.target.value)
@@ -317,7 +317,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Учебный год</label>
                                 <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     value={editForm.data.academic_year_id}
                                     onChange={(e) =>
                                         editForm.setData('academic_year_id', e.target.value)
@@ -347,32 +347,32 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                 </DialogContent>
             </Dialog>
 
-            <div className="p-4 sm:p-6 lg:p-8">
-                <Card>
+            <div className="admin-page-wrap">
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Список образовательных программ</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
+                            <div className="admin-empty-state">
                                 Пока нет образовательных программ.
-                            </p>
+                            </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px] text-sm">
+                            <div className="admin-table-wrap">
+                                <table className="admin-data-table min-w-[900px]">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Название</th>
-                                            <th className="py-3 pe-3 font-medium">Код</th>
-                                            <th className="py-3 pe-3 font-medium">Степень</th>
-                                            <th className="py-3 pe-3 font-medium">Кафедра</th>
-                                            <th className="py-3 pe-3 font-medium">Учебный год</th>
-                                            <th className="py-3 text-right font-medium">Действия</th>
+                                        <tr>
+                                            <th>Название</th>
+                                            <th>Код</th>
+                                            <th>Степень</th>
+                                            <th>Кафедра</th>
+                                            <th>Учебный год</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((program) => (
-                                            <tr key={program.id} className="border-b last:border-0">
+                                            <tr key={program.id}>
                                                 <td className="py-3 pe-3 font-medium">{program.name}</td>
                                                 <td className="py-3 pe-3">
                                                     <Badge variant="outline">{program.code}</Badge>
@@ -387,7 +387,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                                                     {program.academic_year?.name ?? '-'}
                                                 </td>
                                                 <td className="py-3 text-right">
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="admin-row-actions">
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
@@ -414,7 +414,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                         )}
 
                         {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
+                            <div className="admin-pagination">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

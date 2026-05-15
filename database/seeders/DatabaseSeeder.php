@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DiplomaSeeder::class,
             KpiSeeder::class,
+            KpiIndicatorSeeder::class,
         ]);
     }
 }

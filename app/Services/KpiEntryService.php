@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Exceptions\Kpi\KpiEntryFileRequiredException;
 use App\Exceptions\Kpi\KpiEntryStageException;
 use App\Exceptions\Kpi\KpiEntryStatusException;
+use App\Models\KpiAccessGrant;
 use App\Models\KpiEntry;
+use App\Models\KpiEntryFile;
 use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\KpiStatusLog;
@@ -13,6 +15,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class KpiEntryService
 {
@@ -85,14 +88,14 @@ class KpiEntryService
                     $entry->department_id = $resolvedDepartmentId;
                 }
 
-                $entry->status = KpiEntry::STATUS_SUBMITTED;
+                $entry->status = self::resolveInitialSubmitStatus((string) $entry->entity_type);
                 $entry->submitted_at = $now;
                 $entry->save();
 
                 $this->logStatusChange(
                     $entry,
                     $fromStatus,
-                    KpiEntry::STATUS_SUBMITTED,
+                    $entry->status,
                     KpiStatusLog::ACTION_SUBMIT,
                     null,
                     $user->id,
@@ -196,9 +199,16 @@ class KpiEntryService
 
             $this->assertFactFileAttachedForConfirmation($lockedEntry);
 
+            if ($lockedEntry->faculty_id === null) {
+                $lockedEntry->faculty_id = $actor->faculty_id;
+            }
+
+            if ($lockedEntry->department_id === null) {
+                $lockedEntry->department_id = $actor->department_id;
+            }
+
             $fromStatus = $lockedEntry->status;
-            $role = $actor->resolvedRoleSlug();
-            $nextStatus = $this->resolveNextApprovalStatus($lockedEntry, $role);
+            $nextStatus = $this->resolveNextApprovalStatus($lockedEntry, $actor);
 
             $lockedEntry->status = $nextStatus;
             if ($nextStatus === KpiEntry::STATUS_APPROVED) {
@@ -238,10 +248,43 @@ class KpiEntryService
         });
     }
 
-    private function resolveNextApprovalStatus(KpiEntry $entry, string $role): string
+    /**
+     * Determine the initial status when a user submits their own KPI entry.
+     * - Teachers go to 'submitted' (first reviewed by HOD)
+     * - HODs go directly to 'pending_dean' (skip HOD review step)
+     * - Deans go directly to 'pending_structural' (skip HOD and dean steps)
+     */
+    public static function resolveInitialSubmitStatus(string $entityType): string
     {
+        return match ($entityType) {
+            KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD => KpiEntry::STATUS_PENDING_DEAN,
+            KpiEntry::ENTITY_TYPE_DEAN            => KpiEntry::STATUS_PENDING_STRUCTURAL,
+            default                               => KpiEntry::STATUS_SUBMITTED,
+        };
+    }
+
+    private function resolveNextApprovalStatus(KpiEntry $entry, User $actor): string
+    {
+        $role = $actor->resolvedRoleSlug();
+
+        // Queue grants can delegate moderation even for teacher role.
+        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_REVIEW_QUEUE)
+            && $entry->status === KpiEntry::STATUS_SUBMITTED) {
+            return KpiEntry::STATUS_PENDING_DEAN;
+        }
+
+        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+            && in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true)) {
+            return KpiEntry::STATUS_PENDING_STRUCTURAL;
+        }
+
+        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+            return KpiEntry::STATUS_APPROVED;
+        }
+
         // Admin follows the same chain based on current entry status
-        if ($role === 'admin') {
+        if (in_array($role, ['admin', 'superadmin'], true)) {
             if ($entry->status === KpiEntry::STATUS_SUBMITTED) {
                 return KpiEntry::STATUS_PENDING_DEAN;
             }
@@ -261,7 +304,8 @@ class KpiEntryService
             return KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
 
-        if ($role === 'department' && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+        if (in_array($role, ['department', 'structural'], true)
+            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
             return KpiEntry::STATUS_APPROVED;
         }
 
@@ -282,7 +326,7 @@ class KpiEntryService
 
             $role = $actor->resolvedRoleSlug();
 
-            if ($role === 'admin') {
+            if (in_array($role, ['admin', 'superadmin'], true)) {
                 $validStatuses = [
                     KpiEntry::STATUS_SUBMITTED, KpiEntry::STATUS_REVIEWED,
                     KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL,
@@ -290,7 +334,7 @@ class KpiEntryService
                 if (!in_array($lockedEntry->status, $validStatuses, true)) {
                     throw new KpiEntryStatusException('Отклонить можно только запись в промежуточном статусе.');
                 }
-            } elseif ($role === 'department') {
+            } elseif (in_array($role, ['department', 'structural'], true)) {
                 // Структурные подразделения могут окончательно отклонить только из pending_structural
                 if ($lockedEntry->status !== KpiEntry::STATUS_PENDING_STRUCTURAL) {
                     throw new KpiEntryStatusException('Можно отклонить только запись со статусом pending_structural.');
@@ -339,6 +383,7 @@ class KpiEntryService
             ->keyBy('id');
 
         $existingEntries = KpiEntry::query()
+            ->withTrashed()
             ->where('kpi_period_id', $period->id)
             ->where('academic_year_id', $period->academic_year_id)
             ->where('user_id', $user->id)
@@ -390,6 +435,10 @@ class KpiEntryService
                 'comment' => $row['comment'] ?? null,
             ];
 
+            if ($basePayload['manual_points'] !== null) {
+                $basePayload['calculated_points'] = '0.00';
+            }
+
             if ($mode === 'plan') {
                 $basePayload['plan_value'] = $this->nullableDecimal($row['plan_value'] ?? null);
             }
@@ -399,6 +448,15 @@ class KpiEntryService
             }
 
             if ($existing) {
+                if ($existing->trashed()) {
+                    $existing->restore();
+                    $this->purgeEntryFiles($existing);
+                    $existing->status = KpiEntry::STATUS_DRAFT;
+                    $existing->submitted_at = null;
+                    $existing->reviewed_at = null;
+                    $existing->approved_at = null;
+                }
+
                 $existing->fill($basePayload);
                 $existing->save();
                 continue;
@@ -474,6 +532,21 @@ class KpiEntryService
         ]);
     }
 
+    private function purgeEntryFiles(KpiEntry $entry): void
+    {
+        $files = KpiEntryFile::query()
+            ->where('kpi_entry_id', $entry->id)
+            ->get();
+
+        foreach ($files as $file) {
+            if (!empty($file->file_path)) {
+                Storage::disk($file->file_disk ?: 'public')->delete($file->file_path);
+            }
+
+            $file->delete();
+        }
+    }
+
     private function nullableDecimal(mixed $value): ?string
     {
         if ($value === null || $value === '') {
@@ -501,14 +574,6 @@ class KpiEntryService
 
         if ($resolvedFacultyId === null && $user->faculty_id !== null && $user->faculty_id !== '') {
             $resolvedFacultyId = (int) $user->faculty_id;
-        }
-
-        // Если faculty_id всё ещё не задан — берём из кафедры пользователя
-        if ($resolvedFacultyId === null && $resolvedDepartmentId !== null) {
-            $dept = \App\Models\Department::find($resolvedDepartmentId, ['id', 'faculty_id']);
-            if ($dept?->faculty_id !== null) {
-                $resolvedFacultyId = (int) $dept->faculty_id;
-            }
         }
 
         return [$resolvedFacultyId, $resolvedDepartmentId];

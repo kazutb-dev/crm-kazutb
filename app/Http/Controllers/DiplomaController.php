@@ -49,7 +49,7 @@ class DiplomaController extends Controller
         return Inertia::render('Diplomas/Index', [
             'diplomas' => $diplomas,
             'faculties' => Faculty::query()->orderBy('name')->get(['id', 'name']),
-            'departments' => Department::query()->orderBy('name')->get(['id', 'name', 'faculty_id']),
+            'departments' => Department::query()->orderBy('name')->get(['id', 'name']),
             'programs' => EducationalProgram::query()->orderBy('name')->get(['id', 'name', 'department_id']),
             'statusOptions' => Diploma::statuses(),
             'typeOptions' => Diploma::types(),

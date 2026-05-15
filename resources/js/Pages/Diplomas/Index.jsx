@@ -61,14 +61,8 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
     });
 
     const departmentOptions = useMemo(() => {
-        if (!createForm.data.faculty_id) {
-            return departments;
-        }
-
-        return departments.filter(
-            (department) => String(department.faculty_id) === String(createForm.data.faculty_id),
-        );
-    }, [departments, createForm.data.faculty_id]);
+        return departments;
+    }, [departments]);
 
     const programOptions = useMemo(() => {
         if (!createForm.data.department_id) {

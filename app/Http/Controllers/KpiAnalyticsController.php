@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KpiAccessGrant;
 use App\Services\KpiAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -80,9 +81,17 @@ class KpiAnalyticsController extends Controller
     private function authorizeReadOnlySuperadmin(Request $request): void
     {
         $roleSlug = $request->user()?->resolvedRoleSlug();
+        $userId   = $request->user()?->id;
 
-        if ($roleSlug !== 'superadmin') {
-            abort(403, 'Доступ разрешен только superadmin в режиме просмотра.');
+        // Суперадмин или пользователь с активным грантом аналитики
+        if ($roleSlug === 'superadmin' || $roleSlug === 'admin') {
+            return;
         }
+
+        if ($userId !== null && KpiAccessGrant::userHas($userId, KpiAccessGrant::PERM_ANALYTICS)) {
+            return;
+        }
+
+        abort(403, 'Нет доступа к аналитике KPI.');
     }
 }

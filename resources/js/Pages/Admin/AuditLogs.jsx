@@ -57,8 +57,8 @@ export default function AuditLogs({ logs, filters = {}, options = {} }) {
         <AuthenticatedLayout>
             <Head title="Журнал действий" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-                <Card>
+            <div className="admin-page-wrap">
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Журнал действий</CardTitle>
                     </CardHeader>
@@ -67,7 +67,7 @@ export default function AuditLogs({ logs, filters = {}, options = {} }) {
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Событие</label>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                    className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
                                     value={filterForm.data.event_type}
                                     onChange={(event) => filterForm.setData('event_type', event.target.value)}
                                 >
@@ -81,7 +81,7 @@ export default function AuditLogs({ logs, filters = {}, options = {} }) {
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Сущность</label>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                    className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
                                     value={filterForm.data.subject_type}
                                     onChange={(event) => filterForm.setData('subject_type', event.target.value)}
                                 >
@@ -109,30 +109,30 @@ export default function AuditLogs({ logs, filters = {}, options = {} }) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>События</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Пока нет событий для отображения.</p>
+                            <div className="admin-empty-state">Пока нет событий для отображения.</div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1200px] text-sm">
+                            <div className="admin-table-wrap">
+                                <table className="admin-data-table min-w-[1200px]">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Дата</th>
-                                            <th className="py-3 pe-3 font-medium">Пользователь</th>
-                                            <th className="py-3 pe-3 font-medium">Событие</th>
-                                            <th className="py-3 pe-3 font-medium">Сущность</th>
-                                            <th className="py-3 pe-3 font-medium">Объект</th>
-                                            <th className="py-3 pe-3 font-medium">Описание</th>
-                                            <th className="py-3 pe-3 font-medium">IP</th>
+                                        <tr>
+                                            <th>Дата</th>
+                                            <th>Пользователь</th>
+                                            <th>Событие</th>
+                                            <th>Сущность</th>
+                                            <th>Объект</th>
+                                            <th>Описание</th>
+                                            <th>IP</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((log) => (
-                                            <tr key={log.id} className="border-b align-top last:border-0">
+                                            <tr key={log.id} className="align-top">
                                                 <td className="py-3 pe-3 text-muted-foreground">
                                                     {new Date(log.created_at).toLocaleString('ru-RU')}
                                                 </td>
@@ -157,7 +157,7 @@ export default function AuditLogs({ logs, filters = {}, options = {} }) {
                         )}
 
                         {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
+                            <div className="admin-pagination">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

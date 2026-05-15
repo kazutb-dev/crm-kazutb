@@ -143,8 +143,8 @@ export default function AdminRoutes({ navigationRoutes }) {
         <AuthenticatedLayout>
             <Head title="Заполнение маршрутов" />
 
-            <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-                <Card>
+            <div className="admin-page-wrap">
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Заполнение маршрутов</CardTitle>
                     </CardHeader>
@@ -327,31 +327,31 @@ export default function AdminRoutes({ navigationRoutes }) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="admin-surface">
                     <CardHeader>
                         <CardTitle>Список маршрутов</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Маршрутов пока нет.</p>
+                            <div className="admin-empty-state">Маршрутов пока нет.</div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[980px] text-sm">
+                            <div className="admin-table-wrap">
+                                <table className="admin-data-table min-w-[980px]">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">ID</th>
-                                            <th className="py-3 pe-3 font-medium">Badge</th>
-                                            <th className="py-3 pe-3 font-medium">Название</th>
-                                            <th className="py-3 pe-3 font-medium">Тип</th>
-                                            <th className="py-3 pe-3 font-medium">Meta</th>
-                                            <th className="py-3 pe-3 font-medium">Шаги</th>
-                                            <th className="py-3 pe-3 font-medium">Статус</th>
-                                            <th className="py-3 pe-3 font-medium">Действия</th>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Badge</th>
+                                            <th>Название</th>
+                                            <th>Тип</th>
+                                            <th>Meta</th>
+                                            <th>Шаги</th>
+                                            <th>Статус</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {items.map((item) => (
-                                            <tr key={item.id} className="border-b align-top">
+                                            <tr key={item.id} className="align-top">
                                                 <td className="py-3 pe-3">#{item.id}</td>
                                                 <td className="py-3 pe-3">{item.badge}</td>
                                                 <td className="py-3 pe-3 font-medium">{item.title}</td>
@@ -367,8 +367,8 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                         {item.is_active ? 'Активен' : 'Скрыт'}
                                                     </Badge>
                                                 </td>
-                                                <td className="py-3 pe-3">
-                                                    <div className="flex gap-2">
+                                                <td className="py-3 pe-3 text-right">
+                                                    <div className="admin-row-actions">
                                                         <Button size="sm" variant="outline" type="button" onClick={() => startEdit(item)}>
                                                             Изменить
                                                         </Button>
@@ -385,7 +385,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                         )}
 
                         {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
+                            <div className="admin-pagination">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

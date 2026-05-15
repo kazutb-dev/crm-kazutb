@@ -3,13 +3,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { CheckCheck, Download, FileText, RotateCcw, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Download, FileText, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const statusLabels = {
     draft: 'Черновик',
     submitted: 'Отправлено',
     returned: 'Возвращено',
-    reviewed: 'Проверено',
+    reviewed: 'Скорректировано',
+    pending_dean: 'Корректировка данных - Деканат',
+    pending_structural: 'Финальное утверждение',
     approved: 'Утверждено',
     rejected: 'Отклонено',
     locked: 'Заблокировано',
@@ -34,7 +36,7 @@ const stageLabels = {
 const actionLabels = {
     submit: 'Отправка на рассмотрение',
     return: 'Возврат исполнителю',
-    review: 'Проверка',
+    review: 'Корректировка',
     approve: 'Утверждение',
     reject: 'Отклонение',
     lock: 'Блокировка',
@@ -61,10 +63,58 @@ function formatDateTime(value) {
 }
 
 function resolvePoints(entry) {
-    const raw = entry.manual_points ?? entry.calculated_points ?? 0;
+    const raw = entry.points_for_display ?? entry.manual_points ?? entry.calculated_points ?? 0;
     const parsed = Number(raw);
 
     return Number.isFinite(parsed) ? parsed.toFixed(2) : '0.00';
+}
+
+function resolveCalculationDetails(entry) {
+    const details = entry?.calculation_details;
+
+    if (!details || typeof details !== 'object') {
+        return [];
+    }
+
+    const rows = [];
+
+    if (details.rule_kind) {
+        rows.push({ label: 'Тип правила', value: String(details.rule_kind) });
+    }
+
+    if (details.rule_text) {
+        rows.push({ label: 'Текст правила', value: String(details.rule_text) });
+    }
+
+    if (details.selection_label) {
+        rows.push({ label: 'Выбранная категория/условие', value: String(details.selection_label) });
+    }
+
+    if (details.quantity !== undefined && details.quantity !== null) {
+        rows.push({ label: 'Количество', value: String(details.quantity) });
+    }
+
+    if (details.sheet_count !== undefined && details.sheet_count !== null) {
+        rows.push({ label: 'Печатные листы', value: String(details.sheet_count) });
+    }
+
+    if (details.coauthors_count !== undefined && details.coauthors_count !== null) {
+        rows.push({ label: 'Соавторы', value: String(details.coauthors_count) });
+    }
+
+    if (details.selection_points !== undefined && details.selection_points !== null) {
+        rows.push({ label: 'Ставка баллов', value: String(details.selection_points) });
+    }
+
+    if (details.per_sheet_points !== undefined && details.per_sheet_points !== null) {
+        rows.push({ label: 'Баллы за 1 п.л.', value: String(details.per_sheet_points) });
+    }
+
+    if (details.computed_points !== undefined && details.computed_points !== null) {
+        rows.push({ label: 'Расчетный балл', value: String(details.computed_points) });
+    }
+
+    return rows;
 }
 
 export default function EntryShow({ entry, permissions = {} }) {
@@ -74,6 +124,7 @@ export default function EntryShow({ entry, permissions = {} }) {
     });
 
     const files = entry?.files ?? [];
+    const calculationRows = resolveCalculationDetails(entry);
     const statusLogs = [...(entry?.status_logs ?? [])].sort((left, right) => {
         const leftTime = new Date(left.created_at ?? 0).getTime();
         const rightTime = new Date(right.created_at ?? 0).getTime();
@@ -93,10 +144,10 @@ export default function EntryShow({ entry, permissions = {} }) {
             headerRight={
                 <div className="flex items-center gap-2">
                     <Button asChild size="sm" variant="outline">
-                        <Link href={route('kpi.review-queue')}>Проверка</Link>
+                        <Link href={route('kpi.review-queue')}>Корректировка данных - Кафедра</Link>
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                        <Link href={route('kpi.approval-queue')}>Утверждение</Link>
+                        <Link href={route('kpi.approval-queue')}>Корректировка данных - Деканат</Link>
                     </Button>
                 </div>
             }
@@ -182,6 +233,22 @@ export default function EntryShow({ entry, permissions = {} }) {
                                         {entry.comment || 'Комментарий отсутствует.'}
                                     </p>
                                 </div>
+
+                                {calculationRows.length > 0 && (
+                                    <div className="md:col-span-2">
+                                        <p className="text-sm text-muted-foreground">Детали расчета баллов</p>
+                                        <div className="mt-1 rounded-lg border bg-muted/30 p-3 text-sm">
+                                            <div className="grid gap-2 sm:grid-cols-2">
+                                                {calculationRows.map((row, index) => (
+                                                    <div key={`${row.label}-${index}`}>
+                                                        <p className="text-xs text-muted-foreground">{row.label}</p>
+                                                        <p className="font-medium whitespace-pre-wrap">{row.value}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -268,25 +335,11 @@ export default function EntryShow({ entry, permissions = {} }) {
                                         className="min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                         value={form.data.comment}
                                         onChange={(event) => form.setData('comment', event.target.value)}
-                                        placeholder="Комментарий к проверке, возврату, утверждению или отклонению"
+                                        placeholder="Комментарий к утверждению или отклонению"
                                     />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    {permissions.canReview && (
-                                        <Button disabled={form.processing} onClick={() => submitAction('kpi.entries.review')}>
-                                            <CheckCheck className="h-4 w-4" />
-                                            Отметить как проверенную
-                                        </Button>
-                                    )}
-
-                                    {permissions.canReturn && (
-                                        <Button disabled={form.processing} variant="outline" onClick={() => submitAction('kpi.entries.return')}>
-                                            <RotateCcw className="h-4 w-4" />
-                                            Вернуть исполнителю
-                                        </Button>
-                                    )}
-
                                     {permissions.canApprove && (
                                         <Button disabled={form.processing} onClick={() => submitAction('kpi.entries.approve')}>
                                             <ShieldCheck className="h-4 w-4" />
@@ -302,7 +355,7 @@ export default function EntryShow({ entry, permissions = {} }) {
                                     )}
                                 </div>
 
-                                {!permissions.canReview && !permissions.canReturn && !permissions.canApprove && !permissions.canReject && (
+                                {!permissions.canApprove && !permissions.canReject && (
                                     <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
                                 )}
                             </CardContent>

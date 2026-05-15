@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { AlertTriangle, Bell, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Pencil, Plus, Search, Trash2, Video, X } from 'lucide-react';
+import { AlertTriangle, Bell, CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Pencil, Plus, Search, Trash2, Users, Video, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -1381,6 +1381,33 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                 {!!flash?.error && <div className="whitespace-pre-line rounded-md border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">{flash.error}</div>}
                 {!!flash?.warning && <div className="whitespace-pre-line rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">{flash.warning}</div>}
                 {!!flash?.success && <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">{flash.success}</div>}
+
+                {/* Calendar owner switcher — shown when secretary access is available */}
+                {(managedCalendars.length > 0 || (calendarOwner && String(calendarOwner.id) !== String(selfUser?.id))) && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50/70 px-4 py-2.5 dark:border-amber-800 dark:bg-amber-900/20">
+                        <Users className="size-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                        <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                            {String(calendarOwner?.id) !== String(selfUser?.id)
+                                ? `Управление: ${calendarOwner?.name ?? '—'}`
+                                : 'Совместное управление'}
+                        </span>
+                        <NativeSelect
+                            value={activeOwnerId}
+                            onValueChange={(val) => router.get(route('calendar.index'), { calendar_owner_id: val })}
+                            options={[
+                                {
+                                    value: String(selfOwnerOption.id),
+                                    label: `Мой календарь (${selfOwnerOption.name})`,
+                                },
+                                ...managedCalendars.map((c) => ({
+                                    value: String(c.id),
+                                    label: c.title ? `${c.name} — ${c.title}` : c.name,
+                                })),
+                            ]}
+                            className="min-w-[220px]"
+                        />
+                    </div>
+                )}
 
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
                     <div className="space-y-4">

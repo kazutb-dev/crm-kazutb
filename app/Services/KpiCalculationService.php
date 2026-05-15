@@ -109,7 +109,7 @@ class KpiCalculationService
                 'result_type' => KpiResult::RESULT_TYPE_DEPARTMENT,
                 'entity_type' => $entityType,
                 'user_id' => null,
-                'faculty_id' => $resolvedDepartment->faculty_id,
+                'faculty_id' => $options['faculty_id'] ?? null,
                 'department_id' => $resolvedDepartment->id,
                 'approved_entries_count' => $approvedEntriesCount,
                 'section_scores' => $sectionScores,
