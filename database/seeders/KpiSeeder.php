@@ -238,7 +238,7 @@ class KpiSeeder extends Seeder
             $k4 = round((float) ($sectionScores[KpiIndicator::SECTION_QUALIFICATION] ?? 0), 2);
             $k5 = round((float) ($sectionScores[KpiIndicator::SECTION_SURVEY] ?? 0), 2);
             $k6 = 0.0;
-            $rank = round($k1 + $k2 + $k3 + $k4 + $k5 + $k6, 2);
+            $rank = round(($k1 + $k2 + $k3 + $k4 + $k5) - $k6, 2);
 
             KpiResult::query()->updateOrCreate(
                 [
