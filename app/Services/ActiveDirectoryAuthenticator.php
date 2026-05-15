@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ActiveDirectoryAuthenticator
@@ -292,10 +293,7 @@ class ActiveDirectoryAuthenticator
 
         $user = $this->upsertLocalUser($entry, $login);
 
-        $user->last_login = now();
-        $user->last_login_at = now();
-        $user->login_count = (int) ($user->login_count ?? 0) + 1;
-        $user->save();
+        $this->applyLoginTracking($user);
 
         return $user;
     }
@@ -394,6 +392,7 @@ class ActiveDirectoryAuthenticator
     {
         $adGuid = $this->extractAdGuid($entry);
         $samAccountName = $this->extractAttribute($entry, 'samaccountname') ?? $login;
+        $normalizedLogin = Str::lower(trim($samAccountName));
 
         $name = $this->extractAttribute($entry, 'displayname')
             ?? $this->extractAttribute($entry, 'cn')
@@ -413,17 +412,24 @@ class ActiveDirectoryAuthenticator
             ?? $this->extractAttribute($entry, 'userprincipalname')
             ?? ($samAccountName.'@kaztbu.edu.kz');
 
-        // In AD we use "pager" as source, but store it locally in "status".
-        $status = $this->extractAttribute($entry, 'pager');
+        $normalizedEmail = Str::lower(trim($email));
 
         $user = null;
 
-        if ($adGuid !== null) {
+        if ($adGuid !== null && $this->userTableHasColumn('ad_guid')) {
             $user = User::query()->where('ad_guid', $adGuid)->first();
         }
 
-        if ($user === null) {
-            $user = User::query()->where('email', $email)->first();
+        if ($user === null && $normalizedLogin !== '' && $this->userTableHasColumn('ad_login')) {
+            $user = User::query()
+                ->whereRaw('LOWER(ad_login) = ?', [$normalizedLogin])
+                ->first();
+        }
+
+        if ($user === null && $normalizedEmail !== '') {
+            $user = User::query()
+                ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+                ->first();
         }
 
         if ($user === null) {
@@ -432,20 +438,66 @@ class ActiveDirectoryAuthenticator
         }
 
         $user->name = $name;
-        $user->first_name = $firstName;
-        $user->last_name = $lastName;
-        $user->initials = $initials;
-        $user->display_name = $displayName;
-        $user->ad_description = $description;
-        $user->ad_employee_type = $employeeType;
-        $user->room = $room;
         $user->email = $email;
-        $user->ad_guid = $adGuid;
-        $user->ad_login = $samAccountName;
         $user->email_verified_at = now();
+
+        $this->fillUserColumn($user, 'first_name', $firstName);
+        $this->fillUserColumn($user, 'last_name', $lastName);
+        $this->fillUserColumn($user, 'initials', $initials);
+        $this->fillUserColumn($user, 'display_name', $displayName);
+        $this->fillUserColumn($user, 'ad_description', $description);
+        $this->fillUserColumn($user, 'ad_employee_type', $employeeType);
+        $this->fillUserColumn($user, 'room', $room);
+        $this->fillUserColumn($user, 'ad_guid', $adGuid);
+        $this->fillUserColumn($user, 'ad_login', $normalizedLogin !== '' ? $normalizedLogin : $samAccountName);
+
         $user->save();
 
         return $user;
+    }
+
+    private function applyLoginTracking(User $user): void
+    {
+        $hasLastLogin = Schema::hasColumn('users', 'last_login');
+        $hasLastLoginAt = Schema::hasColumn('users', 'last_login_at');
+        $hasLoginCount = Schema::hasColumn('users', 'login_count');
+
+        if (! $hasLastLogin && ! $hasLastLoginAt && ! $hasLoginCount) {
+            return;
+        }
+
+        if ($hasLastLogin) {
+            $user->last_login = now();
+        }
+
+        if ($hasLastLoginAt) {
+            $user->last_login_at = now();
+        }
+
+        if ($hasLoginCount) {
+            $user->login_count = (int) ($user->login_count ?? 0) + 1;
+        }
+
+        $user->save();
+    }
+
+    /** @var array<string, bool> */
+    private array $usersColumnCache = [];
+
+    private function userTableHasColumn(string $column): bool
+    {
+        if (! array_key_exists($column, $this->usersColumnCache)) {
+            $this->usersColumnCache[$column] = Schema::hasColumn('users', $column);
+        }
+
+        return $this->usersColumnCache[$column];
+    }
+
+    private function fillUserColumn(User $user, string $column, mixed $value): void
+    {
+        if ($this->userTableHasColumn($column)) {
+            $user->{$column} = $value;
+        }
     }
 
     private function isStudentDirectoryEntry(array $entry): bool

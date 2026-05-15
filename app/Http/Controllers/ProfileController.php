@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Department;
+use App\Models\Faculty;
 use App\Models\User;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -42,6 +44,10 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $this->normalizeProfileData($request->validated());
+
+        if (! $this->canEditAcademicBindings($user)) {
+            unset($validated['faculty_id'], $validated['department_id']);
+        }
 
         $newPhone = trim((string) ($validated['phone'] ?? ''));
         $currentPhone = trim((string) ($user->phone ?? ''));
@@ -123,7 +129,7 @@ class ProfileController extends Controller
         $profileVisibility = $this->profileVisibilityValue($user->profile_visibility);
         $profileVisibilityLabel = $this->profileVisibilityLabel($profileVisibility);
         $syncLabel = $isAdSynced ? 'AD-синхронизация' : 'Локальный аккаунт';
-        $isStructuralRole = in_array($user->resolvedRoleSlug(), ['department', 'structural'], true);
+        $isStructuralRole = $user->resolvedRoleSlug() === 'structural';
         $divisionSource = $isStructuralRole
             ? $user->kpiStructuralUnits->map(static fn ($unit) => [
                 'id' => $unit->id,
@@ -133,6 +139,7 @@ class ProfileController extends Controller
                 'id' => $division->id,
                 'name' => $division->name,
             ])->values();
+        $canEditAcademicBindings = $this->canEditAcademicBindings($user);
 
         return [
             'id' => $user->id,
@@ -175,6 +182,28 @@ class ProfileController extends Controller
                 'department_label' => $user->department?->name,
                 'division_labels' => $divisionSource->pluck('name')->values()->all(),
             ],
+            'academic_bindings' => [
+                'can_edit' => $canEditAcademicBindings,
+                'faculties' => Faculty::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(static fn (Faculty $faculty) => [
+                        'id' => $faculty->id,
+                        'name' => $faculty->name,
+                    ])
+                    ->values()
+                    ->all(),
+                'departments' => Department::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'faculty_id'])
+                    ->map(static fn (Department $department) => [
+                        'id' => $department->id,
+                        'name' => $department->name,
+                        'faculty_id' => $department->faculty_id,
+                    ])
+                    ->values()
+                    ->all(),
+            ],
             'snapshot' => [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -185,6 +214,8 @@ class ProfileController extends Controller
                 'bio' => $user->bio,
                 'avatar_url' => $user->avatar_url,
                 'profile_visibility' => $profileVisibility,
+                'faculty_id' => $user->faculty_id,
+                'department_id' => $user->department_id,
             ],
         ];
     }
@@ -201,9 +232,25 @@ class ProfileController extends Controller
             }
         }
 
+        foreach (['faculty_id', 'department_id'] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $value = $validated[$field];
+                $validated[$field] = $value === null || $value === '' ? null : (int) $value;
+            }
+        }
+
         $validated['profile_visibility'] = trim((string) ($validated['profile_visibility'] ?? 'internal')) ?: 'internal';
 
         return $validated;
+    }
+
+    private function canEditAcademicBindings(User $user): bool
+    {
+        $rawRole = strtolower(trim((string) ($user->role ?? '')));
+        $relationRole = strtolower(trim((string) ($user->roleRef?->slug ?? '')));
+
+        return $user->resolvedRoleSlug() === 'teacher'
+            || ($rawRole === '' && $relationRole === '');
     }
 
     private function profileVisibilityValue(?string $visibility): string

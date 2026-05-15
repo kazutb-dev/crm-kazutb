@@ -23,11 +23,6 @@ class EnsurePanelRoleAccess
         $routeName = (string) ($request->route()?->getName() ?? '');
         $userId = $request->user()?->id;
 
-        // Approve/reject in structural queue is intentionally available to all authenticated users.
-        if ($this->startsWith($routeName, 'kpi.entries.approve') || $this->startsWith($routeName, 'kpi.entries.reject')) {
-            return $next($request);
-        }
-
         if ($userId !== null && $this->canAccessKpiRouteViaGrant($userId, $routeName)) {
             return $next($request);
         }
@@ -58,17 +53,17 @@ class EnsurePanelRoleAccess
             abort(403, 'Студенту недоступна админпанель.');
         }
 
-        // Teachers are limited to department menu routes and profile.
+        // Teachers are limited to their KPI form and profile.
         if ($role === 'teacher') {
             $allowedTeacherRoutes = [
                 'profile.',
                 'kpi.my-form',
                 'kpi.my-entries.',
                 'kpi.entries.show',
-                'kpi.summary',
-                'kpi.summary.',
-                'diplomas.',
-                'announcements.',
+                'kpi.entries.save-plan',
+                'kpi.entries.save-fact',
+                'kpi.entries.submit',
+                'kpi.entries.files.',
             ];
 
             foreach ($allowedTeacherRoutes as $allowedRoute) {
@@ -85,19 +80,23 @@ class EnsurePanelRoleAccess
             abort(403, 'Для роли teacher доступно только меню кафедры.');
         }
 
-        // Department heads and structural division heads have access to division-specific KPI routes.
-        if (in_array($role, ['department', 'structural'], true)) {
+        if ($role === 'hod') {
             $allowedRoles = [
                 'profile.',
-                'kpi.summary',
-                'kpi.summary.',
+                'kpi.my-form',
                 'kpi.my-entries.',
                 'kpi.entries.show',
-                'kpi.structural-queue',
-                'kpi.entries.structural',
+                'kpi.entries.save-plan',
+                'kpi.entries.save-fact',
+                'kpi.entries.submit',
+                'kpi.entries.files.',
+                'kpi.summary',
+                'kpi.summary.',
+                'kpi.review-queue',
+                'kpi.entries.review',
+                'kpi.entries.return',
                 'kpi.entries.approve',
                 'kpi.entries.reject',
-                'announcements.',
             ];
 
             foreach ($allowedRoles as $allowedRoute) {
@@ -106,7 +105,76 @@ class EnsurePanelRoleAccess
                 }
             }
 
-            abort(403, 'Для роли department доступны только маршруты подразделения.');
+            abort(403, 'Для роли hod доступны только маршруты сводки, очереди проверки и свои показатели.');
+        }
+
+        if ($role === 'dean') {
+            $allowedRoles = [
+                'profile.',
+                'kpi.my-form',
+                'kpi.my-entries.',
+                'kpi.entries.show',
+                'kpi.entries.save-plan',
+                'kpi.entries.save-fact',
+                'kpi.entries.submit',
+                'kpi.entries.files.',
+                'kpi.summary',
+                'kpi.summary.',
+                'kpi.approval-queue',
+                'kpi.entries.approve',
+                'kpi.entries.reject',
+                'kpi.entries.return',
+            ];
+
+            foreach ($allowedRoles as $allowedRoute) {
+                if ($this->startsWith($routeName, $allowedRoute)) {
+                    return $next($request);
+                }
+            }
+
+            abort(403, 'Для роли dean доступны только маршруты сводки, утверждения и свои показатели.');
+        }
+
+        if ($role === 'structural') {
+            $allowedRoles = [
+                'profile.',
+                'kpi.summary',
+                'kpi.summary.',
+                'kpi.structural-queue',
+                'kpi.entries.approve',
+                'kpi.entries.reject',
+                'kpi.entries.return',
+                'kpi.entries.show',
+            ];
+
+            foreach ($allowedRoles as $allowedRoute) {
+                if ($this->startsWith($routeName, $allowedRoute)) {
+                    return $next($request);
+                }
+            }
+
+            abort(403, 'Для роли structural доступны только маршруты сводки и утверждения.');
+        }
+
+        if ($role === 'department') {
+            $allowedRoles = [
+                'profile.',
+                'kpi.my-form',
+                'kpi.my-entries.',
+                'kpi.entries.show',
+                'kpi.entries.save-plan',
+                'kpi.entries.save-fact',
+                'kpi.entries.submit',
+                'kpi.entries.files.',
+            ];
+
+            foreach ($allowedRoles as $allowedRoute) {
+                if ($this->startsWith($routeName, $allowedRoute)) {
+                    return $next($request);
+                }
+            }
+
+            abort(403, 'Для роли department доступно только меню Мои показатели.');
         }
 
         return $next($request);
@@ -161,11 +229,6 @@ class EnsurePanelRoleAccess
         return in_array($role, [
             'admin',
             'superadmin',
-            'teacher',
-            'department_head',
-            'hod',
-            'dean',
-            'department',
         ], true);
     }
 

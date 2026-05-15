@@ -356,8 +356,7 @@ class KpiEntryController extends Controller
 
         try {
             $entry = DB::transaction(function () use ($user, $data, $period, $indicator, $userFacultyId, $userDepartmentId, $entityType): KpiEntry {
-                /** @var KpiEntry $entry */
-                $entry = KpiEntry::query()->withTrashed()->firstOrNew([
+                $entry = new KpiEntry([
                     'kpi_period_id' => $period->id,
                     'academic_year_id' => $period->academic_year_id,
                     'entity_type' => $entityType,
@@ -366,19 +365,6 @@ class KpiEntryController extends Controller
                     'department_id' => $userDepartmentId,
                     'indicator_id' => $indicator->id,
                 ]);
-
-                if ($entry->exists && $entry->trashed()) {
-                    $entry->restore();
-                    $this->fileService->purgeForEntry($entry);
-                    $entry->status = KpiEntry::STATUS_DRAFT;
-                    $entry->submitted_at = null;
-                    $entry->reviewed_at = null;
-                    $entry->approved_at = null;
-                }
-
-                if ($entry->exists && !$entry->canBeEdited()) {
-                    throw new \RuntimeException('Эту KPI-запись нельзя редактировать в текущем статусе.');
-                }
 
                 if ((string) $data['stage'] === KpiPeriod::STAGE_PLAN) {
                     $entry->plan_value = $data['value'];
@@ -396,7 +382,7 @@ class KpiEntryController extends Controller
 
                 $entry->comment = $data['comment'] ?? null;
                 $entry->external_source_url = $data['external_source_url'] ?? null;
-                $entry->status = $entry->exists ? $entry->status : KpiEntry::STATUS_DRAFT;
+                $entry->status = KpiEntry::STATUS_DRAFT;
                 $entry->save();
 
                 $coreFieldsChanged = $entry->wasChanged([

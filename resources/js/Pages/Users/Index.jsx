@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Head, router, useForm } from '@inertiajs/react';
+import axios from 'axios';
 import {
     AlertTriangle,
     Clock3,
@@ -102,7 +103,7 @@ function normalizeKey(value) {
 function resolveRoleSlug(user) {
     const slug = String(user?.role_slug ?? '').toLowerCase();
     if (slug === 'department_head') return 'hod';
-    if (slug === 'department') return 'structural';
+    if (slug === 'department') return 'teacher';
     return slug;
 }
 
@@ -308,6 +309,8 @@ export default function Index({
 
     const roleForm = useForm({
         role: 'teacher',
+        structural_access: false,
+        structural_division_id: '',
     });
 
     const [editingUser, setEditingUser] = useState(null);
@@ -452,7 +455,15 @@ export default function Index({
 
     const openRoleDialog = (user) => {
         setRoleDialogUser(user);
-        roleForm.setData('role', resolveRoleSlug(user) || 'teacher');
+        const structuralAccessDivisionIds = Array.isArray(user?.structural_access_division_ids)
+            ? user.structural_access_division_ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
+            : [];
+
+        roleForm.setData({
+            role: resolveRoleSlug(user) || 'teacher',
+            structural_access: structuralAccessDivisionIds.length > 0,
+            structural_division_id: structuralAccessDivisionIds[0] ? String(structuralAccessDivisionIds[0]) : '',
+        });
         roleForm.clearErrors();
         setRoleDialogOpen(true);
         setRoleConfirmOpen(false);
@@ -464,43 +475,33 @@ export default function Index({
             return null;
         }
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (!csrfToken) {
-            window.alert('Не найден CSRF токен. Обновите страницу и повторите.');
-            return null;
-        }
-
-        const response = await fetch('/users/create-from-ad', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                Accept: 'application/json',
-            },
-            body: JSON.stringify({
+        try {
+            const response = await axios.post('/users/create-from-ad', {
                 ad_login: row.login,
                 ad_guid: row.guid,
                 email: row.email,
                 name: row.display_name || row.name,
-            }),
-        });
+            }, {
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
 
-        if (!response.ok) {
+            const userId = response?.data?.user_id;
+            if (!userId) {
+                window.alert('Сервер не вернул ID нового пользователя.');
+                return null;
+            }
+
+            return {
+                ...row,
+                local_user_id: userId,
+                can_edit: true,
+            };
+        } catch (error) {
             window.alert('Не удалось создать локальную запись пользователя.');
             return null;
         }
-
-        const data = await response.json();
-        if (!data?.user_id) {
-            window.alert('Сервер не вернул ID нового пользователя.');
-            return null;
-        }
-
-        return {
-            ...row,
-            local_user_id: data.user_id,
-            can_edit: true,
-        };
     };
 
     const handleEditClick = async (user) => {
@@ -532,7 +533,11 @@ export default function Index({
 
         router.patch(
             route('users.role.update', roleDialogUser.local_user_id),
-            { role: roleForm.data.role },
+            {
+                role: roleForm.data.role,
+                structural_access: roleForm.data.structural_access,
+                structural_division_id: roleForm.data.structural_division_id || null,
+            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -754,6 +759,43 @@ export default function Index({
                                 </select>
                             </div>
 
+                            <div className="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+                                <label className="flex items-center gap-2 text-sm font-medium">
+                                    <input
+                                        type="checkbox"
+                                        checked={!!roleForm.data.structural_access}
+                                        onChange={(e) => {
+                                            roleForm.setData('structural_access', e.target.checked);
+                                            if (!e.target.checked) {
+                                                roleForm.setData('structural_division_id', '');
+                                            }
+                                        }}
+                                    />
+                                    Также выдать доступ к структурному подразделению
+                                </label>
+
+                                {roleForm.data.structural_access && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Структурное подразделение</label>
+                                        <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                            value={roleForm.data.structural_division_id}
+                                            onChange={(e) => roleForm.setData('structural_division_id', e.target.value)}
+                                        >
+                                            <option value="">— Выберите подразделение —</option>
+                                            {structuralDivisionOptions.map((division) => (
+                                                <option key={division.id} value={division.id}>{division.name}</option>
+                                            ))}
+                                        </select>
+                                        {Array.isArray(roleDialogUser?.structural_access_division_ids) && roleDialogUser.structural_access_division_ids.length > 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Текущий доступ: {roleDialogUser.structural_access_division_ids.length} подраздел.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setRoleDialogOpen(false)}>Отмена</Button>
                                 <Button type="button" onClick={() => setRoleConfirmOpen(true)}>Далее</Button>
@@ -763,7 +805,15 @@ export default function Index({
                         <div className="space-y-3">
                             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                                 Подтвердите смену роли на{' '}
-                                <span className="font-semibold">{ROLE_OPTIONS.find((r) => r.value === roleForm.data.role)?.label ?? roleForm.data.role}</span>.
+                                <span className="font-semibold">{ROLE_OPTIONS.find((r) => r.value === roleForm.data.role)?.label ?? roleForm.data.role}</span>
+                                {roleForm.data.structural_access && roleForm.data.structural_division_id ? (
+                                    <>
+                                        {' '}и выдать доступ к структурному подразделению
+                                        <span className="font-semibold">{' '}
+                                            {structuralDivisionOptions.find((division) => String(division.id) === String(roleForm.data.structural_division_id))?.name ?? '—'}
+                                        </span>.
+                                    </>
+                                ) : '.'}
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setRoleConfirmOpen(false)}>Назад</Button>
@@ -1030,6 +1080,11 @@ export default function Index({
                                                                 <Badge className={`inline-flex h-6 max-w-full items-center rounded-full border px-2 py-0 text-[10px] font-semibold ${getRoleBadgeClass(user)}`}>
                                                                     {resolveRoleLabel(user)}
                                                                 </Badge>
+                                                                {user.has_structural_access && (
+                                                                    <Badge variant="outline" className="inline-flex h-6 max-w-full items-center rounded-full border-dashed px-2 py-0 text-[10px] font-semibold text-slate-600">
+                                                                        KPI-доступ
+                                                                    </Badge>
+                                                                )}
                                                                 <div className="line-clamp-2 text-[12px] font-medium leading-[1.1rem] text-slate-800" title={resolvePositionDisplay(user)}>
                                                                     {resolvePositionDisplay(user)}
                                                                 </div>

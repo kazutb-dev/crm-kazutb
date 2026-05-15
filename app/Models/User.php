@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,6 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Faculty;
+use App\Models\KpiAccessGrant;
 use App\Models\KpiStructuralUnit;
 
 class User extends Authenticatable
@@ -111,6 +113,8 @@ class User extends Authenticatable
 
                 if ($targetRoleId !== null && (int) $user->role_id !== (int) $targetRoleId) {
                     $user->role_id = (int) $targetRoleId;
+                } elseif ($targetRoleId === null) {
+                    $user->role_id = null;
                 }
 
                 return;
@@ -136,14 +140,9 @@ class User extends Authenticatable
         return $this->belongsToMany(KpiStructuralUnit::class, 'kpi_structural_unit_user', 'user_id', 'kpi_structural_unit_id');
     }
 
-    public function department(): BelongsTo
+    public function kpiAccessGrants(): HasMany
     {
-        return $this->belongsTo(Department::class);
-    }
-
-    public function faculty(): BelongsTo
-    {
-        return $this->belongsTo(Faculty::class);
+        return $this->hasMany(KpiAccessGrant::class, 'user_id');
     }
 
     public function position(): BelongsTo
@@ -171,32 +170,31 @@ class User extends Authenticatable
         return $this->belongsTo(Division::class, 'division_id');
     }
 
-    public function divisions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
-    {
-        return $this->belongsToMany(Division::class, 'user_division');
-    }
-
-    public function kpiStructuralUnits(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
-    {
-        return $this->belongsToMany(KpiStructuralUnit::class, 'kpi_structural_unit_user', 'user_id', 'kpi_structural_unit_id');
-    }
-
     public function resolvedRoleSlug(): string
     {
-        $roleFromRelation = $this->roleRef?->slug;
-
-        if (is_string($roleFromRelation) && $roleFromRelation !== '') {
-            return $roleFromRelation;
-        }
-
         $legacyRole = strtolower(trim((string) ($this->role ?? '')));
 
         if ($legacyRole !== '') {
-            return $legacyRole;
+            return match ($legacyRole) {
+                'department_head' => 'hod',
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin' => $legacyRole,
+                'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
+                default => 'teacher',
+            };
         }
 
+        $roleFromRelation = $this->roleRef?->slug;
 
-        return 'student';
+        if (is_string($roleFromRelation) && $roleFromRelation !== '') {
+            return match ($roleFromRelation) {
+                'department_head' => 'hod',
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin' => $roleFromRelation,
+                'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
+                default => 'teacher',
+            };
+        }
+
+        return 'teacher';
     }
 
     public function resolveRoleLabel(): string
@@ -210,5 +208,23 @@ class User extends Authenticatable
             'student' => 'Студент',
             default => 'Без роли',
         };
+    }
+
+    private function hasStructuralAccess(): bool
+    {
+        if ($this->relationLoaded('kpiStructuralUnits') && $this->kpiStructuralUnits->isNotEmpty()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('kpiAccessGrants')) {
+            return $this->kpiAccessGrants
+                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
+        }
+
+        return $this->kpiStructuralUnits()->exists()
+            || $this->kpiAccessGrants()
+                ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                ->where('is_active', true)
+                ->exists();
     }
 }

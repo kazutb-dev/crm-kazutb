@@ -5,7 +5,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
@@ -15,6 +15,9 @@ export default function UpdateProfileInformation({
     onCancel,
     className = '',
 }) {
+    const canEditAcademicBindings = Boolean(profile.academic_bindings?.can_edit);
+    const faculties = profile.academic_bindings?.faculties ?? [];
+    const departments = profile.academic_bindings?.departments ?? [];
     const { data, setData, patch, errors, processing, recentlySuccessful, reset } =
         useForm({
             name: profile.snapshot.name ?? '',
@@ -26,7 +29,17 @@ export default function UpdateProfileInformation({
             bio: profile.snapshot.bio ?? '',
             avatar_url: profile.snapshot.avatar_url ?? '',
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
+            faculty_id: profile.snapshot.faculty_id ? String(profile.snapshot.faculty_id) : '',
+            department_id: profile.snapshot.department_id ? String(profile.snapshot.department_id) : '',
         });
+
+    const availableDepartments = useMemo(() => {
+        if (!data.faculty_id) {
+            return departments;
+        }
+
+        return departments.filter((department) => String(department.faculty_id ?? '') === String(data.faculty_id));
+    }, [data.faculty_id, departments]);
 
     useEffect(() => {
         setData({
@@ -39,6 +52,8 @@ export default function UpdateProfileInformation({
             bio: profile.snapshot.bio ?? '',
             avatar_url: profile.snapshot.avatar_url ?? '',
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
+            faculty_id: profile.snapshot.faculty_id ? String(profile.snapshot.faculty_id) : '',
+            department_id: profile.snapshot.department_id ? String(profile.snapshot.department_id) : '',
         });
     }, [profile, setData]);
 
@@ -104,6 +119,19 @@ export default function UpdateProfileInformation({
                                     <div className="mt-2 text-sm font-semibold text-gray-900">{value}</div>
                                 </div>
                             ))}
+
+                            {canEditAcademicBindings && (
+                                <>
+                                    <div className="rounded-2xl bg-gray-50 p-3.5">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Факультет</div>
+                                        <div className="mt-2 text-sm font-semibold text-gray-900">{profile.faculty?.name || 'Не указан'}</div>
+                                    </div>
+                                    <div className="rounded-2xl bg-gray-50 p-3.5">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Кафедра</div>
+                                        <div className="mt-2 text-sm font-semibold text-gray-900">{profile.department?.name || 'Не указана'}</div>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         <div className="rounded-2xl border border-gray-100 bg-gray-50 p-3.5 text-sm text-gray-600">
@@ -247,6 +275,60 @@ export default function UpdateProfileInformation({
 
                                 <InputError className="mt-2" message={errors.profile_visibility} />
                             </div>
+
+                            {canEditAcademicBindings && (
+                                <>
+                                    <div>
+                                        <InputLabel htmlFor="faculty_id" value="Факультет" />
+
+                                        <select
+                                            id="faculty_id"
+                                            className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                            value={data.faculty_id}
+                                            onChange={(e) => {
+                                                const facultyId = e.target.value;
+                                                setData((current) => ({
+                                                    ...current,
+                                                    faculty_id: facultyId,
+                                                    department_id: current.department_id && facultyId && !departments.some(
+                                                        (department) => String(department.id) === String(current.department_id)
+                                                            && String(department.faculty_id ?? '') === String(facultyId),
+                                                    )
+                                                        ? ''
+                                                        : facultyId === ''
+                                                            ? ''
+                                                            : current.department_id,
+                                                }));
+                                            }}
+                                        >
+                                            <option value="">Не выбран</option>
+                                            {faculties.map((faculty) => (
+                                                <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <InputError className="mt-2" message={errors.faculty_id} />
+                                    </div>
+
+                                    <div>
+                                        <InputLabel htmlFor="department_id" value="Кафедра" />
+
+                                        <select
+                                            id="department_id"
+                                            className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                            value={data.department_id}
+                                            onChange={(e) => setData('department_id', e.target.value)}
+                                        >
+                                            <option value="">Не выбрана</option>
+                                            {availableDepartments.map((department) => (
+                                                <option key={department.id} value={department.id}>{department.name}</option>
+                                            ))}
+                                        </select>
+
+                                        <InputError className="mt-2" message={errors.department_id} />
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         <div>

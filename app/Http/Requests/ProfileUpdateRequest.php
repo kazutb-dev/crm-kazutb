@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -15,6 +17,8 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $canEditAcademicBindings = $this->canEditAcademicBindings();
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -32,6 +36,55 @@ class ProfileUpdateRequest extends FormRequest
             'bio' => ['nullable', 'string', 'max:2000'],
             'avatar_url' => ['nullable', 'url', 'max:2048'],
             'profile_visibility' => ['nullable', Rule::in(['public', 'internal', 'private'])],
+            'faculty_id' => $canEditAcademicBindings
+                ? ['nullable', 'integer', 'exists:faculties,id']
+                : ['prohibited'],
+            'department_id' => $canEditAcademicBindings
+                ? ['nullable', 'integer', 'exists:departments,id']
+                : ['prohibited'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->canEditAcademicBindings()) {
+                return;
+            }
+
+            $facultyId = $this->input('faculty_id');
+            $departmentId = $this->input('department_id');
+
+            if ($departmentId === null || $departmentId === '') {
+                return;
+            }
+
+            $department = Department::query()->find((int) $departmentId, ['id', 'faculty_id']);
+
+            if (! $department) {
+                return;
+            }
+
+            if ($facultyId !== null && $facultyId !== '' && (int) $department->faculty_id !== (int) $facultyId) {
+                $validator->errors()->add('department_id', 'Кафедра не относится к выбранному факультету.');
+            }
+        });
+    }
+
+    private function canEditAcademicBindings(): bool
+    {
+        $user = $this->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $user->loadMissing('roleRef');
+
+        $rawRole = strtolower(trim((string) ($user->role ?? '')));
+        $relationRole = strtolower(trim((string) ($user->roleRef?->slug ?? '')));
+
+        return $user->resolvedRoleSlug() === 'teacher'
+            || ($rawRole === '' && $relationRole === '');
     }
 }

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,10 +39,25 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
         if ($user && ! $alreadyTracked) {
-            $user->last_login = now();
-            $user->last_login_at = now();
-            $user->login_count = (int) ($user->login_count ?? 0) + 1;
-            $user->save();
+            $hasLastLogin = Schema::hasColumn('users', 'last_login');
+            $hasLastLoginAt = Schema::hasColumn('users', 'last_login_at');
+            $hasLoginCount = Schema::hasColumn('users', 'login_count');
+
+            if ($hasLastLogin || $hasLastLoginAt || $hasLoginCount) {
+                if ($hasLastLogin) {
+                    $user->last_login = now();
+                }
+
+                if ($hasLastLoginAt) {
+                    $user->last_login_at = now();
+                }
+
+                if ($hasLoginCount) {
+                    $user->login_count = (int) ($user->login_count ?? 0) + 1;
+                }
+
+                $user->save();
+            }
         }
 
         try {
@@ -50,7 +66,7 @@ class AuthenticatedSessionController extends Controller
             report($e);
         }
 
-        return redirect()->intended('/dashboard');
+        return redirect()->intended(route('profile.edit'));
     }
 
     /**

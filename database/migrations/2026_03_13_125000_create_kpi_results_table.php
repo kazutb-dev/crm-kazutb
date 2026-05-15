@@ -30,17 +30,17 @@ return new class extends Migration
             $table->foreignId('user_id')
                 ->nullable()
                 ->constrained('users')
-                ->nullOnDelete();
+                ->restrictOnDelete();
 
             $table->foreignId('faculty_id')
                 ->nullable()
                 ->constrained('faculties')
-                ->nullOnDelete();
+                ->restrictOnDelete();
 
             $table->foreignId('department_id')
                 ->nullable()
                 ->constrained('departments')
-                ->nullOnDelete();
+                ->restrictOnDelete();
 
             $table->unsignedInteger('approved_entries_count')->default(0);
             $table->json('section_scores')->nullable();

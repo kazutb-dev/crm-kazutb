@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Faculty;
+use App\Models\KpiAccessGrant;
 use App\Models\KpiStructuralUnit;
 use App\Models\Position;
 use App\Models\Role;
@@ -16,8 +17,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -148,6 +151,7 @@ class DirectoryUserController extends Controller
     public function index(Request $request): Response
     {
         $directoryType = $request->routeIs('users.students') ? 'students' : 'staff';
+        $hasIsHidden = Schema::hasColumn('users', 'is_hidden');
 
         $perPage = (int) $request->integer('per_page', 50);
         if (! in_array($perPage, [25, 50, 100], true)) {
@@ -177,6 +181,7 @@ class DirectoryUserController extends Controller
                 'department.faculty:id,name',
                 'faculty:id,name',
                 'kpiStructuralUnits:id,name,code',
+                'kpiAccessGrants:id,user_id,permission,division_id,is_active',
             ])
             ->select([
                 'id',
@@ -197,8 +202,10 @@ class DirectoryUserController extends Controller
                 'login_count',
                 'created_at',
             ])
-            ->where(function (Builder $query): void {
-                $query->whereNull('is_hidden')->orWhere('is_hidden', 0);
+            ->when($hasIsHidden, function (Builder $query): void {
+                $query->where(function (Builder $hiddenQuery): void {
+                    $hiddenQuery->whereNull('is_hidden')->orWhere('is_hidden', 0);
+                });
             })
             ->where(function (Builder $query): void {
                 $query->whereNull('ad_login')
@@ -248,6 +255,21 @@ class DirectoryUserController extends Controller
             return $roleSlug !== 'student';
         })->values();
 
+        $structuralAccessByUser = [];
+        foreach ($localCandidates as $candidate) {
+            $divisionIds = $candidate->kpiAccessGrants
+                ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                ->where('is_active', true)
+                ->pluck('division_id')
+                ->filter()
+                ->map(fn ($divisionId) => (int) $divisionId)
+                ->unique()
+                ->values()
+                ->all();
+
+            $structuralAccessByUser[$candidate->id] = $divisionIds;
+        }
+
         $localByGuid = $localCandidates
             ->filter(fn (User $user): bool => trim((string) $user->ad_guid) !== '')
             ->keyBy(fn (User $user): string => Str::lower(trim((string) $user->ad_guid)));
@@ -286,12 +308,12 @@ class DirectoryUserController extends Controller
                 $matchedLocalIds[$localMatch->id] = true;
             }
 
-            $combinedRows->push($this->mapDirectoryRow($directoryUser, $localMatch));
+            $combinedRows->push($this->mapDirectoryRow($directoryUser, $localMatch, $structuralAccessByUser));
         }
 
         $unmatchedLocalRows = $localCandidates
             ->filter(fn (User $user): bool => ! isset($matchedLocalIds[$user->id]))
-            ->map(fn (User $user): array => $this->mapLocalOnlyRow($user));
+            ->map(fn (User $user): array => $this->mapLocalOnlyRow($user, $structuralAccessByUser));
 
         $allRows = $combinedRows->merge($unmatchedLocalRows)->values();
         $directoryTotals = $adService->countDirectoryUsersByCategory();
@@ -677,6 +699,8 @@ class DirectoryUserController extends Controller
         $data = $request->validate([
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
             'role' => ['nullable', 'string', 'required_without:role_id'],
+            'structural_access' => ['nullable', 'boolean'],
+            'structural_division_id' => ['nullable', 'integer', 'exists:divisions,id', Rule::requiredIf(fn () => $request->boolean('structural_access'))],
         ]);
 
         $resolved = $this->resolveRoleForUpdate($data['role'] ?? null, $data['role_id'] ?? null);
@@ -686,6 +710,11 @@ class DirectoryUserController extends Controller
         }
 
         $user->update($resolved);
+
+        if (! empty($data['structural_access'])) {
+            $divisionId = (int) ($data['structural_division_id'] ?? 0);
+            $this->syncStructuralAccessGrant($user, $divisionId, (int) $request->user()->id);
+        }
 
         return back()->with('success', 'Роль сотрудника обновлена.');
     }
@@ -697,6 +726,8 @@ class DirectoryUserController extends Controller
         $data = $request->validate([
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
             'role' => ['nullable', 'string', 'required_without:role_id'],
+            'structural_access' => ['nullable', 'boolean'],
+            'structural_division_id' => ['nullable', 'integer', 'exists:divisions,id', Rule::requiredIf(fn () => $request->boolean('structural_access'))],
             'login' => ['nullable', 'string', 'max:255', 'required_without:email'],
             'email' => ['nullable', 'email', 'max:255', 'required_without:login'],
             'display_name' => ['nullable', 'string', 'max:190'],
@@ -750,12 +781,17 @@ class DirectoryUserController extends Controller
 
         $user->update($resolved);
 
+        if (! empty($data['structural_access'])) {
+            $divisionId = (int) ($data['structural_division_id'] ?? 0);
+            $this->syncStructuralAccessGrant($user, $divisionId, (int) $request->user()->id);
+        }
+
         return back()->with('success', 'Роль сотрудника обновлена.');
     }
 
     public function storeManual(Request $request): RedirectResponse
     {
-        $allowedRoles = ['teacher', 'student', 'department_head', 'dean'];
+        $allowedRoles = ['teacher', 'student', 'department_head', 'dean', 'structural'];
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:190'],
@@ -883,7 +919,15 @@ class DirectoryUserController extends Controller
             'teacher' => $this->applyRoleScope($query, ['teacher']),
             'hod' => $this->applyRoleScope($query, ['hod', 'department_head']),
             'dean' => $this->applyRoleScope($query, ['dean']),
-            'structural' => $this->applyRoleScope($query, ['structural', 'department']),
+            'structural' => $query->where(function (Builder $nested): void {
+                $nested
+                    ->whereHas('kpiStructuralUnits')
+                    ->orWhereHas('kpiAccessGrants', function (Builder $grantQuery): void {
+                        $grantQuery
+                            ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                            ->where('is_active', true);
+                    });
+            }),
             'test_users' => $query->whereRaw('LOWER(email) LIKE ?', ['test\\_%']),
             default => null,
         };
@@ -982,8 +1026,9 @@ class DirectoryUserController extends Controller
 
     /**
      * @param array<string, mixed> $directoryUser
+     * @param array<int, array<int, int>> $structuralAccessByUser
      */
-    private function mapDirectoryRow(array $directoryUser, ?User $localUser): array
+    private function mapDirectoryRow(array $directoryUser, ?User $localUser, array $structuralAccessByUser = []): array
     {
         $login = trim((string) ($directoryUser['login'] ?? ''));
         $email = trim((string) ($directoryUser['email'] ?? ''));
@@ -993,6 +1038,10 @@ class DirectoryUserController extends Controller
         $roleSlug = $localUser
             ? $this->resolveMergedRoleForLocalUser($localUser)
             : ($this->isStudentTitleOrEntry($directoryUser) ? 'student' : null);
+
+        $structuralAccessDivisionIds = $localUser
+            ? ($structuralAccessByUser[$localUser->id] ?? [])
+            : [];
 
         return [
             'id' => $localUser?->id ?? ('ad:' . ($login !== '' ? $login : ($email !== '' ? $email : md5($displayName)))),
@@ -1021,6 +1070,8 @@ class DirectoryUserController extends Controller
                     'code' => $division->code,
                 ])->values()->all()
                 : [],
+            'structural_access_division_ids' => $structuralAccessDivisionIds,
+            'has_structural_access' => $structuralAccessDivisionIds !== [],
             'last_login_at' => $localUser?->last_login_at?->toIso8601String(),
             'last_login_exact' => $localUser?->last_login_at?->toIso8601String(),
             'last_login_human' => $this->formatLastLoginLabel($localUser?->last_login_at?->toIso8601String()),
@@ -1040,9 +1091,13 @@ class DirectoryUserController extends Controller
         ];
     }
 
-    private function mapLocalOnlyRow(User $user): array
+    /**
+     * @param array<int, array<int, int>> $structuralAccessByUser
+     */
+    private function mapLocalOnlyRow(User $user, array $structuralAccessByUser = []): array
     {
         $roleSlug = $this->resolveMergedRoleForLocalUser($user);
+        $structuralAccessDivisionIds = $structuralAccessByUser[$user->id] ?? [];
 
         return [
             'id' => $user->id,
@@ -1068,6 +1123,8 @@ class DirectoryUserController extends Controller
                 'name' => $division->name,
                 'code' => $division->code,
             ])->values()->all(),
+            'structural_access_division_ids' => $structuralAccessDivisionIds,
+            'has_structural_access' => $structuralAccessDivisionIds !== [],
             'last_login_at' => $user->last_login_at?->toIso8601String(),
             'last_login_exact' => $user->last_login_at?->toIso8601String(),
             'last_login_human' => $this->formatLastLoginLabel($user->last_login_at?->toIso8601String()),
@@ -1271,7 +1328,7 @@ class DirectoryUserController extends Controller
 
     private function resolveMergedRoleForLocalUser(User $user): ?string
     {
-        $normalizeRole = static function (?string $value): ?string {
+        $normalizeRole = function (?string $value) use ($user): ?string {
             $normalized = Str::lower(trim((string) $value));
 
             if ($normalized === '') {
@@ -1280,8 +1337,11 @@ class DirectoryUserController extends Controller
 
             return match ($normalized) {
                 'department_head' => 'hod',
-                'department' => 'structural',
-                default => $normalized,
+                'department' => 'teacher',
+                'structural' => $this->hasStructuralAccess($user) ? 'structural' : 'teacher',
+                default => in_array($normalized, ['hod', 'dean', 'teacher', 'student', 'admin', 'superadmin'], true)
+                    ? $normalized
+                    : 'teacher',
             };
         };
 
@@ -1295,20 +1355,38 @@ class DirectoryUserController extends Controller
             return $roleFromColumn;
         }
 
-        $roleMap = [
-            1 => 'admin',
-            2 => 'student',
-            3 => 'teacher',
-            4 => 'hod',
-            5 => 'dean',
-            6 => 'structural',
-        ];
-
-        if ($user->role_id && isset($roleMap[(int) $user->role_id])) {
-            return $roleMap[(int) $user->role_id];
+        $roleId = (int) ($user->role_id ?? 0);
+        if ($roleId > 0) {
+            return match ($roleId) {
+                1 => 'admin',
+                2 => 'student',
+                3 => 'teacher',
+                4 => 'hod',
+                5 => 'dean',
+                6 => $this->hasStructuralAccess($user) ? 'structural' : 'teacher',
+                default => 'teacher',
+            };
         }
 
-        return null;
+        return 'teacher';
+    }
+
+    private function hasStructuralAccess(User $user): bool
+    {
+        if ($user->relationLoaded('kpiStructuralUnits') && $user->kpiStructuralUnits->isNotEmpty()) {
+            return true;
+        }
+
+        if ($user->relationLoaded('kpiAccessGrants')) {
+            return $user->kpiAccessGrants
+                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
+        }
+
+        return $user->kpiStructuralUnits()->exists()
+            || $user->kpiAccessGrants()
+                ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                ->where('is_active', true)
+                ->exists();
     }
 
     /**
@@ -1316,26 +1394,8 @@ class DirectoryUserController extends Controller
      */
     private function isStructuralRow(array $row): bool
     {
-        $role = $this->resolveRowRoleSlug($row, 'staff');
-        if (! in_array($role, ['structural', 'department'], true)) {
-            return false;
-        }
-
-        if (($row['local_user_id'] ?? null) !== null) {
-            // Local structural users must stay visible in structural tab even before division binding.
-            return true;
-        }
-
         $divisions = $row['divisions'] ?? [];
-        if (is_array($divisions) && count($divisions) > 0) {
-            return true;
-        }
-
-        $adDivision = trim((string) ($row['ad_division'] ?? ''));
-        $adDepartment = trim((string) ($row['ad_department'] ?? ''));
-
-        return $this->hasCanonicalStructuralDivision($adDivision)
-            || $this->hasCanonicalStructuralDivision($adDepartment);
+        return is_array($divisions) && count($divisions) > 0;
     }
 
     /**
@@ -1517,7 +1577,7 @@ class DirectoryUserController extends Controller
             $resolvedRoleId = $resolvedSlug !== null ? $this->resolveAssignableRoleId($resolvedSlug) : null;
         }
 
-        if ($resolvedSlug === null || $resolvedRoleId === null) {
+        if ($resolvedSlug === null) {
             return null;
         }
 
@@ -1563,15 +1623,32 @@ class DirectoryUserController extends Controller
             }
 
             $fallback = Role::query()->where('slug', 'department')->value('id');
-            if ($fallback) {
-                return (int) $fallback;
-            }
-
-            $teacherFallback = Role::query()->where('slug', 'teacher')->value('id');
-            return $teacherFallback ? (int) $teacherFallback : null;
+            return $fallback ? (int) $fallback : null;
         }
 
         $id = Role::query()->where('slug', $normalized)->value('id');
         return $id ? (int) $id : null;
+    }
+
+    private function syncStructuralAccessGrant(User $user, int $divisionId, int $grantedBy): void
+    {
+        KpiAccessGrant::query()
+            ->where('user_id', $user->id)
+            ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+            ->where('division_id', '!=', $divisionId)
+            ->update(['is_active' => false]);
+
+        KpiAccessGrant::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'permission' => KpiAccessGrant::PERM_STRUCTURAL_QUEUE,
+                'division_id' => $divisionId,
+            ],
+            [
+                'granted_by' => $grantedBy,
+                'granted_at' => now(),
+                'is_active' => true,
+            ]
+        );
     }
 }

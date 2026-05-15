@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KpiIndicator;
 use App\Models\KpiStructuralUnit;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -56,10 +57,39 @@ class KpiStructuralUnitController extends Controller
         ]);
 
         $records = $unit->boundIndicators
-            ->concat($unit->indicators)
+            ->map(fn (KpiIndicator $indicator): array => [
+                'id' => $indicator->id,
+                'code' => $indicator->code,
+                'name' => $indicator->name,
+                'entity_type' => $indicator->entity_type,
+                'source' => 'bound',
+            ])
+            ->concat($unit->indicators->map(fn (KpiIndicator $indicator): array => [
+                'id' => $indicator->id,
+                'code' => $indicator->code,
+                'name' => $indicator->name,
+                'entity_type' => $indicator->entity_type,
+                'source' => 'direct',
+            ]))
             ->unique('id')
-            ->sortBy(fn ($indicator): string => (string) ($indicator->code ?? ''))
+            ->sortBy(fn (array $indicator): string => (string) ($indicator['code'] ?? ''))
             ->values();
+
+        $availableRecords = KpiIndicator::query()
+            ->with(['checkerStructuralUnit:id,code,name'])
+            ->whereNull('checker_structural_unit_id')
+            ->whereDoesntHave('structuralUnits')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'entity_type', 'checker_structural_unit_id'])
+            ->map(fn (KpiIndicator $indicator): array => [
+                'id' => $indicator->id,
+                'code' => $indicator->code,
+                'name' => $indicator->name,
+                'entity_type' => $indicator->entity_type,
+                'source' => 'available',
+            ])
+            ->values()
+            ->all();
 
         $alreadyAttachedIds = $unit->users->pluck('id')->all();
 
@@ -73,9 +103,6 @@ class KpiStructuralUnitController extends Controller
                 'role',
                 'role_id',
             ])
-            ->where(function ($query): void {
-                $query->whereNull('is_hidden')->orWhere('is_hidden', 0);
-            })
             ->orderBy('name')
             ->get()
             ->filter(function (User $user): bool {
@@ -88,6 +115,16 @@ class KpiStructuralUnitController extends Controller
                 'email' => $user->email,
                 'role_label' => $user->resolveRoleLabel(),
             ])
+            ->values()
+            ->all();
+
+        $unassignedStaffOptions = collect($staffOptions)
+            ->filter(function (array $user) use ($unit): bool {
+                $isAlreadyAttached = in_array((int) $user['id'], $unit->users->pluck('id')->all(), true);
+                $hasNoStructuralLabel = ! in_array($user['role_label'] ?? '', ['Декан', 'Завед. кафедрой', 'Структурное подразделение'], true);
+
+                return ! $isAlreadyAttached && $hasNoStructuralLabel;
+            })
             ->values()
             ->all();
 
@@ -107,17 +144,11 @@ class KpiStructuralUnitController extends Controller
                     ->sortBy('name')
                     ->values()
                     ->all(),
-                'records' => $records
-                    ->map(fn ($indicator): array => [
-                        'id' => $indicator->id,
-                        'code' => $indicator->code,
-                        'name' => $indicator->name,
-                        'entity_type' => $indicator->entity_type,
-                    ])
-                    ->values()
-                    ->all(),
+                'records' => $records->values()->all(),
             ],
             'staffOptions' => $staffOptions,
+            'unassignedStaffOptions' => $unassignedStaffOptions,
+            'availableRecords' => $availableRecords,
         ]);
     }
 
@@ -137,6 +168,36 @@ class KpiStructuralUnitController extends Controller
         $unit->users()->detach($user->id);
 
         return back()->with('success', 'Сотрудник удален из структурного подразделения.');
+    }
+
+    public function detachRecord(KpiStructuralUnit $unit, KpiIndicator $indicator): RedirectResponse
+    {
+        if ((int) $indicator->checker_structural_unit_id === (int) $unit->id) {
+            $indicator->update(['checker_structural_unit_id' => null]);
+
+            return back()->with('success', 'Запись отвязана от структурного подразделения.');
+        }
+
+        $unit->boundIndicators()->detach($indicator->id);
+
+        return back()->with('success', 'Запись отвязана от структурного подразделения.');
+    }
+
+    public function attachRecord(Request $request, KpiStructuralUnit $unit): RedirectResponse
+    {
+        $validated = $request->validate([
+            'indicator_id' => ['required', 'integer', 'exists:kpi_indicators,id'],
+        ]);
+
+        $indicator = KpiIndicator::query()->findOrFail((int) $validated['indicator_id']);
+
+        if ($indicator->checker_structural_unit_id !== null || $indicator->structuralUnits()->exists()) {
+            return back()->with('warning', 'Запись уже привязана к структурному подразделению.');
+        }
+
+        $indicator->update(['checker_structural_unit_id' => $unit->id]);
+
+        return back()->with('success', 'Запись привязана к структурному подразделению.');
     }
 
     public function store(Request $request)

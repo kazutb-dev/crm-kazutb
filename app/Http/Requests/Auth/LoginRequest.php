@@ -2,12 +2,14 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use App\Services\ActiveDirectoryAuthenticator;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -62,6 +64,16 @@ class LoginRequest extends FormRequest
 
         if (! $authenticated) {
             $authenticated = Auth::attempt(['email' => $login, 'password' => $password], $remember);
+
+            if (! $authenticated && Schema::hasColumn('users', 'ad_login')) {
+                $localUser = User::query()
+                    ->whereRaw('LOWER(ad_login) = ?', [Str::lower($login)])
+                    ->first();
+
+                if ($localUser !== null) {
+                    $authenticated = Auth::attempt(['email' => $localUser->email, 'password' => $password], $remember);
+                }
+            }
         }
 
         if (! $authenticated) {
@@ -75,12 +87,21 @@ class LoginRequest extends FormRequest
         $userId = Auth::id();
 
         if (! $trackedByAd && $userId !== null) {
-            DB::table('users')
-                ->where('id', $userId)
-                ->update([
-                    'last_login_at' => now(),
-                    'login_count' => DB::raw('COALESCE(login_count, 0) + 1'),
-                ]);
+            $updates = [];
+
+            if (Schema::hasColumn('users', 'last_login_at')) {
+                $updates['last_login_at'] = now();
+            }
+
+            if (Schema::hasColumn('users', 'login_count')) {
+                $updates['login_count'] = DB::raw('COALESCE(login_count, 0) + 1');
+            }
+
+            if ($updates !== []) {
+                DB::table('users')
+                    ->where('id', $userId)
+                    ->update($updates);
+            }
         }
 
         $this->session()->put('login_tracked', true);

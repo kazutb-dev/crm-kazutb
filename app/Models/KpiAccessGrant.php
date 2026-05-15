@@ -76,7 +76,7 @@ class KpiAccessGrant extends Model
     {
         return static::query()
             ->where('user_id', $userId)
-            ->whereIn('permission', array_values(array_unique([$permission, self::PERM_KPI_ADMIN])))
+            ->where('permission', $permission)
             ->where('is_active', true)
             ->exists();
     }
