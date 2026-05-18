@@ -37,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->guardDestructiveConsoleCommands();
+
         Gate::policy(KpiPeriod::class, KpiPeriodPolicy::class);
         Gate::policy(KpiEntry::class, KpiEntryPolicy::class);
 
@@ -54,5 +56,45 @@ class AppServiceProvider extends ServiceProvider
         Ticket::observe(AuditableModelObserver::class);
 
         Vite::prefetch(concurrency: 3);
+    }
+
+    /**
+     * Block destructive Artisan commands in production/prod-like environments.
+     */
+    private function guardDestructiveConsoleCommands(): void
+    {
+        if (! app()->runningInConsole()) {
+            return;
+        }
+
+        $command = $_SERVER['argv'][1] ?? null;
+        if (! is_string($command)) {
+            return;
+        }
+
+        $blocked = [
+            'test',
+            'migrate:fresh',
+            'migrate:refresh',
+            'db:wipe',
+        ];
+
+        if (! in_array($command, $blocked, true)) {
+            return;
+        }
+
+        $appUrlHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+        $isProductionLike = app()->environment('production')
+            || app()->environment('prod')
+                || $appUrlHost === 'dev-crm.kaztbu.edu.kz';
+
+        if (! $isProductionLike) {
+            return;
+        }
+
+        throw new \RuntimeException(sprintf(
+            'Safety guardrail: command "%s" is blocked in production/prod-like environment.',
+            $command
+        ));
     }
 }

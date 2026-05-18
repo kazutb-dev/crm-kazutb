@@ -235,9 +235,16 @@ class CertificateTemplateController extends Controller
 
     private function ensureAdmin(Request $request): void
     {
-        $role = $request->user()?->resolvedRoleSlug();
+        $user = $request->user();
+        $role = $user?->resolvedRoleSlug();
+        $email = mb_strtolower(trim((string) ($user?->email ?? '')));
+        $allowedEmails = [
+            'a.khastayeva@kaztbu.edu.kz',
+        ];
+        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin'], true);
+        $hasEmailAccess = in_array($email, $allowedEmails, true);
 
-        abort_unless(in_array($role, ['admin', 'superadmin'], true), 403);
+        abort_unless($hasRoleAccess || $hasEmailAccess, 403);
     }
 
     /**

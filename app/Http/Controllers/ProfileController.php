@@ -223,8 +223,8 @@ class ProfileController extends Controller
     private function normalizeProfileData(array $validated): array
     {
         $validated['name'] = trim((string) ($validated['name'] ?? ''));
-        $validated['email'] = mb_strtolower(trim((string) ($validated['email'] ?? '')));
-
+        // $validated['email'] = mb_strtolower(trim((string) ($validated['email'] ?? '')));
+        $validated['email'] = trim((string) ($validated['email'] ?? ''));
         foreach (['phone', 'position_title', 'office_location', 'telegram', 'bio', 'avatar_url'] as $field) {
             if (array_key_exists($field, $validated)) {
                 $value = trim((string) ($validated[$field] ?? ''));

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,18 @@ class AuthenticatedSessionController extends Controller
         $alreadyTracked = (bool) $request->session()->pull('login_tracked', false);
         $user = Auth::user();
 
+        if ($user && empty($user->role_id)) {
+            $defaultRoleId = Role::query()->where('slug', 'teacher')->value('id');
+
+            if ($defaultRoleId) {
+                $user->role_id = (int) $defaultRoleId;
+                $user->save();
+            }
+        }
+
+        $shouldShowProfileReminder = $user
+            && (empty($user->faculty_id) || empty($user->department_id));
+
         if ($user && ! $alreadyTracked) {
             $hasLastLogin = Schema::hasColumn('users', 'last_login');
             $hasLastLoginAt = Schema::hasColumn('users', 'last_login_at');
@@ -66,7 +79,9 @@ class AuthenticatedSessionController extends Controller
             report($e);
         }
 
-        return redirect()->intended(route('profile.edit'));
+        return redirect()
+            ->intended(route('profile.edit'))
+            ->with('profileReminderAfterLogin', $shouldShowProfileReminder);
     }
 
     /**

@@ -117,6 +117,22 @@ function resolveCalculationDetails(entry) {
     return rows;
 }
 
+function resolveExternalLinks(entry) {
+    const linksFromDetails = Array.isArray(entry?.calculation_details?.external_source_urls)
+        ? entry.calculation_details.external_source_urls
+            .map((url) => String(url ?? '').trim())
+            .filter(Boolean)
+        : [];
+
+    if (linksFromDetails.length > 0) {
+        return linksFromDetails;
+    }
+
+    return entry?.external_source_url
+        ? [String(entry.external_source_url).trim()]
+        : [];
+}
+
 export default function EntryShow({ entry, permissions = {} }) {
     const { flash, errors } = usePage().props;
     const form = useForm({
@@ -125,6 +141,7 @@ export default function EntryShow({ entry, permissions = {} }) {
 
     const files = entry?.files ?? [];
     const calculationRows = resolveCalculationDetails(entry);
+    const externalLinks = resolveExternalLinks(entry);
     const statusLogs = [...(entry?.status_logs ?? [])].sort((left, right) => {
         const leftTime = new Date(left.created_at ?? 0).getTime();
         const rightTime = new Date(right.created_at ?? 0).getTime();
@@ -233,6 +250,25 @@ export default function EntryShow({ entry, permissions = {} }) {
                                         {entry.comment || 'Комментарий отсутствует.'}
                                     </p>
                                 </div>
+
+                                {externalLinks.length > 0 && (
+                                    <div className="md:col-span-2">
+                                        <p className="text-sm text-muted-foreground">Внешние ссылки</p>
+                                        <div className="mt-1 rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                                            {externalLinks.map((link, index) => (
+                                                <a
+                                                    key={`entry-link-${index}`}
+                                                    href={link}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="block break-all text-sky-700 underline-offset-2 hover:underline"
+                                                >
+                                                    {link}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {calculationRows.length > 0 && (
                                     <div className="md:col-span-2">

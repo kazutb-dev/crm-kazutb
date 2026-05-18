@@ -49,4 +49,19 @@ class KpiEntryFileService
             }
         });
     }
+
+    public function deleteFile(KpiEntry $entry, KpiEntryFile $file): void
+    {
+        if ((int) $file->kpi_entry_id !== (int) $entry->id) {
+            return;
+        }
+
+        DB::transaction(function () use ($file): void {
+            if (! empty($file->file_path)) {
+                Storage::disk($file->file_disk ?: 'public')->delete($file->file_path);
+            }
+
+            $file->delete();
+        });
+    }
 }

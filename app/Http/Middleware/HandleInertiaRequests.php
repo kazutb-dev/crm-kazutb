@@ -36,7 +36,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
+        $shared = [
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
@@ -55,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
                 'warning' => fn () => $request->session()->get('warning'),
+                'profileReminderAfterLogin' => fn () => $request->session()->get('profileReminderAfterLogin'),
             ],
             'calendar' => [
                 'incoming_count' => fn () => $request->user()
@@ -73,6 +74,8 @@ class HandleInertiaRequests extends Middleware
                 'can_access' => fn () => $this->canAccessCalendar($request->user()),
             ],
         ];
+
+        return $shared;
     }
 
     private function canAccessCalendar(?User $user): bool

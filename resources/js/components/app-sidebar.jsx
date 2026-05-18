@@ -130,6 +130,8 @@ export function AppSidebar() {
     const isDepartmentRole = roleSlug === 'department';
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
+    const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
+    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
     const canAccessCalendar = calendarShared?.can_access ?? false;
     const sharedAccessCount = calendarShared?.shared_access_count ?? 0;
     const showAllKpiMenus = isAdminRole;
@@ -554,7 +556,7 @@ export function AppSidebar() {
         hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
-        templates: isAdminRole && !showOnlyKpiMenus && templateItems.some((item) => item.active),
+        templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
     };
 
     const activeGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupActivity[key]);
@@ -651,7 +653,7 @@ export function AppSidebar() {
         hr: isAdminRole && !showOnlyKpiMenus,
         library: isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: isAdminRole && !showOnlyKpiMenus,
-        templates: isAdminRole && !showOnlyKpiMenus,
+        templates: canAccessTemplatesSection && !showOnlyKpiMenus,
     };
 
     const groupItems = {
@@ -791,7 +793,7 @@ export function AppSidebar() {
                     renderGroup('calendarAdmin', 'Smart Calendar', adminCalendarItems)
                 )}
 
-                {isAdminRole && !showOnlyKpiMenus && (
+                {canAccessTemplatesSection && !showOnlyKpiMenus && (
                     renderGroup('templates', 'Шаблоны и сертификаты', templateItems)
                 )}
             </SidebarContent>

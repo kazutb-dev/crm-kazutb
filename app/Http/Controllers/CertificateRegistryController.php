@@ -267,26 +267,76 @@ class CertificateRegistryController extends Controller
         ]);
     }
 
-    public function verify(string $certificateNumber): JsonResponse
+    public function verify(Request $request, string $certificateNumber): JsonResponse|InertiaResponse
     {
         $certificate = Certificate::query()
+            ->with([
+                'template:id,name,code',
+                'templateVersion:id,template_id,version,background_path,canvas_width,canvas_height,layout_json',
+            ])
             ->select([
+                'id',
+                'template_id',
+                'template_version_id',
                 'certificate_number',
                 'recipient_full_name',
                 'topic',
+                'qr_payload',
                 'status',
                 'issued_at',
+                'generated_at',
                 'revoked_at',
             ])
             ->where('certificate_number', $certificateNumber)
             ->first();
 
         if (! $certificate) {
-            return response()->json([
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'valid' => false,
+                    'status' => 'not_found',
+                    'message' => 'Сертификат не найден.',
+                ], 404);
+            }
+
+            return Inertia::render('Certificates/Verify', [
                 'valid' => false,
                 'status' => 'not_found',
                 'message' => 'Сертификат не найден.',
-            ], 404);
+                'certificate' => null,
+            ]);
+        }
+
+        if (! $request->expectsJson()) {
+            return Inertia::render('Certificates/Verify', [
+                'valid' => $certificate->status !== Certificate::STATUS_REVOKED,
+                'status' => $certificate->status,
+                'message' => $certificate->status === Certificate::STATUS_REVOKED
+                    ? 'Сертификат отозван.'
+                    : 'Сертификат действителен.',
+                'certificate' => [
+                    'id' => $certificate->id,
+                    'certificate_number' => $certificate->certificate_number,
+                    'recipient_full_name' => $certificate->recipient_full_name,
+                    'topic' => $certificate->topic,
+                    'status' => $certificate->status,
+                    'issued_at_human' => optional($certificate->issued_at)?->format('d.m.Y H:i'),
+                    'generated_at_human' => optional($certificate->generated_at)?->format('d.m.Y H:i'),
+                    'template_name' => $certificate->template?->name,
+                    'template_code' => $certificate->template?->code,
+                    'template_version' => $certificate->templateVersion?->version,
+                    'template_background_url' => $certificate->templateVersion?->background_path
+                        ? '/storage/' . ltrim((string) $certificate->templateVersion?->background_path, '/')
+                        : null,
+                    'template_canvas_width' => (int) ($certificate->templateVersion?->canvas_width ?? 1600),
+                    'template_canvas_height' => (int) ($certificate->templateVersion?->canvas_height ?? 1131),
+                    'template_layout' => is_array($certificate->templateVersion?->layout_json)
+                        ? $certificate->templateVersion?->layout_json
+                        : [],
+                    'qr_payload' => $certificate->qr_payload,
+                    'revoked_at_human' => optional($certificate->revoked_at)?->format('d.m.Y H:i'),
+                ],
+            ]);
         }
 
         return response()->json([
@@ -304,9 +354,16 @@ class CertificateRegistryController extends Controller
 
     private function ensureAdmin(Request $request): void
     {
-        $role = $request->user()?->resolvedRoleSlug();
+        $user = $request->user();
+        $role = $user?->resolvedRoleSlug();
+        $email = mb_strtolower(trim((string) ($user?->email ?? '')));
+        $allowedEmails = [
+            'a.khastayeva@kaztbu.edu.kz',
+        ];
+        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin'], true);
+        $hasEmailAccess = in_array($email, $allowedEmails, true);
 
-        abort_unless(in_array($role, ['admin', 'superadmin'], true), 403);
+        abort_unless($hasRoleAccess || $hasEmailAccess, 403);
     }
 
     private function resolveTemplateVersion(?int $templateVersionId): CertificateTemplateVersion

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\NavigationRoute;
+use App\Services\KpiKnowledgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -29,6 +30,89 @@ class AiChatController extends Controller
             return response()->json(['error' => 'AI service is not configured.'], 503);
         }
 
+        // Initialize KPI knowledge service
+        $kpiService = new KpiKnowledgeService();
+        
+        // Get the latest user message to determine context
+        $messages = $request->input('messages');
+        $latestUserMessage = '';
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            if ($messages[$i]['role'] === 'user') {
+                $latestUserMessage = $messages[$i]['text'];
+                break;
+            }
+        }
+
+        // Check if this is a KPI question
+        $isKpiQuestion = $kpiService->isKpiQuestion($latestUserMessage);
+
+        // Build system prompt
+        $systemPrompt = $this->buildSystemPrompt($kpiService, $isKpiQuestion, $latestUserMessage);
+
+        $messages = [['role' => 'system', 'content' => $systemPrompt]];
+
+        foreach ($request->input('messages') as $msg) {
+            $messages[] = [
+                'role' => $msg['role'],
+                'content' => $msg['text'],
+            ];
+        }
+
+        $response = Http::timeout(20)
+            ->withToken($apiKey)
+            ->post('https://api.openai.com/v1/chat/completions', [
+                'model' => config('services.openai.model', 'gpt-4o-mini'),
+                'temperature' => 0.7,
+                'max_tokens' => 500,
+                'messages' => $messages,
+            ]);
+
+        if ($response->failed()) {
+            return response()->json(['error' => 'AI service unavailable.'], 502);
+        }
+
+        $text = $response->json('choices.0.message.content', '');
+
+        return response()->json(['text' => trim($text)]);
+    }
+
+    /**
+     * Build system prompt based on context (KPI or navigation)
+     */
+    private function buildSystemPrompt(KpiKnowledgeService $kpiService, bool $isKpiQuestion, string $query): string
+    {
+        if ($isKpiQuestion) {
+            $kpiContext = $kpiService->getKpiContext($query);
+            $processSummary = $kpiService->getKpiProcessSummary();
+
+            return <<<PROMPT
+Ты — AI-ассистент портала КазУТБ (Казахский университет технологии и бизнеса имени К. Кулажанова).
+Специализируешься на системе KPI (Key Performance Indicators) для сотрудников университета.
+
+Твоя задача — помочь пользователям разобраться с:
+1. Как создавать и заполнять KPI-записи
+2. Как отправлять записи на проверку
+3. Какие статусы может иметь запись
+4. Роль и ответственность каждого участника (ППС, заведующий кафедрой, декан, структурное подразделение)
+5. Какие действия доступны на каждом этапе
+
+Ответь кратко, по делу, на языке вопроса (русский или казахский).
+Приводи конкретные примеры и пошаговые инструкции из документации.
+
+{$processSummary}
+
+=== ПОДРОБНАЯ ДОКУМЕНТАЦИЯ ПО РОЛЯМ ===
+{$kpiContext}
+=== КОНЕЦ ДОКУМЕНТАЦИИ ===
+
+ПАМЯТКА:
+- Если вопрос о конкретной роли (ППС, декан, заведующий, структурное подразделение) — дай инструкции именно для этой роли
+- Если пользователь не указал роль — объясни процесс в общем виде
+- Всегда ссылайся на конкретные шаги из документации
+PROMPT;
+        }
+
+        // Navigation context (original logic)
         $navRoutes = NavigationRoute::query()
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -64,7 +148,7 @@ class AiChatController extends Controller
             return $line;
         })->implode("\n");
 
-        $systemPrompt = <<<PROMPT
+        return <<<PROMPT
 Ты — AI-ассистент портала КазУТБ (Казахский университет технологии и бизнеса имени К. Кулажанова).
 Твоя задача — помочь сотрудникам и студентам:
 1. Найти нужный кабинет, отдел или сотрудника.
@@ -79,31 +163,5 @@ class AiChatController extends Controller
 {$navContext}
 === КОНЕЦ БАЗЫ МАРШРУТОВ ===
 PROMPT;
-
-        $messages = [['role' => 'system', 'content' => $systemPrompt]];
-
-        foreach ($request->input('messages') as $msg) {
-            $messages[] = [
-                'role' => $msg['role'],
-                'content' => $msg['text'],
-            ];
-        }
-
-        $response = Http::timeout(20)
-            ->withToken($apiKey)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('services.openai.model', 'gpt-4o-mini'),
-                'temperature' => 0.7,
-                'max_tokens' => 500,
-                'messages' => $messages,
-            ]);
-
-        if ($response->failed()) {
-            return response()->json(['error' => 'AI service unavailable.'], 502);
-        }
-
-        $text = $response->json('choices.0.message.content', '');
-
-        return response()->json(['text' => trim($text)]);
     }
 }

@@ -22,10 +22,8 @@ export default function UpdateProfileInformation({
         useForm({
             name: profile.snapshot.name ?? '',
             email: profile.snapshot.email ?? '',
-            phone: profile.snapshot.phone ?? '',
             position_title: profile.snapshot.position_title ?? '',
             office_location: profile.snapshot.office_location ?? '',
-            telegram: profile.snapshot.telegram ?? '',
             bio: profile.snapshot.bio ?? '',
             avatar_url: profile.snapshot.avatar_url ?? '',
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
@@ -45,10 +43,8 @@ export default function UpdateProfileInformation({
         setData({
             name: profile.snapshot.name ?? '',
             email: profile.snapshot.email ?? '',
-            phone: profile.snapshot.phone ?? '',
             position_title: profile.snapshot.position_title ?? '',
             office_location: profile.snapshot.office_location ?? '',
-            telegram: profile.snapshot.telegram ?? '',
             bio: profile.snapshot.bio ?? '',
             avatar_url: profile.snapshot.avatar_url ?? '',
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
@@ -109,8 +105,6 @@ export default function UpdateProfileInformation({
                             {[
                                 ['name', 'ФИО', profile.snapshot.name || 'Не указано'],
                                 ['email', 'Почта', profile.snapshot.email || 'Не указано'],
-                                ['phone', 'Телефон / WhatsApp', profile.snapshot.phone || 'Не указан'],
-                                ['telegram', 'Telegram', profile.snapshot.telegram || 'Не указан'],
                                 ['position_title', 'Должность', profile.snapshot.position_title || 'Не указана'],
                                 ['office_location', 'Локация', profile.snapshot.office_location || 'Не указана'],
                             ].map(([key, label, value]) => (
@@ -153,7 +147,6 @@ export default function UpdateProfileInformation({
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <InputLabel htmlFor="name" value="ФИО" />
-
                                 <TextInput
                                     id="name"
                                     className="mt-1 block w-full"
@@ -163,56 +156,24 @@ export default function UpdateProfileInformation({
                                     isFocused
                                     autoComplete="name"
                                 />
-
                                 <InputError className="mt-2" message={errors.name} />
                             </div>
 
                             <div>
                                 <InputLabel htmlFor="email" value="Почта" />
-
                                 <TextInput
                                     id="email"
                                     type="email"
-                                    className="mt-1 block w-full"
+                                    className="mt-1 block w-full bg-gray-100 cursor-not-allowed"
                                     value={data.email}
-                                    onChange={(e) => setData('email', e.target.value)}
-                                    required
-                                    autoComplete="username"
+                                    readOnly
+                                    tabIndex={-1}
+                                    autoComplete="email"
                                 />
-
                                 <InputError className="mt-2" message={errors.email} />
                             </div>
 
-                            <div>
-                                <InputLabel htmlFor="phone" value="Телефон / WhatsApp" />
 
-                                <TextInput
-                                    id="phone"
-                                    type="tel"
-                                    className="mt-1 block w-full"
-                                    value={data.phone}
-                                    onChange={(e) => setData('phone', e.target.value)}
-                                    autoComplete="tel"
-                                    placeholder="+77001234567"
-                                />
-
-                                <InputError className="mt-2" message={errors.phone} />
-                            </div>
-
-                            <div>
-                                <InputLabel htmlFor="telegram" value="Telegram" />
-
-                                <TextInput
-                                    id="telegram"
-                                    type="text"
-                                    className="mt-1 block w-full"
-                                    value={data.telegram}
-                                    onChange={(e) => setData('telegram', e.target.value)}
-                                    placeholder="@username или ссылка"
-                                />
-
-                                <InputError className="mt-2" message={errors.telegram} />
-                            </div>
 
                             <div>
                                 <InputLabel htmlFor="position_title" value="Должность" />

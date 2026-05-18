@@ -66,6 +66,15 @@ class EnsurePanelRoleAccess
                 'kpi.entries.files.',
             ];
 
+            if ($this->canAccessCertificatesModule($request->user())) {
+                $allowedTeacherRoutes = array_merge($allowedTeacherRoutes, [
+                    'templates.',
+                    'certificates.',
+                    'certificate-templates.',
+                    'certificate-template-versions.',
+                ]);
+            }
+
             foreach ($allowedTeacherRoutes as $allowedRoute) {
                 if ($this->startsWith($routeName, $allowedRoute)) {
                     return $next($request);
@@ -218,6 +227,21 @@ class EnsurePanelRoleAccess
         }
 
         return false;
+    }
+
+    private function canAccessCertificatesModule(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $allowedEmails = [
+            'a.khastayeva@kaztbu.edu.kz',
+        ];
+
+        $email = mb_strtolower(trim((string) ($user->email ?? '')));
+
+        return in_array($email, $allowedEmails, true);
     }
 
     private function canAccessKpiIndicators(?string $role): bool

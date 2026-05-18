@@ -30,3 +30,32 @@ vendor
 /public/storage
 /storage/*.key
 .DS_Store
+
+# Environment / Secrets
+.env
+.env.testing
+
+# Local TLS / SSL Materials
+ssl/*
+
+# Backups / Archives
+backup_*
+/backups/
+
+# Temporary Outputs / Logs
+build_output.txt
+.phpunit.result.cache
+/output.json
+/storage/framework/views/*.php
+/storage/framework/sessions/*
+/storage/framework/cache/data/*
+/storage/logs/*.log
+
+# Shell Artifacts / Ad Hoc Investigation Files
+= DB::connection*
+as $c)*
+as $t)*
+ql -u*
+
+# Local Generated Reports
+CLEANUP_AUDIT_REPORT.md

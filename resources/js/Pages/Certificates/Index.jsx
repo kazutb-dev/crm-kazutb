@@ -426,7 +426,7 @@ export default function CertificatesIndex({ templates = [] }) {
 
                         <div className="flex items-center justify-between gap-3">
                             <p className="text-xs text-muted-foreground">
-                                Номер сертификата и QR-ссылка формируются автоматически.
+                                Номер сертификата и ссылка на страницу сертификата формируются автоматически.
                             </p>
                             <Button onClick={generateCertificate} disabled={actionLoading}>
                                 {actionLoading ? 'Генерация...' : 'Сгенерировать'}
@@ -436,7 +436,17 @@ export default function CertificatesIndex({ templates = [] }) {
                         {generatedInfo && (
                             <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
                                 <div className="mb-2">Номер: {generatedInfo.certificate_number}</div>
-                                <div className="mb-3 truncate">QR-ссылка: {generatedInfo.qr_payload}</div>
+                                <div className="mb-3 truncate">
+                                    Ссылка на сертификат:{' '}
+                                    <a
+                                        href={generatedInfo.qr_payload}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="font-medium underline underline-offset-2"
+                                    >
+                                        {generatedInfo.qr_payload}
+                                    </a>
+                                </div>
                                 <div className="flex flex-wrap items-center gap-4">
                                     <div className="rounded-md bg-white p-2">
                                         <QRCodeCanvas
@@ -459,10 +469,18 @@ export default function CertificatesIndex({ templates = [] }) {
                                             type="button"
                                             size="sm"
                                             variant="outline"
+                                            onClick={() => window.open(generatedInfo.qr_payload, '_blank', 'noopener,noreferrer')}
+                                        >
+                                            Открыть ссылку
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
                                             onClick={async () => {
                                                 try {
                                                     await navigator.clipboard.writeText(generatedInfo.qr_payload);
-                                                    toast.success('QR-ссылка скопирована.');
+                                                    toast.success('Ссылка скопирована.');
                                                 } catch {
                                                     toast.error('Не удалось скопировать ссылку.');
                                                 }

@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Division;
 use App\Models\Faculty;
 use App\Models\KpiAccessGrant;
+use App\Models\KpiEntryFile;
 use App\Models\KpiResult;
 use App\Models\KpiEntry;
 use App\Models\KpiIndicator;
@@ -323,11 +324,27 @@ class KpiEntryController extends Controller
             'calculation_details' => ['nullable', 'array'],
             'comment' => ['nullable', 'string'],
             'external_source_url' => ['nullable', 'url', 'max:2048'],
-            'file' => ['nullable', 'file', 'max:10240'],
+            'external_source_urls' => ['nullable', 'array', 'max:10'],
+            'external_source_urls.*' => ['nullable', 'url', 'max:2048'],
+            'file' => ['nullable', 'file', 'max:102400'],
             'files' => ['nullable', 'array'],
-            'files.*' => ['file', 'max:10240'],
+            'files.*' => ['file', 'max:102400'],
             'action' => ['required', 'string', Rule::in(['draft', 'submit'])],
         ]);
+
+        $externalLinks = collect($data['external_source_urls'] ?? [])
+            ->map(static fn ($url) => trim((string) $url))
+            ->filter(static fn ($url) => $url !== '')
+            ->values()
+            ->take(10);
+
+        if ($externalLinks->isNotEmpty()) {
+            $data['external_source_url'] = $externalLinks->first();
+        } elseif (array_key_exists('external_source_url', $data)) {
+            $data['external_source_url'] = trim((string) $data['external_source_url']) !== ''
+                ? trim((string) $data['external_source_url'])
+                : null;
+        }
 
         // Stage is always 'fact' — seasons are no longer stage-separated.
         $data['stage'] = KpiPeriod::STAGE_FACT;
@@ -403,6 +420,8 @@ class KpiEntryController extends Controller
                     $filesToUpload = [$data['file']];
                 }
 
+                $this->assertTotalUploadSizeWithinLimit($filesToUpload);
+
                 foreach ($filesToUpload as $file) {
                     $this->fileService->upload($entry, $file, $user->id);
                     $uploadedFilesCount++;
@@ -466,26 +485,73 @@ class KpiEntryController extends Controller
         $this->authorize('update', $entry);
 
         $data = $request->validate([
-            'stage' => ['required', 'string', Rule::in([
+            'stage' => ['nullable', 'string', Rule::in([
                 KpiPeriod::STAGE_PLAN,
                 KpiPeriod::STAGE_FACT,
             ])],
             'value' => ['nullable', 'numeric'],
             'comment' => ['nullable', 'string'],
+            'calculation_details' => ['nullable', 'array'],
+            'external_source_url' => ['nullable', 'url', 'max:2048'],
+            'external_source_urls' => ['nullable', 'array', 'max:10'],
+            'external_source_urls.*' => ['nullable', 'url', 'max:2048'],
+            'file' => ['nullable', 'file', 'max:102400'],
+            'files' => ['nullable', 'array'],
+            'files.*' => ['file', 'max:102400'],
         ]);
+
+        $externalLinks = collect($data['external_source_urls'] ?? [])
+            ->map(static fn ($url) => trim((string) $url))
+            ->filter(static fn ($url) => $url !== '')
+            ->values()
+            ->take(10)
+            ->all();
+
+        $details = is_array($data['calculation_details'] ?? null)
+            ? $data['calculation_details']
+            : [];
+
+        if (! empty($externalLinks)) {
+            $details['external_source_urls'] = $externalLinks;
+            $data['external_source_url'] = $externalLinks[0];
+        } elseif (array_key_exists('external_source_url', $data)) {
+            $data['external_source_url'] = trim((string) $data['external_source_url']) !== ''
+                ? trim((string) $data['external_source_url'])
+                : null;
+            unset($details['external_source_urls']);
+        }
+
+        $data['calculation_details'] = ! empty($details) ? $details : null;
 
         $entry->loadMissing('period');
 
-        if ((string) $data['stage'] === KpiPeriod::STAGE_PLAN) {
+        $stage = (string) ($data['stage'] ?? KpiPeriod::STAGE_FACT);
+
+        if (array_key_exists('value', $data) && $stage === KpiPeriod::STAGE_PLAN) {
             $entry->plan_value = $data['value'];
         }
 
-        if ((string) $data['stage'] === KpiPeriod::STAGE_FACT) {
+        if (array_key_exists('value', $data) && $stage === KpiPeriod::STAGE_FACT) {
             $entry->fact_value = $data['value'];
         }
 
         $entry->comment = $data['comment'] ?? null;
+        $entry->calculation_details = $data['calculation_details'] ?? null;
+        $entry->external_source_url = $data['external_source_url'] ?? null;
         $entry->save();
+
+        $filesToUpload = [];
+        if (array_key_exists('files', $data) && is_array($data['files'])) {
+            $filesToUpload = array_values(array_filter($data['files']));
+        } elseif (array_key_exists('file', $data) && $data['file'] !== null) {
+            $filesToUpload = [$data['file']];
+        }
+
+        $this->assertTotalUploadSizeWithinLimit($filesToUpload);
+
+        foreach ($filesToUpload as $file) {
+            $this->fileService->upload($entry, $file, $request->user()?->id);
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -884,6 +950,29 @@ class KpiEntryController extends Controller
             }
 
             return back()->with('success', 'Файл успешно загружен.');
+        } catch (KpiEntryException $e) {
+            return $this->errorResponse($request, $e->getMessage());
+        }
+    }
+
+    public function destroyFile(Request $request, KpiEntry $entry, KpiEntryFile $file): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $entry);
+
+        if ((int) $file->kpi_entry_id !== (int) $entry->id) {
+            abort(404);
+        }
+
+        try {
+            $this->fileService->deleteFile($entry, $file);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Файл удален.',
+                ]);
+            }
+
+            return back()->with('success', 'Файл удален.');
         } catch (KpiEntryException $e) {
             return $this->errorResponse($request, $e->getMessage());
         }
@@ -1472,6 +1561,23 @@ class KpiEntryController extends Controller
         }
 
         return back()->withErrors(['kpi_entry' => $message])->withInput();
+    }
+
+    /**
+     * @param array<int, mixed> $files
+     */
+    private function assertTotalUploadSizeWithinLimit(array $files): void
+    {
+        $totalSize = 0;
+
+        foreach ($files as $file) {
+            $size = is_object($file) && method_exists($file, 'getSize') ? (int) $file->getSize() : 0;
+            $totalSize += max(0, $size);
+        }
+
+        if ($totalSize > 100 * 1024 * 1024) {
+            throw new \RuntimeException('Общий размер прикрепленных файлов не должен превышать 100 МБ.');
+        }
     }
 
     /**

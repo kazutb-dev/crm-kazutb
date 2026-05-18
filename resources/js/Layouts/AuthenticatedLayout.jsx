@@ -1,12 +1,36 @@
+
 import { AppSidebar } from '@/components/app-sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { Home } from 'lucide-react';
+import ReminderProfileModal from '@/components/ReminderProfileModal';
+import { useEffect, useState } from 'react';
 
 export default function AuthenticatedLayout({ header, headerRight, children }) {
-    const { component } = usePage();
+    const page = usePage();
+    const { component, props } = page;
+    const user = props?.auth?.user;
+    const roleSlug = props?.auth?.roleSlug;
+    const profileReminderAfterLogin = Boolean(props?.flash?.profileReminderAfterLogin);
+
+    // Profile completeness check
+    const facultyId = user?.faculty_id;
+    const departmentId = user?.department_id;
+    const isProfileIncomplete = user && (!facultyId || !departmentId);
+    const [showReminder, setShowReminder] = useState(false);
+
+    useEffect(() => {
+        if (profileReminderAfterLogin && isProfileIncomplete) {
+            setShowReminder(true);
+        }
+    }, [profileReminderAfterLogin, isProfileIncomplete]);
+
+    const goToProfile = () => {
+        setShowReminder(false);
+        router.visit(route('profile.edit'));
+    };
 
     const pageTitles = {
         Dashboard: 'Панель управления',
@@ -57,7 +81,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
 
     const pageTitle =
         pageTitles[component] ?? component.split('/').at(-1) ?? 'Страница';
-    const [section = 'Раздел', page = 'Страница'] = component.split('/');
+    const [section = 'Раздел', sectionPage = 'Страница'] = component.split('/');
 
     return (
         <SidebarProvider>
@@ -73,6 +97,13 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                     <div className="absolute right-[-140px] top-[-140px] h-96 w-96 rounded-full bg-amber-300/20 blur-3xl" />
                 </div>
 
+                {/* Reminder Modal for incomplete profile */}
+                <ReminderProfileModal
+                    open={showReminder}
+                    onClose={() => setShowReminder(false)}
+                    goToProfile={goToProfile}
+                />
+
                 <header className="admin-shell-topbar">
                     <div className="admin-shell-topbar-row">
                         <SidebarTrigger className="h-9 w-9 rounded-md border border-border/80 bg-white/90" />
@@ -80,7 +111,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                                 <Badge variant="outline" className="border-cyan-200 bg-cyan-50/70 text-cyan-900">{section}</Badge>
-                                <p className="truncate text-sm font-medium text-muted-foreground/90">{page}</p>
+                                <p className="truncate text-sm font-medium text-muted-foreground/90">{sectionPage}</p>
                             </div>
                             <h1 className="mt-0.5 truncate text-[1.1rem] font-semibold text-[#132844]">{pageTitle}</h1>
                         </div>

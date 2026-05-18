@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 const SECTION_SHORT = {
     teaching: 'УМР',
@@ -77,6 +77,8 @@ const stageLabels = {
     fact: 'Факт',
     review: 'Рассмотрение',
 };
+
+const MAX_EXTERNAL_LINKS = 10;
 
 function formatDate(value) {
     if (!value) {
@@ -574,10 +576,10 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                             <Link href={route('kpi.entries.show', entry.id)}>Открыть</Link>
                         </Button>
                         {isEditable && (
-                            (entry.status === 'returned' || entry.status === 'rejected') ? (
+                            (entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected') ? (
                                 <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); openEditEntry(entry); }}>
                                     <Pencil className="h-3 w-3" />
-                                    Исправить
+                                    {entry.status === 'draft' ? 'Редактировать' : 'Исправить'}
                                 </Button>
                             ) : (
                                 <Button size="sm" onClick={(e) => { e.stopPropagation(); submitEntry(entry.id); }} disabled={isFileMissing}>
@@ -600,14 +602,30 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                             <div className="sm:col-span-2">
                                 <EntryHistory history={entry.history} />
                             </div>
-                            {entry.external_source_url && (
+                            {(Array.isArray(entry.calculation_details?.external_source_urls)
+                                && entry.calculation_details.external_source_urls.filter((url) => String(url ?? '').trim() !== '').length > 0) || entry.external_source_url ? (
                                 <div>
                                     <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Источник</p>
-                                    <a href={entry.external_source_url} target="_blank" rel="noreferrer" className="text-xs text-sky-700 underline-offset-2 hover:underline break-all">
-                                        {entry.external_source_url}
-                                    </a>
+                                    <div className="space-y-1">
+                                        {(Array.isArray(entry.calculation_details?.external_source_urls)
+                                            ? entry.calculation_details.external_source_urls
+                                                .map((url) => String(url ?? '').trim())
+                                                .filter(Boolean)
+                                            : (entry.external_source_url ? [entry.external_source_url] : [])
+                                        ).map((link, index) => (
+                                            <a
+                                                key={`${entry.id}-external-link-${index}`}
+                                                href={link}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="block text-xs text-sky-700 underline-offset-2 hover:underline break-all"
+                                            >
+                                                {link}
+                                            </a>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
+                            ) : null}
                             <div>
                                 <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Файлы</p>
                                 {(entry.files?.length ?? 0) > 0 ? (
@@ -762,8 +780,10 @@ export default function TeacherDashboard({
 
     const [createOpen, setCreateOpen] = useState(false);
     const [uploadingEntryId, setUploadingEntryId] = useState(null);
-    const [createFileName, setCreateFileName] = useState('');
+    const [createFilesList, setCreateFilesList] = useState([]);
     const [editingEntryId, setEditingEntryId] = useState(null);
+    const [editingEntryFiles, setEditingEntryFiles] = useState([]);
+    const createFileInputRef = useRef(null);
 
     const filterForm = useForm({
         stage: filters.stage ?? 'plan',
@@ -790,6 +810,7 @@ export default function TeacherDashboard({
         rule_option_points: '',
         comment: '',
         external_source_url: '',
+        external_source_urls: [''],
         files: [],
         action: 'draft',
     });
@@ -870,20 +891,52 @@ export default function TeacherDashboard({
             value: effectiveValue,
         };
 
+        const externalLinks = (computedData.external_source_urls ?? [])
+            .map((url) => String(url ?? '').trim())
+            .filter(Boolean)
+            .slice(0, MAX_EXTERNAL_LINKS);
+
         const manualPoints = resolveManualPoints(selectedIndicator, computedData, selectedRuleSpec);
         const calculationDetails = buildCalculationDetails(selectedIndicator, computedData, selectedRuleSpec, manualPoints);
+        const calculationDetailsWithLinks = calculationDetails
+            ? {
+                ...calculationDetails,
+                external_source_urls: externalLinks,
+            }
+            : (externalLinks.length > 0 ? { external_source_urls: externalLinks } : null);
 
         createForm.transform(() => ({
             ...computedData,
+            stage: computedData.stage || 'fact',
             action,
+            _method: editingEntryId ? 'patch' : undefined,
+            external_source_urls: externalLinks,
+            external_source_url: externalLinks[0] ?? '',
             manual_points: manualPoints === null ? null : Number(manualPoints.toFixed(2)),
-            calculation_details: calculationDetails,
+            calculation_details: calculationDetailsWithLinks,
         }));
 
-        createForm.post(route('kpi.my-entries.store'), {
+        const requestMethod = 'post';
+        const requestUrl = editingEntryId
+            ? route('kpi.my-entries.update', editingEntryId)
+            : route('kpi.my-entries.store');
+
+        createForm[requestMethod](requestUrl, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
+                if (editingEntryId && action === 'submit') {
+                    router.post(route('kpi.my-entries.submit', editingEntryId), {}, {
+                        preserveScroll: true,
+                    });
+                    setCreateOpen(false);
+                    createForm.reset();
+                    setCreateFilesList([]);
+                    setEditingEntryId(null);
+                    setEditingEntryFiles([]);
+                    return;
+                }
+
                 if (action === 'draft') {
                     createForm.reset(
                         'indicator_id',
@@ -897,16 +950,25 @@ export default function TeacherDashboard({
                         'rule_option_points',
                         'comment',
                         'external_source_url',
+                        'external_source_urls',
                         'files',
                     );
-                    setCreateFileName('');
+                    createForm.setData('external_source_urls', ['']);
+                    setCreateFilesList([]);
+
+                    if (editingEntryId) {
+                        setCreateOpen(false);
+                        setEditingEntryId(null);
+                        setEditingEntryFiles([]);
+                    }
                 }
 
                 if (action === 'submit') {
                     setCreateOpen(false);
                     createForm.reset();
-                    setCreateFileName('');
+                    setCreateFilesList([]);
                     setEditingEntryId(null);
+                    setEditingEntryFiles([]);
                 }
             },
             onFinish: () => {
@@ -916,19 +978,64 @@ export default function TeacherDashboard({
     };
 
     const openEditEntry = (entry) => {
+        const existingExternalLinks = Array.isArray(entry.calculation_details?.external_source_urls)
+            ? entry.calculation_details.external_source_urls
+                .map((url) => String(url ?? '').trim())
+                .filter(Boolean)
+            : [];
+
+        const details = entry.calculation_details ?? {};
+        const ruleKind = String(details.rule_kind ?? '');
+        const selectionPoints = details.selection_points !== undefined && details.selection_points !== null
+            ? String(details.selection_points)
+            : '';
+
         createForm.setData((prev) => ({
             ...prev,
+            stage: 'fact',
             module: entry.indicator?.section ?? prev.module,
             group_code: '',
             indicator_id: String(entry.indicator_id ?? entry.indicator?.id ?? ''),
             value: entry.fact_value ?? '',
+            rule_place_points: ruleKind === 'podium' ? selectionPoints : '',
+            rule_improvement_rate: ruleKind === 'improvement' ? selectionPoints : '',
+            rule_coauthors_count: ruleKind === 'coauthors' && details.coauthors_count !== undefined && details.coauthors_count !== null
+                ? String(details.coauthors_count)
+                : '',
+            rule_sheet_count: ruleKind === 'coauthors' && details.sheet_count !== undefined && details.sheet_count !== null
+                ? String(details.sheet_count)
+                : '',
+            rule_role_points: ruleKind === 'roleSplit' ? selectionPoints : '',
+            rule_tier_points: ruleKind === 'quartile' ? selectionPoints : '',
+            rule_option_points: ruleKind === 'optionRate' ? selectionPoints : '',
             comment: entry.comment ?? '',
             external_source_url: entry.external_source_url ?? '',
+            external_source_urls: existingExternalLinks.length > 0
+                ? existingExternalLinks
+                : (entry.external_source_url ? [entry.external_source_url] : ['']),
             files: [],
         }));
-        setCreateFileName('');
+        setCreateFilesList([]);
         setEditingEntryId(entry.id);
+        setEditingEntryFiles(entry.files ?? []);
         setCreateOpen(true);
+    };
+
+    const removeEditingFile = (fileId) => {
+        if (!editingEntryId || !fileId) {
+            return;
+        }
+
+        if (!window.confirm('Удалить файл из записи?')) {
+            return;
+        }
+
+        router.delete(route('kpi.entries.files.destroy', { entry: editingEntryId, file: fileId }), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setEditingEntryFiles((current) => current.filter((file) => file.id !== fileId));
+            },
+        });
     };
 
     const submitEntry = (entryId) => {
@@ -965,6 +1072,12 @@ export default function TeacherDashboard({
         });
     };
 
+    const totalUploadedFileSize = useMemo(() => {
+        return createFilesList.reduce((sum, file) => sum + (file.size ?? 0), 0);
+    }, [createFilesList]);
+
+    const totalMaxFileSize = 100 * 1024 * 1024; // 100 МБ total
+
     const isEditableEntry = (entry) => entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected';
 
     const isFileMissing = (entry) => {
@@ -987,7 +1100,10 @@ export default function TeacherDashboard({
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => setEditingEntryId(null)}>
+                        <Button size="sm" onClick={() => {
+                            setEditingEntryId(null);
+                            setEditingEntryFiles([]);
+                        }}>
                             <Plus className="h-4 w-4" />
                             Создать запись
                         </Button>
@@ -1254,35 +1370,206 @@ export default function TeacherDashboard({
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Ссылка на внешний источник</label>
-                                    <Input
-                                        type="url"
-                                        value={createForm.data.external_source_url}
-                                        onChange={(event) => createForm.setData('external_source_url', event.target.value)}
-                                        placeholder="https://example.com/source"
-                                    />
+                                    {editingEntryId && (createForm.data.external_source_urls ?? []).some((url) => String(url ?? '').trim() !== '') && (
+                                        <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
+                                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Текущие ссылки</p>
+                                            <div className="space-y-1">
+                                                {(createForm.data.external_source_urls ?? [])
+                                                    .map((url) => String(url ?? '').trim())
+                                                    .filter(Boolean)
+                                                    .map((link, index) => (
+                                                        <div key={`editing-external-link-${index}`} className="flex items-center gap-2">
+                                                            <a
+                                                                href={link}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="block flex-1 break-all text-xs text-sky-700 underline-offset-2 hover:underline"
+                                                            >
+                                                                {link}
+                                                            </a>
+                                                            <Button
+                                                                type="button"
+                                                                size="icon"
+                                                                variant="outline"
+                                                                className="h-7 w-7"
+                                                                onClick={() => {
+                                                                    const next = (createForm.data.external_source_urls ?? [])
+                                                                        .filter((_, idx) => idx !== index);
+                                                                    createForm.setData('external_source_urls', next.length > 0 ? next : ['']);
+                                                                }}
+                                                                aria-label="Удалить ссылку"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="space-y-2">
+                                        {(createForm.data.external_source_urls ?? ['']).map((url, index) => {
+                                            const canAdd = index === (createForm.data.external_source_urls.length - 1)
+                                                && createForm.data.external_source_urls.length < MAX_EXTERNAL_LINKS;
+                                            const canRemove = createForm.data.external_source_urls.length > 1;
+
+                                            return (
+                                                <div key={`external-link-${index}`} className="flex items-center gap-2">
+                                                    <Input
+                                                        type="url"
+                                                        value={url}
+                                                        onChange={(event) => {
+                                                            const next = [...(createForm.data.external_source_urls ?? [''])];
+                                                            next[index] = event.target.value;
+                                                            createForm.setData('external_source_urls', next);
+                                                        }}
+                                                        placeholder="https://example.com/source"
+                                                    />
+
+                                                    {canAdd ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-9 w-9 shrink-0"
+                                                            onClick={() => createForm.setData('external_source_urls', [
+                                                                ...(createForm.data.external_source_urls ?? ['']),
+                                                                '',
+                                                            ])}
+                                                            aria-label="Добавить ссылку"
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-9 w-9 shrink-0"
+                                                            onClick={() => {
+                                                                if (!canRemove) {
+                                                                    return;
+                                                                }
+
+                                                                const next = (createForm.data.external_source_urls ?? ['']).filter((_, idx) => idx !== index);
+                                                                createForm.setData('external_source_urls', next.length > 0 ? next : ['']);
+                                                            }}
+                                                            disabled={!canRemove}
+                                                            aria-label="Удалить ссылку"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Можно добавить до {MAX_EXTERNAL_LINKS} ссылок. Пустые строки не отправляются.
+                                    </p>
                                     {createForm.errors.external_source_url && (
                                         <p className="text-sm text-destructive">{createForm.errors.external_source_url}</p>
+                                    )}
+                                    {createForm.errors.external_source_urls && (
+                                        <p className="text-sm text-destructive">{createForm.errors.external_source_urls}</p>
+                                    )}
+                                    {createForm.errors['external_source_urls.0'] && (
+                                        <p className="text-sm text-destructive">{createForm.errors['external_source_urls.0']}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Файл подтверждения</label>
-                                    <label className="flex h-10 cursor-pointer items-center justify-between rounded-md border border-input px-3 text-sm shadow-sm">
-                                        <span className="truncate text-muted-foreground">
-                                            {createFileName || 'Выберите файлы (до 10 МБ каждый)'}
-                                        </span>
-                                        <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    {editingEntryId && editingEntryFiles.length > 0 && (
+                                        <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
+                                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Уже прикреплены</p>
+                                            <div className="space-y-1">
+                                                {editingEntryFiles.map((file) => (
+                                                    <div key={`editing-file-${file.id}`} className="flex items-center gap-2">
+                                                        <a
+                                                            href={file.file_url}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="flex min-w-0 flex-1 items-center gap-2 text-xs text-sky-700 underline-offset-2 hover:underline"
+                                                        >
+                                                            <Paperclip className="h-3 w-3 shrink-0" />
+                                                            <span className="truncate">{file.file_name}</span>
+                                                            <span className="text-muted-foreground">({formatFileSize(file.file_size)})</span>
+                                                        </a>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="outline"
+                                                            className="h-7 w-7"
+                                                            onClick={() => removeEditingFile(file.id)}
+                                                            aria-label="Удалить файл"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="space-y-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-10 w-full justify-between"
+                                            onClick={() => createFileInputRef.current?.click()}
+                                        >
+                                            <span>Добавить файл</span>
+                                            <Paperclip className="h-4 w-4" />
+                                        </Button>
                                         <input
+                                            ref={createFileInputRef}
                                             type="file"
                                             multiple
                                             className="hidden"
                                             onChange={(event) => {
                                                 const selectedFiles = Array.from(event.target.files ?? []);
                                                 createForm.setData('files', selectedFiles);
-                                                setCreateFileName(selectedFiles.map((file) => file.name).join(', '));
+                                                setCreateFilesList(selectedFiles.map((file) => ({
+                                                    name: file.name,
+                                                    size: file.size,
+                                                })));
                                             }}
                                         />
-                                    </label>
+                                        
+                                        {/* Display selected files list */}
+                                        {createFilesList.length > 0 && (
+                                            <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
+                                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                                    Выбранные файлы ({createFilesList.length})
+                                                </p>
+                                                <div className="space-y-1">
+                                                    {createFilesList.map((file, index) => (
+                                                        <div key={`new-file-${index}`} className="flex items-center gap-2 text-xs">
+                                                            <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                                            <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                                                            <span className="shrink-0 text-muted-foreground">({formatFileSize(file.size)})</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-2 border-t border-border/50 pt-2 text-xs">
+                                                    <div className="flex justify-between text-muted-foreground">
+                                                        <span>Всего:</span>
+                                                        <span className={totalUploadedFileSize > totalMaxFileSize ? 'text-red-600 font-semibold' : ''}>
+                                                            {formatFileSize(totalUploadedFileSize)} / {formatFileSize(totalMaxFileSize)}
+                                                        </span>
+                                                    </div>
+                                                    {totalUploadedFileSize > totalMaxFileSize && (
+                                                        <p className="mt-1 text-red-600 font-medium">Превышен общий лимит размера файлов</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                                {createFilesList.length === 0 && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Файлы не выбраны (до 100 МБ суммарно)
+                                            </p>
+                                        )}
+                                    </div>
                                     {(createForm.errors.files || createForm.errors['files.0']) && (
                                         <p className="text-sm text-destructive">{createForm.errors.files || createForm.errors['files.0']}</p>
                                     )}
@@ -1396,6 +1683,22 @@ export default function TeacherDashboard({
                         {flash?.success && <p>{flash.success}</p>}
                         {flash?.error && <p>{flash.error}</p>}
                         {errors?.kpi_entry && <p>{errors.kpi_entry}</p>}
+                    </div>
+                )}
+
+                {/* ── Faculty/Department binding reminder ──────────────── */}
+                {(!currentUser?.faculty_name || !currentUser?.department_name) && (
+                    <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm text-blue-800">
+                        <div className="mt-0.5 h-5 w-5 shrink-0 text-blue-600">ℹ️</div>
+                        <div>
+                            <strong>Требуется привязка к структурным подразделениям:</strong>
+                            <p className="mt-1">Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.</p>
+                            <p className="mt-2">
+                                <Link href={route('profile.edit')} className="font-semibold underline decoration-blue-400 underline-offset-2 hover:text-blue-900">
+                                    Перейти в профиль →
+                                </Link>
+                            </p>
+                        </div>
                     </div>
                 )}
 

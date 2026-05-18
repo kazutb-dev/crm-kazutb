@@ -215,6 +215,8 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('kpi.entries.submit');
     Route::post('kpi/entries/{entry}/files', [KpiEntryController::class, 'uploadFile'])
         ->name('kpi.entries.files.store');
+    Route::delete('kpi/entries/{entry}/files/{file}', [KpiEntryController::class, 'destroyFile'])
+        ->name('kpi.entries.files.destroy');
     Route::get('kpi/entries/{entry}', [KpiEntryController::class, 'show'])
         ->name('kpi.entries.show');
     Route::post('kpi/entries/{entry}/return', [KpiEntryController::class, 'returnEntry'])
