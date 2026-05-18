@@ -43,9 +43,11 @@ const stageLabels = {
 
 const statusLabels = {
     draft: 'Черновик',
-    submitted: 'Отправлено',
+    submitted: 'На рассмотрении у завкафедры',
     returned: 'Возвращено',
     reviewed: 'Проверено',
+    pending_dean: 'На рассмотрении декана',
+    pending_structural: 'На рассмотрении структурного подразделения',
     approved: 'Утверждено',
     rejected: 'Отклонено',
     locked: 'Заблокировано',
@@ -57,6 +59,8 @@ const statusVariants = {
     submitted: 'secondary',
     returned: 'secondary',
     reviewed: 'secondary',
+    pending_dean: 'secondary',
+    pending_structural: 'secondary',
     approved: 'default',
     rejected: 'destructive',
     locked: 'destructive',

@@ -47,9 +47,9 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Kpi/Index': 'KPI-сезоны',
         'Kpi/TeacherForm': 'KPI — Мои показатели',
         'Kpi/TeacherDashboard': 'KPI — Мои показатели',
-        'Kpi/ReviewQueue': 'Корректировка данных - Кафедра',
-        'Kpi/ApprovalQueue': 'Корректировка данных - Деканат',
-        'Kpi/StructuralQueue': 'Финальное утверждение',
+        'Kpi/ReviewQueue': 'KPI — Проверка Завкафедрой',
+        'Kpi/ApprovalQueue': 'KPI — Проверка Деканом',
+        'Kpi/StructuralQueue': 'KPI — Проверка Структурным подразделением',
         'Kpi/EntryShow': 'KPI-запись',
         'Kpi/Indicators': 'KPI-индикаторы',
         'Kpi/Summary': 'KPI — Сводка',
@@ -79,8 +79,52 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Calendar/Settings': 'Smart Calendar — Настройки',
     };
 
-    const pageTitle =
+    const pageTitleBase =
         pageTitles[component] ?? component.split('/').at(-1) ?? 'Страница';
+
+    const queueScopeTitle = (() => {
+        if (!['Kpi/ReviewQueue', 'Kpi/ApprovalQueue', 'Kpi/StructuralQueue'].includes(component)) {
+            return null;
+        }
+
+        if (roleSlug === 'admin' || roleSlug === 'superadmin') {
+            return 'Админ';
+        }
+
+        if (component === 'Kpi/ReviewQueue' && props?.reviewScope?.type === 'department') {
+            return props?.reviewScope?.label ?? null;
+        }
+
+        if (component === 'Kpi/ApprovalQueue' && props?.reviewScope?.type === 'faculty') {
+            return props?.reviewScope?.label ?? null;
+        }
+
+        if (component === 'Kpi/StructuralQueue') {
+            const scope = props?.structuralScope;
+
+            if (scope?.type === 'divisions' && Array.isArray(scope.divisions) && scope.divisions.length > 0) {
+                const divisionNames = scope.divisions
+                    .map((division) => division?.name ?? division?.code)
+                    .filter(Boolean);
+
+                if (divisionNames.length > 0) {
+                    return divisionNames.join(', ');
+                }
+            }
+
+            if (scope?.type === 'info' && user?.ad_division) {
+                return user.ad_division;
+            }
+
+            if (scope?.type === 'unrestricted') {
+                return 'Без ограничений';
+            }
+        }
+
+        return null;
+    })();
+
+    const pageTitle = queueScopeTitle ? `${pageTitleBase} — ${queueScopeTitle}` : pageTitleBase;
     const [section = 'Раздел', sectionPage = 'Страница'] = component.split('/');
 
     return (

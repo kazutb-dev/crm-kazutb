@@ -194,7 +194,7 @@ export default function ModerationQueue({
     const filterForm = useForm({
         academic_year_id: filters.academic_year_id ? String(filters.academic_year_id) : '',
         period_id: filters.period_id ? String(filters.period_id) : '',
-        status: filters.status ?? '',
+        sort: filters.sort ?? 'newest',
         department_id: filters.department_id ? String(filters.department_id) : '',
         faculty_id: filters.faculty_id ? String(filters.faculty_id) : '',
         user_id: filters.user_id ? String(filters.user_id) : '',
@@ -214,7 +214,7 @@ export default function ModerationQueue({
             tab: activeTab,
             academic_year_id: filterForm.data.academic_year_id || undefined,
             period_id: filterForm.data.period_id || undefined,
-            status: filterForm.data.status || undefined,
+            sort: filterForm.data.sort || 'newest',
             department_id: filterForm.data.department_id || undefined,
             faculty_id: filterForm.data.faculty_id || undefined,
             user_id: filterForm.data.user_id || undefined,
@@ -229,7 +229,7 @@ export default function ModerationQueue({
         filterForm.setData({
             academic_year_id: '',
             period_id: '',
-            status: '',
+            sort: 'newest',
             department_id: '',
             faculty_id: '',
             user_id: '',
@@ -261,8 +261,6 @@ export default function ModerationQueue({
             preserveScroll: true,
         });
     };
-
-    const currentStatus = filterForm.data.status || filters.status || '';
 
     // Dept head queue (review): submitted → pending_dean
     const showApproveForwardAction = (entry) => canModerate
@@ -300,7 +298,7 @@ export default function ModerationQueue({
         <AuthenticatedLayout>
             <Head title={pageTitle} />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="space-y-4 p-4 sm:p-5 lg:p-6">
                 {showTabs && (
                     <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
                         <button
@@ -324,75 +322,6 @@ export default function ModerationQueue({
                         </button>
                     </div>
                 )}
-                <Card className="border-0 bg-gradient-to-r from-amber-50 via-white to-sky-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            {mode === 'approval' ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-                            {title}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                            <p>{description}</p>
-                            <p>
-                                Роль: <span className="font-medium text-foreground">{entityLabels[roleSlug] ?? roleSlug ?? 'Сотрудник'}</span>.
-                                Доступные действия зависят от статуса записи и организационной привязки пользователя.
-                            </p>
-                            {reviewScope?.label && (
-                                <p>
-                                    {reviewScope.type === 'department' ? 'Кафедра корректировки:' : 'Факультет корректировки:'}{' '}
-                                    <span className="font-medium text-foreground">{reviewScope.label}</span>
-                                </p>
-                            )}
-                            {structuralScope?.type === 'admin' && (
-                                <p>
-                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
-                                </p>
-                            )}
-                            {structuralScope?.type === 'unrestricted' && (
-                                <p>
-                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
-                                </p>
-                            )}
-                            {structuralScope?.type === 'divisions' && structuralScope?.divisions && (
-                                <div>
-                                    <p>{structuralScope.label}</p>
-                                    <div className="mt-1 flex flex-wrap gap-1">
-                                        {structuralScope.divisions.map((div) => (
-                                            <Badge key={div.id} variant="secondary">{formatStructuralUnitLabel(div)}</Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {structuralScope?.type === 'info' && structuralScope?.label && (
-                                <p>
-                                    <span className="font-medium text-foreground">{structuralScope.label}</span>
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Записей</p>
-                                <p className="mt-2 text-lg font-semibold">{total}</p>
-                            </div>
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Статус фильтра</p>
-                                <div className="mt-2">
-                                    <Badge variant={statusVariants[currentStatus] ?? 'outline'}>
-                                        {currentStatus ? (statusLabels[currentStatus] ?? currentStatus) : 'Все статусы'}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Права</p>
-                                <p className="mt-2 text-sm font-medium text-foreground">
-                                    {canModerate ? 'Доступны действия модерации' : 'Только просмотр'}
-                                </p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
 
                 {(flash?.success || flash?.error || errors?.kpi_entry) && (
                     <Card className="border-l-4 border-l-amber-500">
@@ -445,20 +374,6 @@ export default function ModerationQueue({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Статус</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.status}
-                                        onChange={(event) => filterForm.setData('status', event.target.value)}
-                                    >
-                                        <option value="">Все статусы</option>
-                                        {statusOptions.map((status) => (
-                                            <option key={status} value={status}>{statusLabels[status] ?? status}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
                                     <label className="text-sm font-medium">Факультет</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -497,6 +412,21 @@ export default function ModerationQueue({
                                         {users.map((user) => (
                                             <option key={user.id} value={user.id}>{user.name}</option>
                                         ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="rounded-xl border bg-muted/20 p-4">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="text-sm font-semibold">Фильтр по добавлениям</span>
+                                    <span className="text-sm font-medium">Порядок</span>
+                                    <select
+                                        className="h-9 w-full sm:w-72 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        value={filterForm.data.sort}
+                                        onChange={(event) => filterForm.setData('sort', event.target.value)}
+                                    >
+                                        <option value="newest">От нового до старого</option>
+                                        <option value="oldest">От старого до нового</option>
                                     </select>
                                 </div>
                             </div>

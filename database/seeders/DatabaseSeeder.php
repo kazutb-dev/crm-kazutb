@@ -24,7 +24,9 @@ class DatabaseSeeder extends Seeder
             DiplomaSeeder::class,
             KpiSeeder::class,
             KpiIndicatorSeeder::class,
+            FacultyDepartmentLeadershipReconciliationSeeder::class,
             StructuralUnitLeadershipSeeder::class,
+            KpiLeadershipTestUsersSeeder::class,
         ]);
     }
 }

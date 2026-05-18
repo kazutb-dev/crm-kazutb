@@ -493,6 +493,10 @@ class DirectoryUserController extends Controller
             'division_ids.*' => ['integer', 'exists:kpi_structural_units,id'],
         ]);
 
+        $departmentFacultyId = ! empty($data['department_id'])
+            ? Department::query()->whereKey((int) $data['department_id'])->value('faculty_id')
+            : null;
+
         if (! empty($data['position_id'])) {
             $position = Position::query()
                 ->with('division:id,name')
@@ -512,7 +516,9 @@ class DirectoryUserController extends Controller
                 'ad_division' => $position->division?->name,
                 'ad_department' => $position->division?->name,
                 'department_id' => $isDepartmentHead ? ($data['department_id'] ?? null) : null,
-                'faculty_id' => $isDean ? ($data['faculty_id'] ?? null) : null,
+                'faculty_id' => $isDean
+                    ? ($data['faculty_id'] ?? null)
+                    : ($isDepartmentHead ? ($departmentFacultyId ?? ($data['faculty_id'] ?? null)) : null),
             ]);
         } else {
             $roleSlug = $user->resolvedRoleSlug();
@@ -525,6 +531,7 @@ class DirectoryUserController extends Controller
                 $updates['faculty_id'] = $data['faculty_id'] ?? null;
             } elseif ($isDepartmentHead) {
                 $updates['department_id'] = $data['department_id'] ?? null;
+                $updates['faculty_id'] = $departmentFacultyId ?? ($data['faculty_id'] ?? null);
             } else {
                 $updates['faculty_id'] = $data['faculty_id'] ?? null;
                 $updates['department_id'] = $data['department_id'] ?? null;
@@ -553,6 +560,10 @@ class DirectoryUserController extends Controller
             'display_name' => ['nullable', 'string', 'max:190'],
             'employee_type' => ['nullable', 'string', 'max:120'],
         ]);
+
+        $departmentFacultyId = ! empty($data['department_id'])
+            ? Department::query()->whereKey((int) $data['department_id'])->value('faculty_id')
+            : null;
 
         $login = Str::lower(trim((string) ($data['login'] ?? '')));
         $email = Str::lower(trim((string) ($data['email'] ?? '')));
@@ -593,7 +604,9 @@ class DirectoryUserController extends Controller
                 'ad_division' => $position->division?->name,
                 'ad_department' => $position->division?->name,
                 'department_id' => $isDepartmentHead ? ($data['department_id'] ?? null) : null,
-                'faculty_id' => $isDean ? ($data['faculty_id'] ?? null) : null,
+                'faculty_id' => $isDean
+                    ? ($data['faculty_id'] ?? null)
+                    : ($isDepartmentHead ? ($departmentFacultyId ?? ($data['faculty_id'] ?? null)) : null),
             ]);
         } else {
             $roleSlug = $user->resolvedRoleSlug();
@@ -606,6 +619,7 @@ class DirectoryUserController extends Controller
                 $updates['faculty_id'] = $data['faculty_id'] ?? null;
             } elseif ($isDepartmentHead) {
                 $updates['department_id'] = $data['department_id'] ?? null;
+                $updates['faculty_id'] = $departmentFacultyId ?? ($data['faculty_id'] ?? null);
             } else {
                 $updates['faculty_id'] = $data['faculty_id'] ?? null;
                 $updates['department_id'] = $data['department_id'] ?? null;

@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use App\Services\KpiEntryService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,7 +30,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(\App\Services\KpiEntryService::class, function ($app) {
+            return new KpiEntryService(
+                $app->make(\App\Services\KpiCalculationService::class)
+            );
+        });
     }
 
     /**

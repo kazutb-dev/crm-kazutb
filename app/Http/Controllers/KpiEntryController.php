@@ -83,6 +83,7 @@ class KpiEntryController extends Controller
         $indicators = $indicatorCollection->map(function (KpiIndicator $indicator) use ($entityType): array {
             return [
                 'id' => $indicator->id,
+                'entity_type' => $entityType,
                 'section' => $indicator->section,
                 'module_label' => $this->teacherModuleLabel($indicator->section),
                 'group_code' => $this->resolveGroupCode((string) $indicator->code),
@@ -95,6 +96,59 @@ class KpiEntryController extends Controller
                 'scoring_rules' => $indicator->scoring_rules,
             ];
         })->values();
+
+        $indicatorReference = KpiIndicator::query()
+            ->active()
+            ->where('entity_type', $entityType)
+            ->with([
+                'checkerStructuralUnit:id,name',
+                'structuralUnits:id,name',
+            ])
+            ->ordered()
+            ->get([
+                'id',
+                'entity_type',
+                'section',
+                'code',
+                'name',
+                'unit',
+                'base_points',
+                'calculation_type',
+                'scoring_rules',
+                'requires_file',
+                'is_active',
+                'checker_structural_unit_id',
+            ])
+            ->map(function (KpiIndicator $indicator): array {
+                return [
+                    'id' => (int) $indicator->id,
+                    'entity_type' => (string) $indicator->entity_type,
+                    'section' => (string) $indicator->section,
+                    'module_label' => $this->teacherModuleLabel((string) $indicator->section),
+                    'code' => (string) $indicator->code,
+                    'name' => (string) $indicator->name,
+                    'unit' => $indicator->unit,
+                    'base_points' => $indicator->base_points,
+                    'calculation_type' => (string) $indicator->calculation_type,
+                    'scoring_rules' => $indicator->scoring_rules,
+                    'requires_file' => (bool) $indicator->requires_file,
+                    'is_active' => (bool) $indicator->is_active,
+                    'checker_structural_unit' => $indicator->checkerStructuralUnit
+                        ? [
+                            'id' => (int) $indicator->checkerStructuralUnit->id,
+                            'name' => (string) $indicator->checkerStructuralUnit->name,
+                        ]
+                        : null,
+                    'structural_units' => $indicator->structuralUnits
+                        ->map(fn (KpiStructuralUnit $unit): array => [
+                            'id' => (int) $unit->id,
+                            'name' => (string) $unit->name,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->values();
 
         $entriesQuery = KpiEntry::query()
             ->with([
@@ -226,6 +280,7 @@ class KpiEntryController extends Controller
                     ],
                     'entries' => $entries,
                     'indicators' => $indicators,
+                    'indicator_reference' => $indicatorReference,
                     'modules' => $modules,
                     'groupCodesByModule' => $groupCodesByModule,
                     'activeSeasons' => $activeSeasons,
@@ -273,6 +328,7 @@ class KpiEntryController extends Controller
             ],
             'entries' => $entries,
             'indicators' => $indicators,
+            'indicator_reference' => $indicatorReference,
             'modules' => $modules,
             'groupCodesByModule' => $groupCodesByModule,
             'filterOptions' => $filterOptions,
@@ -756,9 +812,13 @@ class KpiEntryController extends Controller
             ->keyBy('id');
 
         $departmentIds = $rows->pluck('department_id')->filter()->unique();
-        $facultyIds = $rows->pluck('faculty_id')->filter()->unique();
 
-        $departments = Department::query()->whereIn('id', $departmentIds)->get(['id', 'name'])->keyBy('id');
+        $departments = Department::query()->whereIn('id', $departmentIds)->get(['id', 'name', 'faculty_id'])->keyBy('id');
+        $facultyIds = $rows->pluck('faculty_id')
+            ->filter()
+            ->merge($departments->pluck('faculty_id')->filter())
+            ->unique();
+
         $faculties = Faculty::query()->whereIn('id', $facultyIds)->get(['id', 'name'])->keyBy('id');
 
         $employees = $rows
@@ -770,7 +830,9 @@ class KpiEntryController extends Controller
                 'ad_department' => $users[$row->user_id]->ad_department,
                 'ad_title' => $users[$row->user_id]->ad_title,
                 'department' => $row->department_id ? ($departments[$row->department_id]?->name ?? null) : null,
-                'faculty' => $row->faculty_id ? ($faculties[$row->faculty_id]?->name ?? null) : null,
+                'faculty' => $row->faculty_id
+                    ? ($faculties[$row->faculty_id]?->name ?? null)
+                    : ($row->department_id ? ($faculties[$departments[$row->department_id]?->faculty_id]?->name ?? null) : null),
                 'approved_count' => (int) $row->approved_count,
                 'total_points' => (float) $row->total_points,
                 'last_approved_at' => $row->last_approved_at,
@@ -908,13 +970,23 @@ class KpiEntryController extends Controller
         $entry->load([
             'period:id,name,stage,status,start_date,end_date',
             'academicYear:id,name,start_year,end_year',
-            'user:id,name,email',
+            'user:id,name,email,faculty_id,department_id',
+            'user.faculty:id,name',
+            'user.department:id,name',
             'indicator:id,entity_type,section,code,name,description,unit,requires_file,base_points',
             'files:id,kpi_entry_id,file_name,file_path,file_disk,file_type,file_size,uploaded_by',
             'statusLogs.actor:id,name',
             'faculty:id,name',
             'department:id,name',
         ]);
+
+        if ($entry->faculty_id === null && $entry->user?->faculty_id !== null) {
+            $entry->setRelation('faculty', $entry->user->faculty);
+        }
+
+        if ($entry->department_id === null && $entry->user?->department_id !== null) {
+            $entry->setRelation('department', $entry->user->department);
+        }
 
         if ($request->expectsJson()) {
             return response()->json(['data' => $entry]);
@@ -1110,6 +1182,10 @@ class KpiEntryController extends Controller
         /** @var User $user */
         $user = $request->user();
         $status = trim((string) $request->query('status', $defaultStatus));
+        $sort = trim((string) $request->query('sort', 'newest'));
+        if (!in_array($sort, ['newest', 'oldest'], true)) {
+            $sort = 'newest';
+        }
         $academicYearId = $request->integer('academic_year_id');
         $periodId = $request->integer('period_id');
         $departmentId = $request->integer('department_id');
@@ -1140,7 +1216,9 @@ class KpiEntryController extends Controller
 
         $entriesQuery = $this->applyQueueFilters(
             (clone $scopedBase)->with([
-                'user:id,name,email',
+                'user:id,name,email,faculty_id,department_id',
+                'user.faculty:id,name',
+                'user.department:id,name',
                 'period:id,name,stage,status,academic_year_id,start_date,end_date',
                 'indicator:id,code,name,section,base_points,checker_structural_unit_id',
                 'indicator.checkerStructuralUnit:id,code,name',
@@ -1158,9 +1236,29 @@ class KpiEntryController extends Controller
         );
 
         $entries = $entriesQuery
-            ->latest('id')
+            ->when(
+                $sort === 'oldest',
+                fn (Builder $query) => $query->orderBy('created_at')->orderBy('id'),
+                fn (Builder $query) => $query->orderByDesc('created_at')->orderByDesc('id')
+            )
             ->paginate(15)
             ->withQueryString();
+
+        $entries->getCollection()->transform(function (KpiEntry $entry) use ($tab): KpiEntry {
+            if ($tab === 'unlinked') {
+                return $entry;
+            }
+
+            if ($entry->faculty_id === null && $entry->user?->faculty_id !== null) {
+                $entry->setRelation('faculty', $entry->user->faculty);
+            }
+
+            if ($entry->department_id === null && $entry->user?->department_id !== null) {
+                $entry->setRelation('department', $entry->user->department);
+            }
+
+            return $entry;
+        });
 
         $academicYears = AcademicYear::query()
             ->orderByDesc('start_year')
@@ -1352,6 +1450,7 @@ class KpiEntryController extends Controller
                 'academic_year_id' => $academicYearId > 0 ? $academicYearId : null,
                 'period_id' => $periodId > 0 ? $periodId : null,
                 'status' => $status !== '' ? $status : null,
+                'sort' => $sort,
                 'department_id' => $departmentId > 0 ? $departmentId : null,
                 'faculty_id' => $facultyId > 0 ? $facultyId : null,
                 'user_id' => $userId > 0 ? $userId : null,

@@ -17,6 +17,7 @@ use App\Models\Division;
 use App\Models\Faculty;
 use App\Models\KpiAccessGrant;
 use App\Models\KpiStructuralUnit;
+use App\Services\KpiEntryStructureHydrationService;
 
 class User extends Authenticatable
 {
@@ -127,6 +128,18 @@ class User extends Authenticatable
                     $user->role = $roleSlug;
                 }
             }
+        });
+
+        static::updated(function (User $user): void {
+            if (! $user->wasChanged(['faculty_id', 'department_id'])) {
+                return;
+            }
+
+            if ($user->faculty_id === null && $user->department_id === null) {
+                return;
+            }
+
+            app(KpiEntryStructureHydrationService::class)->hydrateForUser($user, false, true);
         });
     }
 

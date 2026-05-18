@@ -115,14 +115,14 @@ const serviceCards = [
         icon: SlidersHorizontal,
     },
     {
-        title: 'KPI — Очередь проверки',
+        title: 'KPI — Проверка Завкафедрой',
         desc: 'Проверка KPI-записей сотрудников кафедры.',
         category: 'KPI и аналитика',
         href: safeRoute('kpi.review-queue'),
         icon: ShieldCheck,
     },
     {
-        title: 'KPI — Утверждение',
+        title: 'KPI — Проверка Деканом',
         desc: 'Деканское утверждение KPI-показателей.',
         category: 'KPI и аналитика',
         href: safeRoute('kpi.approval-queue'),

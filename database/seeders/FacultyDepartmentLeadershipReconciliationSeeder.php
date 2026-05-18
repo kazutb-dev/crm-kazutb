@@ -201,15 +201,16 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
 
         foreach ($rows as $row) {
             $faculty = Faculty::query()->firstOrCreate(
-                ['name' => $row['name']],
+                ['code' => $row['code']],
                 [
+                    'name' => $row['name'],
                     'code' => $row['code'],
                     'description' => 'Reconciled from leadership source list',
                 ]
             );
 
-            if (($faculty->code === null || $faculty->code === '') && $row['code'] !== '') {
-                $faculty->forceFill(['code' => $row['code']])->save();
+            if ($faculty->name !== $row['name']) {
+                $faculty->forceFill(['name' => $row['name']])->save();
             }
 
             $map[$row['name']] = (int) $faculty->id;
@@ -241,11 +242,8 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
         $map = [];
 
         foreach ($rows as $row) {
-            $attributes = [
-                'code' => $row['code'],
-            ];
-
             $values = [
+                'code' => $row['code'],
                 'name' => $row['name'],
                 'description' => 'Reconciled from leadership source list',
             ];
@@ -254,7 +252,7 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
                 $values['faculty_id'] = $facultyMap[$row['faculty_name']] ?? null;
             }
 
-            $department = Department::query()->firstOrCreate($attributes, $values);
+            $department = Department::query()->firstOrCreate(['code' => $row['code']], $values);
 
             if ($department->name !== $row['name']) {
                 $department->forceFill(['name' => $row['name']])->save();

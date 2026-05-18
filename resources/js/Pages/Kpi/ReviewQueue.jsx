@@ -5,8 +5,8 @@ export default function ReviewQueue(props) {
         <ModerationQueue
             {...props}
             mode="review"
-            pageTitle="Корректировка данных - Кафедра"
-            title="Корректировка данных - Кафедра"
+            pageTitle="KPI — Проверка Завкафедрой"
+            title="KPI — Проверка Завкафедрой"
             description="Здесь заведующий кафедрой просматривает отправленные KPI-записи, корректирует значения при необходимости и возвращает исполнителю на доработку."
             queueRoute="kpi.review-queue"
         />

@@ -162,19 +162,19 @@ export function AppSidebar() {
                     active: route().current('kpi.my-form'),
                 },
                 {
-                    title: 'KPI — Очередь проверки',
+                    title: 'KPI — Проверка Завкафедрой',
                     href: route('kpi.review-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.review-queue'),
                 },
                 {
-                    title: 'KPI — Утверждение',
+                    title: 'KPI — Проверка Деканом',
                     href: route('kpi.approval-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.approval-queue'),
                 },
                 {
-                    title: 'KPI — На утверждение',
+                    title: 'KPI — Проверка Структурным подразделением',
                     href: route('kpi.structural-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.structural-queue'),
@@ -210,7 +210,7 @@ export function AppSidebar() {
                     active: route().current('kpi.my-form'),
                 },
                 {
-                    title: 'KPI — Очередь проверки',
+                    title: 'KPI — Проверка Завкафедрой',
                     href: route('kpi.review-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.review-queue'),
@@ -231,7 +231,7 @@ export function AppSidebar() {
                     active: route().current('kpi.my-form'),
                 },
                 {
-                    title: 'KPI — Утверждение',
+                    title: 'KPI — Проверка Деканом',
                     href: route('kpi.approval-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.approval-queue'),
@@ -246,7 +246,7 @@ export function AppSidebar() {
         } else if (isStructuralRole) {
             items = [
                 {
-                    title: 'KPI — На утверждение',
+                    title: 'KPI — Проверка Структурным подразделением',
                     href: route('kpi.structural-queue'),
                     icon: ClipboardList,
                     active: route().current('kpi.structural-queue'),

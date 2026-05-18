@@ -54,9 +54,11 @@ const SECTION_ICON_COLOR = {
 
 const statusLabels = {
     draft: 'Черновик',
-    submitted: 'Отправлено',
+    submitted: 'На рассмотрении у завкафедры',
     returned: 'Возвращено',
     reviewed: 'Проверено',
+    pending_dean: 'На рассмотрении декана',
+    pending_structural: 'На рассмотрении структурного подразделения',
     approved: 'Утверждено',
     rejected: 'Отклонено',
     locked: 'Заблокировано',
@@ -67,6 +69,8 @@ const statusVariants = {
     submitted: 'secondary',
     returned: 'secondary',
     reviewed: 'secondary',
+    pending_dean: 'secondary',
+    pending_structural: 'secondary',
     approved: 'default',
     rejected: 'destructive',
     locked: 'destructive',
@@ -76,6 +80,12 @@ const stageLabels = {
     plan: 'План',
     fact: 'Факт',
     review: 'Рассмотрение',
+};
+
+const calculationTypeLabels = {
+    manual: 'Ручной',
+    auto: 'Авто',
+    formula: 'Формула',
 };
 
 const MAX_EXTERNAL_LINKS = 10;
@@ -759,6 +769,7 @@ export default function TeacherDashboard({
     summary = {},
     entries,
     indicators = [],
+    indicator_reference: indicatorReference = [],
     modules = [],
     groupCodesByModule = {},
     filters = {},
@@ -783,6 +794,7 @@ export default function TeacherDashboard({
     const [createFilesList, setCreateFilesList] = useState([]);
     const [editingEntryId, setEditingEntryId] = useState(null);
     const [editingEntryFiles, setEditingEntryFiles] = useState([]);
+    const [activeMainTab, setActiveMainTab] = useState('entries');
     const createFileInputRef = useRef(null);
 
     const filterForm = useForm({
@@ -830,6 +842,16 @@ export default function TeacherDashboard({
             return matchesModule && matchesGroup;
         });
     }, [indicators, createForm.data.module, createForm.data.group_code]);
+
+    const indicatorReferenceItems = useMemo(() => {
+        return indicatorReference.filter((indicator) => {
+            if (!permissions.userLevel) {
+                return true;
+            }
+
+            return indicator.entity_type === permissions.userLevel;
+        });
+    }, [indicatorReference, permissions.userLevel]);
 
     const selectedIndicator = useMemo(
         () => indicatorOptions.find((indicator) => String(indicator.id) === String(createForm.data.indicator_id)) ?? null,
@@ -880,6 +902,11 @@ export default function TeacherDashboard({
 
     const submitCreate = (event, action) => {
         event.preventDefault();
+
+        if (isTotalFileSizeExceeded) {
+            createForm.setError('files', 'Общий размер файлов не должен превышать 100 МБ.');
+            return;
+        }
 
         const hasDynamicRule = selectedRuleSpec.kind !== 'none';
         const effectiveValue = createForm.data.value === '' && hasDynamicRule
@@ -1077,6 +1104,7 @@ export default function TeacherDashboard({
     }, [createFilesList]);
 
     const totalMaxFileSize = 100 * 1024 * 1024; // 100 МБ total
+    const isTotalFileSizeExceeded = totalUploadedFileSize > totalMaxFileSize;
 
     const isEditableEntry = (entry) => entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected';
 
@@ -1528,6 +1556,7 @@ export default function TeacherDashboard({
                                             onChange={(event) => {
                                                 const selectedFiles = Array.from(event.target.files ?? []);
                                                 createForm.setData('files', selectedFiles);
+                                                createForm.clearErrors('files');
                                                 setCreateFilesList(selectedFiles.map((file) => ({
                                                     name: file.name,
                                                     size: file.size,
@@ -1553,11 +1582,11 @@ export default function TeacherDashboard({
                                                 <div className="mt-2 border-t border-border/50 pt-2 text-xs">
                                                     <div className="flex justify-between text-muted-foreground">
                                                         <span>Всего:</span>
-                                                        <span className={totalUploadedFileSize > totalMaxFileSize ? 'text-red-600 font-semibold' : ''}>
+                                                        <span className={isTotalFileSizeExceeded ? 'text-red-600 font-semibold' : ''}>
                                                             {formatFileSize(totalUploadedFileSize)} / {formatFileSize(totalMaxFileSize)}
                                                         </span>
                                                     </div>
-                                                    {totalUploadedFileSize > totalMaxFileSize && (
+                                                    {isTotalFileSizeExceeded && (
                                                         <p className="mt-1 text-red-600 font-medium">Превышен общий лимит размера файлов</p>
                                                     )}
                                                 </div>
@@ -1586,14 +1615,14 @@ export default function TeacherDashboard({
                                     type="button"
                                     variant="outline"
                                     onClick={(event) => submitCreate(event, 'draft')}
-                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id}
+                                            disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     Сохранить как черновик
                                 </Button>
                                 <Button
                                     type="button"
                                     onClick={(event) => submitCreate(event, 'submit')}
-                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id}
+                                            disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     <Send className="h-4 w-4" />
                                     Отправить на проверку
@@ -1721,7 +1750,95 @@ export default function TeacherDashboard({
                     <StatCard label="Баллов" value={formatScore(summary.total_points)} accent="teal" />
                 </div>
 
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={activeMainTab === 'entries' ? 'default' : 'outline'}
+                        onClick={() => setActiveMainTab('entries')}
+                    >
+                        Показатели
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={activeMainTab === 'reference' ? 'default' : 'outline'}
+                        onClick={() => setActiveMainTab('reference')}
+                        disabled={indicatorReferenceItems.length === 0}
+                    >
+                        Справочник индикаторов
+                    </Button>
+                </div>
+
+                {activeMainTab === 'reference' && indicatorReferenceItems.length > 0 && (
+                    <Card className="admin-surface">
+                        <CardHeader className="pb-3 pt-4">
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
+                                <BookOpen className="h-4 w-4 text-[#139AA4]" />
+                                Справочник KPI-индикаторов
+                                <span className="ml-auto font-normal text-xs text-muted-foreground">
+                                    Дополнительный раздел ({userLevelLabel})
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="rounded-xl border border-border/70 bg-background/60 p-3 sm:p-4">
+                                <div className="mb-3 flex items-center justify-between gap-2">
+                                    <h3 className="text-sm font-semibold text-[#132844]">Индикаторы для роли: {userLevelLabel}</h3>
+                                    <Badge variant="outline">{indicatorReferenceItems.length} индикаторов</Badge>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[980px] text-sm">
+                                        <thead>
+                                            <tr className="border-b text-left text-muted-foreground">
+                                                <th className="py-2.5 pe-3 font-medium">Секция</th>
+                                                <th className="py-2.5 pe-3 font-medium">Структурное подразделение (проверяющее)</th>
+                                                <th className="py-2.5 pe-3 font-medium">Код</th>
+                                                <th className="py-2.5 pe-3 font-medium">Название</th>
+                                                <th className="py-2.5 pe-3 font-medium">Баллы</th>
+                                                <th className="py-2.5 pe-3 font-medium">Тип расчета</th>
+                                                <th className="py-2.5 pe-3 font-medium">Правила баллов</th>
+                                                <th className="py-2.5 pe-3 font-medium">Файл</th>
+                                                <th className="py-2.5 pe-3 font-medium">Статус</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {indicatorReferenceItems.map((indicator) => (
+                                                <tr key={indicator.id} className="border-b align-top last:border-0">
+                                                    <td className="py-2.5 pe-3">{indicator.module_label ?? SECTION_LABELS[indicator.section] ?? indicator.section}</td>
+                                                    <td className="py-2.5 pe-3">
+                                                        {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
+                                                            ? indicator.structural_units
+                                                                .map((unit) => unit?.name)
+                                                                .filter(Boolean)
+                                                                .join(', ')
+                                                            : (indicator.checker_structural_unit?.name ?? 'Не указано')}
+                                                    </td>
+                                                    <td className="py-2.5 pe-3 font-mono">{indicator.code}</td>
+                                                    <td className="py-2.5 pe-3">
+                                                        <div className="font-medium">{indicator.name}</div>
+                                                        <div className="text-xs text-muted-foreground">{indicator.unit || 'без единиц'}</div>
+                                                    </td>
+                                                    <td className="py-2.5 pe-3">{indicator.base_points}</td>
+                                                    <td className="py-2.5 pe-3">{calculationTypeLabels[indicator.calculation_type] ?? indicator.calculation_type}</td>
+                                                    <td className="py-2.5 pe-3 whitespace-pre-line text-muted-foreground max-w-[260px]">{indicator.scoring_rules || '—'}</td>
+                                                    <td className="py-2.5 pe-3">{indicator.requires_file ? 'Да' : 'Нет'}</td>
+                                                    <td className="py-2.5 pe-3">
+                                                        {indicator.is_active ? <Badge>Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* ── Entries by section ─────────────────────────────── */}
+                {activeMainTab === 'entries' && (
                 <Card className="admin-surface">
                     <CardHeader className="pb-3 pt-4">
                         <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
@@ -1803,6 +1920,7 @@ export default function TeacherDashboard({
                         )}
                     </CardContent>
                 </Card>
+                )}
             </div>
         </AuthenticatedLayout>
     );
