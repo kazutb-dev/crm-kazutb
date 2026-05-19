@@ -162,7 +162,33 @@ class KpiLeadershipTestUsersSeeder extends Seeder
             $sourceUsers = $unit->users->values();
 
             if ($sourceUsers->isEmpty()) {
-                $this->command?->line("Skipped structural unit without source users: {$unit->code}");
+                $unitCodeSlug = Str::slug(Str::lower((string) ($unit->code ?: 'unit' . $unit->id)), '_');
+                $login = "test_structural_{$unitCodeSlug}_1";
+                $email = $login . '@kaztbu.edu.kz';
+                $name = "Тест СП {$unit->name} 1";
+
+                $user = User::query()->updateOrCreate(
+                    ['ad_login' => $login],
+                    [
+                        'name' => $name,
+                        'display_name' => $name,
+                        'email' => $email,
+                        'password' => Hash::make('password'),
+                        'role' => 'structural',
+                        'role_id' => (int) $structuralRoleId,
+                        'faculty_id' => null,
+                        'department_id' => null,
+                        'position_title' => 'Руководитель структурного подразделения',
+                        'ad_title' => 'Руководитель структурного подразделения',
+                        'ad_department' => $unit->name,
+                        'ad_division' => $unit->code,
+                        'email_verified_at' => now(),
+                    ]
+                );
+
+                $user->kpiStructuralUnits()->syncWithoutDetaching([$unit->id]);
+
+                $this->command?->info("Created/updated fallback structural test user: {$user->name} ({$login}) -> {$unit->code}");
                 continue;
             }
 
