@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -9,6 +10,14 @@ class PositionSeeder extends Seeder
 {
     public function run(): void
     {
+        $divisionIds = DB::table('divisions')->pluck('id');
+
+        if ($divisionIds->isEmpty()) {
+            $this->command?->warn('No divisions found; PositionSeeder skipped.');
+
+            return;
+        }
+
         $positions = [
             'Декан',
             'Зав. кафедрой',
@@ -23,11 +32,13 @@ class PositionSeeder extends Seeder
             'Ассистент',
         ];
 
-        foreach ($positions as $name) {
-            DB::table('positions')->updateOrInsert(
-                ['name' => $name, 'division_id' => null],
-                ['name' => $name, 'division_id' => null, 'updated_at' => now(), 'created_at' => now()]
-            );
+        foreach ($divisionIds as $divisionId) {
+            foreach ($positions as $name) {
+                Position::query()->firstOrCreate([
+                    'name' => $name,
+                    'division_id' => (int) $divisionId,
+                ]);
+            }
         }
     }
 }
