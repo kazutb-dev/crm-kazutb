@@ -44,6 +44,18 @@ const sectionLabels = {
     survey: 'К5',
 };
 
+const spStatusLabels = {
+    pending: 'Ожидает',
+    approved: 'Подтверждено',
+    rejected: 'Отклонено',
+};
+
+const spStatusVariants = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
+};
+
 const entityLabels = {
     teacher: 'Преподаватель',
     department_head: 'Заведующий кафедрой',
@@ -92,6 +104,89 @@ function resolveStructuralUnits(entry) {
     const fallback = formatStructuralUnitLabel(entry?.indicator?.checker_structural_unit);
 
     return fallback && fallback !== '—' ? [fallback] : [];
+}
+
+function formatStructuralUnitName(unit) {
+    const code = String(unit?.code ?? '').trim();
+    const name = String(unit?.name ?? '').trim();
+
+    if (code && name) {
+        return `${code} — ${name}`;
+    }
+
+    return name || code || 'Структурное подразделение';
+}
+
+function formatStructuralUnitShortName(unit) {
+    const code = String(unit?.code ?? unit?.structural_unit_code ?? '').trim();
+
+    if (code) {
+        return code;
+    }
+
+    const name = String(unit?.name ?? unit?.structural_unit_name ?? '').trim();
+
+    if (name.includes('—')) {
+        return name.split('—')[0].trim() || 'СП';
+    }
+
+    const bracketMatch = name.match(/\(([^)]+)\)/);
+    if (bracketMatch?.[1]) {
+        return bracketMatch[1].trim();
+    }
+
+    return name || 'СП';
+}
+
+function resolveEntryStructuralConfirmations(entry) {
+    const expectedUnits = Array.isArray(entry?.indicator?.structural_units) && entry.indicator.structural_units.length > 0
+        ? entry.indicator.structural_units
+        : (entry?.indicator?.checker_structural_unit ? [entry.indicator.checker_structural_unit] : []);
+
+    const rawConfirmations = Array.isArray(entry?.structural_confirmations)
+        ? entry.structural_confirmations
+        : (Array.isArray(entry?.structuralConfirmations) ? entry.structuralConfirmations : []);
+
+    const byUnitId = new Map(
+        rawConfirmations
+            .filter((item) => item?.structural_unit_id != null)
+            .map((item) => [Number(item.structural_unit_id), item]),
+    );
+
+    const resolved = expectedUnits.map((unit) => {
+        const unitId = Number(unit?.id);
+        const confirmation = byUnitId.get(unitId);
+
+        return {
+            structural_unit_id: unitId,
+            name: formatStructuralUnitName(unit),
+            shortName: formatStructuralUnitShortName(unit),
+            status: confirmation?.status ?? 'pending',
+            comment: confirmation?.comment ?? null,
+            confirmed_by: confirmation?.confirmer?.display_name
+                ?? confirmation?.confirmer?.name
+                ?? confirmation?.confirmed_by
+                ?? null,
+        };
+    });
+
+    rawConfirmations.forEach((item) => {
+        const unitId = Number(item?.structural_unit_id);
+        if (!Number.isFinite(unitId) || resolved.some((row) => Number(row.structural_unit_id) === unitId)) {
+            return;
+        }
+
+        resolved.push({
+            structural_unit_id: unitId,
+            name: formatStructuralUnitName(item?.structural_unit ?? {}),
+            shortName: formatStructuralUnitShortName(item),
+            status: item?.status ?? 'pending',
+            comment: item?.comment ?? null,
+            confirmed_by: item?.confirmer?.display_name ?? item?.confirmer?.name ?? item?.confirmed_by ?? null,
+        });
+    });
+
+    return resolved;
 }
 
 function resolveResponsibleReviewer(entry, mode) {
@@ -183,13 +278,16 @@ export default function ModerationQueue({
     unlinkedCount = 0,
     showTabs = false,
 }) {
-    const { auth, flash, errors } = usePage().props;
+    const { auth } = usePage().props;
     const items = entries?.data ?? [];
     const links = entries?.links ?? [];
     const total = entries?.total ?? items.length;
     const roleSlug = auth?.roleSlug;
     const canModerate = permissions?.canModerate ?? false;
     const isAdminViewer = roleSlug === 'admin' || roleSlug === 'superadmin';
+    const isStructuralMode = mode === 'structural';
+    const showBindingColumn = isAdminViewer || isStructuralMode;
+    const hasUnrestrictedStructuralAccess = structuralScope?.type === 'unrestricted';
 
     const filterForm = useForm({
         academic_year_id: filters.academic_year_id ? String(filters.academic_year_id) : '',
@@ -242,7 +340,7 @@ export default function ModerationQueue({
         });
     };
 
-    const submitAction = (routeName, entryId, promptLabel = null) => {
+    const submitAction = (routeName, entryId, promptLabel = null, extraData = {}) => {
         let comment = '';
 
         if (promptLabel) {
@@ -257,42 +355,49 @@ export default function ModerationQueue({
 
         router.post(route(routeName, entryId), {
             comment,
+            ...extraData,
         }, {
             preserveScroll: true,
         });
     };
 
-    // Dept head queue (review): submitted → pending_dean
-    const showApproveForwardAction = (entry) => canModerate
-        && mode === 'review'
-        && entry.status === 'submitted';
+    const myStructuralUnitIds = new Set(
+        Array.isArray(structuralScope?.actor_division_ids)
+            ? structuralScope.actor_division_ids
+                .map((divisionId) => Number(divisionId))
+                .filter((id) => Number.isFinite(id))
+            : (Array.isArray(structuralScope?.divisions)
+                ? structuralScope.divisions
+                    .map((division) => Number(division.id))
+                    .filter((id) => Number.isFinite(id))
+                : []),
+    );
 
-    // Dean queue (approval): pending_dean/reviewed → pending_structural
-    const showDeanForwardAction = (entry) => canModerate
-        && mode === 'approval'
-        && ['pending_dean', 'reviewed'].includes(entry.status);
+    const canActForStructuralUnit = (unitId) => {
+        if (isAdminViewer) {
+            return true;
+        }
 
-    // Structural queue: final approve pending_structural → approved
-    const showStructuralApproveAction = (entry) => canModerate
-        && mode === 'structural'
-        && entry.status === 'pending_structural';
+        if (hasUnrestrictedStructuralAccess && myStructuralUnitIds.size === 0) {
+            return false;
+        }
 
-    // Structural queue: final reject (teacher cannot edit after this)
-    const showStructuralRejectAction = (entry) => canModerate
-        && mode === 'structural'
-        && entry.status === 'pending_structural';
+        return myStructuralUnitIds.has(Number(unitId));
+    };
 
-    // Admin fallback: show approve in any mode for non-standard statuses
-    const showAdminApproveAction = (entry) => canModerate
-        && mode === 'approval'
-        && roleSlug === 'admin'
-        && !['pending_dean', 'reviewed'].includes(entry.status)
-        && ['submitted', 'pending_structural'].includes(entry.status);
+    // Show approve action based on current mode and entry status
+    const showApproveAction = (entry) => canModerate && (
+        (mode === 'review' && entry.status === 'submitted')
+        || (mode === 'approval' && ['pending_dean', 'reviewed'].includes(entry.status))
+        || (mode === 'structural' && entry.status === 'pending_structural')
+        || (isAdminViewer && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status))
+    );
 
-    const showAdminRejectAction = (entry) => canModerate
-        && roleSlug === 'admin'
-        && mode !== 'structural'
-        && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status);
+    // Show reject action based on current mode and entry status
+    const showRejectAction = (entry) => canModerate && (
+        (mode === 'structural' && entry.status === 'pending_structural')
+        || (isAdminViewer && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status))
+    );
 
     return (
         <AuthenticatedLayout>
@@ -321,16 +426,6 @@ export default function ModerationQueue({
                             )}
                         </button>
                     </div>
-                )}
-
-                {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="pt-6 text-sm">
-                            {flash?.success && <p className="text-emerald-700">{flash.success}</p>}
-                            {flash?.error && <p className="text-destructive">{flash.error}</p>}
-                            {errors?.kpi_entry && <p className="text-destructive">{errors.kpi_entry}</p>}
-                        </CardContent>
-                    </Card>
                 )}
 
                 <Card>
@@ -454,139 +549,198 @@ export default function ModerationQueue({
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[1100px] text-sm">
+                                <div className="w-full overflow-hidden">
+                                    <table className="w-full table-fixed text-sm">
                                         <thead>
                                             <tr className="border-b text-left text-muted-foreground">
-                                                <th className="py-3 pe-3 font-medium">Сотрудник</th>
-                                                <th className="py-3 pe-3 font-medium">Показатель</th>
-                                                <th className="py-3 pe-3 font-medium">Период</th>
-                                                <th className="py-3 pe-3 font-medium">Структура</th>
-                                                {isAdminViewer && <th className="py-3 pe-3 font-medium">Привязка / подтверждение</th>}
-                                                <th className="py-3 pe-3 font-medium">Баллы</th>
-                                                <th className="py-3 pe-3 font-medium">Статус</th>
-                                                <th className="py-3 pe-3 font-medium">Действия</th>
+                                                <th className="w-[13%] py-3 pe-3 font-medium">Сотрудник</th>
+                                                <th className="w-[15%] py-3 pe-3 font-medium">Показатель</th>
+                                                <th className="w-[10%] py-3 pe-3 font-medium">Период</th>
+                                                <th className="w-[10%] py-3 pe-3 font-medium">Структура</th>
+                                                {showBindingColumn && <th className="w-[22%] py-3 pe-3 font-medium">Привязка / подтверждение</th>}
+                                                <th className="w-[6%] py-3 pe-3 font-medium">Баллы</th>
+                                                <th className="w-[8%] py-3 pe-3 font-medium">Статус</th>
+                                                <th className="w-[8%] py-3 pe-3 font-medium">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {items.map((entry) => (
                                                 <tr key={entry.id} className="border-b align-top last:border-0">
-                                                    <td className="py-4 pe-3">
-                                                        <div className="font-medium">{entry.user?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-muted-foreground">{entry.user?.email ?? 'Без email'}</div>
+                                                    <td className="py-4 pe-3 break-words">
+                                                        <div className="font-medium leading-6">{entry.user?.name ?? '—'}</div>
+                                                        <div className="mt-1 break-all text-xs text-muted-foreground">{entry.user?.email ?? 'Без email'}</div>
                                                         <div className="mt-1 text-xs text-muted-foreground">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
                                                     </td>
-                                                    <td className="py-4 pe-3">
-                                                        <div className="font-medium">{entry.indicator?.name ?? '—'}</div>
+                                                    <td className="py-4 pe-3 break-words">
+                                                        <div className="font-medium leading-6">{entry.indicator?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-muted-foreground">{entry.indicator?.code ?? '—'}</div>
                                                     </td>
-                                                    <td className="py-4 pe-3">
+                                                    <td className="py-4 pe-3 break-words">
                                                         <div className="font-medium">{entry.period?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-muted-foreground">
                                                             {stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'} • {formatDate(entry.period?.start_date)} - {formatDate(entry.period?.end_date)}
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 pe-3">
+                                                    <td className="py-4 pe-3 break-words">
                                                         <div>{entry.faculty?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-muted-foreground">{entry.department?.name ?? '—'}</div>
                                                     </td>
-                                                    {isAdminViewer && (
-                                                        <td className="py-4 pe-3">
+                                                    {showBindingColumn && (
+                                                        <td className="py-4 pe-3 break-words">
                                                             {(() => {
                                                                 const unitNames = resolveStructuralUnits(entry);
+                                                                const confirmations = resolveEntryStructuralConfirmations(entry);
 
                                                                 return (
                                                                     <>
                                                                         <div className="text-xs text-muted-foreground">Раздел KPI</div>
                                                                         <div className="font-medium">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</div>
                                                                         <div className="mt-1 text-xs text-muted-foreground">Привязан к подразделению</div>
-                                                                        <div>{unitNames.length > 0 ? unitNames.join(', ') : 'Не назначено'}</div>
+                                                                        <div className="break-words">{unitNames.length > 0 ? unitNames.join(', ') : 'Не назначено'}</div>
                                                                         <div className="mt-1 text-xs text-muted-foreground">Кто подтверждает</div>
-                                                                        <div className="font-medium">{resolveResponsibleReviewer(entry, mode)}</div>
+                                                                        <div className="font-medium break-words">{resolveResponsibleReviewer(entry, mode)}</div>
+                                                                        {mode === 'structural' && confirmations.length > 0 && (
+                                                                            <div className="mt-2 space-y-1.5">
+                                                                                {confirmations.map((item) => (
+                                                                                    <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-md border bg-muted/20 p-1.5">
+                                                                                        <div className="flex items-center justify-between gap-2">
+                                                                                            <span className="truncate text-xs text-foreground/80" title={item.name}>{item.name}</span>
+                                                                                            <Badge variant={spStatusVariants[item.status] ?? 'outline'} className="text-[0.65rem]">
+                                                                                                {spStatusLabels[item.status] ?? item.status}
+                                                                                            </Badge>
+                                                                                        </div>
+                                                                                        {(item.comment || item.confirmed_by) && (
+                                                                                            <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                                                                                                {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
+                                                                                                {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
                                                                     </>
                                                                 );
                                                             })()}
                                                         </td>
                                                     )}
-                                                    <td className="py-4 pe-3 font-medium">{resolvePoints(entry)}</td>
+                                                    <td className="py-4 pe-3 font-medium whitespace-nowrap">{resolvePoints(entry)}</td>
                                                     <td className="py-4 pe-3">
                                                         <Badge variant={statusVariants[entry.status] ?? 'outline'}>
                                                             {statusLabels[entry.status] ?? entry.status}
                                                         </Badge>
                                                     </td>
-                                                    <td className="py-4 pe-3">
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <Button asChild size="sm" variant="outline">
+                                                    <td className="py-4 pe-3 align-top">
+                                                        <div className="grid w-full min-w-0 max-w-full gap-1.5 overflow-hidden">
+                                                            <Button asChild size="sm" variant="outline" className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight">
                                                                 <Link href={route('kpi.entries.show', entry.id)}>
-                                                                    <Eye className="h-4 w-4" />
-                                                                    Открыть
+                                                                    <Eye className="h-3.5 w-3.5 shrink-0" />
+                                                                    <span className="min-w-0 text-left">Откр.</span>
                                                                 </Link>
                                                             </Button>
 
-                                                            {/* Dept head: одобрить → декану */}
-                                                            {showApproveForwardAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
-                                                                >
-                                                                    <ShieldCheck className="h-4 w-4" />
-                                                                    Одобрить → Декану
-                                                                </Button>
+                                                            {/* Approve action */}
+                                                            {showApproveAction(entry) && (
+                                                                (() => {
+                                                                    // For structural mode with multiple SPs, show per-SP buttons
+                                                                    if (mode === 'structural') {
+                                                                        const confirmations = resolveEntryStructuralConfirmations(entry);
+
+                                                                        if (confirmations.length === 0) {
+                                                                            return (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                                >
+                                                                                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                                                                                    <span className="min-w-0 text-left">Утвердить</span>
+                                                                                </Button>
+                                                                            );
+                                                                        }
+
+                                                                        return confirmations.map((item) => {
+                                                                            const canAct = canActForStructuralUnit(item.structural_unit_id);
+                                                                            const isPending = item.status === 'pending';
+
+                                                                            return (
+                                                                                <Button
+                                                                                    key={`approve-${entry.id}-${item.structural_unit_id}`}
+                                                                                    size="sm"
+                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    variant={isPending ? 'default' : (item.status === 'approved' ? 'secondary' : 'destructive')}
+                                                                                    disabled={!isPending || !canAct}
+                                                                                    onClick={() => submitAction(
+                                                                                        'kpi.entries.structural-confirm',
+                                                                                        entry.id,
+                                                                                        null,
+                                                                                        { structural_unit_id: item.structural_unit_id },
+                                                                                    )}
+                                                                                    title={canAct
+                                                                                        ? `Подтвердить как ${item.name}`
+                                                                                        : `Статус другого СП: ${item.name}`}
+                                                                                >
+                                                                                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                                                                                    <span className="min-w-0 text-left">{item.shortName}</span>
+                                                                                </Button>
+                                                                            );
+                                                                        });
+                                                                    }
+
+                                                                    // For non-structural modes, simple approve button
+                                                                    return (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                            onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                        >
+                                                                            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                                                                            <span className="min-w-0 text-left">Утвердить</span>
+                                                                        </Button>
+                                                                    );
+                                                                })()
                                                             )}
 
-                                                            {/* Dean: одобрить → стр. подразделениям */}
-                                                            {showDeanForwardAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
-                                                                >
-                                                                    <ShieldCheck className="h-4 w-4" />
-                                                                    Одобрить → Стр. подр.
-                                                                </Button>
-                                                            )}
+                                                            {/* Reject action */}
+                                                            {showRejectAction(entry) && (
+                                                                (() => {
+                                                                    if (mode === 'structural') {
+                                                                        const confirmations = resolveEntryStructuralConfirmations(entry);
+                                                                        const rejectTarget = confirmations.find((item) => item.status === 'pending' && canActForStructuralUnit(item.structural_unit_id));
 
-                                                            {/* Structural: финальное утверждение */}
-                                                            {showStructuralApproveAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
-                                                                >
-                                                                    <ShieldCheck className="h-4 w-4" />
-                                                                    Утвердить (начислить балл)
-                                                                </Button>
-                                                            )}
+                                                                        return (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                variant="destructive"
+                                                                                disabled={!isAdminViewer && !rejectTarget}
+                                                                                onClick={() => submitAction(
+                                                                                    isAdminViewer ? 'kpi.entries.reject' : 'kpi.entries.structural-reject',
+                                                                                    entry.id,
+                                                                                    'Причина отклонения',
+                                                                                    isAdminViewer
+                                                                                        ? {}
+                                                                                        : { structural_unit_id: rejectTarget?.structural_unit_id },
+                                                                                )}
+                                                                            >
+                                                                                <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                                                                                <span className="min-w-0 text-left">Отклонить</span>
+                                                                            </Button>
+                                                                        );
+                                                                    }
 
-                                                            {/* Structural: финальный отказ (ППС не редактирует) */}
-                                                            {showStructuralRejectAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    onClick={() => submitAction('kpi.entries.reject', entry.id, 'Причина отклонения')}
-                                                                >
-                                                                    <ShieldAlert className="h-4 w-4" />
-                                                                    Отклонить (финально)
-                                                                </Button>
-                                                            )}
-
-                                                            {/* Admin override buttons */}
-                                                            {showAdminApproveAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
-                                                                >
-                                                                    <ShieldCheck className="h-4 w-4" />
-                                                                    Утвердить
-                                                                </Button>
-                                                            )}
-                                                            {showAdminRejectAction(entry) && (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    onClick={() => submitAction('kpi.entries.reject', entry.id, 'Причина отклонения')}
-                                                                >
-                                                                    <ShieldAlert className="h-4 w-4" />
-                                                                    Отклонить
-                                                                </Button>
+                                                                    return (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                            variant="destructive"
+                                                                            onClick={() => submitAction('kpi.entries.reject', entry.id, 'Причина отклонения')}
+                                                                        >
+                                                                            <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                                                                            <span className="min-w-0 text-left">Отклонить</span>
+                                                                        </Button>
+                                                                    );
+                                                                })()
                                                             )}
                                                         </div>
                                                     </td>

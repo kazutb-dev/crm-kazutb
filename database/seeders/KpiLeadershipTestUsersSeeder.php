@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\KpiStructuralUnit;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -12,6 +13,13 @@ use Illuminate\Support\Str;
 
 class KpiLeadershipTestUsersSeeder extends Seeder
 {
+    /** @var list<string> */
+    private array $ppsTitles = [
+        'Ассистент',
+        'Лектор',
+        'Сеньор-лектор',
+    ];
+
     /**
      * Seed test users for all deans and heads of departments.
      */
@@ -20,6 +28,16 @@ class KpiLeadershipTestUsersSeeder extends Seeder
         Role::query()->firstOrCreate(
             ['slug' => 'dean'],
             ['name' => 'Dean']
+        );
+
+        Role::query()->firstOrCreate(
+            ['slug' => 'teacher'],
+            ['name' => 'Teacher']
+        );
+
+        Role::query()->firstOrCreate(
+            ['slug' => 'structural'],
+            ['name' => 'Structural']
         );
 
         foreach ($this->leadershipList() as $leader) {
@@ -76,6 +94,109 @@ class KpiLeadershipTestUsersSeeder extends Seeder
             );
 
             $this->command?->info("Created/updated test user: {$user->name} ({$login})");
+        }
+
+        $this->seedPpsForEachDepartment();
+        $this->seedStructuralTestUsersFromSystem();
+    }
+
+    private function seedPpsForEachDepartment(): void
+    {
+        $teacherRoleId = Role::query()->where('slug', 'teacher')->value('id');
+        if (! $teacherRoleId) {
+            $this->command?->warn('Teacher role not found. Skipping PPS seed.');
+            return;
+        }
+
+        $departments = Department::query()
+            ->whereNotNull('faculty_id')
+            ->orderBy('id')
+            ->get(['id', 'faculty_id', 'name', 'code']);
+
+        foreach ($departments as $department) {
+            $departmentCode = Str::lower((string) ($department->code ?: 'dept' . $department->id));
+            $departmentCode = Str::slug($departmentCode, '_');
+
+            for ($i = 1; $i <= 2; $i++) {
+                $login = "test_pps_{$departmentCode}_{$i}";
+                $email = $login . '@kaztbu.edu.kz';
+                $name = "Тест ППС {$department->name} {$i}";
+                $title = $this->ppsTitles[($i - 1) % count($this->ppsTitles)];
+
+                $user = User::query()->updateOrCreate(
+                    ['ad_login' => $login],
+                    [
+                        'name' => $name,
+                        'display_name' => $name,
+                        'email' => $email,
+                        'password' => Hash::make('password'),
+                        'role' => 'teacher',
+                        'role_id' => (int) $teacherRoleId,
+                        'faculty_id' => (int) $department->faculty_id,
+                        'department_id' => (int) $department->id,
+                        'position_title' => $title,
+                        'ad_title' => $title,
+                        'email_verified_at' => now(),
+                    ]
+                );
+
+                $this->command?->info("Created/updated PPS user: {$user->name} ({$login})");
+            }
+        }
+    }
+
+    private function seedStructuralTestUsersFromSystem(): void
+    {
+        $structuralRoleId = Role::query()->where('slug', 'structural')->value('id');
+        if (! $structuralRoleId) {
+            $this->command?->warn('Structural role not found. Skipping structural test users seed.');
+            return;
+        }
+
+        $units = KpiStructuralUnit::query()
+            ->with(['users' => fn ($q) => $q->orderBy('users.id')])
+            ->orderBy('id')
+            ->get(['id', 'code', 'name']);
+
+        foreach ($units as $unit) {
+            $sourceUsers = $unit->users->values();
+
+            if ($sourceUsers->isEmpty()) {
+                $this->command?->line("Skipped structural unit without source users: {$unit->code}");
+                continue;
+            }
+
+            $unitCodeSlug = Str::slug(Str::lower((string) ($unit->code ?: 'unit' . $unit->id)), '_');
+
+            foreach ($sourceUsers as $index => $sourceUser) {
+                $sequence = $index + 1;
+                $login = "test_structural_{$unitCodeSlug}_{$sequence}";
+                $email = $login . '@kaztbu.edu.kz';
+                $name = "Тест СП {$unit->name} {$sequence}";
+
+                $user = User::query()->updateOrCreate(
+                    ['ad_login' => $login],
+                    [
+                        'name' => $name,
+                        'display_name' => $name,
+                        'email' => $email,
+                        'password' => Hash::make('password'),
+                        'role' => 'structural',
+                        'role_id' => (int) $structuralRoleId,
+                        'faculty_id' => $sourceUser->faculty_id,
+                        'department_id' => $sourceUser->department_id,
+                        'position_title' => 'Руководитель структурного подразделения',
+                        'ad_title' => 'Руководитель структурного подразделения',
+                        'ad_department' => $sourceUser->ad_department,
+                        'ad_division' => $sourceUser->ad_division,
+                        'email_verified_at' => now(),
+                    ]
+                );
+
+                $user->kpiStructuralUnits()->syncWithoutDetaching([$unit->id]);
+
+                $this->command?->info("Created/updated structural test user: {$user->name} ({$login}) -> {$unit->code}");
+            }
         }
     }
 

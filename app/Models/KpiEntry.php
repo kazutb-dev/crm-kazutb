@@ -116,9 +116,18 @@ class KpiEntry extends Model
         return $this->belongsTo(KpiIndicator::class, 'indicator_id');
     }
 
+
     public function files(): HasMany
     {
         return $this->hasMany(KpiEntryFile::class, 'kpi_entry_id');
+    }
+
+    /**
+     * Связь: подтверждения СП для этой записи KPI
+     */
+    public function structuralConfirmations(): HasMany
+    {
+        return $this->hasMany(KpiStructuralConfirmation::class, 'kpi_record_id');
     }
 
     public function statusLogs(): HasMany
@@ -163,7 +172,7 @@ class KpiEntry extends Model
 
     public function canBeSubmitted(): bool
     {
-        if (!$this->canBeEdited()) {
+        if ($this->isLocked() || in_array($this->status, [self::STATUS_PENDING_DEAN, self::STATUS_PENDING_STRUCTURAL], true)) {
             return false;
         }
 

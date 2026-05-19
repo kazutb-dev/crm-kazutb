@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
     BarChart3,
     CircleAlert,
@@ -58,7 +58,6 @@ export default function StructuralDivisionDashboard({
     statusOptions = [],
     filters = {},
 }) {
-    const { flash, errors } = usePage().props;
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingEntry, setEditingEntry] = useState(null);
     const [uploadingEntryId, setUploadingEntryId] = useState(null);
@@ -213,17 +212,6 @@ export default function StructuralDivisionDashboard({
                         </div>
                     </CardContent>
                 </Card>
-
-                {/* Flash messages */}
-                {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="pt-6 text-sm">
-                            {flash?.success && <p className="text-emerald-700">{flash.success}</p>}
-                            {flash?.error && <p className="text-destructive">{flash.error}</p>}
-                            {errors?.kpi_entry && <p className="text-destructive">{errors.kpi_entry}</p>}
-                        </CardContent>
-                    </Card>
-                )}
 
                 {!period ? (
                     <Card>
@@ -524,13 +512,12 @@ export default function StructuralDivisionDashboard({
                                                 key={index}
                                                 disabled={!link.url || link.active}
                                                 onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true })}
-                                                className={`rounded-md px-3 py-1 text-sm ${
-                                                    link.active
+                                                className={`rounded-md px-3 py-1 text-sm ${link.active
                                                         ? 'bg-primary text-primary-foreground'
                                                         : link.url
-                                                        ? 'border hover:bg-muted'
-                                                        : 'cursor-default text-muted-foreground'
-                                                }`}
+                                                            ? 'border hover:bg-muted'
+                                                            : 'cursor-default text-muted-foreground'
+                                                    }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />
                                         ))}

@@ -141,16 +141,6 @@ class KpiEntryPolicy
             return false;
         }
 
-        // Разрешить любому авторизованному пользователю финально утверждать pending_structural.
-        if ($entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
-            return true;
-        }
-
-        // Любой structural user может утверждать любую запись в pending_structural
-        if ($this->isStructuralDivisionUser($user) && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
-            return true;
-        }
-
         // Остальная логика для других ролей без изменений
         if (
             ($this->hasQueueGrant($user, KpiAccessGrant::PERM_REVIEW_QUEUE)
@@ -206,6 +196,11 @@ class KpiEntryPolicy
             return $userFacultyId !== null
                 && $entryFacultyId !== null
                 && $entryFacultyId === $userFacultyId;
+        }
+
+        // Стр. подразделения: финально утверждают из pending_structural
+        if ($this->isStructuralDivisionUser($user)) {
+            return $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
 
         return false;
@@ -287,17 +282,6 @@ class KpiEntryPolicy
             return false;
         }
 
-        // Разрешить любому авторизованному пользователю финально отклонять pending_structural.
-        if ($entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
-            return true;
-        }
-
-
-        // Разрешить всем structural division users отклонять pending_structural
-        if ($this->isStructuralDivisionUser($user) && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
-            return true;
-        }
-
         if ($this->hasQueueGrant($user, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)) {
             return $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
@@ -317,6 +301,16 @@ class KpiEntryPolicy
         }
 
         return false;
+    }
+
+    public function structuralConfirm(User $user, KpiEntry $entry): bool
+    {
+        return $this->approve($user, $entry);
+    }
+
+    public function structuralReject(User $user, KpiEntry $entry): bool
+    {
+        return $this->reject($user, $entry);
     }
 
     private function hasAnyKpiGrant(User $user): bool

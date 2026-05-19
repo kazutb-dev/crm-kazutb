@@ -11,6 +11,7 @@ use App\Models\KpiEntryFile;
 use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\KpiStatusLog;
+use App\Models\KpiStructuralUnit;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -18,7 +19,158 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class KpiEntryService
-{
+
+	{
+
+    /**
+     * Подтверждение KPI-записи от структурного подразделения (СП)
+     */
+    public function structuralConfirm(
+        KpiEntry $entry,
+        User $actor,
+        ?string $comment = null,
+        ?int $structuralUnitId = null,
+    ): KpiEntry
+    {
+        return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
+            $role = $actor->resolvedRoleSlug();
+            $isAdmin = in_array($role, ['admin', 'superadmin'], true);
+
+            // Для обычного пользователя СП берется только из его привязок.
+            // Для admin/superadmin разрешаем подтверждение от выбранного СП из интерфейса.
+            if ($structuralUnitId !== null) {
+                $structuralUnit = $isAdmin
+                    ? KpiStructuralUnit::query()->find($structuralUnitId)
+                    : $actor->kpiStructuralUnits()->whereKey($structuralUnitId)->first();
+            } else {
+                $structuralUnit = $actor->kpiStructuralUnits()->first();
+            }
+
+            if (!$structuralUnit) {
+                throw new KpiEntryStatusException('Пользователь не привязан к структурному подразделению.');
+            }
+
+            // Найти или создать подтверждение для этой записи и СП
+            $confirmation = $entry->structuralConfirmations()
+                ->where('structural_unit_id', $structuralUnit->id)
+                ->first();
+            if (!$confirmation) {
+                $confirmation = $entry->structuralConfirmations()->create([
+                    'structural_unit_id' => $structuralUnit->id,
+                    'confirmed_by' => $actor->id,
+                    'status' => 'approved',
+                    'comment' => $comment,
+                    'confirmed_at' => now(),
+                ]);
+            } else {
+                $confirmation->update([
+                    'status' => 'approved',
+                    'comment' => $comment,
+                    'confirmed_by' => $actor->id,
+                    'confirmed_at' => now(),
+                ]);
+            }
+
+            $indicator = $entry->indicator()
+                ->with(['structuralUnits:id', 'checkerStructuralUnit:id'])
+                ->first();
+
+            $expectedUnitIds = collect();
+            if ($indicator !== null) {
+                $structuralUnitIds = $indicator->structuralUnits
+                    ->pluck('id')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id);
+
+                if ($structuralUnitIds->isNotEmpty()) {
+                    $expectedUnitIds = $structuralUnitIds;
+                } elseif ($indicator->checker_structural_unit_id !== null) {
+                    $expectedUnitIds = collect([(int) $indicator->checker_structural_unit_id]);
+                }
+            }
+
+            // Fallback для старых записей: если привязки не удалось получить, ориентируемся на уже созданные подтверждения.
+            if ($expectedUnitIds->isEmpty()) {
+                $expectedUnitIds = $entry->structuralConfirmations()
+                    ->pluck('structural_unit_id')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id);
+            }
+
+            $expectedUnitIds = $expectedUnitIds->unique()->values();
+
+            $approvedUnitIds = $entry->structuralConfirmations()
+                ->where('status', 'approved')
+                ->pluck('structural_unit_id')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            $allConfirmed = $expectedUnitIds->isNotEmpty()
+                && $expectedUnitIds->diff($approvedUnitIds)->isEmpty();
+
+            if ($allConfirmed) {
+                $entry->status = KpiEntry::STATUS_APPROVED;
+                $entry->approved_at = Carbon::now();
+                $entry->save();
+            }
+            return $entry->refresh();
+        });
+    }
+
+    /**
+     * Отклонение KPI-записи от структурного подразделения (СП)
+     */
+    public function structuralReject(
+        KpiEntry $entry,
+        User $actor,
+        ?string $comment = null,
+        ?int $structuralUnitId = null,
+    ): KpiEntry
+    {
+        return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
+            $role = $actor->resolvedRoleSlug();
+            $isAdmin = in_array($role, ['admin', 'superadmin'], true);
+
+            if ($structuralUnitId !== null) {
+                $structuralUnit = $isAdmin
+                    ? KpiStructuralUnit::query()->find($structuralUnitId)
+                    : $actor->kpiStructuralUnits()->whereKey($structuralUnitId)->first();
+            } else {
+                $structuralUnit = $actor->kpiStructuralUnits()->first();
+            }
+
+            if (!$structuralUnit) {
+                throw new KpiEntryStatusException('Пользователь не привязан к структурному подразделению.');
+            }
+
+            $confirmation = $entry->structuralConfirmations()
+                ->where('structural_unit_id', $structuralUnit->id)
+                ->first();
+            if (!$confirmation) {
+                $confirmation = $entry->structuralConfirmations()->create([
+                    'structural_unit_id' => $structuralUnit->id,
+                    'confirmed_by' => $actor->id,
+                    'status' => 'rejected',
+                    'comment' => $comment,
+                    'confirmed_at' => now(),
+                ]);
+            } else {
+                $confirmation->update([
+                    'status' => 'rejected',
+                    'comment' => $comment,
+                    'confirmed_by' => $actor->id,
+                    'confirmed_at' => now(),
+                ]);
+            }
+
+            // Если хотя бы один СП отклонил — вся запись отклоняется
+            $entry->status = KpiEntry::STATUS_REJECTED;
+            $entry->save();
+            return $entry->refresh();
+        });
+    }
     public function __construct(
         private readonly KpiCalculationService $calculationService,
     ) {

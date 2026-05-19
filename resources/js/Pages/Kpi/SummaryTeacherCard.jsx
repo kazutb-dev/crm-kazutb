@@ -71,6 +71,18 @@ const STATUS_VARIANTS = {
     locked: 'secondary',
 };
 
+const SP_STATUS_LABELS = {
+    pending: 'На рассмотрении СП',
+    approved: 'Утверждено СП',
+    rejected: 'Отклонено СП',
+};
+
+const SP_STATUS_VARIANTS = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
+};
+
 const ACTION_LABELS = {
     submit: 'Подано',
     return: 'Возвращено',
@@ -127,6 +139,15 @@ function formatFileSize(value) {
     return `${parsed} Б`;
 }
 
+function formatStructuralUnitName(item) {
+    const code = String(item?.structural_unit_code ?? '').trim();
+    const name = String(item?.structural_unit_name ?? '').trim();
+    if (code && name) return `${code} — ${name}`;
+    if (name) return name;
+    if (code) return code;
+    return 'Структурное подразделение';
+}
+
 // ─── filter bar ───────────────────────────────────────────────────────────────
 
 function FilterBar({ teacherId, filters, filterOptions }) {
@@ -177,7 +198,10 @@ function FilterBar({ teacherId, filters, filterOptions }) {
 function ResultScoreCard({ result }) {
     if (!result) return null;
     const rVal = Number(result.rank_score ?? 0);
-    const hasAnyScore = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].some((k) => result[k] > 0);
+    // Для отображения коэффициентов: K1–K5 и НПУ
+    const coefKeys = ['k1', 'k2', 'k3', 'k4', 'k5', 'rate'];
+    const coefLabels = ['K1', 'K2', 'K3', 'K4', 'K5', 'НПУ'];
+    const hasAnyScore = coefKeys.some((k) => result[k] > 0);
 
     return (
         <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
@@ -191,9 +215,9 @@ function ResultScoreCard({ result }) {
                 </div>
                 {hasAnyScore && (
                     <div className="flex gap-4">
-                        {['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].map((k, i) => (
+                        {coefKeys.map((k, i) => (
                             <div key={k} className="text-center min-w-[2.5rem]">
-                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">K{i + 1}</p>
+                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">{coefLabels[i]}</p>
                                 <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
                                     {fmt(result[k])}
                                 </p>
@@ -321,6 +345,37 @@ function EntryFiles({ files }) {
     );
 }
 
+function EntryStructuralConfirmations({ confirmations }) {
+    if (!confirmations?.length) {
+        return <p className="text-xs text-muted-foreground italic">Согласование СП отсутствует.</p>;
+    }
+
+    return (
+        <div className="mt-3 space-y-1.5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Решения структурных подразделений</p>
+            <ul className="space-y-1.5">
+                {confirmations.map((item, idx) => (
+                    <li key={`${item.structural_unit_id ?? 'sp'}-${idx}`} className="rounded-md border border-border/70 bg-muted/20 p-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-medium text-foreground/85">{formatStructuralUnitName(item)}</span>
+                            <Badge variant={SP_STATUS_VARIANTS[item.status] ?? 'outline'} className="text-[0.65rem]">
+                                {SP_STATUS_LABELS[item.status] ?? item.status}
+                            </Badge>
+                        </div>
+                        {(item.comment || item.confirmed_by || item.confirmed_at) && (
+                            <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                                {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
+                                {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
+                                {item.confirmed_at ? ` · ${fmtDateTime(item.confirmed_at)}` : ''}
+                            </p>
+                        )}
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 // ─── entry row with expandable history ───────────────────────────────────────
 
 function EntryRow({ entry, showHistory }) {
@@ -360,6 +415,7 @@ function EntryRow({ entry, showHistory }) {
                 <tr>
                     <td colSpan={7} className="ps-3 pb-3 pt-1 bg-muted/10">
                         <EntryHistory history={entry.history} />
+                        <EntryStructuralConfirmations confirmations={entry.structural_confirmations} />
                         <EntryFiles files={entry.files} />
                         {entry.comment && (
                             <p className="mt-1.5 text-xs text-muted-foreground"><span className="font-medium">Комментарий:</span> {entry.comment}</p>
@@ -463,7 +519,7 @@ export default function SummaryTeacherCard({
                         <div>
                             <h1 className="text-base font-bold leading-tight text-[#132844]">{teacher.name}</h1>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                {teacher.title && <span>{teacher.title}</span>}
+                                {teacher.title && <span className="font-semibold text-[#139AA4]">{teacher.title}</span>}
                                 {teacher.faculty_name && (
                                     <span className="flex items-center gap-1">
                                         <span className="text-muted-foreground/40">·</span>
@@ -520,10 +576,11 @@ export default function SummaryTeacherCard({
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <StatCard icon={BarChart3} label="Всего записей" value={totals.total ?? 0} />
                     <StatCard icon={TrendingUp} label="Утверждено" value={totals.approved ?? 0} accent="green" />
                     <StatCard icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} accent="amber" />
+                    <StatCard label="Отклонено" value={totals.rejected ?? 0} />
                     <StatCard label="Баллов" value={fmt(totals.total_points)} accent="teal" />
                 </div>
 

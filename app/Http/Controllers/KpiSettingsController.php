@@ -156,6 +156,9 @@ class KpiSettingsController extends Controller
             'accessOptions' => [
                 'staff' => $staffOptions,
             ],
+            'accessPermissions' => [
+                'canManageFullAccess' => $this->canManageFullAccess($user),
+            ],
         ]);
     }
 
@@ -228,24 +231,13 @@ class KpiSettingsController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless($this->canManageSettings($user), 403);
+        abort_unless($this->canManageFullAccess($user), 403);
 
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);
 
-        KpiAccessGrant::query()->updateOrCreate(
-            [
-                'user_id' => (int) $validated['user_id'],
-                'permission' => KpiAccessGrant::PERM_KPI_ADMIN,
-            ],
-            [
-                'granted_by' => $user->id,
-                'granted_at' => now(),
-                'is_active' => true,
-                'division_id' => null,
-            ],
-        );
+        $this->grantKpiAdminBundle((int) $validated['user_id'], $user->id);
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])
@@ -257,16 +249,41 @@ class KpiSettingsController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless($this->canManageSettings($user), 403);
+        abort_unless($this->canManageFullAccess($user), 403);
         abort_unless($grant->permission === KpiAccessGrant::PERM_KPI_ADMIN, 404);
 
-        $grant->forceFill([
-            'is_active' => false,
-        ])->save();
+        $this->revokeKpiAdminBundle((int) $grant->user_id);
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])
             ->with('success', 'Доступ KPI-админа отозван.');
+    }
+
+    private function grantKpiAdminBundle(int $targetUserId, int $grantedBy): void
+    {
+        foreach (KpiAccessGrant::ALL_PERMISSIONS as $permission) {
+            KpiAccessGrant::query()->updateOrCreate(
+                [
+                    'user_id' => $targetUserId,
+                    'permission' => $permission,
+                    'division_id' => null,
+                ],
+                [
+                    'granted_by' => $grantedBy,
+                    'granted_at' => now(),
+                    'is_active' => true,
+                ],
+            );
+        }
+    }
+
+    private function revokeKpiAdminBundle(int $targetUserId): void
+    {
+        KpiAccessGrant::query()
+            ->where('user_id', $targetUserId)
+            ->whereIn('permission', KpiAccessGrant::ALL_PERMISSIONS)
+            ->whereNull('division_id')
+            ->update(['is_active' => false]);
     }
 
     private function canManageIndicators(Request $request): bool
@@ -279,6 +296,12 @@ class KpiSettingsController extends Controller
     }
 
     private function canManageSettings(User $user): bool
+    {
+        return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true)
+            || KpiAccessGrant::userHasKpiAdmin($user->id);
+    }
+
+    private function canManageFullAccess(User $user): bool
     {
         return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true)
             || KpiAccessGrant::userHasKpiAdmin($user->id);

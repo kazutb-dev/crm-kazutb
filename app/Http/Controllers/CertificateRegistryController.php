@@ -170,6 +170,65 @@ class CertificateRegistryController extends Controller
         ]);
     }
 
+    public function bulkGenerate(Request $request): JsonResponse
+    {
+        $this->ensureAdmin($request);
+
+        $data = $request->validate([
+            'recipients'           => ['required', 'array', 'min:1', 'max:500'],
+            'recipients.*'         => ['required', 'string', 'max:255'],
+            'topic'                => ['required', 'string', 'max:255'],
+            'template_version_id'  => ['nullable', 'integer', 'exists:certificate_template_versions,id'],
+        ]);
+
+        $templateVersion = $this->resolveTemplateVersion($data['template_version_id'] ?? null);
+        $templateCode    = (string) ($templateVersion->template?->code ?? 'CERT');
+        $prefix          = $this->normalizePrefix($templateCode);
+        $year            = (int) now()->format('Y');
+
+        $generated = DB::transaction(function () use ($request, $data, $templateVersion, $prefix, $year): array {
+            $results = [];
+
+            foreach ($data['recipients'] as $name) {
+                $name = trim((string) $name);
+                if ($name === '') {
+                    continue;
+                }
+
+                $number = $this->nextCertificateNumber($prefix, $year);
+
+                $cert = Certificate::query()->create([
+                    'template_id'          => $templateVersion->template_id,
+                    'template_version_id'  => $templateVersion->id,
+                    'certificate_number'   => $number,
+                    'recipient_full_name'  => $name,
+                    'topic'                => trim((string) $data['topic']),
+                    'optional_json'        => null,
+                    'qr_payload'           => route('certificates.verify', ['certificateNumber' => $number]),
+                    'status'               => Certificate::STATUS_GENERATED,
+                    'generated_at'         => now(),
+                    'created_by'           => $request->user()?->id,
+                    'updated_by'           => $request->user()?->id,
+                ]);
+
+                $results[] = [
+                    'id'                   => $cert->id,
+                    'certificate_number'   => $cert->certificate_number,
+                    'recipient_full_name'  => $cert->recipient_full_name,
+                    'qr_payload'           => $cert->qr_payload,
+                ];
+            }
+
+            return $results;
+        });
+
+        return response()->json([
+            'message'      => 'Сертификаты сгенерированы: ' . count($generated),
+            'count'        => count($generated),
+            'certificates' => $generated,
+        ]);
+    }
+
     public function issue(Request $request, Certificate $certificate): JsonResponse
     {
         $this->ensureAdmin($request);

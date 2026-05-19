@@ -77,7 +77,7 @@ class KpiSummaryController extends Controller
     }
 
     /**
-     * НПУ threshold for a teacher based on their position title (ad_title).
+     * НПУ threshold for a teacher based on their position title.
      * Order of checks matters — check more specific titles first.
      */
     private function teacherNpuThreshold(?string $title): int
@@ -88,17 +88,93 @@ class KpiSummaryController extends Controller
             return (int) ($teacherSettings['default_points'] ?? 0);
         }
 
-        $t = mb_strtolower($title);
+        $normalizedTitle = $this->normalizeTitleForMatch($title);
+
+        // For summary tables, some dean/HOD users can appear in teacher-like datasets.
+        // In that case apply role-based NPU directly by title to avoid falling back to 0.
+        if ($this->isDeanTitle($normalizedTitle)) {
+            return $this->deanNpuThreshold();
+        }
+
+        if ($this->isHodTitle($normalizedTitle)) {
+            return $this->hodNpuThreshold(null);
+        }
+
+        $bestPoints = null;
+        $bestScore = -1;
 
         foreach (($teacherSettings['rules'] ?? []) as $rule) {
             foreach (($rule['keywords'] ?? []) as $keyword) {
-                if ($keyword !== '' && str_contains($t, mb_strtolower((string) $keyword))) {
-                    return (int) ($rule['points'] ?? 0);
+                $normalizedKeyword = $this->normalizeTitleForMatch((string) $keyword);
+                if ($normalizedKeyword === '') {
+                    continue;
+                }
+
+                $score = -1;
+                $keywordLength = mb_strlen($normalizedKeyword);
+
+                // Priority: exact title match > phrase/word-boundary match > generic substring.
+                if ($normalizedTitle === $normalizedKeyword) {
+                    $score = 3000 + $keywordLength;
+                } elseif (preg_match('/(^|\s)' . preg_quote($normalizedKeyword, '/') . '(\s|$)/u', $normalizedTitle) === 1) {
+                    $score = 2000 + $keywordLength;
+                } elseif (str_contains($normalizedTitle, $normalizedKeyword)) {
+                    $score = 1000 + $keywordLength;
+                }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestPoints = (int) ($rule['points'] ?? 0);
                 }
             }
         }
 
+        if ($bestPoints !== null) {
+            return $bestPoints;
+        }
+
         return (int) ($teacherSettings['default_points'] ?? 0);
+    }
+
+    private function normalizeTitleForMatch(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+
+        if ($value === '') {
+            return '';
+        }
+
+        // Normalize punctuation and separators so variants like "и.о." / "ио"
+        // and "профессор-исследователь" / "профессор исследователь" match equally.
+        $value = (string) preg_replace('/[^\p{L}\p{N}]+/u', ' ', $value);
+
+        return trim((string) preg_replace('/\s+/u', ' ', $value));
+    }
+
+    private function isDeanTitle(string $normalizedTitle): bool
+    {
+        return str_contains($normalizedTitle, 'декан');
+    }
+
+    private function isHodTitle(string $normalizedTitle): bool
+    {
+        return str_contains($normalizedTitle, 'зав кафедр')
+            || str_contains($normalizedTitle, 'заведующ кафедр')
+            || str_contains($normalizedTitle, 'завкафедр')
+            || str_contains($normalizedTitle, 'зав кафедрой')
+            || str_contains($normalizedTitle, 'заведующий кафедрой');
+    }
+
+    private function resolveUserTitle(?string $positionTitle, ?string $adTitle): ?string
+    {
+        $positionTitle = trim((string) ($positionTitle ?? ''));
+        if ($positionTitle !== '') {
+            return $positionTitle;
+        }
+
+        $adTitle = trim((string) ($adTitle ?? ''));
+
+        return $adTitle !== '' ? $adTitle : null;
     }
 
     public function index(Request $request): Response
@@ -193,7 +269,13 @@ class KpiSummaryController extends Controller
     private function teacherSummary(User $user, ?KpiPeriod $period): array
     {
         $entries = KpiEntry::query()
-            ->with('indicator:id,section,code,name,unit,base_points')
+            ->with([
+                'indicator:id,section,code,name,unit,base_points,checker_structural_unit_id',
+                'indicator.structuralUnits:id,code,name',
+                'indicator.checkerStructuralUnit:id,code,name',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
+            ])
             ->where('user_id', $user->id)
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
@@ -214,12 +296,15 @@ class KpiSummaryController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->display_name ?? $user->name,
-                'title' => $user->ad_title,
+                'title' => $this->resolveUserTitle($user->position_title, $user->ad_title),
                 'division' => $user->ad_division,
             ],
-            'result' => $result ? (function () use ($result) {
+            'result' => $result ? (function () use ($result, $user) {
                 $r = $this->formatResult($result);
-                $r['rank_score'] = $this->teacherRankScore($r['k1'], $r['k2'], $r['k3'], $r['k4'], $r['k5'], $r['k6']);
+                $title = $this->resolveUserTitle($user->position_title, $user->ad_title);
+                $r['npu_threshold'] = $this->teacherNpuThreshold($title);
+                $r['rate'] = $r['npu_threshold'];
+                $r['rank_score'] = $this->teacherRankScore($r['k1'], $r['k2'], $r['k3'], $r['k4'], $r['k5'], $r['k6'], (float) $r['npu_threshold']);
                 return $r;
             })() : null,
             'entries' => $this->groupEntriesBySection($entries),
@@ -242,12 +327,18 @@ class KpiSummaryController extends Controller
 
         // Own entries (HOD form)
         $ownEntries = KpiEntry::query()
-            ->with('indicator:id,section,code,name,unit,base_points')
+            ->with([
+                'indicator:id,section,code,name,unit,base_points,checker_structural_unit_id',
+                'indicator.structuralUnits:id,code,name',
+                'indicator.checkerStructuralUnit:id,code,name',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
+            ])
             ->where('user_id', $user->id)
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
@@ -282,7 +373,7 @@ class KpiSummaryController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->display_name ?? $user->name,
-                'title' => $user->ad_title,
+                'title' => $this->resolveUserTitle($user->position_title, $user->ad_title),
             ],
             'department' => $department ? ['id' => $department->id, 'name' => $department->name] : null,
             'own_result' => $ownResultFormatted,
@@ -306,12 +397,18 @@ class KpiSummaryController extends Controller
 
         // Own entries
         $ownEntries = KpiEntry::query()
-            ->with('indicator:id,section,code,name,unit,base_points')
+            ->with([
+                'indicator:id,section,code,name,unit,base_points,checker_structural_unit_id',
+                'indicator.structuralUnits:id,code,name',
+                'indicator.checkerStructuralUnit:id,code,name',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
+            ])
             ->where('user_id', $user->id)
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEAN, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
@@ -349,7 +446,7 @@ class KpiSummaryController extends Controller
             'user' => [
                 'id' => $user->id,
                 'name' => $user->display_name ?? $user->name,
-                'title' => $user->ad_title,
+                'title' => $this->resolveUserTitle($user->position_title, $user->ad_title),
             ],
             'faculty' => $faculty ? ['id' => $faculty->id, 'name' => $faculty->name] : null,
             'own_result' => $deanResultFormatted,
@@ -509,6 +606,7 @@ class KpiSummaryController extends Controller
                 'kpi_entries.user_id',
                 'users.display_name',
                 'users.name',
+                'users.position_title',
                 'users.ad_title',
                 'kpi_indicators.name as indicator_name',
                 'kpi_entries.fact_value',
@@ -522,7 +620,7 @@ class KpiSummaryController extends Controller
             ->map(fn ($e) => [
                 'id' => $e->user_id,
                 'name' => $e->display_name ?? $e->name ?? '—',
-                'title' => $e->ad_title,
+                'title' => $this->resolveUserTitle($e->position_title, $e->ad_title),
                 'indicator' => $e->indicator_name ?? '—',
                 'fact_value' => $e->fact_value,
                 'points' => $e->manual_points ?? $e->calculated_points ?? 0,
@@ -567,6 +665,7 @@ class KpiSummaryController extends Controller
                     'kpi_results.user_id',
                     'users.display_name',
                     'users.name',
+                    'users.position_title',
                     'users.ad_title',
                     'faculties.name as faculty_name',
                     'kpi_results.rank_score',
@@ -585,10 +684,19 @@ class KpiSummaryController extends Controller
                 return $results->map(fn ($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
-                    'title' => $r->ad_title,
+                    'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                     'faculty_name' => $r->faculty_name,
-                    'npu_threshold' => $this->teacherNpuThreshold($r->ad_title),
-                    'rank_score' => $this->teacherRankScore((float) $r->k1_score, (float) $r->k2_score, (float) $r->k3_score, (float) $r->k4_score, (float) $r->k5_score, (float) $r->k6_score),
+                    'npu_threshold' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rate' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rank_score' => $this->teacherRankScore(
+                        (float) $r->k1_score,
+                        (float) $r->k2_score,
+                        (float) $r->k3_score,
+                        (float) $r->k4_score,
+                        (float) $r->k5_score,
+                        (float) $r->k6_score,
+                        (float) $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title))
+                    ),
                     'k1' => (float) $r->k1_score,
                     'k2' => (float) $r->k2_score,
                     'k3' => (float) $r->k3_score,
@@ -634,6 +742,7 @@ class KpiSummaryController extends Controller
                     'kpi_results.department_id',
                     'users.display_name',
                     'users.name',
+                    'users.position_title',
                     'users.ad_title',
                     'departments.name as department_name',
                     'faculties.name as faculty_name',
@@ -653,11 +762,20 @@ class KpiSummaryController extends Controller
                 return $results->map(fn ($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
-                    'title' => $r->ad_title,
+                    'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                     'department_name' => $r->department_name,
                     'faculty_name' => $r->faculty_name,
-                    'npu_threshold' => $this->teacherNpuThreshold($r->ad_title),
-                    'rank_score' => $this->teacherRankScore((float) $r->k1_score, (float) $r->k2_score, (float) $r->k3_score, (float) $r->k4_score, (float) $r->k5_score, (float) $r->k6_score),
+                    'npu_threshold' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rate' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rank_score' => $this->teacherRankScore(
+                        (float) $r->k1_score,
+                        (float) $r->k2_score,
+                        (float) $r->k3_score,
+                        (float) $r->k4_score,
+                        (float) $r->k5_score,
+                        (float) $r->k6_score,
+                        (float) $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title))
+                    ),
                     'k1' => (float) $r->k1_score,
                     'k2' => (float) $r->k2_score,
                     'k3' => (float) $r->k3_score,
@@ -710,6 +828,7 @@ class KpiSummaryController extends Controller
                     'kpi_results.department_id',
                     'users.display_name',
                     'users.name',
+                    'users.position_title',
                     'users.ad_title',
                     'departments.name as department_name',
                     'departments.code as department_code',
@@ -734,10 +853,11 @@ class KpiSummaryController extends Controller
                     return [
                         'id' => $r->user_id,
                         'name' => $r->display_name ?? $r->name ?? '—',
-                        'title' => $r->ad_title,
+                        'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                         'department_name' => $r->department_name,
                         'faculty_name' => $r->faculty_name,
                         'npu_threshold' => $npu,
+                        'rate' => $npu,
                         'rank_score' => $k1234 - $npu,
                         'k1' => (float) $r->k1_score,
                         'k2' => (float) $r->k2_score,
@@ -789,6 +909,7 @@ class KpiSummaryController extends Controller
                     'kpi_results.department_id',
                     'users.display_name',
                     'users.name',
+                    'users.position_title',
                     'users.ad_title',
                     'departments.name as department_name',
                     'faculties.name as faculty_name',
@@ -811,10 +932,11 @@ class KpiSummaryController extends Controller
                     return [
                         'id' => $r->user_id,
                         'name' => $r->display_name ?? $r->name ?? '—',
-                        'title' => $r->ad_title,
+                        'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                         'department_name' => $r->department_name,
                         'faculty_name' => $r->faculty_name,
                         'npu_threshold' => $this->deanNpuThreshold(),
+                        'rate' => $this->deanNpuThreshold(),
                         'rank_score' => $k1234 - $this->deanNpuThreshold(),
                         'k1' => (float) $r->k1_score,
                         'k2' => (float) $r->k2_score,
@@ -858,7 +980,7 @@ class KpiSummaryController extends Controller
         $fetchedUserIds = $rows->pluck('user_id')->filter()->values();
         $users = User::query()
             ->whereIn('id', $fetchedUserIds)
-            ->get(['id', 'display_name', 'name', 'ad_title'])
+            ->get(['id', 'display_name', 'name', 'position_title', 'ad_title'])
             ->keyBy('id');
 
         $deptIds = $rows->pluck('department_id')->filter()->unique()->values();
@@ -886,10 +1008,11 @@ class KpiSummaryController extends Controller
             return [
                 'id' => $r->user_id,
                 'name' => ($users[$r->user_id]?->display_name ?? $users[$r->user_id]?->name) ?? '—',
-                'title' => $users[$r->user_id]?->ad_title,
+                'title' => $this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title),
                 'department_name' => $r->department_id ? ($deptNames[$r->department_id] ?? null) : null,
                 'faculty_name' => $r->faculty_id ? ($facultyNames[$r->faculty_id] ?? null) : null,
                 'npu_threshold' => $npu,
+                'rate' => $npu,
                 'rank_score' => (float) $r->total_points - $npu,
                 'k1' => 0.0,
                 'k2' => 0.0,
@@ -923,6 +1046,7 @@ class KpiSummaryController extends Controller
                     'kpi_results.faculty_id',
                     'users.display_name',
                     'users.name',
+                    'users.position_title',
                     'users.ad_title',
                     'departments.name as department_name',
                     'faculties.name as faculty_name',
@@ -943,11 +1067,20 @@ class KpiSummaryController extends Controller
                 return $results->map(fn ($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
-                    'title' => $r->ad_title,
+                    'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                     'department_name' => $r->department_name,
                     'faculty_name' => $r->faculty_name,
-                    'npu_threshold' => $this->teacherNpuThreshold($r->ad_title),
-                    'rank_score' => $this->teacherRankScore((float) $r->k1_score, (float) $r->k2_score, (float) $r->k3_score, (float) $r->k4_score, (float) $r->k5_score, (float) $r->k6_score),
+                    'npu_threshold' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rate' => $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title)),
+                    'rank_score' => $this->teacherRankScore(
+                        (float) $r->k1_score,
+                        (float) $r->k2_score,
+                        (float) $r->k3_score,
+                        (float) $r->k4_score,
+                        (float) $r->k5_score,
+                        (float) $r->k6_score,
+                        (float) $this->teacherNpuThreshold($this->resolveUserTitle($r->position_title, $r->ad_title))
+                    ),
                     'k1' => (float) $r->k1_score,
                     'k2' => (float) $r->k2_score,
                     'k3' => (float) $r->k3_score,
@@ -1105,7 +1238,7 @@ class KpiSummaryController extends Controller
         $userIds = $rows->pluck('user_id')->filter()->values();
         $users = User::query()
             ->whereIn('id', $userIds)
-            ->get(['id', 'display_name', 'name', 'ad_title'])
+            ->get(['id', 'display_name', 'name', 'position_title', 'ad_title'])
             ->keyBy('id');
 
         $deptIds = $rows->pluck('department_id')->filter()->unique()->values();
@@ -1117,10 +1250,11 @@ class KpiSummaryController extends Controller
         return $rows->map(fn ($r) => [
             'id' => $r->user_id,
             'name' => ($users[$r->user_id]?->display_name ?? $users[$r->user_id]?->name) ?? '—',
-            'title' => $users[$r->user_id]?->ad_title,
+            'title' => $this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title),
             'department_name' => $r->department_id ? ($deptNames[$r->department_id] ?? null) : null,
             'faculty_name' => $r->faculty_id ? ($facultyNames[$r->faculty_id] ?? null) : null,
-            'npu_threshold' => $this->teacherNpuThreshold($users[$r->user_id]?->ad_title),
+            'npu_threshold' => $this->teacherNpuThreshold($this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title)),
+            'rate' => $this->teacherNpuThreshold($this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title)),
             'rank_score' => (float) $r->total_points,
             'k1' => 0.0,
             'k2' => 0.0,
@@ -1155,6 +1289,8 @@ class KpiSummaryController extends Controller
                 'fact_value' => $entry->fact_value,
                 'points' => (float) ($entry->manual_points ?? $entry->calculated_points ?? 0),
                 'status' => $entry->status,
+                'comment' => $entry->comment,
+                'structural_confirmations' => $this->buildStructuralConfirmationsPayload($entry),
             ];
         }
 
@@ -1162,12 +1298,70 @@ class KpiSummaryController extends Controller
     }
 
     /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildStructuralConfirmationsPayload(KpiEntry $entry): array
+    {
+        $expectedUnits = collect($entry->indicator?->structuralUnits ?? [])
+            ->map(fn ($unit) => [
+                'id' => (int) $unit->id,
+                'code' => $unit->code,
+                'name' => $unit->name,
+            ]);
+
+        if ($expectedUnits->isEmpty() && $entry->indicator?->checkerStructuralUnit) {
+            $unit = $entry->indicator->checkerStructuralUnit;
+            $expectedUnits = collect([[
+                'id' => (int) $unit->id,
+                'code' => $unit->code,
+                'name' => $unit->name,
+            ]]);
+        }
+
+        $byUnitId = $entry->structuralConfirmations->keyBy('structural_unit_id');
+
+        $rows = $expectedUnits->map(function (array $unit) use ($byUnitId) {
+            $confirmation = $byUnitId->get($unit['id']);
+
+            return [
+                'structural_unit_id' => $unit['id'],
+                'structural_unit_code' => $unit['code'],
+                'structural_unit_name' => $unit['name'],
+                'status' => $confirmation?->status ?? 'pending',
+                'comment' => $confirmation?->comment,
+                'confirmed_at' => $confirmation?->confirmed_at?->toIso8601String(),
+                'confirmed_by' => $confirmation?->confirmer?->display_name
+                    ?? $confirmation?->confirmer?->name,
+            ];
+        })->values();
+
+        foreach ($entry->structuralConfirmations as $confirmation) {
+            if ($rows->contains(fn (array $row) => (int) $row['structural_unit_id'] === (int) $confirmation->structural_unit_id)) {
+                continue;
+            }
+
+            $rows->push([
+                'structural_unit_id' => (int) $confirmation->structural_unit_id,
+                'structural_unit_code' => $confirmation->structuralUnit?->code,
+                'structural_unit_name' => $confirmation->structuralUnit?->name,
+                'status' => $confirmation->status ?? 'pending',
+                'comment' => $confirmation->comment,
+                'confirmed_at' => $confirmation->confirmed_at?->toIso8601String(),
+                'confirmed_by' => $confirmation->confirmer?->display_name
+                    ?? $confirmation->confirmer?->name,
+            ]);
+        }
+
+        return $rows->values()->all();
+    }
+
+    /**
      * @param \Illuminate\Database\Eloquent\Collection<int, KpiEntry> $entries
-     * @return array{total: int, approved: int, submitted: int, pending: int, total_points: float}
+     * @return array{total: int, approved: int, submitted: int, pending: int, rejected: int, total_points: float}
      */
     private function calcTotals($entries): array
     {
-        $approved = $submitted = $pending = 0;
+        $approved = $submitted = $pending = $rejected = 0;
         $totalPoints = 0.0;
 
         foreach ($entries as $entry) {
@@ -1175,6 +1369,7 @@ class KpiSummaryController extends Controller
                 KpiEntry::STATUS_APPROVED => $approved++,
                 KpiEntry::STATUS_SUBMITTED => $submitted++,
                 KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL, KpiEntry::STATUS_REVIEWED => $pending++,
+                KpiEntry::STATUS_REJECTED => $rejected++,
                 default => null,
             };
             $totalPoints += (float) ($entry->manual_points ?? $entry->calculated_points ?? 0);
@@ -1185,15 +1380,18 @@ class KpiSummaryController extends Controller
             'approved' => $approved,
             'submitted' => $submitted,
             'pending' => $pending,
+            'rejected' => $rejected,
             'total_points' => $totalPoints,
         ];
     }
 
     /** @return array<string, mixed> */
-    /** Rппс = (K1+K2+K3+K4+K5) − K6 */
-    private function teacherRankScore(float $k1, float $k2, float $k3, float $k4, float $k5, float $k6): float
+    /** Rппс = (K1+K2+K3+K4+K5) − НПУ (fallback: K6) */
+    private function teacherRankScore(float $k1, float $k2, float $k3, float $k4, float $k5, float $k6 = 0.0, ?float $npuThreshold = null): float
     {
-        return ($k1 + $k2 + $k3 + $k4 + $k5) - $k6;
+        $npu = $npuThreshold ?? $k6;
+
+        return ($k1 + $k2 + $k3 + $k4 + $k5) - $npu;
     }
 
     private function formatResult(KpiResult $result): array
@@ -1223,7 +1421,7 @@ class KpiSummaryController extends Controller
             abort(403);
         }
 
-        $teacher = User::query()->findOrFail($userId, ['id', 'name', 'display_name', 'email', 'ad_title', 'ad_division', 'department_id', 'faculty_id']);
+        $teacher = User::query()->findOrFail($userId, ['id', 'name', 'display_name', 'email', 'position_title', 'ad_title', 'ad_division', 'department_id', 'faculty_id']);
 
         $academicYearId = $request->integer('academic_year_id');
         $periodId = $request->integer('period_id');
@@ -1252,12 +1450,16 @@ class KpiSummaryController extends Controller
         // Load entries with indicator + status logs + actor
         $entries = KpiEntry::query()
             ->with([
-                'indicator:id,section,code,name,unit,base_points',
+                'indicator:id,section,code,name,unit,base_points,checker_structural_unit_id',
+                'indicator.structuralUnits:id,code,name',
+                'indicator.checkerStructuralUnit:id,code,name',
                 'files:id,kpi_entry_id,file_name,file_path,file_disk,file_size',
                 'statusLogs' => function ($q) {
                     $q->orderBy('created_at', 'asc');
                 },
                 'statusLogs.actor:id,name,display_name',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->where('user_id', $userId)
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
@@ -1275,6 +1477,17 @@ class KpiSummaryController extends Controller
                 ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'section_scores', 'approved_entries_count'])
             : null;
 
+        // Формируем result с учетом НПУ, как в teacherSummary
+        $teacherTitle = $this->resolveUserTitle($teacher->position_title ?? null, $teacher->ad_title ?? null);
+        $formattedResult = null;
+        if ($result) {
+            $r = $this->formatResult($result);
+            $r['npu_threshold'] = $this->teacherNpuThreshold($teacherTitle);
+            $r['rate'] = $r['npu_threshold'];
+            $r['rank_score'] = $this->teacherRankScore($r['k1'], $r['k2'], $r['k3'], $r['k4'], $r['k5'], $r['k6'], (float) $r['npu_threshold']);
+            $formattedResult = $r;
+        }
+
         // Group entries by section, include history
         $grouped = [];
         foreach ($entries as $entry) {
@@ -1291,6 +1504,7 @@ class KpiSummaryController extends Controller
                 'comment' => $entry->comment,
                 'submitted_at' => $entry->submitted_at?->toIso8601String(),
                 'approved_at' => $entry->approved_at?->toIso8601String(),
+                'structural_confirmations' => $this->buildStructuralConfirmationsPayload($entry),
                 'files' => $entry->files->map(fn ($file) => [
                     'id' => $file->id,
                     'file_name' => $file->file_name,
@@ -1313,6 +1527,7 @@ class KpiSummaryController extends Controller
         $approved = $entries->where('status', KpiEntry::STATUS_APPROVED)->count();
         $submitted = $entries->where('status', KpiEntry::STATUS_SUBMITTED)->count();
         $pending = $entries->whereIn('status', [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL, KpiEntry::STATUS_REVIEWED])->count();
+        $rejected = $entries->where('status', KpiEntry::STATUS_REJECTED)->count();
         $totalPoints = $entries->sum(fn ($e) => (float) ($e->manual_points ?? $e->calculated_points ?? 0));
 
         $filterOptions = [
@@ -1327,7 +1542,7 @@ class KpiSummaryController extends Controller
                 'id' => $teacher->id,
                 'name' => $teacher->display_name ?? $teacher->name,
                 'email' => $teacher->email,
-                'title' => $teacher->ad_title,
+                'title' => $teacherTitle,
                 'division' => $teacher->ad_division,
                 'department_id' => $teacher->department_id,
                 'department_name' => $teacher->department_id
@@ -1338,13 +1553,14 @@ class KpiSummaryController extends Controller
                     ? Faculty::query()->where('id', $teacher->faculty_id)->value('name')
                     : null,
             ],
-            'result' => $result ? $this->formatResult($result) : null,
+            'result' => $formattedResult,
             'entries' => $grouped,
             'totals' => [
                 'total' => $entries->count(),
                 'approved' => $approved,
                 'submitted' => $submitted,
                 'pending' => $pending,
+                'rejected' => $rejected,
                 'total_points' => $totalPoints,
             ],
             'academicYear' => $academicYear ? $academicYear->only(['id', 'name']) : null,
@@ -1655,7 +1871,7 @@ class KpiSummaryController extends Controller
             'teachers' => [
                 'title' => 'Результаты профессионального рейтинга ППС',
                 'filename' => 'KPI_PPS_',
-                'headers' => ['№', 'ФИО', 'Факультет', 'Кафедра', 'Должность', 'Ставка', 'УМР', 'НИР', 'СВР', 'УПК', 'К5', 'К6', 'Рейтинг'],
+                'headers' => ['№', 'ФИО', 'Факультет', 'Кафедра', 'Должность', 'НПУ', 'УМР', 'НИР', 'СВР', 'УПК', 'К5', 'Рейтинг'],
             ],
             'deans' => [
                 'title' => 'Результаты рейтинга деканов',
@@ -1678,53 +1894,56 @@ class KpiSummaryController extends Controller
         $filename = $reportMeta['filename'] . now()->format('Ymd_His') . '.xls';
 
         return response()->streamDownload(function () use ($report, $reportMeta, $rows, $academicYear, $period): void {
-            $handle = fopen('php://output', 'wb');
-            if (! $handle) {
-                return;
-            }
+            $esc = static fn ($value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-            // Excel on Windows reliably reads UTF-16LE with BOM for Cyrillic text.
-            fwrite($handle, "\xFF\xFE");
-
-            $writeRow = static function (array $cells) use ($handle): void {
-                $cleaned = array_map(static function ($value): string {
-                    $s = (string) ($value ?? '');
-                    return str_replace(["\t", "\r", "\n"], ' ', $s);
-                }, $cells);
-
-                $line = implode("\t", $cleaned) . "\r\n";
-                fwrite($handle, mb_convert_encoding($line, 'UTF-16LE', 'UTF-8'));
+            $widths = match ($report) {
+                'deans' => [50, 260, 260, 90, 110, 80, 80, 80, 80],
+                'hods' => [50, 220, 240, 260, 90, 110, 80, 80, 80, 80],
+                default => [50, 240, 220, 240, 220, 90, 80, 80, 80, 80, 80, 110],
             };
 
-            $writeRow([$reportMeta['title']]);
-            $writeRow(['Учебный год', data_get($academicYear, 'name', 'не указан')]);
-            $writeRow(['Период', data_get($period, 'name', 'не указан')]);
-            $writeRow(['Сформировано', now()->format('d.m.Y H:i')]);
-            $writeRow([]);
-            $writeRow($reportMeta['headers']);
+            echo "<html><head><meta charset=\"UTF-8\"></head><body style=\"font-family:Calibri,Arial,sans-serif;font-size:11pt;background:transparent;color:#000;\">";
+
+            // Keep metadata outside the bordered table so Excel does not render a huge shaded merged block.
+            echo '<div style="margin-bottom:10px;line-height:1.5;background:transparent;">';
+            echo '<div style="font-weight:700;">' . $esc($reportMeta['title']) . '</div>';
+            echo '<div><strong>Учебный год:</strong> ' . $esc(data_get($academicYear, 'name', 'не указан')) . '</div>';
+            echo '<div><strong>Период:</strong> ' . $esc(data_get($period, 'name', 'не указан')) . '</div>';
+            echo '<div><strong>Сформировано:</strong> ' . $esc(now()->format('d.m.Y H:i')) . '</div>';
+            echo '</div>';
+
+            echo "<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\" style=\"border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;background:transparent;\">";
+
+            echo '<colgroup>';
+            foreach ($widths as $width) {
+                echo '<col style="width:' . (int) $width . 'px">';
+            }
+            echo '</colgroup>';
+
+            echo '<tr>';
+            foreach ($reportMeta['headers'] as $header) {
+                echo '<th style="background:transparent;font-weight:bold;text-align:center;">' . $esc($header) . '</th>';
+            }
+            echo '</tr>';
 
             foreach ($rows as $index => $row) {
                 if ($report === 'teachers') {
-                    $writeRow([
+                    $cells = [
                         $index + 1,
                         data_get($row, 'name', '—'),
                         data_get($row, 'faculty_name', '—'),
                         data_get($row, 'department_name', '—'),
                         data_get($row, 'title', '—'),
-                        data_get($row, 'rate', data_get($row, 'workload_rate', data_get($row, 'stavka', '—'))),
+                        number_format((float) data_get($row, 'rate', data_get($row, 'npu_threshold', 0)), 2, '.', ''),
                         number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k5', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k6', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
-                    ]);
-                    continue;
-                }
-
-                if ($report === 'deans') {
-                    $writeRow([
+                    ];
+                } elseif ($report === 'deans') {
+                    $cells = [
                         $index + 1,
                         data_get($row, 'faculty_name', '—'),
                         data_get($row, 'name', '—'),
@@ -1734,27 +1953,34 @@ class KpiSummaryController extends Controller
                         number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
                         number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
-                    ]);
-                    continue;
+                    ];
+                } else {
+                    $cells = [
+                        $index + 1,
+                        data_get($row, 'faculty_name', '—'),
+                        data_get($row, 'department_name', '—'),
+                        data_get($row, 'name', '—'),
+                        number_format((float) data_get($row, 'npu_threshold', 0), 2, '.', ''),
+                        number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
+                        number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
+                        number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
+                        number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
+                        number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
+                    ];
                 }
 
-                $writeRow([
-                    $index + 1,
-                    data_get($row, 'faculty_name', '—'),
-                    data_get($row, 'department_name', '—'),
-                    data_get($row, 'name', '—'),
-                    number_format((float) data_get($row, 'npu_threshold', 0), 2, '.', ''),
-                    number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
-                    number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
-                    number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
-                    number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
-                    number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
-                ]);
+                echo '<tr>';
+                foreach ($cells as $cellIndex => $cell) {
+                    $isNumeric = $cellIndex === 0 || is_numeric($cell);
+                    $align = $isNumeric ? 'right' : 'left';
+                    echo '<td style="text-align:' . $align . ';">' . $esc($cell) . '</td>';
+                }
+                echo '</tr>';
             }
 
-            fclose($handle);
+            echo '</table></body></html>';
         }, $filename, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-16LE',
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
         ]);
     }
 

@@ -31,6 +31,7 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\CertificateRegistryController;
 use App\Http\Controllers\CertificateTemplateController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\PositionChangeRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Http;
@@ -153,6 +154,16 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
     Route::delete('positions/{position}', [PositionController::class, 'destroy'])
         ->name('positions.destroy');
 
+    // Position change requests
+    Route::post('profile/position-requests', [PositionChangeRequestController::class, 'store'])
+        ->name('profile.position-requests.store');
+    Route::get('position-requests', [PositionChangeRequestController::class, 'adminIndex'])
+        ->name('position-requests.index');
+    Route::post('position-requests/{positionRequest}/approve', [PositionChangeRequestController::class, 'approve'])
+        ->name('position-requests.approve');
+    Route::post('position-requests/{positionRequest}/reject', [PositionChangeRequestController::class, 'reject'])
+        ->name('position-requests.reject');
+
     Route::get('kpi', [KpiPeriodController::class, 'index'])
         ->name('kpi.index');
     Route::get('kpi/indicators', [KpiIndicatorController::class, 'index'])
@@ -227,6 +238,10 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('kpi.entries.approve');
     Route::post('kpi/entries/{entry}/reject', [KpiEntryController::class, 'reject'])
         ->name('kpi.entries.reject');
+    Route::post('kpi/entries/{entry}/structural-confirm', [KpiEntryController::class, 'structuralConfirm'])
+        ->name('kpi.entries.structural-confirm');
+    Route::post('kpi/entries/{entry}/structural-reject', [KpiEntryController::class, 'structuralReject'])
+        ->name('kpi.entries.structural-reject');
     Route::get('kpi/{period}', [KpiPeriodController::class, 'show'])
         ->whereNumber('period')
         ->name('kpi.show');
@@ -1634,6 +1649,8 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
         ->name('certificates.registry.index');
     Route::post('admin/certificates/generate', [CertificateRegistryController::class, 'generate'])
         ->name('certificates.generate');
+    Route::post('admin/certificates/bulk-generate', [CertificateRegistryController::class, 'bulkGenerate'])
+        ->name('certificates.bulk-generate');
     Route::get('admin/certificates/registry/export', [CertificateRegistryController::class, 'exportCsv'])
         ->name('certificates.registry.export');
     Route::post('admin/certificates/{certificate}/issue', [CertificateRegistryController::class, 'issue'])

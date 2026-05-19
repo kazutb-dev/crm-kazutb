@@ -36,11 +36,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        if ($user) {
+            $user->loadMissing([
+                'faculty:id,name',
+                'department:id,name',
+            ]);
+        }
+
         $shared = [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
-                'roleSlug' => $request->user()?->resolvedRoleSlug(),
+                'user' => $user,
+                'roleSlug' => $user?->resolvedRoleSlug(),
             ],
             'kpi' => [
                 'grants' => fn () => $request->user()

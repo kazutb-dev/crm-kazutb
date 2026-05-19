@@ -6,7 +6,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { Head, usePage, router } from '@inertiajs/react';
 import { Home } from 'lucide-react';
 import ReminderProfileModal from '@/components/ReminderProfileModal';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function AuthenticatedLayout({ header, headerRight, children }) {
     const page = usePage();
@@ -14,18 +15,56 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
     const user = props?.auth?.user;
     const roleSlug = props?.auth?.roleSlug;
     const profileReminderAfterLogin = Boolean(props?.flash?.profileReminderAfterLogin);
+    const flash = props?.flash ?? {};
+    const errors = props?.errors ?? {};
 
     // Profile completeness check
     const facultyId = user?.faculty_id;
     const departmentId = user?.department_id;
     const isProfileIncomplete = user && (!facultyId || !departmentId);
     const [showReminder, setShowReminder] = useState(false);
+    const lastToastSignatureRef = useRef('');
 
     useEffect(() => {
         if (profileReminderAfterLogin && isProfileIncomplete) {
             setShowReminder(true);
         }
     }, [profileReminderAfterLogin, isProfileIncomplete]);
+
+    useEffect(() => {
+        const success = typeof flash?.success === 'string' ? flash.success.trim() : '';
+        const error = typeof flash?.error === 'string' ? flash.error.trim() : '';
+        const warning = typeof flash?.warning === 'string' ? flash.warning.trim() : '';
+        const kpiError = typeof errors?.kpi_entry === 'string' ? errors.kpi_entry.trim() : '';
+
+        const signature = JSON.stringify({ component, success, error, warning, kpiError });
+
+        if (!success && !error && !warning && !kpiError) {
+            return;
+        }
+
+        if (lastToastSignatureRef.current === signature) {
+            return;
+        }
+
+        lastToastSignatureRef.current = signature;
+
+        if (success) {
+            toast.success(success);
+        }
+
+        if (warning) {
+            toast.warning(warning);
+        }
+
+        if (error) {
+            toast.error(error);
+        }
+
+        if (kpiError) {
+            toast.error(kpiError);
+        }
+    }, [component, flash?.success, flash?.error, flash?.warning, errors?.kpi_entry]);
 
     const goToProfile = () => {
         setShowReminder(false);

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Department;
+use App\Models\PositionChangeRequest;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -30,7 +31,9 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
-            'position_title' => ['nullable', 'string', 'max:255'],
+            'position_title' => ['prohibited'],
+            'position_confirmed' => ['nullable', 'boolean'],
+            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'office_location' => ['nullable', 'string', 'max:255'],
             'telegram' => ['nullable', 'string', 'max:100'],
             'bio' => ['nullable', 'string', 'max:2000'],
@@ -48,6 +51,22 @@ class ProfileUpdateRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $positionConfirmed = $this->input('position_confirmed');
+            $positionId = $this->input('position_id');
+            $user = $this->user();
+            $hasPendingPositionRequest = $user instanceof User
+                ? PositionChangeRequest::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'pending')
+                    ->exists()
+                : false;
+
+            if (($positionConfirmed === false || $positionConfirmed === 'false' || $positionConfirmed === 0 || $positionConfirmed === '0')
+                && ! $hasPendingPositionRequest
+                && ($positionId === null || $positionId === '')) {
+                $validator->errors()->add('position_id', 'Выберите должность из списка, чтобы отправить заявку.');
+            }
+
             if (! $this->canEditAcademicBindings()) {
                 return;
             }

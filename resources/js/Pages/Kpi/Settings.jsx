@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import KpiIndicatorsManager from '@/Pages/Kpi/Partials/KpiIndicatorsManager';
 import KpiPeriodsManager from '@/Pages/Kpi/Partials/KpiPeriodsManager';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { BookOpen, Building2, GraduationCap, KeyRound, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 
@@ -62,10 +62,10 @@ function RuleRow({ rule, index, onChange, onRemove }) {
     );
 }
 
-export default function KpiSettings({ npuSettings = {}, periods, academicYears = [], filters = {}, statusOptions = ['draft', 'active', 'closed'], permissions = {}, indicators, indicatorFilters = {}, indicatorOptions = {}, indicatorPermissions = {}, accessGrants = [], accessOptions = {}, activeTab: initialTab = 'indicators' }) {
-    const { flash } = usePage().props;
+export default function KpiSettings({ npuSettings = {}, periods, academicYears = [], filters = {}, statusOptions = ['draft', 'active', 'closed'], permissions = {}, indicators, indicatorFilters = {}, indicatorOptions = {}, indicatorPermissions = {}, accessGrants = [], accessOptions = {}, accessPermissions = {}, activeTab: initialTab = 'indicators' }) {
     const [activeTab, setActiveTab] = useState(PAGE_TABS[initialTab] ? initialTab : 'indicators');
     const staffOptions = accessOptions.staff ?? [];
+    const canManageFullAccess = Boolean(accessPermissions.canManageFullAccess);
     const [accessSearch, setAccessSearch] = useState('');
     const [accessSearchOpen, setAccessSearchOpen] = useState(false);
     const teacherRules = (npuSettings.teacher?.rules ?? []).map((rule) => ({
@@ -166,12 +166,6 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
             <Head title="KPI / Настройка НПУ" />
 
             <div className="space-y-4 p-4 sm:p-6 lg:p-8">
-                {flash?.success && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-                        {flash.success}
-                    </div>
-                )}
-
                 <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-1 w-fit">
                     {Object.entries(PAGE_TABS).map(([key, label]) => {
                         const isActive = activeTab === key;
@@ -330,10 +324,17 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
+                                {!canManageFullAccess && (
+                                    <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                        Только системные администраторы и KPI-администраторы могут назначать и отзывать полный доступ KPI.
+                                    </div>
+                                )}
+
                                 <form className="flex flex-wrap items-end gap-3" onSubmit={submitAccess}>
                                     <div className="min-w-[320px] flex-1 space-y-2">
                                         <label className="text-sm font-medium">Сотрудник</label>
                                         <Input
+                                            disabled={!canManageFullAccess}
                                             value={accessSearch}
                                             onChange={(e) => {
                                                 setAccessSearch(e.target.value);
@@ -343,7 +344,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                             onFocus={() => setAccessSearchOpen(true)}
                                             placeholder="Введите ФИО, подразделение или email"
                                         />
-                                        {accessSearchOpen && !selectedAccessUser && (
+                                        {canManageFullAccess && accessSearchOpen && !selectedAccessUser && (
                                             <div className="max-h-52 overflow-auto rounded-md border border-border bg-background">
                                                 {filteredAccessStaff.length === 0 ? (
                                                     <div className="px-3 py-2 text-xs text-muted-foreground">Совпадений не найдено.</div>
@@ -370,7 +371,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         {accessForm.errors.user_id && <div className="text-xs text-destructive">{accessForm.errors.user_id}</div>}
                                     </div>
 
-                                    <Button type="submit" disabled={accessForm.processing || !accessForm.data.user_id}>
+                                    <Button type="submit" disabled={!canManageFullAccess || accessForm.processing || !accessForm.data.user_id}>
                                         <KeyRound className="mr-2 h-4 w-4" />
                                         Назначить KPI-админом
                                     </Button>
@@ -412,7 +413,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                                         </td>
                                                         <td className="py-3 pe-3">{grant.granted_at ? new Date(grant.granted_at).toLocaleString('ru-RU') : '—'}</td>
                                                         <td className="py-3 text-right">
-                                                            <Button type="button" variant="destructive" size="sm" onClick={() => revokeAccess(grant.id)}>
+                                                            <Button type="button" variant="destructive" size="sm" onClick={() => revokeAccess(grant.id)} disabled={!canManageFullAccess}>
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Отозвать
                                                             </Button>

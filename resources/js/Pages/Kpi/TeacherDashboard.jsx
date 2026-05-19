@@ -12,7 +12,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
@@ -74,6 +74,18 @@ const statusVariants = {
     approved: 'default',
     rejected: 'destructive',
     locked: 'destructive',
+};
+
+const spStatusLabels = {
+    pending: 'Ожидает',
+    approved: 'Подтверждено',
+    rejected: 'Отклонено',
+};
+
+const spStatusVariants = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
 };
 
 const stageLabels = {
@@ -551,6 +563,84 @@ function EntryHistory({ history }) {
     );
 }
 
+function EntryStructuralConfirmations({ confirmations = [] }) {
+    if (!Array.isArray(confirmations) || confirmations.length === 0) {
+        return null;
+    }
+
+    const resolveUnitName = (item) => {
+        const directName = String(item?.name ?? '').trim();
+        if (directName !== '') {
+            return directName;
+        }
+
+        const rawUnit = item?.structural_unit ?? item?.structuralUnit ?? null;
+        const code = String(rawUnit?.code ?? '').trim();
+        const name = String(rawUnit?.name ?? '').trim();
+
+        if (code && name) {
+            return `${code} — ${name}`;
+        }
+
+        return name || code || 'Структурное подразделение';
+    };
+
+    const resolveActorName = (item) => {
+        const directActor = item?.confirmed_by;
+        if (typeof directActor === 'string' && directActor.trim() !== '') {
+            return directActor.trim();
+        }
+
+        const confirmer = item?.confirmer ?? null;
+        const confirmerName = String(confirmer?.display_name ?? confirmer?.name ?? '').trim();
+        if (confirmerName !== '') {
+            return confirmerName;
+        }
+
+        return '—';
+    };
+
+    return (
+        <div className="mt-3 space-y-1.5">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Подтверждения СП</p>
+            <div className="space-y-2">
+                {confirmations.map((item, i) => (
+                    <div
+                        key={`${item.structural_unit_id ?? i}-${i}`}
+                        className={[
+                            'rounded-md border p-2',
+                            item.status === 'approved'
+                                ? 'border-emerald-200 bg-emerald-50/40'
+                                : item.status === 'rejected'
+                                    ? 'border-red-200 bg-red-50/40'
+                                    : 'border-border bg-muted/20',
+                        ].join(' ')}
+                    >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-foreground/90">{resolveUnitName(item)}</p>
+                            <Badge variant={spStatusVariants[item.status] ?? 'outline'} className="text-[0.65rem]">
+                                {spStatusLabels[item.status] ?? item.status}
+                            </Badge>
+                        </div>
+                        <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                            {item.status === 'rejected'
+                                ? `Отклонил: ${resolveActorName(item)}`
+                                : item.status === 'approved'
+                                    ? `Подтвердил: ${resolveActorName(item)}`
+                                    : 'Ответственный: —'}
+                            {' · '}
+                            {fmtDateTime(item.confirmed_at)}
+                        </p>
+                        {item.comment && (
+                            <p className="mt-1 text-[0.7rem] italic text-muted-foreground">"{item.comment}"</p>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntryId, submitEntry, deleteEntry, openEditEntry }) {
     const [expanded, setExpanded] = useState(false);
 
@@ -611,6 +701,13 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                         <div className="grid gap-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
                                 <EntryHistory history={entry.history} />
+                                <EntryStructuralConfirmations
+                                    confirmations={
+                                        entry.structural_confirmation_matrix
+                                        ?? entry.structural_confirmations
+                                        ?? []
+                                    }
+                                />
                             </div>
                             {(Array.isArray(entry.calculation_details?.external_source_urls)
                                 && entry.calculation_details.external_source_urls.filter((url) => String(url ?? '').trim() !== '').length > 0) || entry.external_source_url ? (
@@ -778,7 +875,6 @@ export default function TeacherDashboard({
     statusOptions = [],
     permissions = {},
 }) {
-    const { flash, errors } = usePage().props;
     const items = entries?.data ?? [];
     const links = entries?.links ?? [];
 
@@ -1563,7 +1659,7 @@ export default function TeacherDashboard({
                                                 })));
                                             }}
                                         />
-                                        
+
                                         {/* Display selected files list */}
                                         {createFilesList.length > 0 && (
                                             <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
@@ -1592,8 +1688,8 @@ export default function TeacherDashboard({
                                                 </div>
                                             </div>
                                         )}
-                                        
-                                                {createFilesList.length === 0 && (
+
+                                        {createFilesList.length === 0 && (
                                             <p className="text-xs text-muted-foreground">
                                                 Файлы не выбраны (до 100 МБ суммарно)
                                             </p>
@@ -1615,14 +1711,14 @@ export default function TeacherDashboard({
                                     type="button"
                                     variant="outline"
                                     onClick={(event) => submitCreate(event, 'draft')}
-                                            disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
+                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     Сохранить как черновик
                                 </Button>
                                 <Button
                                     type="button"
                                     onClick={(event) => submitCreate(event, 'submit')}
-                                            disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
+                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     <Send className="h-4 w-4" />
                                     Отправить на проверку
@@ -1702,18 +1798,6 @@ export default function TeacherDashboard({
                         </div>
                     </div>
                 </div>
-
-                {/* ── Flash messages ─────────────────────────────────── */}
-                {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <div className={[
-                        'flex items-start gap-2.5 rounded-lg border px-3.5 py-2.5 text-sm',
-                        flash?.success ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800',
-                    ].join(' ')}>
-                        {flash?.success && <p>{flash.success}</p>}
-                        {flash?.error && <p>{flash.error}</p>}
-                        {errors?.kpi_entry && <p>{errors.kpi_entry}</p>}
-                    </div>
-                )}
 
                 {/* ── Faculty/Department binding reminder ──────────────── */}
                 {(!currentUser?.faculty_name || !currentUser?.department_name) && (
@@ -1839,87 +1923,87 @@ export default function TeacherDashboard({
 
                 {/* ── Entries by section ─────────────────────────────── */}
                 {activeMainTab === 'entries' && (
-                <Card className="admin-surface">
-                    <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                            <FileText className="h-4 w-4 text-[#139AA4]" />
-                            Мои записи KPI по разделам
-                            <span className="ml-auto font-normal text-xs text-muted-foreground">
-                                Нажмите на строку для истории утверждения
-                            </span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Entry filter bar */}
-                        <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={applyFilters}>
-                            <div>
-                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Этап</p>
-                                <select
-                                    className={SELECT_CLS}
-                                    value={filterForm.data.stage}
-                                    onChange={(e) => filterForm.setData('stage', e.target.value)}
-                                >
-                                    <option value="plan">План</option>
-                                    <option value="fact">Факт</option>
-                                    <option value="review">Рассмотрение</option>
-                                </select>
-                            </div>
-                            <div>
-                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Модуль</p>
-                                <select
-                                    className={SELECT_CLS}
-                                    value={filterForm.data.module}
-                                    onChange={(e) => filterForm.setData('module', e.target.value)}
-                                >
-                                    <option value="">Все</option>
-                                    {modules.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Статус</p>
-                                <select
-                                    className={SELECT_CLS}
-                                    value={filterForm.data.status}
-                                    onChange={(e) => filterForm.setData('status', e.target.value)}
-                                >
-                                    <option value="">Все</option>
-                                    {statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}
-                                </select>
-                            </div>
-                            <Button type="submit" size="sm">Применить</Button>
-                            <Button type="button" size="sm" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                        </form>
-
-                        {items.length === 0 ? (
-                            <div className="admin-empty-state">
-                                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                                Записей пока нет. Создайте первую KPI-запись.
-                            </div>
-                        ) : (
-                            <EntriesBySection items={items} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
-                        )}
-
-                        {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
-                                {links.map((link, index) => (
-                                    <Button
-                                        key={`${link.label}-${index}`}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                        asChild={Boolean(link.url)}
+                    <Card className="admin-surface">
+                        <CardHeader className="pb-3 pt-4">
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
+                                <FileText className="h-4 w-4 text-[#139AA4]" />
+                                Мои записи KPI по разделам
+                                <span className="ml-auto font-normal text-xs text-muted-foreground">
+                                    Нажмите на строку для истории утверждения
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {/* Entry filter bar */}
+                            <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={applyFilters}>
+                                <div>
+                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Этап</p>
+                                    <select
+                                        className={SELECT_CLS}
+                                        value={filterForm.data.stage}
+                                        onChange={(e) => filterForm.setData('stage', e.target.value)}
                                     >
-                                        {link.url ? (
-                                            <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                        ) : (
-                                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                        )}
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        <option value="plan">План</option>
+                                        <option value="fact">Факт</option>
+                                        <option value="review">Рассмотрение</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Модуль</p>
+                                    <select
+                                        className={SELECT_CLS}
+                                        value={filterForm.data.module}
+                                        onChange={(e) => filterForm.setData('module', e.target.value)}
+                                    >
+                                        <option value="">Все</option>
+                                        {modules.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Статус</p>
+                                    <select
+                                        className={SELECT_CLS}
+                                        value={filterForm.data.status}
+                                        onChange={(e) => filterForm.setData('status', e.target.value)}
+                                    >
+                                        <option value="">Все</option>
+                                        {statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}
+                                    </select>
+                                </div>
+                                <Button type="submit" size="sm">Применить</Button>
+                                <Button type="button" size="sm" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                            </form>
+
+                            {items.length === 0 ? (
+                                <div className="admin-empty-state">
+                                    <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
+                                    Записей пока нет. Создайте первую KPI-запись.
+                                </div>
+                            ) : (
+                                <EntriesBySection items={items} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
+                            )}
+
+                            {links.length > 3 && (
+                                <div className="mt-6 flex flex-wrap gap-2">
+                                    {links.map((link, index) => (
+                                        <Button
+                                            key={`${link.label}-${index}`}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            disabled={!link.url}
+                                            asChild={Boolean(link.url)}
+                                        >
+                                            {link.url ? (
+                                                <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            ) : (
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            )}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </AuthenticatedLayout>

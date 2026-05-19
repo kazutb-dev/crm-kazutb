@@ -123,7 +123,11 @@ export function AppSidebar() {
     const kpiGrants = new Set(kpi?.grants ?? []);
     const TEMP_HIDE_MAIN_MENUS = false;
     const isAdminRole = ['admin', 'superadmin'].includes(roleSlug);
-    const isKpiAdminGrant = kpiGrants.has('kpi_admin');
+    const isKpiAdminGrant =
+        kpiGrants.has('kpi_admin')
+        || kpiGrants.has('kpi-admin')
+        || kpiGrants.has('kpi administrator')
+        || roleSlug === 'kpi_admin';
     const isTeacherRole = roleSlug === 'teacher';
     const isHodRole = ['hod', 'department_head'].includes(roleSlug);
     const isDeanRole = roleSlug === 'dean';
@@ -132,6 +136,12 @@ export function AppSidebar() {
     const isStudentRole = roleSlug === 'student';
     const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
     const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
+    const canAccessPositionRequests =
+        isAdminRole
+        || isStructuralRole
+        || isDeanRole
+        || isHodRole
+        || isKpiAdminGrant;
     const canAccessCalendar = calendarShared?.can_access ?? false;
     const sharedAccessCount = calendarShared?.shared_access_count ?? 0;
     const showAllKpiMenus = isAdminRole;
@@ -260,29 +270,66 @@ export function AppSidebar() {
             ];
         }
 
-        if (!isAdminRole && isKpiAdminGrant) {
-            const adminExtras = [
-                {
-                    title: 'KPI — Настройки',
-                    href: route('kpi.settings'),
+        if (!isAdminRole && kpiGrants.size > 0) {
+            // Build additional menu items based on KPI access grants
+            const grantedItems = [];
+
+            if (isKpiAdminGrant) {
+                grantedItems.push(
+                    {
+                        title: 'KPI — Настройки',
+                        href: route('kpi.settings'),
+                        icon: ClipboardList,
+                        active: route().current('kpi.settings'),
+                    },
+                    {
+                        title: 'KPI — Структурные подразделения',
+                        href: route('kpi.structural-units.index'),
+                        icon: Building2,
+                        active: route().current('kpi.structural-units.*'),
+                    }
+                );
+            }
+
+            if (kpiGrants.has('review_queue')) {
+                grantedItems.push({
+                    title: 'KPI — Проверка Завкафедрой',
+                    href: route('kpi.review-queue'),
                     icon: ClipboardList,
-                    active: route().current('kpi.settings'),
-                },
-                {
+                    active: route().current('kpi.review-queue'),
+                });
+            }
+
+            if (kpiGrants.has('approval_queue')) {
+                grantedItems.push({
+                    title: 'KPI — Проверка Деканом',
+                    href: route('kpi.approval-queue'),
+                    icon: ClipboardList,
+                    active: route().current('kpi.approval-queue'),
+                });
+            }
+
+            if (kpiGrants.has('structural_queue')) {
+                grantedItems.push({
+                    title: 'KPI — Проверка Структурным подразделением',
+                    href: route('kpi.structural-queue'),
+                    icon: ClipboardList,
+                    active: route().current('kpi.structural-queue'),
+                });
+            }
+
+            // Also add summary for users with any grant
+            if (!items.some((item) => item.href === route('kpi.summary'))) {
+                grantedItems.push({
                     title: 'KPI — Сводка',
                     href: route('kpi.summary'),
                     icon: ClipboardList,
                     active: route().current('kpi.summary'),
-                },
-                {
-                    title: 'KPI — Структурные подразделения',
-                    href: route('kpi.structural-units.index'),
-                    icon: Building2,
-                    active: route().current('kpi.structural-units.*'),
-                },
-            ];
+                });
+            }
 
-            adminExtras.forEach((extraItem) => {
+            // Add granted items that don't already exist
+            grantedItems.forEach((extraItem) => {
                 if (!items.some((item) => item.href === extraItem.href)) {
                     items.push(extraItem);
                 }
@@ -305,49 +352,55 @@ export function AppSidebar() {
             icon: LayoutDashboard,
             active: route().current('dashboard'),
         }] : []),
+        ...(canAccessPositionRequests ? [{
+            title: 'Заявки на должность',
+            href: route('position-requests.index'),
+            icon: BriefcaseBusiness,
+            active: route().current('position-requests.index'),
+        }] : []),
         ...(isAdminRole ? [
-        {
-            title: 'Сотрудники',
-            href: route('users.index'),
-            icon: Users,
-            active: route().current('users.index'),
-        },
-        {
-            title: 'Студенты',
-            href: route('users.students'),
-            icon: GraduationCap,
-            active: route().current('users.students'),
-        },
-        {
-            title: 'Заявки',
-            href: route('tickets.admin'),
-            icon: ClipboardList,
-            active: route().current('tickets.admin'),
-        },
-        ...(isAdminRole
-            ? [{
-                title: 'Маршруты навигации',
-                href: route('nav.routes.admin'),
-                icon: MapPinned,
-                active: route().current('nav.routes.*'),
-            }]
-            : []),
-        ...(isAdminRole
-            ? [{
-                title: 'Журнал действий',
-                href: route('admin.audit-logs.index'),
-                icon: History,
-                active: route().current('admin.audit-logs.*'),
-            }]
-            : []),
-        ...(isAdminRole
-            ? [{
-                title: 'Объявления',
-                href: route('announcements.index'),
-                icon: Megaphone,
-                active: route().current('announcements.*'),
-            }]
-            : []),
+            {
+                title: 'Сотрудники',
+                href: route('users.index'),
+                icon: Users,
+                active: route().current('users.index'),
+            },
+            {
+                title: 'Студенты',
+                href: route('users.students'),
+                icon: GraduationCap,
+                active: route().current('users.students'),
+            },
+            {
+                title: 'Заявки (тикеты)',
+                href: route('tickets.admin'),
+                icon: ClipboardList,
+                active: route().current('tickets.admin'),
+            },
+            ...(isAdminRole
+                ? [{
+                    title: 'Маршруты навигации',
+                    href: route('nav.routes.admin'),
+                    icon: MapPinned,
+                    active: route().current('nav.routes.*'),
+                }]
+                : []),
+            ...(isAdminRole
+                ? [{
+                    title: 'Журнал действий',
+                    href: route('admin.audit-logs.index'),
+                    icon: History,
+                    active: route().current('admin.audit-logs.*'),
+                }]
+                : []),
+            ...(isAdminRole
+                ? [{
+                    title: 'Объявления',
+                    href: route('announcements.index'),
+                    icon: Megaphone,
+                    active: route().current('announcements.*'),
+                }]
+                : []),
         ] : []),
     ];
 

@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Download, FileText, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const statusLabels = {
@@ -25,6 +25,18 @@ const statusVariants = {
     approved: 'default',
     rejected: 'destructive',
     locked: 'destructive',
+};
+
+const spStatusLabels = {
+    pending: 'Ожидает',
+    approved: 'Подтверждено',
+    rejected: 'Отклонено',
+};
+
+const spStatusVariants = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
 };
 
 const stageLabels = {
@@ -133,8 +145,70 @@ function resolveExternalLinks(entry) {
         : [];
 }
 
-export default function EntryShow({ entry, permissions = {} }) {
-    const { flash, errors } = usePage().props;
+function formatStructuralUnitName(unit) {
+    const code = String(unit?.code ?? '').trim();
+    const name = String(unit?.name ?? '').trim();
+
+    if (code && name) {
+        return `${code} — ${name}`;
+    }
+
+    return name || code || 'Структурное подразделение';
+}
+
+function resolveEntryStructuralConfirmations(entry) {
+    const expectedUnits = Array.isArray(entry?.indicator?.structural_units) && entry.indicator.structural_units.length > 0
+        ? entry.indicator.structural_units
+        : (entry?.indicator?.checker_structural_unit ? [entry.indicator.checker_structural_unit] : []);
+
+    const rawConfirmations = Array.isArray(entry?.structural_confirmations)
+        ? entry.structural_confirmations
+        : (Array.isArray(entry?.structuralConfirmations) ? entry.structuralConfirmations : []);
+
+    const byUnitId = new Map(
+        rawConfirmations
+            .filter((item) => item?.structural_unit_id != null)
+            .map((item) => [Number(item.structural_unit_id), item]),
+    );
+
+    const resolved = expectedUnits.map((unit) => {
+        const unitId = Number(unit?.id);
+        const confirmation = byUnitId.get(unitId);
+
+        return {
+            structural_unit_id: unitId,
+            name: formatStructuralUnitName(unit),
+            status: confirmation?.status ?? 'pending',
+            comment: confirmation?.comment ?? null,
+            confirmed_by: confirmation?.confirmer?.display_name
+                ?? confirmation?.confirmer?.name
+                ?? confirmation?.confirmed_by
+                ?? null,
+            confirmed_at: confirmation?.confirmed_at ?? null,
+        };
+    });
+
+    rawConfirmations.forEach((item) => {
+        const unitId = Number(item?.structural_unit_id);
+
+        if (!Number.isFinite(unitId) || resolved.some((row) => Number(row.structural_unit_id) === unitId)) {
+            return;
+        }
+
+        resolved.push({
+            structural_unit_id: unitId,
+            name: formatStructuralUnitName(item?.structural_unit ?? {}),
+            status: item?.status ?? 'pending',
+            comment: item?.comment ?? null,
+            confirmed_by: item?.confirmer?.display_name ?? item?.confirmer?.name ?? item?.confirmed_by ?? null,
+            confirmed_at: item?.confirmed_at ?? null,
+        });
+    });
+
+    return resolved;
+}
+
+export default function EntryShow({ entry, permissions = {}, moderationContext = {} }) {
     const form = useForm({
         comment: '',
     });
@@ -142,6 +216,24 @@ export default function EntryShow({ entry, permissions = {} }) {
     const files = entry?.files ?? [];
     const calculationRows = resolveCalculationDetails(entry);
     const externalLinks = resolveExternalLinks(entry);
+    const structuralConfirmations = resolveEntryStructuralConfirmations(entry);
+    const isAdminViewer = Boolean(moderationContext?.is_admin);
+    const actorStructuralUnitIds = new Set(
+        Array.isArray(moderationContext?.actor_structural_unit_ids)
+            ? moderationContext.actor_structural_unit_ids
+                .map((id) => Number(id))
+                .filter((id) => Number.isFinite(id))
+            : [],
+    );
+
+    const canActForStructuralUnit = (unitId) => {
+        if (isAdminViewer) {
+            return true;
+        }
+
+        return actorStructuralUnitIds.has(Number(unitId));
+    };
+
     const statusLogs = [...(entry?.status_logs ?? [])].sort((left, right) => {
         const leftTime = new Date(left.created_at ?? 0).getTime();
         const rightTime = new Date(right.created_at ?? 0).getTime();
@@ -149,8 +241,11 @@ export default function EntryShow({ entry, permissions = {} }) {
         return rightTime - leftTime;
     });
 
-    const submitAction = (routeName) => {
-        form.post(route(routeName, entry.id), {
+    const submitAction = (routeName, extraData = {}) => {
+        router.post(route(routeName, entry.id), {
+            comment: form.data.comment || '',
+            ...extraData,
+        }, {
             preserveScroll: true,
             onSuccess: () => form.reset('comment'),
         });
@@ -202,16 +297,6 @@ export default function EntryShow({ entry, permissions = {} }) {
                         </div>
                     </CardContent>
                 </Card>
-
-                {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="pt-6 text-sm">
-                            {flash?.success && <p className="text-emerald-700">{flash.success}</p>}
-                            {flash?.error && <p className="text-destructive">{flash.error}</p>}
-                            {errors?.kpi_entry && <p className="text-destructive">{errors.kpi_entry}</p>}
-                        </CardContent>
-                    </Card>
-                )}
 
                 <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
                     <div className="space-y-6">
@@ -357,6 +442,36 @@ export default function EntryShow({ entry, permissions = {} }) {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {structuralConfirmations.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-base">Подтверждения структурных подразделений</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {structuralConfirmations.map((item) => (
+                                            <div key={`sp-confirm-${item.structural_unit_id}`} className="rounded-lg border p-4">
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    <p className="font-medium">{item.name}</p>
+                                                    <Badge variant={spStatusVariants[item.status] ?? 'outline'}>
+                                                        {spStatusLabels[item.status] ?? item.status}
+                                                    </Badge>
+                                                </div>
+                                                <p className="mt-2 text-sm text-muted-foreground">
+                                                    Подтвердил: <span className="font-medium text-foreground">{item.confirmed_by ?? '—'}</span>
+                                                    {' · '}
+                                                    {formatDateTime(item.confirmed_at)}
+                                                </p>
+                                                <p className="mt-2 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 text-sm">
+                                                    {item.comment || 'Комментарий отсутствует.'}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
 
                     <div className="space-y-6">
@@ -376,24 +491,66 @@ export default function EntryShow({ entry, permissions = {} }) {
                                 </div>
 
                                 <div className="grid gap-2">
-                                    {permissions.canApprove && (
-                                        <Button disabled={form.processing} onClick={() => submitAction('kpi.entries.approve')}>
-                                            <ShieldCheck className="h-4 w-4" />
-                                            Утвердить запись
-                                        </Button>
-                                    )}
+                                    {entry.status === 'pending_structural' && structuralConfirmations.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {structuralConfirmations.map((item) => {
+                                                const canAct = canActForStructuralUnit(item.structural_unit_id);
+                                                const isPending = item.status === 'pending';
 
-                                    {permissions.canReject && (
-                                        <Button disabled={form.processing} variant="destructive" onClick={() => submitAction('kpi.entries.reject')}>
-                                            <ShieldAlert className="h-4 w-4" />
-                                            Отклонить запись
-                                        </Button>
+                                                return (
+                                                    <div key={`moderation-sp-${item.structural_unit_id}`} className="rounded-md border bg-muted/20 p-2.5">
+                                                        <div className="mb-2 flex items-center justify-between gap-2">
+                                                            <p className="text-sm font-medium">{item.name}</p>
+                                                            <Badge variant={spStatusVariants[item.status] ?? 'outline'}>
+                                                                {spStatusLabels[item.status] ?? item.status}
+                                                            </Badge>
+                                                        </div>
+
+                                                        <div className="grid gap-2 sm:grid-cols-2">
+                                                            <Button
+                                                                type="button"
+                                                                disabled={form.processing || !permissions.canApprove || !isPending || !canAct}
+                                                                onClick={() => submitAction('kpi.entries.structural-confirm', { structural_unit_id: item.structural_unit_id })}
+                                                            >
+                                                                <ShieldCheck className="h-4 w-4" />
+                                                                Утвердить СП
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                disabled={form.processing || !permissions.canReject || !isPending || !canAct}
+                                                                variant="destructive"
+                                                                onClick={() => submitAction('kpi.entries.structural-reject', { structural_unit_id: item.structural_unit_id })}
+                                                            >
+                                                                <ShieldAlert className="h-4 w-4" />
+                                                                Отклонить СП
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {permissions.canApprove && (
+                                                <Button type="button" disabled={form.processing} onClick={() => submitAction('kpi.entries.approve')}>
+                                                    <ShieldCheck className="h-4 w-4" />
+                                                    Утвердить запись
+                                                </Button>
+                                            )}
+
+                                            {permissions.canReject && (
+                                                <Button type="button" disabled={form.processing} variant="destructive" onClick={() => submitAction('kpi.entries.reject')}>
+                                                    <ShieldAlert className="h-4 w-4" />
+                                                    Отклонить запись
+                                                </Button>
+                                            )}
+
+                                            {!permissions.canApprove && !permissions.canReject && (
+                                                <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
+                                            )}
+                                        </>
                                     )}
                                 </div>
-
-                                {!permissions.canApprove && !permissions.canReject && (
-                                    <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
-                                )}
                             </CardContent>
                         </Card>
                     </div>

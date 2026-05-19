@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +22,16 @@ use App\Services\KpiEntryStructureHydrationService;
 
 class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
+    use HasFactory, HasApiTokens, Notifiable;
+
+    /**
+     * Связь: подтверждения СП, где пользователь выступает подтверждающим (confirmer)
+     */
+    public function structuralConfirmations(): HasMany
+    {
+        return $this->hasMany(KpiStructuralConfirmation::class, 'confirmed_by');
+    }
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasApiTokens, Notifiable;
 
@@ -57,6 +68,7 @@ class User extends Authenticatable
         'role',
         'role_id',
         'position_id',
+        'position_confirmed',
         'department_id',
         'faculty_id',
         'last_login',

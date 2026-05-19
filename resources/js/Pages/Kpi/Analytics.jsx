@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { BarChart3, Building2, Download, FileText, GraduationCap, Users } from 'lucide-react';
 
 const entityLabels = {
@@ -65,7 +65,6 @@ export default function Analytics({
     filterOptions = {},
     aggregationExamples = {},
 }) {
-    const { flash } = usePage().props;
     const teachers = rankings.teachers ?? [];
     const departments = rankings.departments ?? [];
     const faculties = rankings.faculties ?? [];
@@ -142,14 +141,6 @@ export default function Analytics({
                         </div>
                     </CardContent>
                 </Card>
-
-                {flash?.success && (
-                    <Card className="border-l-4 border-l-emerald-600">
-                        <CardContent className="pt-6 text-sm text-emerald-700">
-                            {flash.success}
-                        </CardContent>
-                    </Card>
-                )}
 
                 <Card className="admin-surface">
                     <CardHeader>

@@ -148,8 +148,6 @@ export default function CertificateVerify({ valid, status, message, certificate 
             };
 
             drawField(layout?.fio, certificate?.recipient_full_name);
-            drawField(layout?.topic, certificate?.topic);
-            drawField(layout?.number, certificate?.certificate_number, 'right');
 
             const qrCanvas = document.getElementById('verify-qr-canvas');
             if (qrCanvas instanceof HTMLCanvasElement) {
@@ -239,8 +237,6 @@ export default function CertificateVerify({ valid, status, message, certificate 
                                     )}
 
                                     <div style={textStyle(layout?.fio)}>{certificate?.recipient_full_name}</div>
-                                    <div style={textStyle(layout?.topic)}>{certificate?.topic}</div>
-                                    <div style={textStyle(layout?.number, 'right')}>{certificate?.certificate_number}</div>
 
                                     <div
                                         style={{

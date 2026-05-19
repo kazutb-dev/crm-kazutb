@@ -32,6 +32,71 @@ use Inertia\Response;
 
 class KpiEntryController extends Controller
 {
+    /**
+     * Подтверждение KPI-записи от структурного подразделения (СП)
+     */
+    public function structuralConfirm(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
+    {
+        $this->authorize('structuralConfirm', $entry);
+
+        $data = $request->validate([
+            'comment' => ['nullable', 'string'],
+            'structural_unit_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id'],
+        ]);
+
+        try {
+            $result = $this->entryService->structuralConfirm(
+                $entry,
+                $request->user(),
+                $data['comment'] ?? null,
+                isset($data['structural_unit_id']) ? (int) $data['structural_unit_id'] : null,
+            );
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'KPI-запись подтверждена вашим подразделением.',
+                    'data' => $result,
+                ]);
+            }
+
+            return back()->with('success', 'KPI-запись подтверждена вашим подразделением.');
+        } catch (KpiEntryException $e) {
+            return $this->errorResponse($request, $e->getMessage());
+        }
+    }
+
+    /**
+     * Отклонение KPI-записи от структурного подразделения (СП)
+     */
+    public function structuralReject(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
+    {
+        $this->authorize('structuralReject', $entry);
+
+        $data = $request->validate([
+            'comment' => ['nullable', 'string'],
+            'structural_unit_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id'],
+        ]);
+
+        try {
+            $result = $this->entryService->structuralReject(
+                $entry,
+                $request->user(),
+                $data['comment'] ?? null,
+                isset($data['structural_unit_id']) ? (int) $data['structural_unit_id'] : null,
+            );
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'KPI-запись отклонена вашим подразделением.',
+                    'data' => $result,
+                ]);
+            }
+
+            return back()->with('success', 'KPI-запись отклонена вашим подразделением.');
+        } catch (KpiEntryException $e) {
+            return $this->errorResponse($request, $e->getMessage());
+        }
+    }
     public function __construct(
         private readonly KpiEntryService $entryService,
         private readonly KpiEntryFileService $fileService,
@@ -152,10 +217,16 @@ class KpiEntryController extends Controller
 
         $entriesQuery = KpiEntry::query()
             ->with([
-                'indicator:id,section,code,name,unit,requires_file,base_points',
+                'indicator:id,section,code,name,unit,requires_file,base_points,checker_structural_unit_id',
+                'indicator.checkerStructuralUnit:id,code,name',
+                'indicator.structuralUnits:id,code,name',
                 'files:id,kpi_entry_id,file_name,file_path,file_disk,file_type,file_size,uploaded_by',
                 'statusLogs' => fn ($q) => $q->orderBy('created_at', 'asc'),
                 'statusLogs.actor:id,name,display_name',
+                'statusLogs.actor.kpiStructuralUnits:id,code,name',
+                'structuralConfirmations:id,kpi_record_id,structural_unit_id,confirmed_by,status,comment,confirmed_at',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->forUser($user->id)
             ->forEntityType($entityType)
@@ -179,6 +250,148 @@ class KpiEntryController extends Controller
                 'actor_name' => $log->actor?->display_name ?? $log->actor?->name ?? '—',
                 'created_at' => $log->created_at?->toIso8601String(),
             ])->values()->all();
+
+            $expectedUnits = $entry->indicator?->structuralUnits;
+            if (!($expectedUnits instanceof Collection) || $expectedUnits->isEmpty()) {
+                $expectedUnits = collect();
+                if ($entry->indicator?->checkerStructuralUnit !== null) {
+                    $expectedUnits = collect([$entry->indicator->checkerStructuralUnit]);
+                }
+            }
+
+            $rawConfirmations = $entry->structuralConfirmations instanceof Collection
+                ? $entry->structuralConfirmations
+                : collect();
+
+            $confirmationsByUnit = $rawConfirmations
+                ->filter(fn ($item) => $item?->structural_unit_id !== null)
+                ->keyBy(fn ($item) => (int) $item->structural_unit_id);
+
+            $resolvedConfirmations = $expectedUnits->map(function ($unit) use ($confirmationsByUnit): array {
+                $unitId = (int) ($unit->id ?? 0);
+                $confirmation = $confirmationsByUnit->get($unitId);
+
+                return [
+                    'structural_unit_id' => $unitId,
+                    'name' => trim((string) ($unit->code ?? '')) && trim((string) ($unit->name ?? ''))
+                        ? trim((string) $unit->code) . ' — ' . trim((string) $unit->name)
+                        : (trim((string) ($unit->name ?? '')) ?: trim((string) ($unit->code ?? ''))),
+                    'status' => $confirmation?->status ?? 'pending',
+                    'comment' => $confirmation?->comment,
+                    'confirmed_by' => $confirmation?->confirmer?->display_name
+                        ?? $confirmation?->confirmer?->name
+                        ?? null,
+                    'confirmed_at' => $confirmation?->confirmed_at?->toIso8601String(),
+                ];
+            })->values();
+
+            $extraConfirmations = $rawConfirmations
+                ->filter(fn ($item) => !$resolvedConfirmations->contains(fn ($row) => (int) $row['structural_unit_id'] === (int) $item->structural_unit_id))
+                ->map(function ($item): array {
+                    $unit = $item->structuralUnit;
+                    $name = trim((string) ($unit?->code ?? '')) && trim((string) ($unit?->name ?? ''))
+                        ? trim((string) $unit->code) . ' — ' . trim((string) $unit->name)
+                        : (trim((string) ($unit?->name ?? '')) ?: trim((string) ($unit?->code ?? '')));
+
+                    return [
+                        'structural_unit_id' => (int) ($item->structural_unit_id ?? 0),
+                        'name' => $name !== '' ? $name : 'Структурное подразделение',
+                        'status' => $item->status ?? 'pending',
+                        'comment' => $item->comment,
+                        'confirmed_by' => $item->confirmer?->display_name ?? $item->confirmer?->name ?? null,
+                        'confirmed_at' => $item->confirmed_at?->toIso8601String(),
+                    ];
+                })
+                ->values();
+
+            $matrix = $resolvedConfirmations
+                ->concat($extraConfirmations)
+                ->values();
+
+            // Fallback for historical entries: some old rejects were logged in status history
+            // without creating/updating a structural confirmation row.
+            $hasRejectedInMatrix = $matrix->contains(fn ($row) => ($row['status'] ?? null) === 'rejected');
+            if ($entry->status === KpiEntry::STATUS_REJECTED && !$hasRejectedInMatrix) {
+                $rejectLog = $entry->statusLogs
+                    ->filter(fn ($log) => $log->action === KpiStatusLog::ACTION_REJECT)
+                    ->sortByDesc('created_at')
+                    ->first();
+
+                if ($rejectLog) {
+                    $expectedUnitIds = $expectedUnits
+                        ->pluck('id')
+                        ->filter()
+                        ->map(fn ($id) => (int) $id)
+                        ->values();
+
+                    $candidateIds = collect();
+
+                    $actorUnitIds = $rejectLog->actor?->kpiStructuralUnits
+                        ? $rejectLog->actor->kpiStructuralUnits
+                            ->pluck('id')
+                            ->filter()
+                            ->map(fn ($id) => (int) $id)
+                        : collect();
+
+                    if ($actorUnitIds->isNotEmpty()) {
+                        $candidateIds = $expectedUnitIds->isNotEmpty()
+                            ? $actorUnitIds->intersect($expectedUnitIds)->values()
+                            : $actorUnitIds->values();
+                    }
+
+                    if ($candidateIds->isEmpty() && $expectedUnits->isNotEmpty()) {
+                        $commentText = mb_strtolower((string) ($rejectLog->comment ?? ''), 'UTF-8');
+
+                        foreach ($expectedUnits as $unit) {
+                            $unitCode = mb_strtolower(trim((string) ($unit->code ?? '')), 'UTF-8');
+                            $unitName = mb_strtolower(trim((string) ($unit->name ?? '')), 'UTF-8');
+
+                            if (
+                                ($unitCode !== '' && str_contains($commentText, $unitCode))
+                                || ($unitName !== '' && str_contains($commentText, $unitName))
+                            ) {
+                                $candidateIds->push((int) $unit->id);
+                            }
+                        }
+                    }
+
+                    $candidateIds = $candidateIds->unique()->values();
+
+                    if ($candidateIds->isNotEmpty()) {
+                        foreach ($candidateIds as $candidateId) {
+                            $index = $matrix->search(
+                                fn ($row) => (int) ($row['structural_unit_id'] ?? 0) === (int) $candidateId,
+                                true
+                            );
+
+                            $unit = $expectedUnits->first(fn ($item) => (int) ($item->id ?? 0) === (int) $candidateId);
+                            $resolvedName = trim((string) ($unit?->code ?? '')) && trim((string) ($unit?->name ?? ''))
+                                ? trim((string) $unit->code) . ' — ' . trim((string) $unit->name)
+                                : (trim((string) ($unit?->name ?? '')) ?: trim((string) ($unit?->code ?? '')) ?: 'Структурное подразделение');
+
+                            $payload = [
+                                'structural_unit_id' => (int) $candidateId,
+                                'name' => $resolvedName,
+                                'status' => 'rejected',
+                                'comment' => $rejectLog->comment,
+                                'confirmed_by' => $rejectLog->actor?->display_name ?? $rejectLog->actor?->name ?? null,
+                                'confirmed_at' => $rejectLog->created_at?->toIso8601String(),
+                            ];
+
+                            if ($index === false) {
+                                $matrix->push($payload);
+                            } else {
+                                $matrix->put((int) $index, $payload);
+                            }
+                        }
+                    }
+                }
+            }
+
+            $entry->structural_confirmation_matrix = $matrix
+                ->values()
+                ->all();
+
             return $entry;
         });
 
@@ -623,10 +836,6 @@ class KpiEntryController extends Controller
     {
         $this->authorize('submit', $entry);
 
-        if (in_array($entry->status, [KpiEntry::STATUS_RETURNED, KpiEntry::STATUS_REJECTED], true)) {
-            return $this->errorResponse($request, 'Запись была возвращена/отклонена. Сначала внесите исправления через форму редактирования.');
-        }
-
         $entry->loadMissing('indicator');
 
         if ($entry->entity_type === KpiEntry::ENTITY_TYPE_TEACHER) {
@@ -877,15 +1086,21 @@ class KpiEntryController extends Controller
 
         try {
             $approved = $this->entryService->approveEntry($entry, $request->user(), $data['comment'] ?? null);
+            $successMessage = match ($approved->status) {
+                KpiEntry::STATUS_PENDING_DEAN => 'KPI-запись передана на корректировку декану.',
+                KpiEntry::STATUS_PENDING_STRUCTURAL => 'KPI-запись передана на финальное утверждение СП.',
+                KpiEntry::STATUS_APPROVED => 'KPI-запись утверждена.',
+                default => 'KPI-запись обновлена.',
+            };
 
             if ($request->expectsJson()) {
                 return response()->json([
-                    'message' => 'KPI-запись утверждена.',
+                    'message' => $successMessage,
                     'data' => $approved,
                 ]);
             }
 
-            return back()->with('success', 'KPI-запись утверждена.');
+            return back()->with('success', $successMessage);
         } catch (KpiEntryException $e) {
             return $this->errorResponse($request, $e->getMessage());
         }
@@ -966,6 +1181,8 @@ class KpiEntryController extends Controller
     public function show(Request $request, KpiEntry $entry): Response|JsonResponse
     {
         $this->authorize('view', $entry);
+        $actorStructuralUnitIds = $this->resolveStructuralUnitIds($request->user())->values();
+        $roleSlug = $request->user()?->resolvedRoleSlug();
 
         $entry->load([
             'period:id,name,stage,status,start_date,end_date',
@@ -973,7 +1190,12 @@ class KpiEntryController extends Controller
             'user:id,name,email,faculty_id,department_id',
             'user.faculty:id,name',
             'user.department:id,name',
-            'indicator:id,entity_type,section,code,name,description,unit,requires_file,base_points',
+            'indicator:id,entity_type,section,code,name,description,unit,requires_file,base_points,checker_structural_unit_id',
+            'indicator.checkerStructuralUnit:id,code,name',
+            'indicator.structuralUnits:id,code,name',
+            'structuralConfirmations:id,kpi_record_id,structural_unit_id,confirmed_by,status,comment,confirmed_at',
+            'structuralConfirmations.structuralUnit:id,code,name',
+            'structuralConfirmations.confirmer:id,name,display_name',
             'files:id,kpi_entry_id,file_name,file_path,file_disk,file_type,file_size,uploaded_by',
             'statusLogs.actor:id,name',
             'faculty:id,name',
@@ -999,6 +1221,11 @@ class KpiEntryController extends Controller
                 'canReturn' => $request->user()?->can('return', $entry) ?? false,
                 'canApprove' => $request->user()?->can('approve', $entry) ?? false,
                 'canReject' => $request->user()?->can('reject', $entry) ?? false,
+            ],
+            'moderationContext' => [
+                'role_slug' => $roleSlug,
+                'is_admin' => in_array($roleSlug, ['admin', 'superadmin'], true),
+                'actor_structural_unit_ids' => $actorStructuralUnitIds->all(),
             ],
         ]);
     }
@@ -1223,6 +1450,9 @@ class KpiEntryController extends Controller
                 'indicator:id,code,name,section,base_points,checker_structural_unit_id',
                 'indicator.checkerStructuralUnit:id,code,name',
                 'indicator.structuralUnits:id,code,name',
+                'structuralConfirmations:id,kpi_record_id,structural_unit_id,confirmed_by,status,comment,confirmed_at',
+                'structuralConfirmations.structuralUnit:id,code,name',
+                'structuralConfirmations.confirmer:id,name,display_name',
                 'faculty:id,name',
                 'department:id,name',
                 'academicYear:id,name,start_year,end_year',
@@ -1320,6 +1550,7 @@ class KpiEntryController extends Controller
         $roleSlug = $user->resolvedRoleSlug();
         $reviewScope = null;
         $structuralScope = null;
+        $actorStructuralUnitIds = $this->resolveStructuralUnitIds($user);
 
         if (in_array($roleSlug, ['department_head', 'hod'], true)) {
             $departmentName = Department::query()
@@ -1347,6 +1578,7 @@ class KpiEntryController extends Controller
                 $structuralScope = [
                     'type' => 'admin',
                     'label' => 'Вы видите все записи (администратор)',
+                    'actor_division_ids' => $actorStructuralUnitIds,
                 ];
             } elseif ($roleSlug === 'structural') {
                 $divisionIds = $this->resolveStructuralUnitIds($user);
@@ -1362,11 +1594,13 @@ class KpiEntryController extends Controller
                             ? 'Вы просматриваете KPI отдела:'
                             : 'Вы просматриваете KPI отделов:',
                         'divisions' => $divisions,
+                        'actor_division_ids' => $divisionIds,
                     ];
                 } else {
                     $structuralScope = [
                         'type' => 'info',
                         'label' => 'Подразделение сотрудника: '.($user->ad_division ?: 'не назначено').'.',
+                        'actor_division_ids' => $actorStructuralUnitIds,
                     ];
                 }
             } elseif ($roleSlug === 'department') {
@@ -1386,6 +1620,7 @@ class KpiEntryController extends Controller
                     $structuralScope = [
                         'type' => 'unrestricted',
                         'label' => 'Вы видите все записи (без ограничений)',
+                        'actor_division_ids' => $actorStructuralUnitIds,
                     ];
                 } elseif ($divisionIds->isNotEmpty()) {
                     $divisions = KpiStructuralUnit::query()
@@ -1396,6 +1631,7 @@ class KpiEntryController extends Controller
                         'type' => 'divisions',
                         'label' => 'Вы видите записи подразделений:',
                         'divisions' => $divisions,
+                        'actor_division_ids' => $divisionIds,
                     ];
                 }
             } elseif ($roleSlug === 'teacher' && KpiAccessGrant::userHas($user->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)) {
@@ -1415,6 +1651,7 @@ class KpiEntryController extends Controller
                     $structuralScope = [
                         'type' => 'unrestricted',
                         'label' => 'Вы видите все записи (без ограничений)',
+                        'actor_division_ids' => $actorStructuralUnitIds,
                     ];
                 } elseif ($divisionIds->isNotEmpty()) {
                     $divisions = KpiStructuralUnit::query()
@@ -1425,6 +1662,7 @@ class KpiEntryController extends Controller
                         'type' => 'divisions',
                         'label' => 'Вы видите записи подразделений:',
                         'divisions' => $divisions,
+                        'actor_division_ids' => $divisionIds,
                     ];
                 }
             }
@@ -1573,12 +1811,59 @@ class KpiEntryController extends Controller
 
         $normalized = mb_strtolower($adDivision);
 
-        return KpiStructuralUnit::query()
+        $exact = KpiStructuralUnit::query()
             ->whereRaw('LOWER(TRIM(name)) = ?', [$normalized])
             ->orWhereRaw('LOWER(TRIM(code)) = ?', [$normalized])
             ->pluck('id')
             ->unique()
             ->values();
+
+        if ($exact->isNotEmpty()) {
+            return $exact;
+        }
+
+        $aliases = [
+            'омоиам' => 'ОМОиАМ',
+            'ориа' => 'ОРиА',
+            'умифк' => 'УМиФК',
+            'уоп' => 'УОП',
+            'унивс' => 'УНиВС',
+            'цк' => 'ЦК',
+            'ck' => 'ЦК',
+            'cc' => 'ЦК',
+            'оуп' => 'ОУП',
+            'уокиа' => 'УОКиА',
+            'виср' => 'ВиСР',
+            'эф' => 'ЭФ',
+        ];
+
+        $units = KpiStructuralUnit::query()->get(['id', 'code', 'name']);
+
+        foreach ($aliases as $needle => $code) {
+            if (!str_contains($normalized, $needle)) {
+                continue;
+            }
+
+            $match = $units->first(fn (KpiStructuralUnit $unit): bool => mb_strtolower(trim((string) $unit->code)) === mb_strtolower($code));
+            if ($match) {
+                return collect([(int) $match->id]);
+            }
+        }
+
+        $fuzzy = $units
+            ->filter(function (KpiStructuralUnit $unit) use ($normalized): bool {
+                $code = mb_strtolower(trim((string) $unit->code));
+                $name = mb_strtolower(trim((string) $unit->name));
+
+                return ($code !== '' && str_contains($normalized, $code))
+                    || ($name !== '' && str_contains($normalized, $name));
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        return $fuzzy;
     }
 
     /**

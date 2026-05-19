@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
     BarChart3,
     BookOpen,
@@ -136,7 +136,6 @@ export default function TeacherForm({
     stageOptions = ['plan', 'fact', 'review'],
     filters = {},
 }) {
-    const { flash, errors } = usePage().props;
     const [uploadingEntryId, setUploadingEntryId] = useState(null);
     const [localRows, setLocalRows] = useState(() => toEditableRows(rows));
     const entryForm = useForm({
@@ -305,16 +304,6 @@ export default function TeacherForm({
                         </div>
                     </CardContent>
                 </Card>
-
-                {(flash?.success || flash?.error || errors?.kpi_entry) && (
-                    <Card className="border-l-4 border-l-amber-500">
-                        <CardContent className="pt-6 text-sm">
-                            {flash?.success && <p className="text-emerald-700">{flash.success}</p>}
-                            {flash?.error && <p className="text-destructive">{flash.error}</p>}
-                            {errors?.kpi_entry && <p className="text-destructive">{errors.kpi_entry}</p>}
-                        </CardContent>
-                    </Card>
-                )}
 
                 {!period ? (
                     <Card>

@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     BarChart3,
     BookOpen,
@@ -101,11 +101,46 @@ const TAB_ICONS = {
     overview: TrendingUp,
 };
 
+// Add СП-specific statuses and comments
+const SP_STATUS_LABELS = {
+    pending: 'На рассмотрении СП',
+    approved: 'Утверждено СП',
+    rejected: 'Отклонено СП',
+};
+
+const SP_STATUS_VARIANTS = {
+    pending: 'outline',
+    approved: 'default',
+    rejected: 'destructive',
+};
+
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function fmt(value, decimals = 2) {
     const n = Number(value ?? 0);
     return Number.isFinite(n) ? n.toFixed(decimals) : '—';
+}
+
+function fmtDateTime(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(d);
+}
+
+function formatStructuralUnitName(item) {
+    const code = String(item?.structural_unit_code ?? '').trim();
+    const name = String(item?.structural_unit_name ?? '').trim();
+    if (code && name) return `${code} — ${name}`;
+    if (name) return name;
+    if (code) return code;
+    return 'Структурное подразделение';
 }
 
 function pct(approved, total) {
@@ -148,7 +183,7 @@ function getNpuValue(row) {
 }
 
 function getRateValue(row) {
-    return row?.rate ?? row?.workload_rate ?? row?.stavka ?? '—';
+    return row?.rate ?? row?.workload_rate ?? row?.stavka ?? row?.npu_threshold ?? '—';
 }
 
 function buildMinePpsRow(summary) {
@@ -165,8 +200,9 @@ function buildMinePpsRow(summary) {
     const k3 = Number(result?.k3 ?? sumSectionPoints('social'));
     const k4 = Number(result?.k4 ?? sumSectionPoints('qualification'));
     const k5 = Number(result?.k5 ?? sumSectionPoints('survey'));
+    const npu = Number(result?.rate ?? result?.npu_threshold ?? result?.k6 ?? 0);
     const k6 = Number(result?.k6 ?? 0);
-    const rankScore = Number(result?.rank_score ?? (k1 + k2 + k3 + k4 + k5 - k6));
+    const rankScore = Number(result?.rank_score ?? (k1 + k2 + k3 + k4 + k5 - npu));
 
     return {
         id: summary?.user?.id,
@@ -174,13 +210,14 @@ function buildMinePpsRow(summary) {
         title: summary?.user?.title ?? '—',
         faculty_name: '—',
         department_name: summary?.user?.division ?? '—',
-        rate: '—',
         k1,
         k2,
         k3,
         k4,
         k5,
         k6,
+        npu_threshold: npu,
+        rate: npu,
         rank_score: rankScore,
     };
 }
@@ -331,6 +368,7 @@ function SectionEntriesTable({ sections }) {
                                         <th className="w-14 text-right">План</th>
                                         <th className="w-14 text-right">Факт</th>
                                         <th className="w-20 text-right">Баллы</th>
+                                        <th className="w-[26rem]">Согласование СП</th>
                                         <th className="w-28 text-right pe-3">Статус</th>
                                     </tr>
                                 </thead>
@@ -343,6 +381,33 @@ function SectionEntriesTable({ sections }) {
                                             <td className="text-right tabular-nums">{entry.plan_value ?? '—'}</td>
                                             <td className="text-right tabular-nums">{entry.fact_value ?? '—'}</td>
                                             <td className="text-right tabular-nums font-semibold">{fmt(entry.points)}</td>
+                                            <td className="text-xs align-top">
+                                                {(entry.structural_confirmations ?? []).length > 0 ? (
+                                                    <div className="space-y-1">
+                                                        {(entry.structural_confirmations ?? []).map((item) => (
+                                                            <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-md border border-border/70 bg-muted/20 p-1.5">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span className="truncate text-[0.7rem] font-medium text-foreground/80" title={formatStructuralUnitName(item)}>
+                                                                        {formatStructuralUnitName(item)}
+                                                                    </span>
+                                                                    <Badge variant={SP_STATUS_VARIANTS[item.status] ?? 'outline'} className="text-[0.65rem]">
+                                                                        {SP_STATUS_LABELS[item.status] ?? item.status}
+                                                                    </Badge>
+                                                                </div>
+                                                                {(item.comment || item.confirmed_by || item.confirmed_at) && (
+                                                                    <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+                                                                        {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
+                                                                        {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
+                                                                        {item.confirmed_at ? ` · ${fmtDateTime(item.confirmed_at)}` : ''}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
+                                            </td>
                                             <td className="text-right pe-3">
                                                 <Badge variant={STATUS_VARIANTS[entry.status] ?? 'secondary'} className="text-[0.7rem]">
                                                     {STATUS_LABELS[entry.status] ?? entry.status}
@@ -436,7 +501,7 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                     <th className="w-12 text-right">K3</th>
                                     <th className="w-12 text-right">K4</th>
                                     <th className="w-12 text-right">K5</th>
-                                    <th className="w-12 text-right">K6</th>
+                                    <th className="w-12 text-right">НПУ</th>
                                     <th className="w-16 text-right pe-3 text-[#139AA4]">R</th>
                                 </>
                             ) : (
@@ -542,7 +607,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                                 <td className="text-sm max-w-[10rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="text-sm max-w-[11rem] truncate" title={row.department_name ?? ''}>{row.department_name ?? '—'}</td>
                                 <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
-                                <td className="text-right tabular-nums">{fmt(getNpuValue(row))}</td>
+                                <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
                                 <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
@@ -583,7 +648,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                                 <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
                                 <td className="text-sm max-w-[13rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="font-medium max-w-[13rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
-                                <td className="text-right tabular-nums">{fmt(getNpuValue(row))}</td>
+                                <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
                                 <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
@@ -607,13 +672,12 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                         <th className="w-40">Факультет</th>
                         <th className="w-40">Кафедра</th>
                         <th className="w-44">Должность</th>
-                        <th className="w-14 text-right">Ставка</th>
+                        <th className="w-14 text-right">НПУ</th>
                         <th className="w-14 text-right">УМР</th>
                         <th className="w-14 text-right">НИР</th>
                         <th className="w-14 text-right">СВР</th>
                         <th className="w-14 text-right">УПК</th>
                         <th className="w-14 text-right">К5</th>
-                        <th className="w-14 text-right">К6</th>
                         <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
                     </tr>
                 </thead>
@@ -635,7 +699,6 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                             <td className="text-right tabular-nums">{fmt(row.k3)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k4)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k5)}</td>
-                            <td className="text-right tabular-nums">{fmt(row.k6)}</td>
                             <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
                         </tr>
                     ))}
@@ -698,7 +761,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
         <div className="space-y-4">
             <InfoBar>
                 <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
-                K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК, K5 — Анкетирование, K6 — НПУ. Нажмите на строку для просмотра карточки сотрудника.
+                K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК, K5 — Анкетирование. НПУ вычитается из суммы как отдельный показатель. Нажмите на строку для просмотра карточки сотрудника.
             </InfoBar>
 
             <ReportCard
@@ -723,8 +786,8 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
             >
                 <div className="mb-4">
                     <RatingFormulaBar
-                        formula="R = (K1 + K2 + K3 + K4 + K5) - K6"
-                        note="K6 соответствует НПУ"
+                        formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
+                        note="НПУ определяется по степени (настройки НПУ)"
                     />
                 </div>
 
@@ -930,7 +993,7 @@ function TeacherView({ summary }) {
             ) : (
                 <InfoBar>
                     <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
-                    Итоговый рейтинг ещё не сформирован — период не закрыт. Формула: R = (K1 + K2 + K3 + K4 + K5) - K6. Ниже отображаются текущие данные.
+                    Итоговый рейтинг ещё не сформирован — период не закрыт. Формула: R = (K1 + K2 + K3 + K4 + K5) - НПУ. Ниже отображаются текущие данные.
                 </InfoBar>
             )}
 
@@ -938,6 +1001,7 @@ function TeacherView({ summary }) {
                 <StatCard icon={BarChart3} label="Всего записей" value={summary.totals?.total ?? 0} />
                 <StatCard icon={TrendingUp} label="Утверждено" value={summary.totals?.approved ?? 0} accent="green" />
                 <StatCard label="На проверке" value={(summary.totals?.submitted ?? 0) + (summary.totals?.pending ?? 0)} accent="amber" />
+                <StatCard label="Отклонено" value={summary.totals?.rejected ?? 0} accent="default" />
                 <StatCard label="Баллов" value={fmt(summary.totals?.total_points)} accent="teal" />
             </div>
 
@@ -947,7 +1011,7 @@ function TeacherView({ summary }) {
                 subtitle="Моя строка рейтинга"
             >
                 <RatingFormulaBar
-                    formula="R = (K1 + K2 + K3 + K4 + K5) - K6"
+                    formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
                     note="K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК"
                 />
                 <div className="mt-3">
@@ -1470,9 +1534,8 @@ function OverviewTab({ summary }) {
 }
 
 
-function AdminView({ summary, academicYear, period, filters, onExportRatingExcel }) {
+function AdminView({ summary, academicYear, period, filters, onExportRatingExcel, tab, setTab }) {
     const tabs = ROLE_TABS.admin;
-    const [tab, setTab] = useState('overview');
 
     const statusCounts = summary.status_counts ?? {};
     const nonDraftTotal = Object.entries(statusCounts)
@@ -1738,8 +1801,8 @@ export default function Summary({
     filters = {},
     filterOptions = {},
 }) {
-    const { flash } = usePage().props;
     const normalizedRole = ['superadmin', 'structural'].includes(roleSlug) ? 'admin' : (roleSlug ?? 'teacher');
+    const [adminTab, setAdminTab] = useState('overview');
 
     const renderContent = () => {
         if (normalizedRole === 'teacher') return <TeacherView summary={summary} />;
@@ -1753,6 +1816,8 @@ export default function Summary({
                 period={period}
                 filters={filters}
                 onExportRatingExcel={handleExportRatingExcel}
+                tab={adminTab}
+                setTab={setAdminTab}
             />
         );
     };
@@ -1774,6 +1839,17 @@ export default function Summary({
 
     const handleExportSummaryExcel = () => {
         window.location.href = buildExportUrl('/kpi/summary/export-excel');
+    };
+
+    const handleExportCurrentExcel = () => {
+        if (normalizedRole === 'admin') {
+            if (adminTab === 'teachers' || adminTab === 'deans' || adminTab === 'hods') {
+                handleExportRatingExcel(adminTab);
+                return;
+            }
+        }
+
+        handleExportSummaryExcel();
     };
 
     return (
@@ -1801,9 +1877,9 @@ export default function Summary({
                         <FilterBar filters={filters} filterOptions={filterOptions} />
                         <button
                             type="button"
-                            onClick={handleExportSummaryExcel}
+                            onClick={handleExportCurrentExcel}
                             className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            title="Экспортировать текущую сводку в Excel"
+                            title="Экспортировать открытую страницу в Excel"
                         >
                             <FileText className="h-3.5 w-3.5" />
                             Excel
@@ -1832,12 +1908,6 @@ export default function Summary({
                         </div>
                     </div>
                 </div>
-
-                {flash?.success && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-                        {flash.success}
-                    </div>
-                )}
 
                 {renderContent()}
             </div>

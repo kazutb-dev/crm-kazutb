@@ -19,9 +19,18 @@ class KpiStructuralUnit extends Model
         'name',
     ];
 
+
     public function indicators(): HasMany
     {
         return $this->hasMany(KpiIndicator::class, 'checker_structural_unit_id');
+    }
+
+    /**
+     * Связь: подтверждения СП для этой структурной единицы
+     */
+    public function structuralConfirmations(): HasMany
+    {
+        return $this->hasMany(KpiStructuralConfirmation::class, 'structural_unit_id');
     }
 
     public function users(): BelongsToMany

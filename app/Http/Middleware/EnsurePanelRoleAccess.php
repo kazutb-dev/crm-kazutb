@@ -39,6 +39,10 @@ class EnsurePanelRoleAccess
             return $next($request);
         }
 
+        if ($this->canAccessPositionRequestRoutes($userId, $role, $routeName)) {
+            return $next($request);
+        }
+
         // Admin roles can access all panel routes.
         if (in_array($role, ['admin', 'superadmin'], true)) {
             return $next($request);
@@ -152,6 +156,8 @@ class EnsurePanelRoleAccess
                 'kpi.structural-queue',
                 'kpi.entries.approve',
                 'kpi.entries.reject',
+                'kpi.entries.structural-confirm',
+                'kpi.entries.structural-reject',
                 'kpi.entries.return',
                 'kpi.entries.show',
             ];
@@ -335,5 +341,22 @@ class EnsurePanelRoleAccess
             ->where('permission', $permission)
             ->where('is_active', true)
             ->exists();
+    }
+
+    private function canAccessPositionRequestRoutes(?int $userId, ?string $role, string $routeName): bool
+    {
+        if (! $this->startsWith($routeName, 'position-requests.')) {
+            return false;
+        }
+
+        if (in_array($role, ['admin', 'superadmin', 'structural', 'dean', 'hod', 'department_head'], true)) {
+            return true;
+        }
+
+        if ($userId !== null && KpiAccessGrant::userHasKpiAdmin($userId)) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -717,13 +717,16 @@ class DirectoryUserController extends Controller
             'structural_division_id' => ['nullable', 'integer', 'exists:divisions,id', Rule::requiredIf(fn () => $request->boolean('structural_access'))],
         ]);
 
-        $resolved = $this->resolveRoleForUpdate($data['role'] ?? null, $data['role_id'] ?? null);
+        $selectedRole = $data['role'] ?? null;
+        $resolvedRoleInput = $this->isKpiAdminRoleInput($selectedRole) ? 'teacher' : $selectedRole;
+        $resolved = $this->resolveRoleForUpdate($resolvedRoleInput, $data['role_id'] ?? null);
 
         if ($resolved === null) {
             return back()->with('error', 'Не удалось определить роль для сохранения.');
         }
 
         $user->update($resolved);
+        $this->syncKpiAdminRoleAccess($user, $selectedRole, (int) $request->user()->id);
 
         if (! empty($data['structural_access'])) {
             $divisionId = (int) ($data['structural_division_id'] ?? 0);
@@ -787,13 +790,16 @@ class DirectoryUserController extends Controller
             ]);
         }
 
-        $resolved = $this->resolveRoleForUpdate($data['role'] ?? null, $data['role_id'] ?? null);
+        $selectedRole = $data['role'] ?? null;
+        $resolvedRoleInput = $this->isKpiAdminRoleInput($selectedRole) ? 'teacher' : $selectedRole;
+        $resolved = $this->resolveRoleForUpdate($resolvedRoleInput, $data['role_id'] ?? null);
 
         if ($resolved === null) {
             return back()->with('error', 'Не удалось определить роль для сохранения.');
         }
 
         $user->update($resolved);
+        $this->syncKpiAdminRoleAccess($user, $selectedRole, (int) $request->user()->id);
 
         if (! empty($data['structural_access'])) {
             $divisionId = (int) ($data['structural_division_id'] ?? 0);
@@ -1056,6 +1062,7 @@ class DirectoryUserController extends Controller
         $structuralAccessDivisionIds = $localUser
             ? ($structuralAccessByUser[$localUser->id] ?? [])
             : [];
+        $hasKpiAdminAccess = $localUser ? $this->hasKpiAdminAccess($localUser) : false;
 
         return [
             'id' => $localUser?->id ?? ('ad:' . ($login !== '' ? $login : ($email !== '' ? $email : md5($displayName)))),
@@ -1068,6 +1075,7 @@ class DirectoryUserController extends Controller
             'guid' => $localUser?->ad_guid ?? ($guid !== '' ? $guid : null),
             'role_slug' => $roleSlug,
             'role_label' => $this->resolveRoleLabelBySlug($roleSlug),
+            'is_kpi_admin' => $hasKpiAdminAccess,
             'position_id' => $localUser?->position_id,
             'position_name' => $localUser?->position?->name,
             'title' => $localUser?->ad_title ?? ($directoryUser['title'] ?? null),
@@ -1112,6 +1120,7 @@ class DirectoryUserController extends Controller
     {
         $roleSlug = $this->resolveMergedRoleForLocalUser($user);
         $structuralAccessDivisionIds = $structuralAccessByUser[$user->id] ?? [];
+        $hasKpiAdminAccess = $this->hasKpiAdminAccess($user);
 
         return [
             'id' => $user->id,
@@ -1123,6 +1132,7 @@ class DirectoryUserController extends Controller
             'guid' => $user->ad_guid,
             'role_slug' => $roleSlug,
             'role_label' => $this->resolveRoleLabelBySlug($roleSlug),
+            'is_kpi_admin' => $hasKpiAdminAccess,
             'position_id' => $user->position_id,
             'position_name' => $user->position?->name,
             'title' => $user->ad_title,
@@ -1403,6 +1413,19 @@ class DirectoryUserController extends Controller
                 ->exists();
     }
 
+    private function hasKpiAdminAccess(User $user): bool
+    {
+        if ($user->relationLoaded('kpiAccessGrants')) {
+            return $user->kpiAccessGrants
+                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_KPI_ADMIN && (bool) $grant->is_active);
+        }
+
+        return $user->kpiAccessGrants()
+            ->where('permission', KpiAccessGrant::PERM_KPI_ADMIN)
+            ->where('is_active', true)
+            ->exists();
+    }
+
     /**
      * @param array<string, mixed> $row
      */
@@ -1457,6 +1480,7 @@ class DirectoryUserController extends Controller
     {
         return match (Str::lower(trim((string) $roleSlug))) {
             'admin', 'superadmin' => 'Администратор',
+            'kpi_admin' => 'KPI администратор',
             'teacher' => 'Преподаватель',
             'hod', 'department_head' => 'Завед. кафедрой',
             'dean' => 'Декан',
@@ -1614,6 +1638,35 @@ class DirectoryUserController extends Controller
             'student', 'студент' => 'student',
             default => null,
         };
+    }
+
+    private function isKpiAdminRoleInput(?string $input): bool
+    {
+        $normalized = Str::lower(trim((string) $input));
+
+        return in_array($normalized, ['kpi_admin', 'kpi administrator', 'kpi администратор'], true);
+    }
+
+    private function syncKpiAdminRoleAccess(User $user, ?string $selectedRole, int $grantedBy): void
+    {
+        if (! $this->isKpiAdminRoleInput($selectedRole)) {
+            return;
+        }
+
+        foreach (KpiAccessGrant::ALL_PERMISSIONS as $permission) {
+            KpiAccessGrant::query()->updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'permission' => $permission,
+                    'division_id' => null,
+                ],
+                [
+                    'granted_by' => $grantedBy,
+                    'granted_at' => now(),
+                    'is_active' => true,
+                ]
+            );
+        }
     }
 
     private function resolveAssignableRoleId(string $roleSlug): ?int

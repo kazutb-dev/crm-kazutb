@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\Position;
+use App\Models\PositionChangeRequest;
 use App\Models\User;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -83,6 +85,49 @@ class ProfileController extends Controller
             }
         }
 
+        // Handle position confirmation
+        $confirmed = isset($validated['position_confirmed'])
+            ? filter_var($validated['position_confirmed'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
+            : null;
+
+        if ($confirmed === true) {
+            $user->position_title     = $user->position_title ?: $user->ad_title;
+            $user->position_id        = null;
+            $user->position_confirmed = true;
+        } elseif ($confirmed === false && ! empty($validated['position_id'])) {
+            $requestedPosition = Position::query()->find((int) $validated['position_id']);
+
+            if ($requestedPosition !== null) {
+                $hasPendingRequest = PositionChangeRequest::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'pending')
+                    ->exists();
+
+                if ($hasPendingRequest) {
+                    // Position change is locked while request is pending; keep saving other profile fields.
+                    unset($validated['position_id']);
+                    $requestedPosition = null;
+                }
+
+                if ($requestedPosition !== null) {
+                    $currentPosition = trim((string) ($user->position_title ?: $user->ad_title));
+                    if ($currentPosition !== '' && $currentPosition === (string) $requestedPosition->name) {
+                        // Selecting the already assigned position is a no-op: continue saving other profile fields.
+                        unset($validated['position_id']);
+                    } else {
+                        PositionChangeRequest::query()->create([
+                            'user_id' => $user->id,
+                            'current_position' => $user->position_title ?: $user->ad_title,
+                            'requested_position_id' => $requestedPosition->id,
+                            'status' => 'pending',
+                        ]);
+                    }
+                }
+            }
+        }
+
+        unset($validated['position_confirmed'], $validated['position_id'], $validated['position_title']);
+
         $user->fill($validated);
 
         if ($user->isDirty('email')) {
@@ -140,6 +185,30 @@ class ProfileController extends Controller
                 'name' => $division->name,
             ])->values();
         $canEditAcademicBindings = $this->canEditAcademicBindings($user);
+        $positionRequests = PositionChangeRequest::query()
+            ->where('user_id', $user->id)
+            ->with('requestedPosition:id,name')
+            ->latest('id')
+            ->limit(5)
+            ->get()
+            ->map(static fn (PositionChangeRequest $request) => [
+                'id' => $request->id,
+                'status' => $request->status,
+                'requested_position' => $request->requestedPosition?->name,
+                'created_at' => $request->created_at?->toDateString(),
+                'admin_note' => $request->admin_note,
+            ])
+            ->values();
+        $hasPendingPositionRequest = PositionChangeRequest::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->exists();
+        $pendingPositionRequest = PositionChangeRequest::query()
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->with('requestedPosition:id,name')
+            ->latest('id')
+            ->first();
 
         return [
             'id' => $user->id,
@@ -147,6 +216,9 @@ class ProfileController extends Controller
             'email' => $user->email,
             'phone' => $user->phone ?: null,
             'ad_phone' => $user->ad_phone ?? null,
+            'ad_title'           => $user->ad_title,
+            'position_confirmed' => $user->position_confirmed,
+            'position_id'        => $user->position_id,
             'position_title' => $user->position_title ?: ($user->ad_title ?: null),
             'office_location' => $user->office_location ?: ($user->room ?: null),
             'telegram' => $user->telegram ?: null,
@@ -168,6 +240,13 @@ class ProfileController extends Controller
             'profile_completion_percent' => $profileCompletionPercent,
             'profile_completion_label' => $profileCompletionLabel,
             'profile_completion' => $profileCompletionPercent,
+            'has_pending_position_request' => $hasPendingPositionRequest,
+            'pending_position_request' => $pendingPositionRequest ? [
+                'id' => $pendingPositionRequest->id,
+                'requested_position' => $pendingPositionRequest->requestedPosition?->name,
+                'created_at' => $pendingPositionRequest->created_at?->toDateString(),
+            ] : null,
+            'position_requests' => $positionRequests->all(),
             'faculty' => $user->faculty ? [
                 'id' => $user->faculty->id,
                 'name' => $user->faculty->name,
@@ -184,6 +263,11 @@ class ProfileController extends Controller
             ],
             'academic_bindings' => [
                 'can_edit' => $canEditAcademicBindings,
+                'positions' => Position::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->values()
+                    ->all(),
                 'faculties' => Faculty::query()
                     ->orderBy('name')
                     ->get(['id', 'name'])
@@ -209,6 +293,9 @@ class ProfileController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone ?: ($user->ad_phone ?? null),
                 'position_title' => $user->position_title ?: $user->ad_title,
+                'ad_title'           => $user->ad_title,
+                'position_confirmed' => $user->position_confirmed,
+                'position_id'        => $user->position_id ? (string) $user->position_id : '',
                 'office_location' => $user->office_location ?: $user->room,
                 'telegram' => $user->telegram,
                 'bio' => $user->bio,

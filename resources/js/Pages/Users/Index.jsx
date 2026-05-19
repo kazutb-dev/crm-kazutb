@@ -30,6 +30,7 @@ const ROLE_OPTIONS = [
     { value: 'hod', label: 'Заведующий кафедрой' },
     { value: 'dean', label: 'Декан' },
     { value: 'structural', label: 'Структурное подразделение' },
+    { value: 'kpi_admin', label: 'KPI администратор' },
     { value: 'admin', label: 'Администратор' },
 ];
 
@@ -53,6 +54,7 @@ const ROLE_BADGE_STYLES = {
     hod: 'border-amber-200 bg-amber-50 text-amber-900',
     dean: 'border-violet-200 bg-violet-50 text-violet-900',
     structural: 'border-teal-200 bg-teal-50 text-teal-900',
+    kpi_admin: 'border-cyan-200 bg-cyan-50 text-cyan-900',
     student: 'border-indigo-200 bg-indigo-50 text-indigo-900',
     admin: 'border-slate-200 bg-slate-100 text-slate-800',
     superadmin: 'border-slate-200 bg-slate-100 text-slate-800',
@@ -101,6 +103,7 @@ function normalizeKey(value) {
 }
 
 function resolveRoleSlug(user) {
+    if (Boolean(user?.is_kpi_admin)) return 'kpi_admin';
     const slug = String(user?.role_slug ?? '').toLowerCase();
     if (slug === 'department_head') return 'hod';
     if (slug === 'department') return 'teacher';
@@ -118,6 +121,8 @@ function resolveRoleLabel(user) {
             return 'Декан';
         case 'structural':
             return 'Структурное подразделение';
+        case 'kpi_admin':
+            return 'KPI администратор';
         case 'admin':
         case 'superadmin':
             return 'Администратор';

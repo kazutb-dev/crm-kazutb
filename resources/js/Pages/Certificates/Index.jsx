@@ -11,7 +11,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Head, Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { toast } from 'sonner';
 
@@ -29,6 +29,47 @@ const statusLabel = {
     issued: 'Выдан',
     revoked: 'Отозван',
 };
+
+/**
+ * Parse FIO names from a semicolon-delimited CSV (like Книга1.csv).
+ * Rules:
+ *  - Only rows where column 0 (index 0) contains a number are treated as main entries.
+ *  - The FIO is everything in column 2 before the " – " (or " - ") separator.
+ *  - A cell may contain multiple authors separated by semicolons (inside quotes).
+ *  - If the name part (before the dash) contains a comma between what looks like
+ *    two abbreviated names (e.g. "Иванов А.А., Петров Б.Б."), each is emitted separately.
+ */
+function parseCsvFio(text) {
+    const result = [];
+    const lines = text.split(/\r?\n/);
+
+    for (const rawLine of lines) {
+        if (!rawLine.trim()) continue;
+
+        // Naive semicolon CSV split that respects one level of double-quotes
+        const cols = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < rawLine.length; i++) {
+            const ch = rawLine[i];
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ';' && !inQ) { cols.push(cur); cur = ''; }
+            else { cur += ch; }
+        }
+        cols.push(cur);
+
+        const col0 = (cols[0] ?? '').trim();
+        if (!col0 || !/^\d+$/.test(col0)) continue; // skip header / advisor rows
+
+        // Take the full 3rd column as-is (strip surrounding quotes if present)
+        const rawCell = (cols[2] ?? '').replace(/^"(.*)"$/s, '$1').trim();
+        if (!rawCell) continue;
+
+        result.push(rawCell);
+    }
+
+    return result;
+}
 
 export default function CertificatesIndex({ templates = [] }) {
     const [number, setNumber] = useState('');
@@ -55,6 +96,17 @@ export default function CertificatesIndex({ templates = [] }) {
     const [qrDialogOpen, setQrDialogOpen] = useState(false);
     const [qrDialogData, setQrDialogData] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+
+    // --- Bulk CSV import state ---
+    const [csvText, setCsvText] = useState('');
+    const [csvParsed, setCsvParsed] = useState(/** @type {string[]} */ ([]));
+    const [bulkTopic, setBulkTopic] = useState('');
+    const [bulkTemplateVersionId, setBulkTemplateVersionId] = useState(
+        templates[0]?.id ? String(templates[0].id) : '',
+    );
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkResult, setBulkResult] = useState(null);
+    const csvFileRef = useRef(null);
 
     const getCsrfToken = () =>
         decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
@@ -181,6 +233,92 @@ export default function CertificatesIndex({ templates = [] }) {
         toast.success(data.message ?? 'Сертификат сгенерирован.');
         await loadRegistry(1, query, status);
         setActionLoading(false);
+    };
+
+    // --- Bulk CSV helpers ---
+    const handleCsvFile = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target?.result ?? '';
+            setCsvText(text);
+            setCsvParsed([]);
+            setBulkResult(null);
+        };
+        reader.readAsText(file, 'UTF-8');
+    };
+
+    const handleParseCsv = () => {
+        if (!csvText.trim()) {
+            toast.error('Вставьте или загрузите CSV-данные.');
+            return;
+        }
+        const names = parseCsvFio(csvText);
+        if (names.length === 0) {
+            toast.error('Имена не найдены. Проверьте формат CSV.');
+            return;
+        }
+        setCsvParsed(names);
+        setBulkResult(null);
+        toast.success(`Найдено ${names.length} имён.`);
+    };
+
+    const removeParsedName = (index) => {
+        setCsvParsed((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const editParsedName = (index, value) => {
+        setCsvParsed((prev) => prev.map((n, i) => (i === index ? value : n)));
+    };
+
+    const bulkGenerateCertificates = async () => {
+        if (csvParsed.length === 0) {
+            toast.error('Сначала распознайте имена из CSV.');
+            return;
+        }
+        if (!bulkTopic.trim()) {
+            toast.error('Укажите тему сертификата.');
+            return;
+        }
+
+        setBulkLoading(true);
+        setBulkResult(null);
+
+        const payload = {
+            recipients: csvParsed.filter((n) => n.trim() !== ''),
+            topic: bulkTopic.trim(),
+            template_version_id: bulkTemplateVersionId ? Number(bulkTemplateVersionId) : null,
+        };
+
+        try {
+            const response = await fetch(route('certificates.bulk-generate'), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                toast.error(data.message ?? 'Ошибка генерации.');
+                setBulkLoading(false);
+                return;
+            }
+
+            setBulkResult(data);
+            toast.success(data.message ?? `Сгенерировано: ${data.count}`);
+            await loadRegistry(1, query, status);
+        } catch {
+            toast.error('Ошибка соединения.');
+        } finally {
+            setBulkLoading(false);
+        }
     };
 
     const issueCertificate = async (id) => {
@@ -489,6 +627,140 @@ export default function CertificatesIndex({ templates = [] }) {
                                             Копировать ссылку
                                         </Button>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* ── Bulk CSV import ────────────────────────────────────── */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Массовая генерация из CSV</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-xs text-muted-foreground">
+                            Загрузите CSV-файл (разделитель «;») или вставьте его содержимое.
+                            Кнопка «Распознать» извлечёт ФИО из 3-го столбца — строки
+                            с номером статьи. Проверьте список и нажмите «Сгенерировать».
+                        </p>
+
+                        {/* File / paste */}
+                        <div className="flex flex-wrap gap-3">
+                            <input
+                                ref={csvFileRef}
+                                type="file"
+                                accept=".csv,text/csv,text/plain"
+                                className="hidden"
+                                onChange={handleCsvFile}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => csvFileRef.current?.click()}
+                            >
+                                Загрузить CSV-файл
+                            </Button>
+                            <span className="self-center text-xs text-muted-foreground">или вставьте текст ниже</span>
+                        </div>
+
+                        <textarea
+                            className="min-h-32 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                            placeholder="Вставьте содержимое CSV сюда…"
+                            value={csvText}
+                            onChange={(e) => { setCsvText(e.target.value); setCsvParsed([]); setBulkResult(null); }}
+                        />
+
+                        <Button type="button" onClick={handleParseCsv} variant="outline">
+                            Распознать ФИО из CSV
+                        </Button>
+
+                        {/* Editable preview */}
+                        {csvParsed.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-sm font-medium">
+                                    Найдено получателей: {csvParsed.length}
+                                </p>
+                                <div className="max-h-72 overflow-y-auto rounded-md border">
+                                    <table className="min-w-full text-sm">
+                                        <thead className="sticky top-0 bg-muted/40">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left">#</th>
+                                                <th className="px-3 py-2 text-left">ФИО получателя</th>
+                                                <th className="px-3 py-2" />
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {csvParsed.map((name, idx) => (
+                                                <tr key={idx} className="border-t">
+                                                    <td className="px-3 py-1 text-muted-foreground">{idx + 1}</td>
+                                                    <td className="px-3 py-1">
+                                                        <input
+                                                            className="w-full rounded border px-2 py-0.5 text-sm"
+                                                            value={name}
+                                                            onChange={(e) => editParsedName(idx, e.target.value)}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeParsedName(idx)}
+                                                            className="text-xs text-red-500 hover:underline"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Topic + template + generate */}
+                                <div className="grid gap-3 pt-2 md:grid-cols-3">
+                                    <input
+                                        className="h-10 w-full rounded-md border px-3"
+                                        placeholder="Тема сертификата (одна для всех)"
+                                        value={bulkTopic}
+                                        onChange={(e) => setBulkTopic(e.target.value)}
+                                    />
+                                    <select
+                                        className="h-10 w-full rounded-md border px-3"
+                                        value={bulkTemplateVersionId}
+                                        onChange={(e) => setBulkTemplateVersionId(e.target.value)}
+                                    >
+                                        <option value="">Авто (последний опубликованный)</option>
+                                        {templates.map((t) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.template_name} ({t.template_code}) v{t.version}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <Button
+                                        type="button"
+                                        disabled={bulkLoading}
+                                        onClick={bulkGenerateCertificates}
+                                    >
+                                        {bulkLoading
+                                            ? `Генерация ${csvParsed.length} серт…`
+                                            : `Сгенерировать (${csvParsed.length})`}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Result summary */}
+                        {bulkResult && (
+                            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                                <p className="font-semibold">{bulkResult.message}</p>
+                                <div className="mt-2 max-h-48 overflow-y-auto space-y-0.5">
+                                    {(bulkResult.certificates ?? []).map((c) => (
+                                        <div key={c.id} className="flex gap-2 text-xs">
+                                            <span className="font-mono">{c.certificate_number}</span>
+                                            <span>—</span>
+                                            <span>{c.recipient_full_name}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
