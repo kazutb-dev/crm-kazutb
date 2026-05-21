@@ -13,6 +13,7 @@ use App\Models\KpiEntry;
 use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\Ticket;
+use App\Models\User;
 use App\Observers\AuditableModelObserver;
 use App\Policies\KpiEntryPolicy;
 use App\Policies\KpiPeriodPolicy;
@@ -46,6 +47,18 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(KpiPeriod::class, KpiPeriodPolicy::class);
         Gate::policy(KpiEntry::class, KpiEntryPolicy::class);
+
+        Gate::define('viewPulse', function (User $user): bool {
+            return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true);
+        });
+
+        Gate::define('viewTelescope', function (User $user): bool {
+            return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true);
+        });
+
+        Gate::define('viewApiDocs', function (User $user): bool {
+            return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true);
+        });
 
         Event::listen(Login::class, LogSuccessfulLogin::class);
 

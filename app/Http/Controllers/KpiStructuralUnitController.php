@@ -210,6 +210,12 @@ class KpiStructuralUnitController extends Controller
 
         $unit = KpiStructuralUnit::create($validated);
 
+        if ($request->header('X-Inertia')) {
+            return redirect()
+                ->route('kpi.structural-units.index')
+                ->with('success', 'Структурное подразделение добавлено');
+        }
+
         return response()->json([
             'success' => true,
             'unit' => $unit,
@@ -226,6 +232,12 @@ class KpiStructuralUnitController extends Controller
 
         $unit->update($validated);
 
+        if ($request->header('X-Inertia')) {
+            return redirect()
+                ->route('kpi.structural-units.index')
+                ->with('success', 'Структурное подразделение обновлено');
+        }
+
         return response()->json([
             'success' => true,
             'unit' => $unit,
@@ -236,6 +248,10 @@ class KpiStructuralUnitController extends Controller
     public function destroy(KpiStructuralUnit $unit)
     {
         if ($unit->indicators()->count() > 0 || $unit->boundIndicators()->count() > 0 || $unit->users()->count() > 0) {
+            if (request()->header('X-Inertia')) {
+                return back()->with('error', 'Невозможно удалить структурное подразделение, которое имеет привязанные индикаторы или пользователей');
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'Невозможно удалить структурное подразделение, которое имеет привязанные индикаторы или пользователей',
@@ -243,6 +259,12 @@ class KpiStructuralUnitController extends Controller
         }
 
         $unit->delete();
+
+        if (request()->header('X-Inertia')) {
+            return redirect()
+                ->route('kpi.structural-units.index')
+                ->with('success', 'Структурное подразделение удалено');
+        }
 
         return response()->json([
             'success' => true,

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UserActivitySnapshot;
+use App\Support\AdminEventCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -9,348 +11,457 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
 
 class DashboardController extends Controller
 {
     public function index(Request $request): Response|RedirectResponse
     {
         $role = $request->user()?->resolvedRoleSlug();
-        if (! in_array($role, ['admin', 'superadmin'], true)) {
+        if (!in_array($role, ['admin', 'superadmin'], true)) {
             return redirect()->route('profile.edit');
         }
 
         $hasIsHidden = Schema::hasColumn('users', 'is_hidden');
         $hasAdLogin = Schema::hasColumn('users', 'ad_login');
-        $hasFacultyIdOnDepartments = Schema::hasColumn('departments', 'faculty_id');
-        $hasLoginCount = Schema::hasColumn('users', 'login_count');
         $hasLastLoginAt = Schema::hasColumn('users', 'last_login_at');
         $hasPeriodIdOnEntries = Schema::hasColumn('kpi_entries', 'period_id');
-        $hasPeriodActiveFlag = Schema::hasColumn('kpi_periods', 'is_active');
         $entryPeriodColumn = $hasPeriodIdOnEntries ? 'period_id' : 'kpi_period_id';
-        $serviceAdLogins = ['api', 'api-kiosk', 'api-library', 'api-platonus', 'glpi'];
+
+        $staffQuery = DB::table('users')
+            ->when($hasIsHidden, static fn ($q) => $q->where('is_hidden', 0))
+            ->whereNotIn('role', ['student']);
+
+        $studentQuery = DB::table('users')
+            ->when($hasIsHidden, static fn ($q) => $q->where('is_hidden', 0))
+            ->where('role', 'student');
+
+        $staffCount = (clone $staffQuery)->count();
+        $studentsCount = (clone $studentQuery)->count();
+
+        $employeesSynced = $hasAdLogin
+            ? (clone $staffQuery)->whereNotNull('ad_login')->count()
+            : 0;
+
+        $ticketsTotal = Schema::hasTable('tickets') ? DB::table('tickets')->count() : 0;
+        $ticketsNew = Schema::hasTable('tickets') ? DB::table('tickets')->where('status', 'new')->count() : 0;
+        $ticketsInWork = Schema::hasTable('tickets')
+            ? DB::table('tickets')->whereIn('status', ['in_progress', 'processing', 'assigned'])->count()
+            : 0;
+
+        $positionRequestsPending = Schema::hasTable('position_change_requests')
+            ? DB::table('position_change_requests')->where('status', 'pending')->count()
+            : 0;
+
+        $announcementsActive = Schema::hasTable('announcements')
+            ? DB::table('announcements')->where('is_active', 1)->count()
+            : 0;
+
+        $navigationRoutesActive = Schema::hasTable('navigation_routes')
+            ? DB::table('navigation_routes')->where('is_active', 1)->count()
+            : 0;
+
+        $calendarUpcoming = Schema::hasTable('calendar_events')
+            ? DB::table('calendar_events')
+                ->where('starts_at', '>=', now())
+                ->where('starts_at', '<=', now()->addDays(7))
+                ->count()
+            : 0;
+
+        $calendarConflicts = Schema::hasTable('calendar_events')
+            ? DB::table('calendar_events')->where('status', 'conflict')->count()
+            : 0;
+
+        $libraryReservationsPending = Schema::hasTable('library_reservations')
+            ? DB::table('library_reservations')->where('status', 'pending')->count()
+            : 0;
+
+        $libraryLoansActive = Schema::hasTable('library_loans')
+            ? DB::table('library_loans')->whereDate('issued_at', '>=', now()->subDays(30))->count()
+            : 0;
+
+        $certificatesIssuedMonth = Schema::hasTable('certificates')
+            ? DB::table('certificates')->whereDate('created_at', '>=', now()->startOfMonth())->count()
+            : 0;
+
+        $kpiTotal = Schema::hasTable('kpi_entries') ? DB::table('kpi_entries')->whereNull('deleted_at')->count() : 0;
+        $kpiPending = Schema::hasTable('kpi_entries')
+            ? DB::table('kpi_entries')
+                ->whereNull('deleted_at')
+                ->whereIn('status', ['submitted', 'pending_dean', 'pending_structural', 'reviewed'])
+                ->count()
+            : 0;
+        $kpiApproved = Schema::hasTable('kpi_entries')
+            ? DB::table('kpi_entries')->whereNull('deleted_at')->where('status', 'approved')->count()
+            : 0;
+
+        $onlineUsers = Schema::hasTable('user_activity_snapshots')
+            ? UserActivitySnapshot::query()->where('last_seen_at', '>=', now()->subMinutes(5))->count()
+            : 0;
+
+        $recentUsers = Schema::hasTable('user_activity_snapshots')
+            ? UserActivitySnapshot::query()->where('last_seen_at', '>=', now()->subMinutes(30))->count()
+            : 0;
+
+        $auditToday = Schema::hasTable('audit_logs')
+            ? DB::table('audit_logs')->whereDate('created_at', today())->count()
+            : 0;
+
+        $activityToday = Schema::hasTable('activity_log')
+            ? DB::table('activity_log')->whereDate('created_at', today())->count()
+            : 0;
+
+        $overviewCards = [
+            [
+                'key' => 'staff',
+                'title' => 'Сотрудники',
+                'value' => $staffCount,
+                'hint' => $employeesSynced > 0 ? 'Синхронизировано с AD: ' . $employeesSynced : 'Работники CRM без студентов',
+                'accent' => 'navy',
+                'route' => route('users.index'),
+            ],
+            [
+                'key' => 'students',
+                'title' => 'Студенты',
+                'value' => $studentsCount,
+                'hint' => 'Профили студентов в системе',
+                'accent' => 'sky',
+                'route' => route('users.students'),
+            ],
+            [
+                'key' => 'tickets',
+                'title' => 'Тикеты',
+                'value' => $ticketsTotal,
+                'hint' => $ticketsNew . ' новых · ' . $ticketsInWork . ' в работе',
+                'accent' => 'amber',
+                'route' => route('tickets.admin'),
+            ],
+            [
+                'key' => 'position_requests',
+                'title' => 'Заявки на должность',
+                'value' => $positionRequestsPending,
+                'hint' => 'Ожидают решения администратора',
+                'accent' => 'rose',
+                'route' => route('position-requests.index'),
+            ],
+            [
+                'key' => 'calendar',
+                'title' => 'Календарь',
+                'value' => $calendarUpcoming,
+                'hint' => $calendarConflicts > 0
+                    ? $calendarConflicts . ' конфликтов расписания'
+                    : 'Событий в ближайшие 7 дней',
+                'accent' => 'teal',
+                'route' => route('calendar.index'),
+            ],
+            [
+                'key' => 'observability',
+                'title' => 'Онлайн сейчас',
+                'value' => $onlineUsers,
+                'hint' => $recentUsers . ' активны за последние 30 мин',
+                'accent' => 'violet',
+                'route' => route('admin.monitoring.index'),
+            ],
+        ];
+
+        $modules = [
+            [
+                'key' => 'kpi',
+                'title' => 'KPI-модуль',
+                'total' => $kpiTotal,
+                'pending' => $kpiPending,
+                'secondary' => 'Одобрено: ' . $kpiApproved,
+                'route' => route('kpi.index'),
+            ],
+            [
+                'key' => 'tickets',
+                'title' => 'Тикеты и заявки',
+                'total' => $ticketsTotal,
+                'pending' => $ticketsNew,
+                'secondary' => 'В работе: ' . $ticketsInWork,
+                'route' => route('tickets.admin'),
+            ],
+            [
+                'key' => 'announcements',
+                'title' => 'Объявления',
+                'total' => $announcementsActive,
+                'pending' => 0,
+                'secondary' => 'Активные публикации',
+                'route' => route('announcements.index'),
+            ],
+            [
+                'key' => 'library',
+                'title' => 'Библиотека',
+                'total' => $libraryLoansActive,
+                'pending' => $libraryReservationsPending,
+                'secondary' => 'Брони ожидают: ' . $libraryReservationsPending,
+                'route' => route('library.dashboard'),
+            ],
+            [
+                'key' => 'calendar',
+                'title' => 'Smart Calendar',
+                'total' => $calendarUpcoming,
+                'pending' => $calendarConflicts,
+                'secondary' => 'Конфликты: ' . $calendarConflicts,
+                'route' => route('calendar.index'),
+            ],
+            [
+                'key' => 'certificates',
+                'title' => 'Сертификаты',
+                'total' => $certificatesIssuedMonth,
+                'pending' => 0,
+                'secondary' => 'Выдано в текущем месяце',
+                'route' => route('certificates.index'),
+            ],
+            [
+                'key' => 'navigation',
+                'title' => 'Маршруты навигации',
+                'total' => $navigationRoutesActive,
+                'pending' => 0,
+                'secondary' => 'Активные маршруты',
+                'route' => route('nav.routes.admin'),
+            ],
+            [
+                'key' => 'monitoring',
+                'title' => 'Мониторинг и аудит',
+                'total' => $activityToday + $auditToday,
+                'pending' => 0,
+                'secondary' => 'События за сегодня: ' . ($activityToday + $auditToday),
+                'route' => route('admin.monitoring.index'),
+            ],
+        ];
 
         $usersByRole = DB::table('users')
             ->select('role', DB::raw('COUNT(*) as count'))
-            ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
+            ->when($hasIsHidden, static fn ($q) => $q->where('is_hidden', 0))
             ->whereNotNull('role')
             ->groupBy('role')
             ->orderBy('role')
-            ->get();
-
-        $usersByFaculty = DB::table('users as u')
-            ->join('faculties as f', 'f.id', '=', 'u.faculty_id')
-            ->select('f.name as faculty', DB::raw('COUNT(*) as count'))
-            ->when($hasIsHidden, fn ($q) => $q->where('u.is_hidden', 0))
-            ->groupBy('f.id', 'f.name')
-            ->orderBy('count', 'desc')
-            ->get();
-
-        $kpiByStatus = DB::table('kpi_entries')
-            ->select('status', DB::raw('COUNT(*) as count'))
-            ->whereNull('deleted_at')
-            ->groupBy('status')
-            ->orderBy('status')
-            ->get();
-
-        $kpiByMonthRaw = DB::table('kpi_entries')
-            ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->whereNull('deleted_at')
-            ->where('created_at', '>=', now()->subMonths(12))
-            ->groupBy('month')
-            ->orderBy('month')
             ->get()
-            ->keyBy('month');
+            ->map(static fn ($row): array => [
+                'role' => (string) $row->role,
+                'label' => AdminEventCatalog::subjectLabel((string) $row->role),
+                'count' => (int) $row->count,
+            ])
+            ->values();
 
-        $kpiByMonth = collect(range(11, 0))
-            ->map(function (int $offset) use ($kpiByMonthRaw) {
-                $month = now()->subMonths($offset)->format('Y-m');
-                $row = $kpiByMonthRaw->get($month);
+        $kpiByStatus = Schema::hasTable('kpi_entries')
+            ? DB::table('kpi_entries')
+                ->select('status', DB::raw('COUNT(*) as count'))
+                ->whereNull('deleted_at')
+                ->groupBy('status')
+                ->orderBy('status')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'status' => (string) $row->status,
+                    'count' => (int) $row->count,
+                ])
+                ->values()
+            : collect();
+
+        $ticketsByStatus = Schema::hasTable('tickets')
+            ? DB::table('tickets')
+                ->select('status', DB::raw('COUNT(*) as count'))
+                ->groupBy('status')
+                ->orderBy('status')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'status' => (string) $row->status,
+                    'count' => (int) $row->count,
+                ])
+                ->values()
+            : collect();
+
+        $calendarByStatus = Schema::hasTable('calendar_events')
+            ? DB::table('calendar_events')
+                ->select('status', DB::raw('COUNT(*) as count'))
+                ->groupBy('status')
+                ->orderBy('status')
+                ->get()
+                ->map(static fn ($row): array => [
+                    'status' => (string) $row->status,
+                    'count' => (int) $row->count,
+                ])
+                ->values()
+            : collect();
+
+        $trendStart = now()->subDays(13)->startOfDay();
+
+        $auditTrendRaw = Schema::hasTable('audit_logs')
+            ? DB::table('audit_logs')
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as count')
+                ->where('created_at', '>=', $trendStart)
+                ->groupBy('day')
+                ->orderBy('day')
+                ->get()
+                ->keyBy('day')
+            : collect();
+
+        $activityTrendRaw = Schema::hasTable('activity_log')
+            ? DB::table('activity_log')
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as count')
+                ->where('created_at', '>=', $trendStart)
+                ->groupBy('day')
+                ->orderBy('day')
+                ->get()
+                ->keyBy('day')
+            : collect();
+
+        $ticketsTrendRaw = Schema::hasTable('tickets')
+            ? DB::table('tickets')
+                ->selectRaw('DATE(created_at) as day, COUNT(*) as count')
+                ->where('created_at', '>=', $trendStart)
+                ->groupBy('day')
+                ->orderBy('day')
+                ->get()
+                ->keyBy('day')
+            : collect();
+
+        $trend = collect(range(13, 0))
+            ->map(static function (int $offset) use ($auditTrendRaw, $activityTrendRaw, $ticketsTrendRaw): array {
+                $day = now()->subDays($offset)->format('Y-m-d');
 
                 return [
-                    'month' => $month,
-                    'count' => (int) ($row->count ?? 0),
+                    'day' => $day,
+                    'audit' => (int) ($auditTrendRaw->get($day)->count ?? 0),
+                    'activity' => (int) ($activityTrendRaw->get($day)->count ?? 0),
+                    'tickets' => (int) ($ticketsTrendRaw->get($day)->count ?? 0),
                 ];
             })
             ->values();
 
-        $usersByDept = DB::table('users as u')
-            ->join('departments as d', 'd.id', '=', 'u.department_id')
-            ->select('d.name as department', DB::raw('COUNT(*) as count'))
-            ->where('u.role', 'teacher')
-            ->when($hasIsHidden, fn ($q) => $q->where('u.is_hidden', 0))
-            ->groupBy('d.id', 'd.name')
-            ->orderBy('count', 'desc')
-            ->get();
-
-        $loginActivity = $hasLastLoginAt
-            ? Cache::get('login_activity_30d', collect())
+        $recentAudit = Schema::hasTable('audit_logs')
+            ? DB::table('audit_logs')
+                ->select('id', 'created_at', 'actor_name', 'actor_email', 'event_type', 'subject_type', 'subject_label', 'description', 'ip_address')
+                ->latest('id')
+                ->limit(25)
+                ->get()
+                ->map(static fn ($row): array => [
+                    'id' => 'audit-' . $row->id,
+                    'source' => 'audit',
+                    'created_at' => $row->created_at,
+                    'actor_name' => $row->actor_name ?: 'Неизвестно',
+                    'actor_email' => $row->actor_email,
+                    'event_label' => AdminEventCatalog::eventLabel($row->event_type),
+                    'module' => AdminEventCatalog::eventModule($row->event_type),
+                    'module_label' => AdminEventCatalog::eventModuleLabel($row->event_type),
+                    'severity' => AdminEventCatalog::eventSeverity($row->event_type),
+                    'severity_label' => AdminEventCatalog::eventSeverityLabel($row->event_type),
+                    'subject_name' => AdminEventCatalog::subjectLabel($row->subject_type),
+                    'subject_label' => $row->subject_label,
+                    'description' => $row->description,
+                    'ip_address' => $row->ip_address,
+                ])
+                ->values()
             : collect();
 
-        if ($hasLastLoginAt && $loginActivity->isEmpty()) {
-            $loginActivity = DB::table('users')
-                ->select(
-                    DB::raw('DATE(last_login_at) as date'),
-                    DB::raw('COUNT(*) as logins')
-                )
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->whereNotNull('last_login_at')
-                ->where('last_login_at', '>=', now()->subDays(30))
-                ->groupBy('date')
-                ->orderBy('date')
-                ->get();
-        }
+        $recentActivity = Schema::hasTable('activity_log')
+            ? Activity::query()
+                ->with('causer:id,name,email')
+                ->latest('id')
+                ->limit(25)
+                ->get()
+                ->map(static function ($row): array {
+                    $props = $row->properties?->toArray() ?? [];
 
-        $localVisibleStaffCount = DB::table('users')
-            ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-            ->whereNotIn('role', ['student'])
-            ->when($hasAdLogin, function ($q) use ($serviceAdLogins) {
-                $q->where(function ($sub) use ($serviceAdLogins) {
-                    $sub->whereNull('ad_login')
-                        ->orWhereNotIn('ad_login', $serviceAdLogins);
-                });
-            })
-            ->count();
+                    return [
+                        'id' => 'activity-' . $row->id,
+                        'source' => 'activity',
+                        'created_at' => $row->created_at?->toIso8601String(),
+                        'actor_name' => $row->causer?->name ?: 'Система',
+                        'actor_email' => $row->causer?->email,
+                        'event_label' => AdminEventCatalog::eventLabel($row->event),
+                        'module' => AdminEventCatalog::eventModule($row->event),
+                        'module_label' => AdminEventCatalog::eventModuleLabel($row->event),
+                        'severity' => AdminEventCatalog::eventSeverity($row->event),
+                        'severity_label' => AdminEventCatalog::eventSeverityLabel($row->event),
+                        'subject_name' => AdminEventCatalog::subjectLabel($row->subject_type),
+                        'subject_label' => $row->subject_id ? ('#' . $row->subject_id) : null,
+                        'description' => $row->description,
+                        'ip_address' => data_get($props, 'ip'),
+                    ];
+                })
+                ->values()
+            : collect();
 
-        $cachedAdStaffCount = (int) Cache::get('ad_staff_count', $localVisibleStaffCount);
-        $cachedDbStaffCount = (int) Cache::get('db_staff_count', $localVisibleStaffCount);
-        $metricsSource = Cache::get('metrics_source', Cache::has('ad_staff_count') ? 'cached' : 'database');
-        $metricsGeneratedAt = Cache::get('metrics_generated_at', now()->toDateTimeString());
+        $activityFeed = $recentAudit
+            ->concat($recentActivity)
+            ->sortByDesc(static fn (array $row): int => strtotime((string) ($row['created_at'] ?? '1970-01-01 00:00:00')))
+            ->values()
+            ->take(30)
+            ->values();
+
+        $attention = collect([
+            [
+                'key' => 'tickets_new',
+                'title' => 'Новые тикеты',
+                'value' => $ticketsNew,
+                'severity' => $ticketsNew > 20 ? 'high' : ($ticketsNew > 0 ? 'medium' : 'ok'),
+                'hint' => 'Проверьте очередь тикетов',
+                'route' => route('tickets.admin'),
+            ],
+            [
+                'key' => 'position_pending',
+                'title' => 'Заявки на должность в ожидании',
+                'value' => $positionRequestsPending,
+                'severity' => $positionRequestsPending > 10 ? 'high' : ($positionRequestsPending > 0 ? 'medium' : 'ok'),
+                'hint' => 'Требуется решение администратора',
+                'route' => route('position-requests.index'),
+            ],
+            [
+                'key' => 'calendar_conflicts',
+                'title' => 'Конфликты в календаре',
+                'value' => $calendarConflicts,
+                'severity' => $calendarConflicts > 0 ? 'medium' : 'ok',
+                'hint' => 'Проверьте расписание встреч',
+                'route' => route('calendar.analytics'),
+            ],
+            [
+                'key' => 'kpi_pending',
+                'title' => 'KPI на согласовании',
+                'value' => $kpiPending,
+                'severity' => $kpiPending > 100 ? 'high' : ($kpiPending > 0 ? 'medium' : 'ok'),
+                'hint' => 'Очередь проверки KPI',
+                'route' => route('kpi.review-queue'),
+            ],
+        ])->values();
 
         $stats = [
-            'total_users' => Cache::get('ad_staff_count', DB::table('users')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->whereNotIn('role', ['student'])
-                ->count()),
-            'total_staff_ad' => DB::table('users')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->when($hasAdLogin, fn ($q) => $q->whereNotNull('ad_login'))
-                ->whereNotIn('role', ['student'])
-                ->count(),
-            'total_students' => Cache::get('ad_student_count', DB::table('users')->where('role', 'student')->count()),
-            'total_teachers' => Cache::get('ad_teacher_count', DB::table('users')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->where(function ($q) {
-                    $q->where('role', 'teacher')->orWhereNull('role');
-                })
-                ->count()),
-            'total_hod' => Cache::get('ad_hod_count', DB::table('users')
-                ->where('role', 'hod')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count()),
-            'total_dean' => Cache::get('ad_dean_count', DB::table('users')
-                ->where('role', 'dean')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count()),
-            'total_structural' => DB::table('users')
-                ->where('role', 'department')
-                ->whereExists(fn ($q) => $q->select(DB::raw(1))
-                    ->from('user_division')
-                    ->whereColumn('user_division.user_id', 'users.id'))
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
-            'kpi_total' => DB::table('kpi_entries')->whereNull('deleted_at')->count(),
-            'kpi_approved' => DB::table('kpi_entries')->whereNull('deleted_at')
-                ->where('status', 'approved')->count(),
-            'kpi_pending' => DB::table('kpi_entries')->whereNull('deleted_at')
-                ->whereIn('status', ['submitted', 'pending_dean', 'pending_structural', 'reviewed'])
-                ->count(),
-            'kpi_draft' => DB::table('kpi_entries')->whereNull('deleted_at')
-                ->where('status', 'draft')->count(),
+            'staff_total' => $staffCount,
+            'students_total' => $studentsCount,
+            'employees_synced' => $employeesSynced,
             'faculties' => DB::table('faculties')->count(),
-            'departments' => DB::table('departments')
-                ->when($hasFacultyIdOnDepartments, fn ($q) => $q->whereNotNull('faculty_id'))
-                ->count(),
-            'metrics_generated_at' => $metricsGeneratedAt,
-            'metrics_source' => $metricsSource,
-        ];
-
-        $kpiByEntityType = DB::table('kpi_entries')
-            ->select('entity_type', DB::raw('COUNT(*) as count'))
-            ->whereNull('deleted_at')
-            ->groupBy('entity_type')
-            ->orderBy('entity_type')
-            ->get();
-
-        $topUsers = DB::table('users')
-            ->select(
-                'name',
-                'role',
-                $hasLoginCount ? 'login_count' : DB::raw('0 as login_count'),
-                $hasLastLoginAt ? 'last_login_at' : DB::raw('NULL as last_login_at')
-            )
-            ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-            ->when($hasLoginCount, fn ($q) => $q->where('login_count', '>', 0))
-            ->orderByDesc($hasLoginCount ? 'login_count' : 'created_at')
-            ->limit(10)
-            ->get();
-
-        $syncStats = [
-            'synced' => DB::table('users')->whereNotNull('ad_login')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
-            'not_synced' => DB::table('users')->whereNull('ad_login')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
-        ];
-
-        $kpiByFaculty = DB::table('kpi_entries as ke')
-            ->join('users as u', 'u.id', '=', 'ke.user_id')
-            ->join('faculties as f', 'f.id', '=', 'u.faculty_id')
-            ->select(
-                'f.name as faculty',
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN ke.status="approved" THEN 1 ELSE 0 END) as approved'),
-                DB::raw('SUM(CASE WHEN ke.status="draft" THEN 1 ELSE 0 END) as draft'),
-                DB::raw('SUM(CASE WHEN ke.status IN ("submitted","pending_dean","pending_structural","reviewed") THEN 1 ELSE 0 END) as pending')
-            )
-            ->whereNull('ke.deleted_at')
-            ->when($hasIsHidden, fn ($q) => $q->where('u.is_hidden', 0))
-            ->groupBy('f.id', 'f.name')
-            ->get();
-
-        $kpiByDepartment = DB::table('kpi_entries as ke')
-            ->join('users as u', 'u.id', '=', 'ke.user_id')
-            ->join('departments as d', 'd.id', '=', 'u.department_id')
-            ->select(
-                DB::raw('SUBSTRING(d.name, 1, 25) as dept'),
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN ke.status="approved" THEN 1 ELSE 0 END) as approved')
-            )
-            ->whereNull('ke.deleted_at')
-            ->when($hasIsHidden, fn ($q) => $q->where('u.is_hidden', 0))
-            ->groupBy('d.id', 'd.name')
-            ->orderBy('total', 'desc')
-            ->limit(10)
-            ->get();
-
-        $userGrowthRaw = DB::table('users')
-            ->select(
-                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-            ->whereNotNull('created_at')
-            ->where('created_at', '>=', now()->subMonths(12))
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->keyBy('month');
-
-        $userGrowth = collect(range(11, 0))
-            ->map(function (int $offset) use ($userGrowthRaw) {
-                $month = now()->subMonths($offset)->format('Y-m');
-                $row = $userGrowthRaw->get($month);
-
-                return [
-                    'month' => $month,
-                    'count' => (int) ($row->count ?? 0),
-                ];
-            })
-            ->values();
-
-        $kpiPeriods = DB::table('kpi_periods')
-            ->select('id', 'name', 'start_date', 'end_date', 'status')
-            ->orderBy('start_date', 'desc')
-            ->limit(5)
-            ->get()
-            ->map(function ($p) use ($entryPeriodColumn, $hasPeriodActiveFlag) {
-                $total = DB::table('kpi_entries')
-                    ->where($entryPeriodColumn, $p->id)
-                    ->whereNull('deleted_at')
-                    ->count();
-
-                $approved = DB::table('kpi_entries')
-                    ->where($entryPeriodColumn, $p->id)
-                    ->where('status', 'approved')
-                    ->whereNull('deleted_at')
-                    ->count();
-
-                $pending = DB::table('kpi_entries')
-                    ->where($entryPeriodColumn, $p->id)
-                    ->whereIn('status', ['submitted', 'pending_dean', 'pending_structural', 'reviewed'])
-                    ->whereNull('deleted_at')
-                    ->count();
-
-                return [
-                    'name' => $p->name,
-                    'is_active' => $hasPeriodActiveFlag
-                        ? (bool) ($p->is_active ?? false)
-                        : ($p->status === 'active'),
-                    'start' => $p->start_date,
-                    'end' => $p->end_date,
-                    'total' => $total,
-                    'approved' => $approved,
-                    'pending' => $pending,
-                    'rate' => $total > 0 ? (int) round(($approved / $total) * 100) : 0,
-                ];
-            })
-            ->values();
-
-        $studentsByFaculty = DB::table('users as u')
-            ->join('faculties as f', 'f.id', '=', 'u.faculty_id')
-            ->select('f.name as faculty', DB::raw('COUNT(*) as count'))
-            ->where('u.role', 'student')
-            ->when($hasIsHidden, fn ($q) => $q->where('u.is_hidden', 0))
-            ->groupBy('f.id', 'f.name')
-            ->get();
-
-        $loginHeatmap = $hasLastLoginAt
-            ? DB::table('users')
-                ->select(
-                    DB::raw('DAYOFWEEK(last_login_at) as dow'),
-                    DB::raw('WEEK(last_login_at) as week'),
-                    DB::raw('COUNT(*) as count')
-                )
-                ->whereNotNull('last_login_at')
-                ->where('last_login_at', '>=', now()->subWeeks(12))
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->groupBy('dow', 'week')
-                ->get()
-            : collect();
-
-        $warnings = [
-            'hod_no_dept' => DB::table('users')
-                ->where('role', 'hod')
-                ->whereNull('department_id')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
-            'dean_no_faculty' => DB::table('users')
-                ->where('role', 'dean')
-                ->whereNull('faculty_id')
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
-            'structural_no_div' => DB::table('users')
-                ->where('role', 'department')
-                ->whereNotExists(fn ($q) => $q->select(DB::raw(1))
-                    ->from('user_division')
-                    ->whereColumn('user_division.user_id', 'users.id'))
-                ->when($hasIsHidden, fn ($q) => $q->where('is_hidden', 0))
-                ->count(),
+            'departments' => DB::table('departments')->count(),
+            'divisions' => DB::table('divisions')->count(),
+            'positions' => DB::table('positions')->count(),
+            'online_users' => $onlineUsers,
+            'recent_users' => $recentUsers,
+            'audit_today' => $auditToday,
+            'activity_today' => $activityToday,
+            'metrics_generated_at' => now()->toIso8601String(),
+            'metrics_source' => Cache::get('metrics_source', 'database'),
+            'kpi_total' => $kpiTotal,
+            'kpi_pending' => $kpiPending,
+            'kpi_approved' => $kpiApproved,
         ];
 
         return Inertia::render('Dashboard', [
             'stats' => $stats,
-            'metrics_generated_at' => $metricsGeneratedAt,
-            'metrics_source' => $metricsSource,
+            'overviewCards' => $overviewCards,
+            'modules' => $modules,
             'usersByRole' => $usersByRole,
-            'usersByFaculty' => $usersByFaculty,
             'kpiByStatus' => $kpiByStatus,
-            'kpiByMonth' => $kpiByMonth,
-            'usersByDept' => $usersByDept,
-            'loginActivity' => $loginActivity,
-            'kpiByEntityType' => $kpiByEntityType,
-            'topUsers' => $topUsers,
-            'syncStats' => $syncStats,
-            'kpiByFaculty' => $kpiByFaculty,
-            'kpiByDepartment' => $kpiByDepartment,
-            'userGrowth' => $userGrowth,
-            'kpiPeriods' => $kpiPeriods,
-            'studentsByFaculty' => $studentsByFaculty,
-            'loginHeatmap' => $loginHeatmap,
-            'warnings' => $warnings,
+            'ticketsByStatus' => $ticketsByStatus,
+            'calendarByStatus' => $calendarByStatus,
+            'trend' => $trend,
+            'activityFeed' => $activityFeed,
+            'attention' => $attention,
+            'quickLinks' => [
+                ['title' => 'Мониторинг', 'href' => route('admin.monitoring.index'), 'icon' => 'monitor'],
+                ['title' => 'Журнал действий', 'href' => route('admin.audit-logs.index'), 'icon' => 'scroll'],
+                ['title' => 'Pulse', 'href' => url('/' . ltrim((string) config('pulse.path', 'pulse'), '/')), 'icon' => 'activity'],
+                ['title' => 'Telescope', 'href' => url('/telescope'), 'icon' => 'telescope'],
+            ],
         ]);
     }
 

@@ -432,9 +432,8 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                         <th className="py-3 pe-3 font-medium">Код</th>
                                         <th className="py-3 pe-3 font-medium">Название</th>
                                         <th className="py-3 pe-3 font-medium">Баллы</th>
-                                        <th className="py-3 pe-3 font-medium">Тип расчета</th>
                                         <th className="py-3 pe-3 font-medium">Правила баллов</th>
-                                        <th className="py-3 pe-3 font-medium">Файл</th>
+                                        <th className="py-3 pe-3 font-medium">Описание</th>
                                         <th className="py-3 pe-3 font-medium">Статус</th>
                                         <th className="py-3 text-right font-medium">Действия</th>
                                     </tr>
@@ -457,9 +456,8 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                             <td className="py-3 pe-3 font-mono">{indicator.code}</td>
                                             <td className="py-3 pe-3"><div className="font-medium">{indicator.name}</div><div className="text-xs text-muted-foreground">{indicator.unit || 'без единиц'}</div></td>
                                             <td className="py-3 pe-3">{indicator.base_points}</td>
-                                            <td className="py-3 pe-3">{calculationLabels[indicator.calculation_type] ?? indicator.calculation_type}</td>
                                             <td className="py-3 pe-3 whitespace-pre-line text-muted-foreground max-w-[180px]">{indicator.scoring_rules}</td>
-                                            <td className="py-3 pe-3">{indicator.requires_file ? 'Да' : 'Нет'}</td>
+                                            <td className="py-3 pe-3">{indicator.description || '—'}</td>
                                             <td className="py-3 pe-3">{indicator.is_active ? <Badge>Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}</td>
                                             <td className="py-3 text-right">
                                                 <div className="flex justify-end gap-2">

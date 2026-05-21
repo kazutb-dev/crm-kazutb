@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -11,6 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('activitylog:clean')->dailyAt('03:15');
+
+        $schedule->call(function (): void {
+            \App\Models\UserActivitySnapshot::query()
+                ->where('last_seen_at', '<', now()->subDays(30))
+                ->delete();
+        })->dailyAt('03:30');
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             \App\Http\Middleware\TrustProxies::class,
@@ -29,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \App\Http\Middleware\Authenticate::class,
             'panel.role.access' => \App\Http\Middleware\EnsurePanelRoleAccess::class,
             'calendar.access' => \App\Http\Middleware\EnsureCalendarLeadershipAccess::class,
+            'track.last-seen' => \App\Http\Middleware\TrackLastSeen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -90,6 +90,39 @@ DB_PASSWORD=YOUR_DB_PASS
 
 ---
 
+## DEV Workflow без ручного `npm run build`
+
+Для dev-сервера используйте авто-пересборку ассетов в фоне. После старта workflow фронтенд будет пересобираться автоматически при каждом изменении файлов.
+
+1. Запуск watcher в фоне:
+	```bash
+	npm run dev:workflow:start
+	```
+
+2. Проверка статуса:
+	```bash
+	npm run dev:workflow:status
+	```
+
+3. Просмотр логов:
+	```bash
+	npm run dev:workflow:logs
+	```
+
+4. Остановка watcher:
+	```bash
+	npm run dev:workflow:stop
+	```
+
+Полезные режимы:
+- `npm run dev:watch` — авто-пересборка (`vite build --watch`)
+- `npm run dev:watch:poll` — то же, но с polling (если события файловой системы работают нестабильно)
+- `npm run dev:hot` — HMR (для интерактивной локальной разработки)
+
+Примечание: при работе через удалённый dev-домен обычно удобнее использовать `dev:watch`, чтобы сайт сразу видел обновлённые файлы в `public/build`.
+
+---
+
 ## Статус проекта
 В активной разработке
 

@@ -148,6 +148,32 @@ function formatStructuralUnitName(item) {
     return 'Структурное подразделение';
 }
 
+function fmtValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+        return fmt(numeric);
+    }
+
+    return String(value);
+}
+
+function fmtPercent(value) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return '—';
+    }
+
+    return `${fmt(numeric)}%`;
+}
+
 // ─── filter bar ───────────────────────────────────────────────────────────────
 
 function FilterBar({ teacherId, filters, filterOptions }) {
@@ -195,43 +221,85 @@ function FilterBar({ teacherId, filters, filterOptions }) {
 
 // ─── result score card ───────────────────────────────────────────────────────
 
+function FormulaBreakdown({ result, npuThreshold }) {
+    const k1Num = Number(result?.k1 ?? 0);
+    const k2Num = Number(result?.k2 ?? 0);
+    const k3Num = Number(result?.k3 ?? 0);
+    const k4Num = Number(result?.k4 ?? 0);
+    const k5Num = Number(result?.k5 ?? 0);
+    const npuNum = Number(npuThreshold ?? 0);
+    const rankNum = Number(result?.rank_score ?? 0);
+
+    const sumNum = k1Num + k2Num + k3Num + k4Num + k5Num;
+
+    return (
+        <Card className="border-border/80 bg-muted/20">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Расчет Рейтинга</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-2 font-mono text-sm text-foreground/90">
+                    <div>Формула: R = (K1 + K2 + K3 + K4 + K5) - НПУ</div>
+                    <div className="border-t border-border/70 pt-2 text-muted-foreground">Подстановка:</div>
+                    <div>R = ({fmt(k1Num)} + {fmt(k2Num)} + {fmt(k3Num)} + {fmt(k4Num)} + {fmt(k5Num)}) - {fmt(npuNum)}</div>
+                    <div>R = {fmt(sumNum)} - {fmt(npuNum)}</div>
+                    <div className={[
+                        'text-lg font-bold',
+                        rankNum < 0 ? 'text-red-600' : 'text-emerald-600',
+                    ].join(' ')}>
+                        R = {fmt(rankNum)}
+                    </div>
+                    {rankNum < 0 && (
+                        <div className="text-xs text-red-600">Не достигнут минимум выполнения НПУ</div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 function ResultScoreCard({ result }) {
     if (!result) return null;
     const rVal = Number(result.rank_score ?? 0);
+    const npuThreshold = Number(result.npu_threshold ?? result.rate ?? result.k6 ?? 0);
     // Для отображения коэффициентов: K1–K5 и НПУ
     const coefKeys = ['k1', 'k2', 'k3', 'k4', 'k5', 'rate'];
     const coefLabels = ['K1', 'K2', 'K3', 'K4', 'K5', 'НПУ'];
     const hasAnyScore = coefKeys.some((k) => result[k] > 0);
 
     return (
-        <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
-                <div>
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
-                    <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
-                        {fmt(rVal)}
-                    </p>
+        <div className="space-y-4">
+            <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
+                    <div>
+                        <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
+                        <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
+                            {fmt(rVal)}
+                        </p>
+                    </div>
+                    {hasAnyScore && (
+                        <div className="flex gap-4">
+                            {coefKeys.map((k, i) => (
+                                <div key={k} className="text-center min-w-[2.5rem]">
+                                    <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">{coefLabels[i]}</p>
+                                    <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
+                                        {fmt(result[k])}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {result.approved_entries !== undefined && (
+                        <div className="ml-auto text-right">
+                            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
+                            <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
+                        </div>
+                    )}
                 </div>
-                {hasAnyScore && (
-                    <div className="flex gap-4">
-                        {coefKeys.map((k, i) => (
-                            <div key={k} className="text-center min-w-[2.5rem]">
-                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">{coefLabels[i]}</p>
-                                <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
-                                    {fmt(result[k])}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                )}
-                {result.approved_entries !== undefined && (
-                    <div className="ml-auto text-right">
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
-                        <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
-                    </div>
-                )}
             </div>
+
+            <FormulaBreakdown result={result} npuThreshold={npuThreshold} />
         </div>
     );
 }
@@ -378,7 +446,7 @@ function EntryStructuralConfirmations({ confirmations }) {
 
 // ─── entry row with expandable history ───────────────────────────────────────
 
-function EntryRow({ entry, showHistory }) {
+function EntryRow({ entry }) {
     const [open, setOpen] = useState(false);
     const hasHistory = entry.history?.length > 0;
     const hasFiles = (entry.files?.length ?? 0) > 0;
@@ -402,8 +470,9 @@ function EntryRow({ entry, showHistory }) {
                     </span>
                 </td>
                 <td className="text-right text-muted-foreground">{entry.unit ?? '—'}</td>
-                <td className="text-right tabular-nums">{entry.plan_value ?? '—'}</td>
-                <td className="text-right tabular-nums">{entry.fact_value ?? '—'}</td>
+                <td className="text-right tabular-nums">{fmtValue(entry.base_points)}</td>
+                <td className="text-right tabular-nums">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                <td className="text-xs text-muted-foreground max-w-[22rem]">{entry.points_formula ?? '—'}</td>
                 <td className="text-right tabular-nums font-semibold">{fmt(entry.points)}</td>
                 <td className="text-right pe-3">
                     <Badge variant={STATUS_VARIANTS[entry.status] ?? 'secondary'} className="text-[0.7rem]">
@@ -413,7 +482,7 @@ function EntryRow({ entry, showHistory }) {
             </tr>
             {open && canExpand && (
                 <tr>
-                    <td colSpan={7} className="ps-3 pb-3 pt-1 bg-muted/10">
+                    <td colSpan={8} className="ps-3 pb-3 pt-1 bg-muted/10">
                         <EntryHistory history={entry.history} />
                         <EntryStructuralConfirmations confirmations={entry.structural_confirmations} />
                         <EntryFiles files={entry.files} />
@@ -455,8 +524,9 @@ function SectionBlock({ section, entries }) {
                             <th className="ps-3 w-16">Код</th>
                             <th>Показатель</th>
                             <th className="w-14 text-right">Ед.</th>
-                            <th className="w-14 text-right">План</th>
-                            <th className="w-14 text-right">Факт</th>
+                            <th className="w-24 text-right">Базовый балл</th>
+                            <th className="w-20 text-right">Факт</th>
+                            <th className="w-[22rem]">Формула баллов</th>
                             <th className="w-20 text-right">Баллы</th>
                             <th className="w-28 text-right pe-3">Статус</th>
                         </tr>
@@ -596,6 +666,10 @@ export default function SummaryTeacherCard({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
+                        <div className="mb-3 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                            В колонке "Базовый балл" отображается значение показателя из настроек KPI.
+                            Формула в колонке "Формула баллов" показывает, как рассчитаны баллы по каждой записи.
+                        </div>
                         {hasEntries ? (
                             <div className="space-y-6">
                                 {allSections.map(([section, sectionEntries]) => (

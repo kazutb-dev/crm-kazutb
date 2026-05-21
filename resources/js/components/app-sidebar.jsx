@@ -391,6 +391,11 @@ export function AppSidebar() {
                     href: route('admin.audit-logs.index'),
                     icon: History,
                     active: route().current('admin.audit-logs.*'),
+                }, {
+                    title: 'Мониторинг системы',
+                    href: route('admin.monitoring.index'),
+                    icon: TrendingUp,
+                    active: route().current('admin.monitoring.*'),
                 }]
                 : []),
             ...(isAdminRole

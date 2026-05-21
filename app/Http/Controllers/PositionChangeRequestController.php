@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\KpiAccessGrant;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
+use App\Services\BusinessActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,6 +40,17 @@ class PositionChangeRequestController extends Controller
             'requested_position_id' => $data['requested_position_id'],
             'status'                => 'pending',
         ]);
+
+        app(BusinessActivityLogger::class)->log(
+            'position_request_created',
+            'Создана заявка на смену должности',
+            null,
+            [
+                'requested_position_id' => $data['requested_position_id'],
+            ],
+            $user,
+            $request,
+        );
 
         return back()->with('success', 'Заявка отправлена на рассмотрение.');
     }
@@ -131,6 +143,18 @@ class PositionChangeRequestController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        app(BusinessActivityLogger::class)->log(
+            'position_request_approved',
+            'Заявка на смену должности одобрена',
+            $positionRequest,
+            [
+                'approved_position_id' => $position->id,
+                'admin_note' => $data['admin_note'] ?? null,
+            ],
+            $request->user(),
+            $request,
+        );
+
         return back()->with('success', 'Заявка одобрена, должность обновлена.');
     }
 
@@ -155,6 +179,17 @@ class PositionChangeRequestController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
+
+        app(BusinessActivityLogger::class)->log(
+            'position_request_rejected',
+            'Заявка на смену должности отклонена',
+            $positionRequest,
+            [
+                'admin_note' => $data['admin_note'] ?? null,
+            ],
+            $request->user(),
+            $request,
+        );
 
         return back()->with('success', 'Заявка отклонена.');
     }

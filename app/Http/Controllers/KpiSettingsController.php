@@ -10,6 +10,7 @@ use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\KpiStructuralUnit;
 use App\Models\User;
+use App\Services\BusinessActivityLogger;
 use App\Services\KpiNpuSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -221,6 +222,19 @@ class KpiSettingsController extends Controller
             ],
         ]);
 
+        app(BusinessActivityLogger::class)->log(
+            'kpi_settings_updated',
+            'KPI-настройки сохранены',
+            null,
+            [
+                'teacher_default_points' => $validated['teacher']['default_points'],
+                'hod_default_points' => $validated['hod']['default_points'],
+                'dean_points' => $validated['dean']['points'],
+            ],
+            $user,
+            $request,
+        );
+
         return redirect()
             ->route('kpi.settings', ['tab' => 'settings'])
             ->with('success', 'KPI-настройки сохранены.');
@@ -237,7 +251,20 @@ class KpiSettingsController extends Controller
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);
 
-        $this->grantKpiAdminBundle((int) $validated['user_id'], $user->id);
+        $targetUser = User::query()->findOrFail((int) $validated['user_id']);
+
+        $this->grantKpiAdminBundle($targetUser->id, $user->id);
+
+        app(BusinessActivityLogger::class)->log(
+            'kpi_admin_access_granted',
+            'Выдан KPI-admin доступ',
+            $targetUser,
+            [
+                'granted_by' => $user->id,
+            ],
+            $user,
+            $request,
+        );
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])
@@ -253,6 +280,18 @@ class KpiSettingsController extends Controller
         abort_unless($grant->permission === KpiAccessGrant::PERM_KPI_ADMIN, 404);
 
         $this->revokeKpiAdminBundle((int) $grant->user_id);
+
+        app(BusinessActivityLogger::class)->log(
+            'kpi_admin_access_revoked',
+            'Отозван KPI-admin доступ',
+            $grant,
+            [
+                'revoked_by' => $user->id,
+                'target_user_id' => $grant->user_id,
+            ],
+            $user,
+            $request,
+        );
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])

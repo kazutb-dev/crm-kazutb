@@ -5,7 +5,13 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "dev:hot": "vite --host 0.0.0.0 --port 5174 --strictPort"
+        "dev:hot": "vite --host 0.0.0.0 --port 5174 --strictPort",
+        "dev:watch": "vite build --watch",
+        "dev:watch:poll": "CHOKIDAR_USEPOLLING=1 vite build --watch",
+        "dev:workflow:start": "bash ./scripts/dev-workflow.sh start",
+        "dev:workflow:stop": "bash ./scripts/dev-workflow.sh stop",
+        "dev:workflow:status": "bash ./scripts/dev-workflow.sh status",
+        "dev:workflow:logs": "bash ./scripts/dev-workflow.sh logs"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",

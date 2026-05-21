@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Role;
+use App\Services\BusinessActivityLogger;
+use App\Services\UserPresenceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +75,10 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
+        if ($user !== null) {
+            app(UserPresenceService::class)->record($user, $request, true);
+        }
+
         try {
             Artisan::call('dashboard:refresh-cache');
         } catch (\Throwable $e) {
@@ -89,7 +95,22 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
         Auth::guard('web')->logout();
+
+        if ($user !== null) {
+            app(BusinessActivityLogger::class)->log(
+                'logout',
+                'Пользователь вышел из системы',
+                $user,
+                [
+                    'reason' => 'manual_logout',
+                ],
+                $user,
+                $request,
+            );
+        }
 
         $request->session()->invalidate();
 

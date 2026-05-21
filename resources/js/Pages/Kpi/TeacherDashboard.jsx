@@ -165,6 +165,10 @@ function parseNumber(value, fallback = 0) {
     return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toNonNegativeIntegerInput(value) {
+    return String(value ?? '').replace(/\D+/g, '');
+}
+
 function extractNumberNear(text, needle, fallback = null) {
     const source = String(text ?? '').toLowerCase().replace(/−/g, '-');
     const index = source.indexOf(needle);
@@ -372,7 +376,7 @@ function resolveManualPoints(indicator, formData, ruleSpec) {
             return quantity * optionPoints;
         }
         default:
-            return null;
+            return quantity * parseNumber(indicator?.base_points, 0);
     }
 }
 
@@ -661,7 +665,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                 </td>
                 <td className="py-3 text-xs font-mono text-muted-foreground">{entry.indicator?.code ?? '—'}</td>
                 <td className="py-3 font-medium">{entry.indicator?.name ?? '—'}</td>
-                <td className="py-3 text-right tabular-nums text-sm">{entry.plan_value ?? '—'}</td>
+                <td className="py-3 text-right tabular-nums text-sm">{entry.indicator?.base_points ?? '—'}</td>
                 <td className="py-3 text-right tabular-nums text-sm">{entry.fact_value ?? '—'}</td>
                 <td className="py-3 text-right tabular-nums font-semibold text-sm">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
                 <td className="py-3">
@@ -827,7 +831,7 @@ function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, u
                                         <th className="ps-3 w-6"></th>
                                         <th className="w-16">Код</th>
                                         <th>Показатель</th>
-                                        <th className="w-20 text-right">План</th>
+                                        <th className="w-24 text-right">Базовый балл</th>
                                         <th className="w-20 text-right">Факт</th>
                                         <th className="w-20 text-right">Баллы</th>
                                         <th className="w-28">Статус</th>
@@ -1014,6 +1018,17 @@ export default function TeacherDashboard({
             value: effectiveValue,
         };
 
+        const numericValue = parseNumber(computedData.value, NaN);
+        if (Number.isFinite(numericValue) && numericValue < 0) {
+            createForm.setError('value', 'Значение не может быть отрицательным.');
+            return;
+        }
+
+        if (Number.isFinite(numericValue) && !Number.isInteger(numericValue)) {
+            createForm.setError('value', 'Значение KPI должно быть целым числом.');
+            return;
+        }
+
         const externalLinks = (computedData.external_source_urls ?? [])
             .map((url) => String(url ?? '').trim())
             .filter(Boolean)
@@ -1098,6 +1113,16 @@ export default function TeacherDashboard({
                 createForm.transform((data) => data);
             },
         });
+    };
+
+    const handleCreateValueChange = (event) => {
+        createForm.setData('value', toNonNegativeIntegerInput(event.target.value));
+    };
+
+    const handleCreateValueKeyDown = (event) => {
+        if (['.', ',', 'e', 'E', '+', '-'].includes(event.key)) {
+            event.preventDefault();
+        }
     };
 
     const openEditEntry = (entry) => {
@@ -1342,15 +1367,26 @@ export default function TeacherDashboard({
                                     </select>
                                     {createForm.errors.indicator_id && <p className="text-sm text-destructive">{createForm.errors.indicator_id}</p>}
                                 </div>
-
+                            {selectedIndicator && (
+                                <div className="space-y-2 sm:col-span-2">
+                                    <label className="text-sm font-medium">Описание показателя</label>
+                                    <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-sm whitespace-pre-line text-foreground/90">
+                                        {selectedIndicator.description || 'Описание не указано'}
+                                    </div>
+                                </div>
+                            )}
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Значение</label>
                                     <div className="flex items-center gap-2">
                                         <Input
                                             type="number"
-                                            step="0.01"
+                                            step="1"
+                                            min="0"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             value={createForm.data.value}
-                                            onChange={(event) => createForm.setData('value', event.target.value)}
+                                            onChange={handleCreateValueChange}
+                                            onKeyDown={handleCreateValueKeyDown}
                                         />
                                         <span className="shrink-0 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                                             {selectedIndicator?.unit || 'без ед.'}
@@ -1359,6 +1395,7 @@ export default function TeacherDashboard({
                                     <p className="text-xs text-muted-foreground">
                                         Единица измерения: <span className="font-medium text-foreground">{selectedIndicator?.unit || 'не указана'}</span>
                                     </p>
+                                    <p className="text-xs text-muted-foreground">Значение KPI должно быть целым неотрицательным числом.</p>
                                     {createForm.errors.value && <p className="text-sm text-destructive">{createForm.errors.value}</p>}
                                 </div>
 
@@ -1881,9 +1918,8 @@ export default function TeacherDashboard({
                                                 <th className="py-2.5 pe-3 font-medium">Код</th>
                                                 <th className="py-2.5 pe-3 font-medium">Название</th>
                                                 <th className="py-2.5 pe-3 font-medium">Баллы</th>
-                                                <th className="py-2.5 pe-3 font-medium">Тип расчета</th>
                                                 <th className="py-2.5 pe-3 font-medium">Правила баллов</th>
-                                                <th className="py-2.5 pe-3 font-medium">Файл</th>
+                                                <th className="py-2.5 pe-3 font-medium">Описание</th>
                                                 <th className="py-2.5 pe-3 font-medium">Статус</th>
                                             </tr>
                                         </thead>
@@ -1905,9 +1941,8 @@ export default function TeacherDashboard({
                                                         <div className="text-xs text-muted-foreground">{indicator.unit || 'без единиц'}</div>
                                                     </td>
                                                     <td className="py-2.5 pe-3">{indicator.base_points}</td>
-                                                    <td className="py-2.5 pe-3">{calculationTypeLabels[indicator.calculation_type] ?? indicator.calculation_type}</td>
                                                     <td className="py-2.5 pe-3 whitespace-pre-line text-muted-foreground max-w-[260px]">{indicator.scoring_rules || '—'}</td>
-                                                    <td className="py-2.5 pe-3">{indicator.requires_file ? 'Да' : 'Нет'}</td>
+                                                    <td className="py-2.5 pe-3">{indicator.description || '—'}</td>
                                                     <td className="py-2.5 pe-3">
                                                         {indicator.is_active ? <Badge>Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}
                                                     </td>

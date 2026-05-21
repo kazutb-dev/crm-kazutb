@@ -358,6 +358,9 @@ export default function TeacherForm({
                                                             </td>
                                                             <td className="py-4 pe-3">
                                                                 <Input
+                                                                    type="number"
+                                                                    step="1"
+                                                                    min="0"
                                                                     value={row.plan_value ?? ''}
                                                                     disabled={!canEditPlan(row)}
                                                                     onChange={(event) => updateRow(row.indicator_id, 'plan_value', event.target.value)}
@@ -366,6 +369,9 @@ export default function TeacherForm({
                                                             </td>
                                                             <td className="py-4 pe-3">
                                                                 <Input
+                                                                    type="number"
+                                                                    step="1"
+                                                                    min="0"
                                                                     value={row.fact_value ?? ''}
                                                                     disabled={!canEditFact(row)}
                                                                     onChange={(event) => updateRow(row.indicator_id, 'fact_value', event.target.value)}

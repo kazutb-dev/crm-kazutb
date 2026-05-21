@@ -83,7 +83,22 @@ class KpiIndicatorController extends Controller
 
         $data = $request->validate($this->rules($request));
 
-        KpiIndicator::query()->create($data);
+        $unitIds = collect($data['checker_structural_unit_ids'] ?? [])
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($unitIds) && !empty($data['checker_structural_unit_id'])) {
+            $unitIds = [(int) $data['checker_structural_unit_id']];
+        }
+
+        $data['checker_structural_unit_id'] = !empty($unitIds) ? $unitIds[0] : null;
+        unset($data['checker_structural_unit_ids']);
+
+        $indicator = KpiIndicator::query()->create($data);
+        $indicator->structuralUnits()->sync($unitIds);
 
         return redirect()->route('kpi.settings', ['tab' => 'indicators'])
             ->with('success', 'KPI-индикатор успешно создан.');
@@ -95,7 +110,22 @@ class KpiIndicatorController extends Controller
 
         $data = $request->validate($this->rules($request, $indicator));
 
+        $unitIds = collect($data['checker_structural_unit_ids'] ?? [])
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($unitIds) && !empty($data['checker_structural_unit_id'])) {
+            $unitIds = [(int) $data['checker_structural_unit_id']];
+        }
+
+        $data['checker_structural_unit_id'] = !empty($unitIds) ? $unitIds[0] : null;
+        unset($data['checker_structural_unit_ids']);
+
         $indicator->update($data);
+        $indicator->structuralUnits()->sync($unitIds);
 
         return redirect()->back()
             ->with('success', 'KPI-индикатор успешно обновлен.');
@@ -152,6 +182,8 @@ class KpiIndicatorController extends Controller
             'is_active' => ['required', 'boolean'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'checker_structural_unit_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id'],
+            'checker_structural_unit_ids' => ['nullable', 'array'],
+            'checker_structural_unit_ids.*' => ['integer', 'distinct', 'exists:kpi_structural_units,id'],
             'scoring_rules' => ['nullable', 'string', 'max:2000'],
         ];
     }

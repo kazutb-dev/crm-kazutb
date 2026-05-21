@@ -8,6 +8,7 @@ use App\Models\Faculty;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
 use App\Models\User;
+use App\Services\BusinessActivityLogger;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -142,6 +143,21 @@ class ProfileController extends Controller
 
         $user->save();
 
+        app(BusinessActivityLogger::class)->log(
+            'profile_updated',
+            'Профиль пользователя обновлён',
+            $user,
+            [
+                'changed_fields' => array_values(array_diff(array_keys($validated), ['password'])),
+                'email_changed' => $user->wasChanged('email'),
+                'phone_changed' => $isPhoneChanged,
+                'academic_bindings_changed' => $this->canEditAcademicBindings($request->user()) ? ['faculty_id', 'department_id'] : [],
+                'position_request_created' => isset($requestedPosition) && $requestedPosition !== null,
+            ],
+            $user,
+            $request,
+        );
+
         return Redirect::route('profile.edit');
     }
 
@@ -157,6 +173,17 @@ class ProfileController extends Controller
         $user = $request->user();
 
         Auth::logout();
+
+        app(BusinessActivityLogger::class)->log(
+            'profile_deleted',
+            'Пользователь удалил свой аккаунт',
+            $user,
+            [
+                'reason' => 'self_service_delete',
+            ],
+            $user,
+            $request,
+        );
 
         $user->delete();
 

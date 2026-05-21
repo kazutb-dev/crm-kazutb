@@ -59,10 +59,10 @@ Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index'
 Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'track.last-seen'])
     ->name('dashboard');
 
-Route::middleware(['auth', 'panel.role.access'])->group(function () {
+Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -135,6 +135,9 @@ Route::middleware(['auth', 'panel.role.access'])->group(function () {
 
     Route::get('admin/audit-logs', [AuditLogController::class, 'index'])
         ->name('admin.audit-logs.index');
+
+    Route::get('admin/monitoring', [\App\Http\Controllers\AdminMonitoringController::class, 'index'])
+        ->name('admin.monitoring.index');
 
     Route::get('divisions', [DivisionController::class, 'index'])
         ->name('divisions.index');

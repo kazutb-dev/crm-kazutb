@@ -292,7 +292,8 @@ export default function StructuralDivisionDashboard({
                                         </label>
                                         <Input
                                             type="number"
-                                            step="any"
+                                            step="1"
+                                            min="0"
                                             value={addForm.data.value}
                                             onChange={(e) => addForm.setData('value', e.target.value)}
                                             placeholder="0"
@@ -386,7 +387,8 @@ export default function StructuralDivisionDashboard({
                                                                 {isEditing && isPlanStage ? (
                                                                     <Input
                                                                         type="number"
-                                                                        step="any"
+                                                                        step="1"
+                                                                        min="0"
                                                                         value={editForm.data.value}
                                                                         onChange={(e) => editForm.setData('value', e.target.value)}
                                                                         className="w-24"
@@ -399,7 +401,8 @@ export default function StructuralDivisionDashboard({
                                                                 {isEditing && isFactStage ? (
                                                                     <Input
                                                                         type="number"
-                                                                        step="any"
+                                                                        step="1"
+                                                                        min="0"
                                                                         value={editForm.data.value}
                                                                         onChange={(e) => editForm.setData('value', e.target.value)}
                                                                         className="w-24"
@@ -513,10 +516,10 @@ export default function StructuralDivisionDashboard({
                                                 disabled={!link.url || link.active}
                                                 onClick={() => link.url && router.get(link.url, {}, { preserveScroll: true })}
                                                 className={`rounded-md px-3 py-1 text-sm ${link.active
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : link.url
-                                                            ? 'border hover:bg-muted'
-                                                            : 'cursor-default text-muted-foreground'
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : link.url
+                                                        ? 'border hover:bg-muted'
+                                                        : 'cursor-default text-muted-foreground'
                                                     }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}
                                             />

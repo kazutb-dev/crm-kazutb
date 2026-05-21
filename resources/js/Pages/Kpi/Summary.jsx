@@ -143,6 +143,12 @@ function formatStructuralUnitName(item) {
     return 'Структурное подразделение';
 }
 
+function fmtValue(value) {
+    if (value === null || value === undefined || value === '') return '—';
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? fmt(numeric) : String(value);
+}
+
 function pct(approved, total) {
     if (!total) return '0%';
     return Math.round((approved / total) * 100) + '%';
@@ -378,9 +384,21 @@ function SectionEntriesTable({ sections }) {
                                             <td className="ps-3 text-xs text-muted-foreground font-mono">{entry.code ?? '—'}</td>
                                             <td className="font-medium">{entry.name}</td>
                                             <td className="text-right text-muted-foreground">{entry.unit ?? '—'}</td>
-                                            <td className="text-right tabular-nums">{entry.plan_value ?? '—'}</td>
-                                            <td className="text-right tabular-nums">{entry.fact_value ?? '—'}</td>
-                                            <td className="text-right tabular-nums font-semibold">{fmt(entry.points)}</td>
+                                            <td className="text-right tabular-nums">
+                                                <div>{fmtValue(entry.plan_display_value ?? entry.plan_value)}</div>
+                                                {entry.plan_source === 'fact_fallback' && (
+                                                    <div className="text-[0.65rem] text-amber-600">авто из факта</div>
+                                                )}
+                                            </td>
+                                            <td className="text-right tabular-nums">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                                            <td className="text-right tabular-nums font-semibold">
+                                                <div>{fmt(entry.points)}</div>
+                                                {entry.points_formula && (
+                                                    <div className="text-[0.65rem] text-muted-foreground font-normal leading-tight mt-0.5 max-w-[18rem] ms-auto">
+                                                        {entry.points_formula}
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="text-xs align-top">
                                                 {(entry.structural_confirmations ?? []).length > 0 ? (
                                                     <div className="space-y-1">
@@ -669,16 +687,14 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                     <tr>
                         <th className="ps-3 w-9 text-center">№</th>
                         <th className="w-44">ФИО</th>
-                        <th className="w-40">Факультет</th>
-                        <th className="w-40">Кафедра</th>
                         <th className="w-44">Должность</th>
+                        <th className="w-14 text-right">К1 (УМР)</th>
+                        <th className="w-14 text-right">К2 (НИР)</th>
+                        <th className="w-14 text-right">К3 (СВР)</th>
+                        <th className="w-14 text-right">К4 (УПК)</th>
+                        <th className="w-14 text-right">К5 (Опрос)</th>
                         <th className="w-14 text-right">НПУ</th>
-                        <th className="w-14 text-right">УМР</th>
-                        <th className="w-14 text-right">НИР</th>
-                        <th className="w-14 text-right">СВР</th>
-                        <th className="w-14 text-right">УПК</th>
-                        <th className="w-14 text-right">К5</th>
-                        <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
+                        <th className="w-20 text-right text-[#139AA4]">Рейтинг (R)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -690,16 +706,19 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                         >
                             <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
                             <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
-                            <td className="text-sm max-w-[10rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
-                            <td className="text-sm max-w-[10rem] truncate" title={row.department_name ?? ''}>{row.department_name ?? '—'}</td>
                             <td className="text-sm text-muted-foreground max-w-[220px] truncate">{row.title ?? '—'}</td>
-                            <td className="text-right tabular-nums">{getRateValue(row)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k3)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k4)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k5)}</td>
-                            <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
+                            <td className="text-right tabular-nums">{fmt(row.npu_threshold ?? getRateValue(row))}</td>
+                            <td className={[
+                                'pe-3 text-right tabular-nums font-bold',
+                                Number(row.rank_score ?? 0) < 0 ? 'text-red-500' : 'text-[#139AA4]',
+                            ].join(' ')}>
+                                {fmt(row.rank_score)}
+                            </td>
                         </tr>
                     ))}
                 </tbody>

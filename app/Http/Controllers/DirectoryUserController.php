@@ -10,6 +10,7 @@ use App\Models\KpiStructuralUnit;
 use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\BusinessActivityLogger;
 use App\Services\ActiveDirectoryAuthenticator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -112,6 +113,18 @@ class DirectoryUserController extends Controller
             'role' => 'admin',
         ]);
 
+        app(BusinessActivityLogger::class)->log(
+            'admin_granted',
+            'Пользователю выданы права администратора',
+            $user,
+            [
+                'target_user_id' => $user->id,
+                'target_user_email' => $user->email,
+            ],
+            $request->user(),
+            $request,
+        );
+
         return back()->with('success', 'Права администратора выданы.');
     }
 
@@ -144,6 +157,18 @@ class DirectoryUserController extends Controller
             'role_id' => $teacherRoleId,
             'role' => 'teacher',
         ]);
+
+        app(BusinessActivityLogger::class)->log(
+            'admin_revoked',
+            'У пользователя сняты права администратора',
+            $user,
+            [
+                'target_user_id' => $user->id,
+                'target_user_email' => $user->email,
+            ],
+            $request->user(),
+            $request,
+        );
 
         return back()->with('success', 'Права администратора сняты.');
     }
@@ -544,6 +569,20 @@ class DirectoryUserController extends Controller
             $user->kpiStructuralUnits()->sync($data['division_ids'] ?? []);
         }
 
+        app(BusinessActivityLogger::class)->log(
+            'user_position_updated',
+            'Должность и привязки пользователя обновлены',
+            $user,
+            [
+                'position_id' => $user->position_id,
+                'faculty_id' => $user->faculty_id,
+                'department_id' => $user->department_id,
+                'division_ids' => $data['division_ids'] ?? [],
+            ],
+            $request->user(),
+            $request,
+        );
+
         return back()->with('success', 'Должность и привязки пользователя обновлены.');
     }
 
@@ -858,6 +897,19 @@ class DirectoryUserController extends Controller
             'password' => $password,
         ]);
 
+        app(BusinessActivityLogger::class)->log(
+            'user_created',
+            'Пользователь добавлен вручную',
+            null,
+            [
+                'directory_type' => $directoryType,
+                'role' => $roleSlug,
+                'email' => Str::lower(trim((string) $data['email'])),
+            ],
+            $request->user(),
+            $request,
+        );
+
         return back()->with('success', 'Пользователь добавлен вручную.');
     }
 
@@ -874,6 +926,18 @@ class DirectoryUserController extends Controller
             'department_id' => $data['department_id'] ?? null,
             'faculty_id' => $data['faculty_id'] ?? null,
         ]);
+
+        app(BusinessActivityLogger::class)->log(
+            'user_binding_updated',
+            'Привязка кафедры/факультета обновлена',
+            $user,
+            [
+                'department_id' => $data['department_id'] ?? null,
+                'faculty_id' => $data['faculty_id'] ?? null,
+            ],
+            $request->user(),
+            $request,
+        );
 
         return back()->with('success', 'Привязка кафедры/факультета обновлена.');
     }

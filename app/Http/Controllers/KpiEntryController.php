@@ -27,6 +27,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -143,7 +144,7 @@ class KpiEntryController extends Controller
             ->active()
             ->forEntityType($entityType)
             ->ordered()
-            ->get(['id', 'section', 'code', 'name', 'unit', 'requires_file', 'calculation_type', 'base_points', 'scoring_rules']);
+            ->get(['id', 'section', 'code', 'name', 'description', 'unit', 'requires_file', 'calculation_type', 'base_points', 'scoring_rules']);
 
         $indicators = $indicatorCollection->map(function (KpiIndicator $indicator) use ($entityType): array {
             return [
@@ -154,6 +155,7 @@ class KpiEntryController extends Controller
                 'group_code' => $this->resolveGroupCode((string) $indicator->code),
                 'code' => $indicator->code,
                 'name' => $indicator->name,
+                'description' => $indicator->description,
                 'unit' => $indicator->unit,
                 'requires_file' => $indicator->requiresFile(),
                 'calculation_type' => $indicator->calculation_type,
@@ -176,6 +178,7 @@ class KpiEntryController extends Controller
                 'section',
                 'code',
                 'name',
+                'description',
                 'unit',
                 'base_points',
                 'calculation_type',
@@ -192,6 +195,7 @@ class KpiEntryController extends Controller
                     'module_label' => $this->teacherModuleLabel((string) $indicator->section),
                     'code' => (string) $indicator->code,
                     'name' => (string) $indicator->name,
+                    'description' => (string) $indicator->description,
                     'unit' => $indicator->unit,
                     'base_points' => $indicator->base_points,
                     'calculation_type' => (string) $indicator->calculation_type,
@@ -588,7 +592,7 @@ class KpiEntryController extends Controller
         $data = $request->validate([
             'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
             'indicator_id' => ['required', 'integer', 'exists:kpi_indicators,id'],
-            'value' => ['nullable', 'numeric'],
+            'value' => ['nullable', 'integer', 'min:0'],
             'manual_points' => ['nullable', 'numeric'],
             'calculation_details' => ['nullable', 'array'],
             'comment' => ['nullable', 'string'],
@@ -637,6 +641,8 @@ class KpiEntryController extends Controller
             return $this->errorResponse($request, 'Нет активного KPI-сезона для выбранного учебного года.');
         }
 
+        $this->assertIndicatorValueRules($indicator, $data['value'] ?? null, 'value');
+
         $userFacultyId = $this->userFacultyId($user);
         $userDepartmentId = $this->userDepartmentId($user);
 
@@ -663,6 +669,11 @@ class KpiEntryController extends Controller
                 $entry->manual_points = $data['manual_points'] ?? null;
                 if ($entry->manual_points !== null) {
                     $entry->calculated_points = '0.00';
+                } else {
+                    $entry->calculated_points = $this->resolveAutoCalculatedPoints(
+                        $indicator,
+                        $entry->fact_value ?? $entry->plan_value,
+                    );
                 }
                 $entry->calculation_details = $data['calculation_details'] ?? null;
 
@@ -758,7 +769,7 @@ class KpiEntryController extends Controller
                 KpiPeriod::STAGE_PLAN,
                 KpiPeriod::STAGE_FACT,
             ])],
-            'value' => ['nullable', 'numeric'],
+            'value' => ['nullable', 'integer', 'min:0'],
             'comment' => ['nullable', 'string'],
             'calculation_details' => ['nullable', 'array'],
             'external_source_url' => ['nullable', 'url', 'max:2048'],
@@ -793,8 +804,15 @@ class KpiEntryController extends Controller
         $data['calculation_details'] = ! empty($details) ? $details : null;
 
         $entry->loadMissing('period');
+        $entry->loadMissing('indicator:id,base_points,unit');
 
         $stage = (string) ($data['stage'] ?? KpiPeriod::STAGE_FACT);
+
+        $this->assertIndicatorValueRules(
+            $entry->indicator,
+            $data['value'] ?? null,
+            'value',
+        );
 
         if (array_key_exists('value', $data) && $stage === KpiPeriod::STAGE_PLAN) {
             $entry->plan_value = $data['value'];
@@ -807,6 +825,12 @@ class KpiEntryController extends Controller
         $entry->comment = $data['comment'] ?? null;
         $entry->calculation_details = $data['calculation_details'] ?? null;
         $entry->external_source_url = $data['external_source_url'] ?? null;
+        if ($entry->manual_points === null) {
+            $entry->calculated_points = $this->resolveAutoCalculatedPoints(
+                $entry->indicator,
+                $entry->fact_value ?? $entry->plan_value,
+            );
+        }
         $entry->save();
 
         $filesToUpload = [];
@@ -887,6 +911,7 @@ class KpiEntryController extends Controller
         $this->authorize('create', KpiEntry::class);
 
         $data = $request->validate($this->entryRules('plan'));
+        $this->assertBulkEntryValueRules($data['entries'], 'plan');
 
         try {
             $this->entryService->savePlan($request->user(), $period, $data['entries']);
@@ -902,6 +927,7 @@ class KpiEntryController extends Controller
         $this->authorize('create', KpiEntry::class);
 
         $data = $request->validate($this->entryRules('fact'));
+        $this->assertBulkEntryValueRules($data['entries'], 'fact');
 
         try {
             $this->entryService->saveFact($request->user(), $period, $data['entries']);
@@ -1295,10 +1321,87 @@ class KpiEntryController extends Controller
             ])],
             'entries.*.faculty_id' => ['nullable', 'integer', 'exists:faculties,id'],
             'entries.*.department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'entries.*.' . $valueField => ['nullable', 'numeric'],
+            'entries.*.' . $valueField => ['nullable', 'integer', 'min:0'],
             'entries.*.manual_points' => ['nullable', 'numeric'],
             'entries.*.comment' => ['nullable', 'string'],
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $entries
+     */
+    private function assertBulkEntryValueRules(array $entries, string $mode): void
+    {
+        if (empty($entries)) {
+            return;
+        }
+
+        $valueField = $mode === 'plan' ? 'plan_value' : 'fact_value';
+        $indicatorIds = collect($entries)
+            ->pluck('indicator_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        $indicators = KpiIndicator::query()
+            ->whereIn('id', $indicatorIds)
+            ->get(['id', 'unit'])
+            ->keyBy('id');
+
+        foreach ($entries as $index => $entry) {
+            $indicator = $indicators->get((int) ($entry['indicator_id'] ?? 0));
+            if (! $indicator) {
+                continue;
+            }
+
+            $this->assertIndicatorValueRules(
+                $indicator,
+                $entry[$valueField] ?? null,
+                sprintf('entries.%d.%s', $index, $valueField),
+            );
+        }
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function assertIndicatorValueRules(?KpiIndicator $indicator, $value, string $field): void
+    {
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $numericValue = (float) $value;
+
+        if ($numericValue < 0) {
+            throw ValidationException::withMessages([
+                $field => 'Значение не может быть отрицательным.',
+            ]);
+        }
+
+        if (! $this->isWholeNumber($numericValue)) {
+            throw ValidationException::withMessages([
+                $field => 'Значение KPI должно быть целым числом.',
+            ]);
+        }
+    }
+
+    private function resolveAutoCalculatedPoints(?KpiIndicator $indicator, ?float $value): string
+    {
+        if (! $indicator || $value === null || $value <= 0) {
+            return '0.00';
+        }
+
+        $basePoints = (float) ($indicator->base_points ?? 0);
+        $calculated = $basePoints * (float) $value;
+
+        return number_format($calculated, 2, '.', '');
+    }
+
+    private function isWholeNumber(float $value): bool
+    {
+        return abs($value - round($value)) < 0.000001;
     }
 
     private function visibleEntriesQuery(User $user): Builder

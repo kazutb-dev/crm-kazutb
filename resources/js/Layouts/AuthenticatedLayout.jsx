@@ -96,6 +96,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Kpi/StructuralUnitShow': 'KPI — Структурное подразделение',
         'Kpi/Divisions': 'KPI — Департаменты',
         'Admin/AuditLogs': 'Журнал действий',
+        'Admin/Monitoring': 'Мониторинг системы',
         'HR/Dashboard': 'HR / Dashboard',
         'HR/Perco': 'HR / Сотрудники',
         'HR/PercoLate': 'HR / Опоздавшие',

@@ -280,7 +280,7 @@ class KpiSummaryController extends Controller
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'comment']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'comment']);
 
         // Finalized result if exists
         $result = $period
@@ -338,7 +338,7 @@ class KpiSummaryController extends Controller
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type', 'comment']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
@@ -408,7 +408,7 @@ class KpiSummaryController extends Controller
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEAN, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'entity_type', 'comment']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
@@ -1217,7 +1217,8 @@ class KpiSummaryController extends Controller
         ?string $statusFilter = null,
         int $limit = 100
     ): array {
-        $rows = KpiEntry::query()
+        $entries = KpiEntry::query()
+            ->with('indicator')
             ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
             ->when($deptId, fn ($q) => $q->where('department_id', $deptId))
             ->when($facultyId, fn ($q) => $q->where('faculty_id', $facultyId))
@@ -1225,46 +1226,110 @@ class KpiSummaryController extends Controller
             ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
             ->when(! $statusFilter, fn ($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
-            ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id, COUNT(*) as total_entries, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved, COALESCE(SUM(manual_points), 0) + COALESCE(SUM(calculated_points), 0) as total_points', [KpiEntry::STATUS_APPROVED])
-            ->groupBy('user_id')
-            ->orderByDesc('approved')
-            ->limit($limit)
             ->get();
 
-        if ($rows->isEmpty()) {
+        if ($entries->isEmpty()) {
             return [];
         }
 
-        $userIds = $rows->pluck('user_id')->filter()->values();
+        $userAggregates = [];
+
+        foreach ($entries as $entry) {
+            $userId = (int) $entry->user_id;
+
+            if (! isset($userAggregates[$userId])) {
+                $userAggregates[$userId] = [
+                    'k1' => 0.0,
+                    'k2' => 0.0,
+                    'k3' => 0.0,
+                    'k4' => 0.0,
+                    'k5' => 0.0,
+                    'approved_entries' => 0,
+                    'department_id' => $entry->department_id,
+                    'faculty_id' => $entry->faculty_id,
+                ];
+            }
+
+            if ($entry->status === KpiEntry::STATUS_APPROVED) {
+                $points = (float) ($entry->manual_points ?? $entry->calculated_points ?? 0);
+
+                match ($entry->indicator?->section) {
+                    KpiIndicator::SECTION_TEACHING => $userAggregates[$userId]['k1'] += $points,
+                    KpiIndicator::SECTION_SCIENCE => $userAggregates[$userId]['k2'] += $points,
+                    KpiIndicator::SECTION_SOCIAL => $userAggregates[$userId]['k3'] += $points,
+                    KpiIndicator::SECTION_QUALIFICATION => $userAggregates[$userId]['k4'] += $points,
+                    KpiIndicator::SECTION_SURVEY => $userAggregates[$userId]['k5'] += $points,
+                    default => null,
+                };
+
+                $userAggregates[$userId]['approved_entries']++;
+            }
+
+            if (! $userAggregates[$userId]['department_id'] && $entry->department_id) {
+                $userAggregates[$userId]['department_id'] = $entry->department_id;
+            }
+
+            if (! $userAggregates[$userId]['faculty_id'] && $entry->faculty_id) {
+                $userAggregates[$userId]['faculty_id'] = $entry->faculty_id;
+            }
+        }
+
+        $userIds = collect(array_keys($userAggregates));
         $users = User::query()
             ->whereIn('id', $userIds)
             ->get(['id', 'display_name', 'name', 'position_title', 'ad_title'])
             ->keyBy('id');
 
-        $deptIds = $rows->pluck('department_id')->filter()->unique()->values();
+        $deptIds = collect($userAggregates)
+            ->pluck('department_id')
+            ->filter()
+            ->unique()
+            ->values();
         $deptNames = Department::query()->whereIn('id', $deptIds)->pluck('name', 'id');
 
-        $facultyIds = $rows->pluck('faculty_id')->filter()->unique()->values();
+        $facultyIds = collect($userAggregates)
+            ->pluck('faculty_id')
+            ->filter()
+            ->unique()
+            ->values();
         $facultyNames = Faculty::query()->whereIn('id', $facultyIds)->pluck('name', 'id');
 
-        return $rows->map(fn ($r) => [
-            'id' => $r->user_id,
-            'name' => ($users[$r->user_id]?->display_name ?? $users[$r->user_id]?->name) ?? '—',
-            'title' => $this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title),
-            'department_name' => $r->department_id ? ($deptNames[$r->department_id] ?? null) : null,
-            'faculty_name' => $r->faculty_id ? ($facultyNames[$r->faculty_id] ?? null) : null,
-            'npu_threshold' => $this->teacherNpuThreshold($this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title)),
-            'rate' => $this->teacherNpuThreshold($this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title)),
-            'rank_score' => (float) $r->total_points,
-            'k1' => 0.0,
-            'k2' => 0.0,
-            'k3' => 0.0,
-            'k4' => 0.0,
-            'k5' => 0.0,
-            'k6' => 0.0,
-            'approved_entries' => (int) $r->approved,
-            'source' => 'live',
-        ])->values()->all();
+        $result = [];
+
+        foreach ($userAggregates as $userId => $aggregate) {
+            $user = $users->get($userId);
+            $title = $this->resolveUserTitle($user?->position_title, $user?->ad_title);
+            $npu = (float) $this->teacherNpuThreshold($title);
+
+            $k1 = (float) $aggregate['k1'];
+            $k2 = (float) $aggregate['k2'];
+            $k3 = (float) $aggregate['k3'];
+            $k4 = (float) $aggregate['k4'];
+            $k5 = (float) $aggregate['k5'];
+
+            $result[] = [
+                'id' => $userId,
+                'name' => ($user?->display_name ?? $user?->name) ?? '—',
+                'title' => $title,
+                'department_name' => $aggregate['department_id'] ? ($deptNames[$aggregate['department_id']] ?? null) : null,
+                'faculty_name' => $aggregate['faculty_id'] ? ($facultyNames[$aggregate['faculty_id']] ?? null) : null,
+                'npu_threshold' => (int) $npu,
+                'rate' => (int) $npu,
+                'rank_score' => round($this->teacherRankScore($k1, $k2, $k3, $k4, $k5, 0.0, $npu), 2),
+                'k1' => round($k1, 2),
+                'k2' => round($k2, 2),
+                'k3' => round($k3, 2),
+                'k4' => round($k4, 2),
+                'k5' => round($k5, 2),
+                'k6' => 0.0,
+                'approved_entries' => (int) $aggregate['approved_entries'],
+                'source' => 'live',
+            ];
+        }
+
+        usort($result, fn ($a, $b) => ($b['approved_entries'] <=> $a['approved_entries']) ?: ($b['rank_score'] <=> $a['rank_score']));
+
+        return array_slice($result, 0, $limit);
     }
 
     // -----------------------------------------------------------------------
@@ -1280,21 +1345,158 @@ class KpiSummaryController extends Controller
         $grouped = [];
         foreach ($entries as $entry) {
             $section = $entry->indicator?->section ?? 'other';
-            $grouped[$section][] = [
-                'id' => $entry->id,
-                'code' => $entry->indicator?->code,
-                'name' => $entry->indicator?->name,
-                'unit' => $entry->indicator?->unit,
-                'plan_value' => $entry->plan_value,
-                'fact_value' => $entry->fact_value,
-                'points' => (float) ($entry->manual_points ?? $entry->calculated_points ?? 0),
-                'status' => $entry->status,
-                'comment' => $entry->comment,
-                'structural_confirmations' => $this->buildStructuralConfirmationsPayload($entry),
-            ];
+            $grouped[$section][] = $this->buildSummaryEntryPayload($entry);
         }
 
         return $grouped;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildSummaryEntryPayload(KpiEntry $entry): array
+    {
+        $displayValues = $this->resolvePlanFactDisplayValues($entry);
+        $displayPoints = $this->resolveEntryDisplayPoints($entry);
+
+        return [
+            'id' => $entry->id,
+            'code' => $entry->indicator?->code,
+            'name' => $entry->indicator?->name,
+            'unit' => $entry->indicator?->unit,
+            'base_points' => $entry->indicator?->base_points !== null
+                ? (float) $entry->indicator->base_points
+                : null,
+            'plan_value' => $entry->plan_value,
+            'fact_value' => $entry->fact_value,
+            'plan_display_value' => $displayValues['plan_display_value'],
+            'fact_display_value' => $displayValues['fact_display_value'],
+            'plan_source' => $displayValues['plan_source'],
+            'completion_percent' => $displayValues['completion_percent'],
+            'points' => $displayPoints,
+            'points_formula' => $this->buildEntryPointsFormula($entry),
+            'status' => $entry->status,
+            'comment' => $entry->comment,
+            'structural_confirmations' => $this->buildStructuralConfirmationsPayload($entry),
+        ];
+    }
+
+    private function resolveEntryDisplayPoints(KpiEntry $entry): float
+    {
+        if ($entry->manual_points !== null) {
+            return round((float) $entry->manual_points, 2);
+        }
+
+        if ($entry->calculated_points !== null && (float) $entry->calculated_points !== 0.0) {
+            return round((float) $entry->calculated_points, 2);
+        }
+
+        $value = $entry->fact_value !== null
+            ? (float) $entry->fact_value
+            : ($entry->plan_value !== null ? (float) $entry->plan_value : null);
+        $basePoints = $entry->indicator?->base_points !== null
+            ? (float) $entry->indicator->base_points
+            : null;
+
+        if ($value !== null && $basePoints !== null && $basePoints > 0) {
+            return round($value * $basePoints, 2);
+        }
+
+        return round((float) ($entry->calculated_points ?? 0), 2);
+    }
+
+    /**
+     * @return array{plan_display_value: float|null, fact_display_value: float|null, plan_source: string, completion_percent: float|null}
+     */
+    private function resolvePlanFactDisplayValues(KpiEntry $entry): array
+    {
+        $planValue = $entry->plan_value !== null ? (float) $entry->plan_value : null;
+        $factValue = $entry->fact_value !== null ? (float) $entry->fact_value : null;
+
+        if ($planValue !== null) {
+            $planDisplay = $planValue;
+            $planSource = 'plan';
+        } elseif ($factValue !== null) {
+            // Fallback for rows created only at FACT stage.
+            $planDisplay = $factValue;
+            $planSource = 'fact_fallback';
+        } else {
+            $planDisplay = null;
+            $planSource = 'missing';
+        }
+
+        $completionPercent = null;
+        if ($planDisplay !== null && $factValue !== null) {
+            if ($planDisplay > 0) {
+                $completionPercent = round(($factValue / $planDisplay) * 100, 2);
+            } elseif ((float) $factValue === 0.0) {
+                $completionPercent = 100.0;
+            }
+        }
+
+        return [
+            'plan_display_value' => $planDisplay,
+            'fact_display_value' => $factValue,
+            'plan_source' => $planSource,
+            'completion_percent' => $completionPercent,
+        ];
+    }
+
+    private function buildEntryPointsFormula(KpiEntry $entry): string
+    {
+        $points = $this->resolveEntryDisplayPoints($entry);
+        $details = is_array($entry->calculation_details) ? $entry->calculation_details : [];
+        $quantity = (float) ($details['quantity'] ?? $entry->fact_value ?? 0);
+        $ruleKind = (string) ($details['rule_kind'] ?? '');
+
+        if ($ruleKind === 'coauthors') {
+            $perSheet = (float) ($details['per_sheet_points'] ?? $entry->indicator?->base_points ?? 0);
+            $sheetCount = (float) ($details['sheet_count'] ?? 0);
+            $coauthorsCount = max(1.0, (float) ($details['coauthors_count'] ?? 1));
+
+            return sprintf(
+                'Баллы = Кол-во × Балл/п.л × П.л. / Соавторы = %s × %s × %s / %s = %s',
+                $this->formatFormulaNumber($quantity),
+                $this->formatFormulaNumber($perSheet),
+                $this->formatFormulaNumber($sheetCount),
+                $this->formatFormulaNumber($coauthorsCount),
+                $this->formatFormulaNumber($points)
+            );
+        }
+
+        if (in_array($ruleKind, ['podium', 'improvement', 'roleSplit', 'quartile', 'optionRate'], true)) {
+            $selectionPoints = (float) ($details['selection_points'] ?? 0);
+
+            return sprintf(
+                'Баллы = Кол-во × Коэффициент = %s × %s = %s',
+                $this->formatFormulaNumber($quantity),
+                $this->formatFormulaNumber($selectionPoints),
+                $this->formatFormulaNumber($points)
+            );
+        }
+
+        if ($entry->manual_points !== null) {
+            return sprintf('Баллы заданы вручную = %s', $this->formatFormulaNumber($points));
+        }
+
+        $factValue = $entry->fact_value !== null ? (float) $entry->fact_value : null;
+        $basePoints = $entry->indicator?->base_points !== null ? (float) $entry->indicator->base_points : null;
+
+        if ($factValue !== null && $basePoints !== null && $basePoints > 0) {
+            return sprintf(
+                'Баллы = Факт × Базовые баллы = %s × %s = %s',
+                $this->formatFormulaNumber($factValue),
+                $this->formatFormulaNumber($basePoints),
+                $this->formatFormulaNumber($points)
+            );
+        }
+
+        return sprintf('Баллы = %s', $this->formatFormulaNumber($points));
+    }
+
+    private function formatFormulaNumber(float $value): string
+    {
+        return number_format($value, 2, '.', '');
     }
 
     /**
@@ -1372,7 +1574,7 @@ class KpiSummaryController extends Controller
                 KpiEntry::STATUS_REJECTED => $rejected++,
                 default => null,
             };
-            $totalPoints += (float) ($entry->manual_points ?? $entry->calculated_points ?? 0);
+            $totalPoints += $this->resolveEntryDisplayPoints($entry);
         }
 
         return [
@@ -1466,7 +1668,7 @@ class KpiSummaryController extends Controller
             ->whereIn('entity_type', array_values(array_unique($entryEntityTypes)))
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->orderBy('created_at')
-            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'status', 'comment', 'submitted_at', 'reviewed_at', 'approved_at', 'created_at', 'updated_at']);
+            ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'comment', 'submitted_at', 'reviewed_at', 'approved_at', 'created_at', 'updated_at']);
 
         // Finalized result
         $result = $period
@@ -1493,18 +1695,9 @@ class KpiSummaryController extends Controller
         foreach ($entries as $entry) {
             $section = $entry->indicator?->section ?? 'other';
             $grouped[$section][] = [
-                'id' => $entry->id,
-                'code' => $entry->indicator?->code,
-                'name' => $entry->indicator?->name,
-                'unit' => $entry->indicator?->unit,
-                'plan_value' => $entry->plan_value,
-                'fact_value' => $entry->fact_value,
-                'points' => (float) ($entry->manual_points ?? $entry->calculated_points ?? 0),
-                'status' => $entry->status,
-                'comment' => $entry->comment,
+                ...$this->buildSummaryEntryPayload($entry),
                 'submitted_at' => $entry->submitted_at?->toIso8601String(),
                 'approved_at' => $entry->approved_at?->toIso8601String(),
-                'structural_confirmations' => $this->buildStructuralConfirmationsPayload($entry),
                 'files' => $entry->files->map(fn ($file) => [
                     'id' => $file->id,
                     'file_name' => $file->file_name,
@@ -1528,7 +1721,7 @@ class KpiSummaryController extends Controller
         $submitted = $entries->where('status', KpiEntry::STATUS_SUBMITTED)->count();
         $pending = $entries->whereIn('status', [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL, KpiEntry::STATUS_REVIEWED])->count();
         $rejected = $entries->where('status', KpiEntry::STATUS_REJECTED)->count();
-        $totalPoints = $entries->sum(fn ($e) => (float) ($e->manual_points ?? $e->calculated_points ?? 0));
+        $totalPoints = $entries->sum(fn ($e) => $this->resolveEntryDisplayPoints($e));
 
         $filterOptions = [
             'academicYears' => $academicYears,
