@@ -5,6 +5,7 @@ PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
 ENSURE_DEV_BRANCH_SCRIPT="${PROD_ROOT}/scripts/deploy/ensure_dev_branch.sh"
+SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
 DRY_RUN=0
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
@@ -68,12 +69,11 @@ if [[ -n "$(git status --short)" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
         log "DRY-RUN: would safecommit dirty PROD changes and push main"
     else
-        source ~/.bashrc || true
-        if ! command -v safecommit >/dev/null 2>&1; then
-            echo "[prod->dev] ERROR: safecommit required for dirty PROD" >&2
+        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
+            echo "[prod->dev] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2
             exit 1
         fi
-        safecommit "chore(prod): checkpoint direct production changes before dev sync"
+        "$SAFECOMMIT_SCRIPT" "chore(prod): checkpoint direct production changes before dev sync"
         git push origin main
     fi
 fi
@@ -107,12 +107,11 @@ if [[ -n "$(git status --short)" ]]; then
         log "DRY-RUN: would checkpoint dirty DEV changes and push dev"
         dev_checkpoint_tag="dev-checkpoint-${TIMESTAMP}"
     else
-        source ~/.bashrc || true
-        if ! command -v safecommit >/dev/null 2>&1; then
-            echo "[prod->dev] ERROR: safecommit required for dirty DEV" >&2
+        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
+            echo "[prod->dev] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2
             exit 1
         fi
-        safecommit "chore(dev): checkpoint local dev changes before prod sync"
+        "$SAFECOMMIT_SCRIPT" "chore(dev): checkpoint local dev changes before prod sync"
         dev_checkpoint_tag="dev-checkpoint-${TIMESTAMP}"
         git tag "$dev_checkpoint_tag"
         git push origin dev

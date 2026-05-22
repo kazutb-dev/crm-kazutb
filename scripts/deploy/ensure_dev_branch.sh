@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 DEV_ROOT="/var/www/laravel-react-dev"
 REMOTE_URL="https://github.com/kazutb-dev/crm-kazutb.git"
+SAFECOMMIT_SCRIPT="/var/www/laravel-react/scripts/deploy/safecommit.sh"
 DRY_RUN=0
 
 for arg in "$@"; do
@@ -46,12 +47,11 @@ if [[ -n "$(git status --short)" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
         log "DRY-RUN: would checkpoint local DEV changes using safecommit"
     else
-        source ~/.bashrc || true
-        if ! command -v safecommit >/dev/null 2>&1; then
-            echo "[ensure-dev] ERROR: safecommit is required when DEV is dirty" >&2
+        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
+            echo "[ensure-dev] ERROR: safecommit wrapper is missing or not executable: $SAFECOMMIT_SCRIPT" >&2
             exit 1
         fi
-        safecommit "chore(dev): checkpoint local dev state before branch setup"
+        "$SAFECOMMIT_SCRIPT" "chore(dev): checkpoint local dev state before branch setup"
     fi
 fi
 

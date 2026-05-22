@@ -5,6 +5,7 @@ PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
 PRE_COMMIT_HOOK="${PROD_ROOT}/.git/hooks/pre-commit"
+SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
 EXPECTED_FREE_GB=20
 
 PASS_COUNT=0
@@ -78,10 +79,10 @@ fi
 [[ -x "$BACKUP_SCRIPT" ]] && pass "Backup script is executable" || warn "Backup script is not executable"
 
 [[ -f "$PRE_COMMIT_HOOK" ]] && pass "pre-commit hook exists" || warn "pre-commit hook missing in PROD repo"
-if source ~/.bashrc 2>/dev/null && command -v safecommit >/dev/null 2>&1; then
-    pass "safecommit is available"
+if [[ -x "$SAFECOMMIT_SCRIPT" ]]; then
+    pass "safecommit wrapper is available"
 else
-    warn "safecommit not found in current shell"
+    warn "safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT"
 fi
 
 avail_gb="$(df -BG "$PROD_ROOT" | awk 'NR==2 {gsub(/G/,"",$4); print $4}')"
@@ -155,7 +156,7 @@ for s in "${deploy_scripts[@]}"; do
         continue
     fi
 
-    if grep -nE 'php artisan db:seed|php artisan migrate:fresh|php artisan migrate:refresh' "$s" >/dev/null 2>&1; then
+    if grep -nE 'php artisan db:seed|php artisan migrate:fresh|php artisan migrate:refresh|php artisan migrate:reset|php artisan db:wipe|php artisan test' "$s" >/dev/null 2>&1; then
         fail "Forbidden database reset/seed command found in $s"
     else
         pass "No forbidden reset/seed commands in $s"

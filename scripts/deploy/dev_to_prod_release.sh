@@ -4,6 +4,7 @@ set -Eeuo pipefail
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 CHECKPOINT_SCRIPT="${PROD_ROOT}/scripts/deploy/pre_deploy_prod_checkpoint.sh"
+SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
 DRY_RUN=0
 ASSUME_YES=0
 NO_MIGRATE=0
@@ -118,9 +119,8 @@ if (( dev_dirty == 1 )); then
     fi
 
     if [[ "$DRY_RUN" != "1" ]]; then
-        source ~/.bashrc || true
-        command -v safecommit >/dev/null 2>&1 || { echo "[release] ERROR: safecommit required" >&2; exit 1; }
-        safecommit "chore(dev): checkpoint dev changes before prod release"
+        [[ -x "$SAFECOMMIT_SCRIPT" ]] || { echo "[release] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2; exit 1; }
+        "$SAFECOMMIT_SCRIPT" "chore(dev): checkpoint dev changes before prod release"
         git push origin dev
     fi
 fi

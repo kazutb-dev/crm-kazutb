@@ -4,6 +4,7 @@ set -Eeuo pipefail
 PROJECT_ROOT="/var/www/laravel-react"
 BACKUP_SCRIPT="${PROJECT_ROOT}/scripts/backup_prod.sh"
 CHECKPOINT_DIR="${PROJECT_ROOT}/storage/app/deploy_checkpoints"
+SAFECOMMIT_SCRIPT="${PROJECT_ROOT}/scripts/deploy/safecommit.sh"
 DRY_RUN=0
 
 for arg in "$@"; do
@@ -66,12 +67,11 @@ if [[ -n "$(git status --short)" ]]; then
     if [[ "$DRY_RUN" == "1" ]]; then
         log "DRY-RUN: would run safecommit and push origin main"
     else
-        source ~/.bashrc || true
-        if ! command -v safecommit >/dev/null 2>&1; then
-            echo "[checkpoint] ERROR: safecommit is required when PROD is dirty" >&2
+        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
+            echo "[checkpoint] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2
             exit 1
         fi
-        safecommit "chore(prod): checkpoint direct production changes before deploy"
+        "$SAFECOMMIT_SCRIPT" "chore(prod): checkpoint direct production changes before deploy"
         git push origin main
     fi
 fi
