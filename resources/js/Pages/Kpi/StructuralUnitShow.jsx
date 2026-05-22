@@ -19,14 +19,28 @@ function employeeSearchText(user) {
         user?.name,
         user?.email,
         user?.role_label,
+        ...(Array.isArray(user?.structural_units)
+            ? user.structural_units.flatMap((unit) => [unit?.code, unit?.name])
+            : []),
     ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
 }
 
+function formatAttachedUnits(user) {
+    if (!Array.isArray(user?.structural_units) || user.structural_units.length === 0) {
+        return 'Без других структурных подразделений';
+    }
+
+    return user.structural_units
+        .map((unit) => unit?.code ? `${unit.code} — ${unit.name}` : unit?.name)
+        .filter(Boolean)
+        .join(', ');
+}
+
 export default function StructuralUnitShow() {
-    const { unit, unassignedStaffOptions = [], availableRecords = [] } = usePage().props;
+    const { unit, unassignedStaffOptions = [], assignedElsewhereStaffOptions = [], availableRecords = [] } = usePage().props;
     const [employeeSearch, setEmployeeSearch] = useState('');
 
     const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase();
@@ -38,6 +52,14 @@ export default function StructuralUnitShow() {
 
         return unassignedStaffOptions.filter((user) => employeeSearchText(user).includes(normalizedEmployeeSearch));
     }, [unassignedStaffOptions, normalizedEmployeeSearch]);
+
+    const filteredAssignedElsewhereStaffOptions = useMemo(() => {
+        if (!normalizedEmployeeSearch) {
+            return assignedElsewhereStaffOptions;
+        }
+
+        return assignedElsewhereStaffOptions.filter((user) => employeeSearchText(user).includes(normalizedEmployeeSearch));
+    }, [assignedElsewhereStaffOptions, normalizedEmployeeSearch]);
 
     const filteredUnitUsers = useMemo(() => {
         const users = Array.isArray(unit.users) ? unit.users : [];
@@ -129,7 +151,7 @@ export default function StructuralUnitShow() {
                                 />
                             </div>
 
-                            {Array.isArray(unassignedStaffOptions) && unassignedStaffOptions.length > 0 && (
+                            {(Array.isArray(unassignedStaffOptions) && unassignedStaffOptions.length > 0) && (
                                 <div className="mb-4 rounded-md border border-dashed border-border/70 bg-muted/20 p-3">
                                     <div className="mb-2 flex items-center justify-between gap-2">
                                         <p className="text-sm font-medium text-foreground">Без структурного подразделения</p>
@@ -150,6 +172,38 @@ export default function StructuralUnitShow() {
                                             </div>
                                         ))}
                                         {filteredUnassignedStaffOptions.length === 0 && (
+                                            <p className="rounded-md bg-background px-3 py-2 text-xs text-muted-foreground">
+                                                Ничего не найдено по текущему запросу.
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {(Array.isArray(assignedElsewhereStaffOptions) && assignedElsewhereStaffOptions.length > 0) && (
+                                <div className="mb-4 rounded-md border border-dashed border-border/70 bg-muted/20 p-3">
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                        <p className="text-sm font-medium text-foreground">Уже привязаны к другим подразделениям</p>
+                                        <Badge variant="outline">{filteredAssignedElsewhereStaffOptions.length}</Badge>
+                                    </div>
+                                    <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+                                        {filteredAssignedElsewhereStaffOptions.map((user) => (
+                                            <div key={user.id} className="flex items-center justify-between gap-2 rounded-md bg-background px-3 py-2 text-sm">
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium text-foreground">{user.name}</p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        {user.role_label || 'Без роли'}{user.email ? ` · ${user.email}` : ''}
+                                                    </p>
+                                                    <p className="truncate text-xs text-muted-foreground">
+                                                        Уже отвечает за: {formatAttachedUnits(user)}
+                                                    </p>
+                                                </div>
+                                                <Button type="button" size="sm" variant="outline" onClick={() => quickAddEmployee(user.id)}>
+                                                    Добавить
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        {filteredAssignedElsewhereStaffOptions.length === 0 && (
                                             <p className="rounded-md bg-background px-3 py-2 text-xs text-muted-foreground">
                                                 Ничего не найдено по текущему запросу.
                                             </p>

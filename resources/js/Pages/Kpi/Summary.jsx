@@ -1,6 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
 import {
     BarChart3,
@@ -132,6 +133,10 @@ function fmtDateTime(value) {
         hour: '2-digit',
         minute: '2-digit',
     }).format(d);
+}
+
+function normalizeSearchText(value) {
+    return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function formatStructuralUnitName(item) {
@@ -586,8 +591,59 @@ function ReportHeading({ text, academicYear, period }) {
     );
 }
 
-function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
-    if (!rows?.length) {
+function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery = '' }) {
+    const allRows = rows ?? [];
+    const normalizedQuery = normalizeSearchText(searchQuery);
+
+    const displayRows = useMemo(() => {
+        if (normalizedQuery === '') {
+            return allRows;
+        }
+
+        return allRows.filter((row) => {
+            const haystack = mode === 'hod'
+                ? normalizeSearchText([
+                    row.faculty_name,
+                    row.department_name,
+                    row.name,
+                    row.k1,
+                    row.k2,
+                    row.k3,
+                    row.k4,
+                    row.rank_score,
+                    row.npu_threshold,
+                    getRateValue(row),
+                ].join(' '))
+                : mode === 'dean'
+                    ? normalizeSearchText([
+                        row.faculty_name,
+                        row.name,
+                        row.k1,
+                        row.k2,
+                        row.k3,
+                        row.k4,
+                        row.rank_score,
+                        row.npu_threshold,
+                        getRateValue(row),
+                    ].join(' '))
+                    : normalizeSearchText([
+                        row.name,
+                        row.title,
+                        row.k1,
+                        row.k2,
+                        row.k3,
+                        row.k4,
+                        row.k5,
+                        row.rank_score,
+                        row.npu_threshold,
+                        getRateValue(row),
+                    ].join(' '));
+
+            return haystack.includes(normalizedQuery);
+        });
+    }, [allRows, mode, normalizedQuery]);
+
+    if (!displayRows.length) {
         return (
             <div className="admin-empty-state">
                 <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
@@ -615,7 +671,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row, i) => (
+                        {displayRows.map((row, i) => (
                             <tr
                                 key={row.id ?? i}
                                 className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
@@ -657,7 +713,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row, i) => (
+                        {displayRows.map((row, i) => (
                             <tr
                                 key={row.id ?? i}
                                 className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
@@ -698,7 +754,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {rows.map((row, i) => (
+                    {displayRows.map((row, i) => (
                         <tr
                             key={row.id ?? i}
                             className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
@@ -730,6 +786,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick }) {
 function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExportExcel }) {
     const [facultyFilter, setFacultyFilter] = useState('');
     const [departmentFilter, setDepartmentFilter] = useState('');
+    const [tableSearch, setTableSearch] = useState('');
 
     const allRows = rows ?? [];
 
@@ -836,6 +893,13 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                         ))}
                     </select>
 
+                    <Input
+                        className="w-full sm:w-96"
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        placeholder="Быстрый поиск: сотрудник, показатель, период, структура, баллы, статус"
+                    />
+
                     <span className="ml-auto text-xs text-muted-foreground">
                         Показано: {filteredRows.length} из {allRows.length}
                     </span>
@@ -846,7 +910,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                     period={period}
                     academicYear={academicYear}
                 />
-                <ProfessionalRatingTable rows={filteredRows} mode="pps" onRowClick={handleRowClick} />
+                <ProfessionalRatingTable rows={filteredRows} mode="pps" onRowClick={handleRowClick} searchQuery={tableSearch} />
             </ReportCard>
         </div>
     );
@@ -1555,6 +1619,8 @@ function OverviewTab({ summary }) {
 
 function AdminView({ summary, academicYear, period, filters, onExportRatingExcel, tab, setTab }) {
     const tabs = ROLE_TABS.admin;
+    const [hodSearch, setHodSearch] = useState('');
+    const [deanSearch, setDeanSearch] = useState('');
 
     const statusCounts = summary.status_counts ?? {};
     const nonDraftTotal = Object.entries(statusCounts)
@@ -1689,9 +1755,17 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                             note="НПУ определяется по настройкам для зав. кафедрой"
                         />
                     </div>
+                    <div className="mb-4">
+                        <Input
+                            value={hodSearch}
+                            onChange={(e) => setHodSearch(e.target.value)}
+                            placeholder="Поиск по таблице зав. кафедрами"
+                        />
+                    </div>
                     <ProfessionalRatingTable
                         rows={summary.top_hods ?? []}
                         mode="hod"
+                        searchQuery={hodSearch}
                         onRowClick={(row) => {
                             const params = {};
                             if (filters?.academic_year_id) params.academic_year_id = filters.academic_year_id;
@@ -1730,9 +1804,17 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                             note="НПУ определяется по настройкам для декана"
                         />
                     </div>
+                    <div className="mb-4">
+                        <Input
+                            value={deanSearch}
+                            onChange={(e) => setDeanSearch(e.target.value)}
+                            placeholder="Поиск по таблице деканов"
+                        />
+                    </div>
                     <ProfessionalRatingTable
                         rows={summary.top_deans ?? []}
                         mode="dean"
+                        searchQuery={deanSearch}
                         onRowClick={(row) => {
                             const params = {};
                             if (filters?.academic_year_id) params.academic_year_id = filters.academic_year_id;
