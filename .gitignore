@@ -39,8 +39,12 @@ vendor
 ssl/*
 
 # Backups / Archives
-backup_*
 /backups/
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.tar.gz
 
 # Temporary Outputs / Logs
 build_output.txt
@@ -59,3 +63,4 @@ ql -u*
 
 # Local Generated Reports
 CLEANUP_AUDIT_REPORT.md
+
