@@ -48,6 +48,8 @@ backups/
 
 # Temporary Outputs / Logs
 build_output.txt
+build_log.txt
+build_summary.txt
 .phpunit.result.cache
 /output.json
 /storage/framework/views/*.php
