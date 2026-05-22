@@ -2,117 +2,127 @@
 
 ## Overview
 
-The `scripts/backup_prod.sh` script creates a full production backup of:
+The `scripts/backup_prod.sh` script creates a local production backup in:
 
-- `.env` (permissions: 600)
-- Database (MySQL/MariaDB via `mysqldump`, or SQLite copy — both compressed with gzip)
-- File storage (`storage/app` and `public/storage` — compressed tar.gz)
+`/var/www/laravel-react/backups/prod_backup_YYYYMMDD_HHMMSS_full_snapshot`
 
-Backups are stored **locally only** and are **never committed to Git**.
+Each full backup contains:
 
----
+- Database dump (all tables/rows, routines, triggers, events)
+- Full project data archive
+- `.env` backup (separate file, `chmod 600`)
+- Manifest with warnings and cleanup details
+- `SHA256SUMS`
 
-## Quick Start
+Backups are local-only and must not be committed to Git.
+
+## Commands
+
+Full backup:
 
 ```bash
 cd /var/www/laravel-react
 ./scripts/backup_prod.sh
 ```
 
----
-
-## Dry-Run (No Dump / No Archive)
-
-Validates `.env`, DB credentials, and storage paths without creating large files.
-The temporary dry-run directory is removed automatically at the end.
+Dry-run (no DB dump, no archive):
 
 ```bash
 BACKUP_DRY_RUN=1 ./scripts/backup_prod.sh
 ```
 
----
-
-## Where Backups Are Stored
-
-```
-/var/www/laravel-react/backups/prod_backup_YYYYMMDD_HHMMSS_full_snapshot/
-```
-
-Example contents:
-
-```
-env_20260522_061500.backup        # .env copy (chmod 600)
-database_20260522_061500.sql.gz   # MySQL dump (gzip)
-storage_app_20260522_061500.tar.gz
-manifest_20260522_061500.txt
-SHA256SUMS
-```
-
----
-
-## Automatic Retention (Keeps Last 2 Backups)
-
-After every successful full backup the script automatically:
-
-1. Finds all `prod_backup_*_full_snapshot` directories inside `/var/www/laravel-react/backups/`
-2. Sorts them oldest-first
-3. Deletes all except the newest **2** directories
-4. Never deletes the backup that was just created
-5. Never touches files outside `/var/www/laravel-react/backups/`
-
-```
-backups/
-├── prod_backup_20260520_100000_full_snapshot/   ← removed (old)
-├── prod_backup_20260521_100000_full_snapshot/   ← kept  (2nd newest)
-└── prod_backup_20260522_100000_full_snapshot/   ← kept  (newest / just created)
-```
-
-### Change the Number of Kept Backups
+Cleanup-only (no new backup creation):
 
 ```bash
+./scripts/backup_prod.sh --cleanup-only
+```
+
+or:
+
+```bash
+BACKUP_CLEANUP_ONLY=1 ./scripts/backup_prod.sh
+```
+
+Retention override examples:
+
+```bash
+BACKUP_KEEP_COUNT=1 ./scripts/backup_prod.sh --cleanup-only
+BACKUP_KEEP_COUNT=2 ./scripts/backup_prod.sh
 BACKUP_KEEP_COUNT=3 ./scripts/backup_prod.sh
 ```
 
----
+## Retention Policy
+
+Default: keep latest **2** backup sets.
+
+Cleanup removes old items only inside `/var/www/laravel-react/backups`:
+
+- backup directories matching `prod_backup_*`, `pre_seeder_backup_*`, `pre_deploy_*`
+- old loose backup files (groups):
+	- `db_backup_*`
+	- `laravel_react_*`
+	- `pre_deploy_*`
+	- `*.manifest`
+	- `*.sql.gz`
+	- `*.tar.gz`
+
+Safety guards prevent deletion outside backup root and prevent deleting the current backup directory.
+
+## What Is Included In `project_data_*.tar.gz`
+
+If present, the archive includes:
+
+- `storage/` (including `storage/app`, `storage/logs`, runtime files)
+- `public/` (including `public/storage`, `public/uploads`)
+- `bootstrap/cache/`
+- `database/`, `routes/`, `config/`, `app/`, `resources/`, `scripts/`, `docs/`
+- `artisan`
+- `.env.example`
+- `composer.json`, `composer.lock`
+- `package.json`, `package-lock.json`
+- `vite.config.js`, `tailwind.config.js`, `postcss.config.js`
+- optional `uploads/`, `data/`
+
+## What Is Excluded From `project_data_*.tar.gz`
+
+- `.git/`
+- `backups/`
+- `node_modules/`
+- `vendor/`
+- `.env` (backed up separately as `env_*.backup`)
+- `.DS_Store`
+
+## Tar Warning Handling
+
+If tar reports non-fatal read-change warnings like:
+
+- `file changed as we read it`
+- `File removed before we read it`
+- `Cannot stat`
+
+then backup continues and warning is recorded in:
+
+- `tar_warnings_YYYYMMDD_HHMMSS.log`
+- `manifest_YYYYMMDD_HHMMSS.txt`
+
+Critical tar failures still stop the script.
 
 ## Verify Backups
 
 ```bash
-# List backup directories and sizes
 ls -lah /var/www/laravel-react/backups
-
-# Disk usage per backup
 du -sh /var/www/laravel-react/backups/*
 ```
 
----
+## Manifest And Checksums
 
-## Run From Anywhere
+For each backup directory:
 
-```bash
-/var/www/laravel-react/scripts/backup_prod.sh
-```
+- `manifest_*.txt` contains metadata, file list, sizes, warnings, cleanup result
+- `SHA256SUMS` contains checksum for every file in backup directory
 
----
+## Safety Notes
 
-## Safety
-
-> **Backups are NOT committed to Git.**
-> The `/backups/` directory is listed in `.gitignore`.
-> Never run `git add backups/`, `git add *.sql.gz`, or `git add *.tar.gz`.
-
-The cleanup logic only removes directories whose paths match **all** of:
-
-- start with `/var/www/laravel-react/backups/prod_backup_`
-- end with `_full_snapshot`
-- are actual directories (not symlinks or files)
-- are not the current backup just created
-
----
-
-## Environment Variables
-
-| Variable           | Default | Description                                      |
-|--------------------|---------|--------------------------------------------------|
-| `BACKUP_DRY_RUN`   | `0`     | Set to `1` for dry-run (no dump/archive)         |
-| `BACKUP_KEEP_COUNT`| `2`     | Number of most recent backups to keep            |
+- Backups are not committed to Git.
+- Do not stage backup artifacts (`backups/`, `*.sql.gz`, `*.tar.gz`, `*.manifest`).
+- Script never deletes anything outside `/var/www/laravel-react/backups`.
