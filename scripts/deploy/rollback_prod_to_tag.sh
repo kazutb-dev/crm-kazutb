@@ -46,6 +46,13 @@ run_cmd() {
 [[ -f "$BACKUP_SCRIPT" ]] || { echo "[rollback] ERROR: backup script missing: $BACKUP_SCRIPT" >&2; exit 1; }
 
 cd "$PROJECT_ROOT"
+[[ "$(git branch --show-current)" == "main" ]] || { echo "[rollback] ERROR: PROD must be on main branch" >&2; exit 1; }
+[[ -z "$(git status --short)" ]] || { echo "[rollback] ERROR: PROD working tree must be clean" >&2; exit 1; }
+
+git remote get-url origin >/dev/null 2>&1 || { echo "[rollback] ERROR: origin remote not configured" >&2; exit 1; }
+if [[ "$DRY_RUN" == "0" ]]; then
+    git fetch --tags origin
+fi
 
 git rev-parse "$TARGET_TAG" >/dev/null 2>&1 || { echo "[rollback] ERROR: Tag not found: $TARGET_TAG" >&2; exit 1; }
 
@@ -63,7 +70,9 @@ else
     emergency_backup_dir="$(ls -1dt "${PROJECT_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
 fi
 
+run_cmd "git checkout main"
 run_cmd "git reset --hard '$TARGET_TAG'"
+run_cmd "git push --force-with-lease origin main"
 run_cmd "composer install --no-dev --optimize-autoloader"
 
 if [[ -f "${PROJECT_ROOT}/package-lock.json" ]]; then

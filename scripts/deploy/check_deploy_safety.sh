@@ -53,7 +53,19 @@ fi
 prod_branch="$(git -C "$PROD_ROOT" branch --show-current)"
 dev_branch="$(git -C "$DEV_ROOT" branch --show-current)"
 [[ "$prod_branch" == "main" ]] && pass "PROD branch is main" || fail "PROD branch is $prod_branch (expected main)"
-[[ "$dev_branch" == "main" || "$dev_branch" == "dev" ]] && pass "DEV branch is $dev_branch" || fail "DEV branch is $dev_branch (expected main/dev)"
+[[ "$dev_branch" == "dev" ]] && pass "DEV branch is dev" || fail "DEV branch is $dev_branch (expected dev)"
+
+if git -C "$PROD_ROOT" remote get-url origin >/dev/null 2>&1 && git -C "$DEV_ROOT" remote get-url origin >/dev/null 2>&1; then
+    pass "origin remotes are configured"
+else
+    fail "origin remote is missing in PROD or DEV"
+fi
+
+if git -C "$PROD_ROOT" fetch origin --quiet >/dev/null 2>&1 && git -C "$DEV_ROOT" fetch origin --quiet >/dev/null 2>&1; then
+    pass "origin fetch works for PROD and DEV"
+else
+    warn "Could not fetch origin for one of repos"
+fi
 
 tracked_sensitive="$(git -C "$PROD_ROOT" ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.|^backups/|\.sql$|\.sql\.gz$|\.dump$|\.tar\.gz$|^skills/' | grep -Ev '(^|/)\.env\.example$' || true)"
 if [[ -z "$tracked_sensitive" ]]; then
@@ -87,11 +99,9 @@ else
     warn "No prod_backup_*_full_snapshot directories found"
 fi
 
-prod_head="$(git -C "$PROD_ROOT" rev-parse HEAD)"
-dev_head="$(git -C "$DEV_ROOT" rev-parse HEAD)"
 new_migrations="$(comm -13 \
-    <(find "$PROD_ROOT/database/migrations" -maxdepth 1 -type f -name '*.php' -printf '%f\n' | sort) \
-    <(find "$DEV_ROOT/database/migrations" -maxdepth 1 -type f -name '*.php' -printf '%f\n' | sort) || true)"
+    <(git -C "$PROD_ROOT" ls-tree -r --name-only origin/main 2>/dev/null | grep '^database/migrations/.*\.php$' | sed 's#^database/migrations/##' | sort) \
+    <(git -C "$PROD_ROOT" ls-tree -r --name-only origin/dev 2>/dev/null | grep '^database/migrations/.*\.php$' | sed 's#^database/migrations/##' | sort) || true)"
 
 if [[ -n "$new_migrations" ]]; then
     risky_migrations=""
@@ -99,14 +109,18 @@ if [[ -n "$new_migrations" ]]; then
         [[ -n "$migration_file" ]] || continue
         full_path="$DEV_ROOT/database/migrations/$migration_file"
         [[ -f "$full_path" ]] || continue
-        line_hits="$(grep -nE 'dropTable|dropColumn|truncate|delete\(|DB::statement|Schema::drop' "$full_path" || true)"
+        line_hits="$(awk '
+            /function up\(\)[: ]*void/ {in_up=1}
+            /function down\(\)[: ]*void/ {in_up=0}
+            in_up {print NR ":" $0}
+        ' "$full_path" | grep -E 'dropTable|dropColumn|Schema::drop|Schema::dropIfExists|truncate|delete\(|DB::statement|renameColumn|change\(' || true)"
         if [[ -n "$line_hits" ]]; then
-            risky_migrations+="${line_hits}"$'\n'
+            risky_migrations+="${full_path}"$'\n'"${line_hits}"$'\n'
         fi
     done <<< "$new_migrations"
 
     if [[ -n "$risky_migrations" ]]; then
-        warn "Potentially dangerous migration patterns detected in DEV"
+        fail "Potentially dangerous migration patterns detected in DEV"
         echo "$risky_migrations"
     else
         pass "No dangerous migration patterns detected in DEV"
@@ -115,9 +129,9 @@ else
     pass "No new migration files in DEV compared to PROD"
 fi
 
-changed_seeders="$(git -C "$DEV_ROOT" diff --name-only "$prod_head" "$dev_head" -- database/seeders/*.php 2>/dev/null || true)"
+changed_seeders="$(git -C "$PROD_ROOT" diff --name-only origin/main..origin/dev -- database/seeders/*.php 2>/dev/null || true)"
 if [[ -n "$changed_seeders" ]]; then
-    risky_seeders="$(grep -nE '->create\(' $changed_seeders | grep -Ev 'updateOrCreate|firstOrCreate|upsert' || true)"
+    risky_seeders="$(while IFS= read -r sf; do [[ -n "$sf" ]] && grep -nE -- '->create\(' "$DEV_ROOT/$sf" || true; done <<< "$changed_seeders" | grep -Ev 'updateOrCreate|firstOrCreate|upsert' || true)"
     if [[ -n "$risky_seeders" ]]; then
         warn "Seeder create() without clear idempotency markers detected"
         echo "$risky_seeders"
@@ -127,6 +141,32 @@ if [[ -n "$changed_seeders" ]]; then
 else
     pass "No changed seeders between PROD and DEV HEAD"
 fi
+
+deploy_scripts=(
+    "$PROD_ROOT/scripts/deploy/dev_to_prod_release.sh"
+    "$PROD_ROOT/scripts/deploy/prod_to_dev_sync.sh"
+    "$PROD_ROOT/scripts/deploy/pre_deploy_prod_checkpoint.sh"
+    "$PROD_ROOT/scripts/deploy/rollback_prod_to_tag.sh"
+)
+
+for s in "${deploy_scripts[@]}"; do
+    if [[ ! -f "$s" ]]; then
+        fail "Deploy script missing: $s"
+        continue
+    fi
+
+    if grep -nE 'php artisan db:seed|php artisan migrate:fresh|php artisan migrate:refresh' "$s" >/dev/null 2>&1; then
+        fail "Forbidden database reset/seed command found in $s"
+    else
+        pass "No forbidden reset/seed commands in $s"
+    fi
+
+    if grep -nE '\brsync\b' "$s" >/dev/null 2>&1; then
+        fail "Forbidden rsync-based deploy command found in $s"
+    else
+        pass "No rsync command found in $s"
+    fi
+done
 
 echo ""
 echo "Summary: PASS=${PASS_COUNT}, WARN=${WARN_COUNT}, FAIL=${FAIL_COUNT}"
