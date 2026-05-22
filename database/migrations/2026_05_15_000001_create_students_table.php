@@ -20,10 +20,9 @@ return new class extends Migration
             $table->string('student_id')->unique();
             $table->string('email')->nullable()->unique();
             $table->string('phone')->nullable();
-            $table->foreignId('group_id')->constrained('groups')->cascadeOnDelete();
+            $table->unsignedBigInteger('group_id')->nullable()->index();
             $table->timestamps();
             $table->index('student_id');
-            $table->index('group_id');
         });
     }
 
