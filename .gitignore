@@ -65,3 +65,8 @@ ql -u*
 CLEANUP_AUDIT_REPORT.md
 
 skills/
+
+# Catch-all for any .env.* variants not already listed above
+# (e.g. .env.local, .env.staging, .env.ci)
+.env.*
+!.env.example

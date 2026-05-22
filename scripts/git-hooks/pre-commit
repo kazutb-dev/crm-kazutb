@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# =============================================================================
+# pre-commit hook — blocks commits that include dangerous/sensitive files.
+#
+# Install (run once after cloning):
+#   cp scripts/git-hooks/pre-commit .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+#
+# Blocked patterns:
+#   .env  .env.*  backups/  *.sql  *.sql.gz  *.dump  *.tar.gz
+#   vendor/  node_modules/  skills/
+#
+# Allowed exceptions:
+#   .env.example  (whitelisted so it can be committed)
+# =============================================================================
+set -euo pipefail
+
+BLOCKED_REGEX='(^|/)\.env$|(^|/)\.env\.|(^|/)\.env$|^backups/|(^|/).*\.sql$|(^|/).*\.sql\.gz$|(^|/).*\.dump$|(^|/).*\.tar\.gz$|^vendor/|^node_modules/|^skills/'
+ALLOWED_REGEX='(^|/)\.env\.example$'
+
+blocked_files="$(
+    git diff --cached --name-only \
+        | grep -E "${BLOCKED_REGEX}" \
+        | grep -Ev "${ALLOWED_REGEX}" \
+        || true
+)"
+
+if [[ -n "${blocked_files}" ]]; then
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════╗"
+    echo "║  COMMIT BLOCKED — dangerous files are staged             ║"
+    echo "╚══════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Blocked files:"
+    while IFS= read -r f; do
+        echo "  ✗  ${f}"
+    done <<< "${blocked_files}"
+    echo ""
+    echo "Unstage them and try again:"
+    echo "  git restore --staged <file>"
+    echo ""
+    echo "Examples:"
+    while IFS= read -r f; do
+        echo "  git restore --staged '${f}'"
+    done <<< "${blocked_files}"
+    echo ""
+    echo "Or use safecommit to auto-clean and commit:"
+    echo "  safecommit \"your commit message\""
+    echo ""
+    exit 1
+fi
+
+exit 0
