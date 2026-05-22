@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+LOG_PREFIX="[safety]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib_deploy_common.sh"
+
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
-PRE_COMMIT_HOOK="${PROD_ROOT}/.git/hooks/pre-commit"
-SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
 EXPECTED_FREE_GB=20
 
 PASS_COUNT=0
@@ -17,160 +19,153 @@ pass() {
     (( PASS_COUNT++ )) || true
 }
 
-warn() {
+warn_item() {
     echo "WARN: $*"
     (( WARN_COUNT++ )) || true
 }
 
-fail() {
+fail_item() {
     echo "FAIL: $*"
     (( FAIL_COUNT++ )) || true
 }
 
-if [[ ! -d "$PROD_ROOT" ]]; then
-    echo "FAIL: PROD root not found: $PROD_ROOT"
-    exit 1
-fi
+safe_check() {
+    local msg="$1"
+    shift
+    if "$@"; then
+        pass "$msg"
+    else
+        fail_item "$msg"
+    fi
+}
 
-if [[ ! -d "$DEV_ROOT" ]]; then
-    echo "FAIL: DEV root not found: $DEV_ROOT"
-    exit 1
-fi
+[[ -d "$PROD_ROOT" ]] || fail "PROD root not found: $PROD_ROOT"
+[[ -d "$DEV_ROOT" ]] || fail "DEV root not found: $DEV_ROOT"
 
-prod_status="$(git -C "$PROD_ROOT" status --short)"
-if [[ -z "$prod_status" ]]; then
+if [[ -z "$(git -C "$PROD_ROOT" status --short || true)" ]]; then
     pass "PROD git status is clean"
 else
-    fail "PROD git status is not clean"
+    fail_item "PROD git status is not clean"
 fi
 
-dev_status="$(git -C "$DEV_ROOT" status --short)"
-if [[ -z "$dev_status" ]]; then
+if [[ -z "$(git -C "$DEV_ROOT" status --short || true)" ]]; then
     pass "DEV git status is clean"
 else
-    warn "DEV git status has changes (refresh/deploy should handle intentionally)"
+    warn_item "DEV git status has changes (intentional local work may exist)"
 fi
 
-prod_branch="$(git -C "$PROD_ROOT" branch --show-current)"
-dev_branch="$(git -C "$DEV_ROOT" branch --show-current)"
-[[ "$prod_branch" == "main" ]] && pass "PROD branch is main" || fail "PROD branch is $prod_branch (expected main)"
-[[ "$dev_branch" == "dev" ]] && pass "DEV branch is dev" || fail "DEV branch is $dev_branch (expected dev)"
+[[ "$(git -C "$PROD_ROOT" branch --show-current)" == "main" ]] && pass "PROD branch is main" || fail_item "PROD branch is not main"
+[[ "$(git -C "$DEV_ROOT" branch --show-current)" == "dev" ]] && pass "DEV branch is dev" || fail_item "DEV branch is not dev"
 
 if git -C "$PROD_ROOT" remote get-url origin >/dev/null 2>&1 && git -C "$DEV_ROOT" remote get-url origin >/dev/null 2>&1; then
     pass "origin remotes are configured"
 else
-    fail "origin remote is missing in PROD or DEV"
+    fail_item "origin remote is missing in PROD or DEV"
 fi
 
 if git -C "$PROD_ROOT" fetch origin --quiet >/dev/null 2>&1 && git -C "$DEV_ROOT" fetch origin --quiet >/dev/null 2>&1; then
     pass "origin fetch works for PROD and DEV"
 else
-    warn "Could not fetch origin for one of repos"
+    warn_item "Could not fetch origin for one of repositories"
 fi
 
-tracked_sensitive="$(git -C "$PROD_ROOT" ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.|^backups/|\.sql$|\.sql\.gz$|\.dump$|\.tar\.gz$|^skills/' | grep -Ev '(^|/)\.env\.example$' || true)"
-if [[ -z "$tracked_sensitive" ]]; then
-    pass "No sensitive backup/env/sql files are tracked in PROD"
+if ensure_no_sensitive_tracked "$PROD_ROOT" >/dev/null 2>&1; then
+    pass "No sensitive tracked files in PROD"
 else
-    fail "Sensitive tracked files detected in PROD:\n${tracked_sensitive}"
+    fail_item "Sensitive tracked files found in PROD"
 fi
 
-[[ -f "$BACKUP_SCRIPT" ]] && pass "Backup script exists" || fail "Backup script missing: $BACKUP_SCRIPT"
-[[ -x "$BACKUP_SCRIPT" ]] && pass "Backup script is executable" || warn "Backup script is not executable"
-
-[[ -f "$PRE_COMMIT_HOOK" ]] && pass "pre-commit hook exists" || warn "pre-commit hook missing in PROD repo"
-if [[ -x "$SAFECOMMIT_SCRIPT" ]]; then
-    pass "safecommit wrapper is available"
+if ensure_no_sensitive_tracked "$DEV_ROOT" >/dev/null 2>&1; then
+    pass "No sensitive tracked files in DEV"
 else
-    warn "safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT"
+    fail_item "Sensitive tracked files found in DEV"
 fi
+
+[[ -x "$BACKUP_SCRIPT" ]] && pass "Backup script exists and executable" || fail_item "Backup script missing or not executable"
 
 avail_gb="$(df -BG "$PROD_ROOT" | awk 'NR==2 {gsub(/G/,"",$4); print $4}')"
 if [[ -n "$avail_gb" && "$avail_gb" -ge "$EXPECTED_FREE_GB" ]]; then
     pass "Disk free space is ${avail_gb}G (>= ${EXPECTED_FREE_GB}G)"
 else
-    fail "Disk free space is below ${EXPECTED_FREE_GB}G"
+    fail_item "Disk free space below ${EXPECTED_FREE_GB}G"
 fi
 
 latest_backups="$(ls -1dt "$PROD_ROOT"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n2 || true)"
 if [[ -n "$latest_backups" ]]; then
-    pass "Latest PROD backups found"
-    echo "$latest_backups"
+    pass "Latest PROD backup snapshots found"
 else
-    warn "No prod_backup_*_full_snapshot directories found"
+    warn_item "No prod backup snapshots found"
 fi
 
-new_migrations="$(comm -13 \
-    <(git -C "$PROD_ROOT" ls-tree -r --name-only origin/main 2>/dev/null | grep '^database/migrations/.*\.php$' | sed 's#^database/migrations/##' | sort) \
-    <(git -C "$PROD_ROOT" ls-tree -r --name-only origin/dev 2>/dev/null | grep '^database/migrations/.*\.php$' | sed 's#^database/migrations/##' | sort) || true)"
-
-if [[ -n "$new_migrations" ]]; then
-    risky_migrations=""
-    while IFS= read -r migration_file; do
-        [[ -n "$migration_file" ]] || continue
-        full_path="$DEV_ROOT/database/migrations/$migration_file"
-        [[ -f "$full_path" ]] || continue
-        line_hits="$(awk '
-            /function up\(\)[: ]*void/ {in_up=1}
-            /function down\(\)[: ]*void/ {in_up=0}
-            in_up {print NR ":" $0}
-        ' "$full_path" | grep -E 'dropTable|dropColumn|Schema::drop|Schema::dropIfExists|truncate|delete\(|DB::statement|renameColumn|change\(' || true)"
-        if [[ -n "$line_hits" ]]; then
-            risky_migrations+="${full_path}"$'\n'"${line_hits}"$'\n'
-        fi
-    done <<< "$new_migrations"
-
-    if [[ -n "$risky_migrations" ]]; then
-        fail "Potentially dangerous migration patterns detected in DEV"
-        echo "$risky_migrations"
-    else
-        pass "No dangerous migration patterns detected in DEV"
-    fi
+protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev || true)"
+if [[ -n "$protected_deletes" ]]; then
+    fail_item "Protected deletions detected in origin/main..origin/dev"
+    echo "$protected_deletes"
 else
-    pass "No new migration files in DEV compared to PROD"
+    pass "No protected deletions detected between main and dev"
 fi
 
-changed_seeders="$(git -C "$PROD_ROOT" diff --name-only origin/main..origin/dev -- database/seeders/*.php 2>/dev/null || true)"
+dangerous_migrations="$(detect_dangerous_migrations "$PROD_ROOT" origin/main origin/dev || true)"
+if [[ -n "$dangerous_migrations" ]]; then
+    fail_item "Dangerous migration patterns found in dev"
+    echo "$dangerous_migrations"
+else
+    pass "No dangerous migration patterns in new migrations"
+fi
+
+changed_seeders="$(detect_changed_seeders "$PROD_ROOT" origin/main origin/dev || true)"
 if [[ -n "$changed_seeders" ]]; then
-    risky_seeders="$(while IFS= read -r sf; do [[ -n "$sf" ]] && grep -nE -- '->create\(' "$DEV_ROOT/$sf" || true; done <<< "$changed_seeders" | grep -Ev 'updateOrCreate|firstOrCreate|upsert' || true)"
-    if [[ -n "$risky_seeders" ]]; then
-        warn "Seeder create() without clear idempotency markers detected"
-        echo "$risky_seeders"
-    else
-        pass "Changed seeders appear idempotent"
-    fi
+    warn_item "Seeders changed between main and dev (must remain idempotent)"
+    echo "$changed_seeders"
 else
-    pass "No changed seeders between PROD and DEV HEAD"
+    pass "No changed seeders between main and dev"
 fi
 
-deploy_scripts=(
-    "$PROD_ROOT/scripts/deploy/dev_to_prod_release.sh"
-    "$PROD_ROOT/scripts/deploy/prod_to_dev_sync.sh"
-    "$PROD_ROOT/scripts/deploy/pre_deploy_prod_checkpoint.sh"
-    "$PROD_ROOT/scripts/deploy/rollback_prod_to_tag.sh"
-)
-
-for s in "${deploy_scripts[@]}"; do
-    if [[ ! -f "$s" ]]; then
-        fail "Deploy script missing: $s"
+for script in \
+    "$PROD_ROOT/scripts/deploy/dev_to_prod_release.sh" \
+    "$PROD_ROOT/scripts/deploy/prod_to_dev_sync.sh" \
+    "$PROD_ROOT/scripts/deploy/pre_deploy_prod_checkpoint.sh" \
+    "$PROD_ROOT/scripts/deploy/rollback_prod_to_tag.sh"; do
+    if [[ ! -f "$script" ]]; then
+        fail_item "Deploy script missing: $script"
         continue
     fi
 
-    if grep -nE 'php artisan db:seed|php artisan migrate:fresh|php artisan migrate:refresh|php artisan migrate:reset|php artisan db:wipe|php artisan test' "$s" >/dev/null 2>&1; then
-        fail "Forbidden database reset/seed command found in $s"
+    if ensure_no_forbidden_commands "$script" >/dev/null 2>&1; then
+        pass "No forbidden commands in $script"
     else
-        pass "No forbidden reset/seed commands in $s"
+        fail_item "Forbidden commands found in $script"
     fi
 
-    if grep -nE '\brsync\b' "$s" >/dev/null 2>&1; then
-        fail "Forbidden rsync-based deploy command found in $s"
-    else
-        pass "No rsync command found in $s"
-    fi
 done
+
+if check_env_key_readable_by_www_data "$DEV_ROOT" >/dev/null 2>&1; then
+    pass "DEV .env contains APP_KEY and is readable via www-data association"
+else
+    fail_item "DEV .env APP_KEY/readability check failed"
+fi
+
+if check_storage_permissions "$DEV_ROOT" >/dev/null 2>&1; then
+    pass "DEV storage/bootstrap permissions look writable"
+else
+    fail_item "DEV storage/bootstrap permissions check failed"
+fi
+
+# HTTP checks must reject 500. 200/301/302/401/403 are acceptable for this probe.
+prod_root_code="$(curl -s -o /dev/null -w '%{http_code}' https://crm.kaztbu.edu.kz/ || true)"
+dev_root_code="$(curl -s -o /dev/null -w '%{http_code}' https://dev-crm.kaztbu.edu.kz/ || true)"
+dev_profile_code="$(curl -s -o /dev/null -w '%{http_code}' https://dev-crm.kaztbu.edu.kz/profile || true)"
+
+[[ "$prod_root_code" == "500" ]] && fail_item "PROD / returned 500" || pass "PROD / HTTP code=${prod_root_code}"
+[[ "$dev_root_code" == "500" ]] && fail_item "DEV / returned 500" || pass "DEV / HTTP code=${dev_root_code}"
+[[ "$dev_profile_code" == "500" ]] && fail_item "DEV /profile returned 500" || pass "DEV /profile HTTP code=${dev_profile_code}"
+
+if "$PROD_ROOT/scripts/deploy/ssl_guard_check.sh" >/dev/null 2>&1; then
+    pass "ssl_guard_check.sh passed"
+else
+    fail_item "ssl_guard_check.sh failed"
+fi
 
 echo ""
 echo "Summary: PASS=${PASS_COUNT}, WARN=${WARN_COUNT}, FAIL=${FAIL_COUNT}"
-if [[ "$FAIL_COUNT" -gt 0 ]]; then
-    exit 1
-fi
+[[ "$FAIL_COUNT" -eq 0 ]]

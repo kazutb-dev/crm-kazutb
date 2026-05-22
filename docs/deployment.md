@@ -27,6 +27,15 @@
 - Нельзя коммитить .env, backups, sql/tar dumps, vendor, node_modules, skills.
 - На PROD не запускать тесты в deploy-скриптах.
 
+### Инварианты после инцидента DEV sync/deploy
+
+- Любой state-changing script обязан проходить через checkpoint + backup + post-check.
+- Никаких push в удаленный branch до успешного завершения всех post-check.
+- Dry-run режим должен быть строго non-mutating (без reset/push/db restore/tar extract).
+- Любая ошибка sync/release должна оставлять понятную recovery-инструкцию (checkpoint branch/tag + backup path).
+- Удаления protected-path блокируются по умолчанию (нужен явный override).
+- В PROD/DEV запрещены reset/seed/fresh/wipe команды в deploy toolchain.
+
 ## 3. Ежедневная работа
 
 ### Если правили PROD напрямую
@@ -67,6 +76,13 @@
 
 - ./scripts/deploy/prod_to_dev_sync.sh
 - dry-run: ./scripts/deploy/prod_to_dev_sync.sh --dry-run
+- non-interactive checkpoint (если PROD dirty): ./scripts/deploy/prod_to_dev_sync.sh --yes
+- без DB restore: ./scripts/deploy/prod_to_dev_sync.sh --skip-db
+- без file restore: ./scripts/deploy/prod_to_dev_sync.sh --skip-files
+- без build: ./scripts/deploy/prod_to_dev_sync.sh --skip-build
+- без migrate: ./scripts/deploy/prod_to_dev_sync.sh --skip-migrate
+- не выполнять auto-recover при ошибке: ./scripts/deploy/prod_to_dev_sync.sh --no-auto-recover
+- автоматически исправить отсутствующий APP_KEY в DEV: ./scripts/deploy/prod_to_dev_sync.sh --fix-dev-app-key
 - legacy wrapper: ./scripts/deploy/refresh_dev_from_prod.sh
 
 ### Deploy DEV to PROD
@@ -76,6 +92,7 @@
 - non-interactive yes: ./scripts/deploy/dev_to_prod_release.sh --yes
 - no migrate: ./scripts/deploy/dev_to_prod_release.sh --no-migrate
 - skip build: ./scripts/deploy/dev_to_prod_release.sh --skip-build
+- explicit override for protected-path deletion (only with manual approval): ./scripts/deploy/dev_to_prod_release.sh --force-protected-delete
 - legacy wrapper: ./scripts/deploy/deploy_dev_to_prod.sh
 
 ### Rollback PROD code to tag
@@ -86,6 +103,34 @@
 ### Safety check
 
 - ./scripts/deploy/check_deploy_safety.sh
+
+## 9. Post-Incident Hardening Toolkit
+
+Новые/обновленные скрипты:
+
+- /var/www/laravel-react/scripts/deploy/lib_deploy_common.sh
+- /var/www/laravel-react/scripts/deploy/check_deploy_safety.sh
+- /var/www/laravel-react/scripts/deploy/prod_to_dev_sync.sh
+- /var/www/laravel-react/scripts/deploy/dev_to_prod_release.sh
+
+Что теперь обязательно проверяется автоматически:
+
+- protected deletions (scripts/deploy/config/docs/package manifests)
+- dangerous migration patterns в up()
+- APP_KEY + .env readability через www-data association
+- storage/bootstrap writeability
+- HTTP anti-500 checks для PROD/DEV endpoints
+- ssl_guard_check.sh pass
+- forbidden deploy commands (seed/reset/fresh/wipe/test) в deploy-скриптах
+
+Минимальный safe validation после изменения toolkit:
+
+- chmod +x scripts/deploy/*.sh
+- bash -n scripts/deploy/*.sh
+- ./scripts/deploy/check_deploy_safety.sh || true
+- ./scripts/deploy/prod_to_dev_sync.sh --dry-run || true
+- ./scripts/deploy/dev_to_prod_release.sh --dry-run || true
+- ./scripts/deploy/ssl_guard_check.sh || true
 
 ## 5. Что делать при ошибке deploy
 

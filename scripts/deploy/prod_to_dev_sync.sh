@@ -1,34 +1,43 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+LOG_PREFIX="[prod->dev]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib_deploy_common.sh"
+
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
-ENSURE_DEV_BRANCH_SCRIPT="${PROD_ROOT}/scripts/deploy/ensure_dev_branch.sh"
-SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
+
 DRY_RUN=0
-TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+ASSUME_YES=0
+SKIP_DB=0
+SKIP_FILES=0
+SKIP_BUILD=0
+SKIP_MIGRATE=0
+NO_AUTO_RECOVER=0
+FIX_DEV_APP_KEY=0
 
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
+        --yes) ASSUME_YES=1 ;;
+        --skip-db) SKIP_DB=1 ;;
+        --skip-files) SKIP_FILES=1 ;;
+        --skip-build) SKIP_BUILD=1 ;;
+        --skip-migrate) SKIP_MIGRATE=1 ;;
+        --no-auto-recover) NO_AUTO_RECOVER=1 ;;
+        --fix-dev-app-key) FIX_DEV_APP_KEY=1 ;;
         -h|--help)
-            cat <<'EOF'
+            cat <<USAGE
 Usage:
-  /var/www/laravel-react/scripts/deploy/prod_to_dev_sync.sh [--dry-run]
-EOF
+  ${PROD_ROOT}/scripts/deploy/prod_to_dev_sync.sh [--dry-run] [--yes] [--skip-db] [--skip-files] [--skip-build] [--skip-migrate] [--no-auto-recover] [--fix-dev-app-key]
+USAGE
             exit 0
             ;;
-        *)
-            echo "[prod->dev] ERROR: Unknown argument: $arg" >&2
-            exit 1
-            ;;
+        *) fail "Unknown argument: $arg" ;;
     esac
 done
-
-log() {
-    echo "[prod->dev] $*"
-}
 
 run_cmd() {
     if [[ "$DRY_RUN" == "1" ]]; then
@@ -38,168 +47,236 @@ run_cmd() {
     fi
 }
 
-env_value() {
-    local key="$1"
-    local env_file="$2"
-    local raw
-    raw="$(grep -E "^${key}=" "$env_file" | tail -n 1 || true)"
-    raw="${raw#*=}"
-    raw="${raw%$'\r'}"
-    if [[ "$raw" == '"'*'"' ]]; then
-        raw="${raw:1:${#raw}-2}"
-    elif [[ "$raw" == "'"*"'" ]]; then
-        raw="${raw:1:${#raw}-2}"
-    fi
-    printf '%s' "$raw"
+require_paths() {
+    [[ -d "$PROD_ROOT" ]] || fail "PROD root missing: $PROD_ROOT"
+    [[ -d "$DEV_ROOT" ]] || fail "DEV root missing: $DEV_ROOT"
+    [[ -f "$BACKUP_SCRIPT" ]] || fail "Backup script missing: $BACKUP_SCRIPT"
+    [[ -x "$BACKUP_SCRIPT" ]] || fail "Backup script is not executable: $BACKUP_SCRIPT"
 }
 
-[[ -d "$PROD_ROOT" ]] || { echo "[prod->dev] ERROR: PROD root missing" >&2; exit 1; }
-[[ -d "$DEV_ROOT" ]] || { echo "[prod->dev] ERROR: DEV root missing" >&2; exit 1; }
-[[ -f "$BACKUP_SCRIPT" ]] || { echo "[prod->dev] ERROR: backup script missing" >&2; exit 1; }
-[[ -f "$ENSURE_DEV_BRANCH_SCRIPT" ]] || { echo "[prod->dev] ERROR: ensure_dev_branch script missing" >&2; exit 1; }
+check_branch_state() {
+    git -C "$PROD_ROOT" fetch origin --quiet
+    git -C "$DEV_ROOT" fetch origin --quiet
 
-# A. PROD checks + checkpoint + backup
-cd "$PROD_ROOT"
-[[ "$(pwd)" == "$PROD_ROOT" ]] || { echo "[prod->dev] ERROR: wrong PROD path" >&2; exit 1; }
-[[ "$(git branch --show-current)" == "main" ]] || { echo "[prod->dev] ERROR: PROD must be on main" >&2; exit 1; }
+    local prod_branch dev_branch
+    prod_branch="$(git -C "$PROD_ROOT" branch --show-current)"
+    dev_branch="$(git -C "$DEV_ROOT" branch --show-current)"
 
-git remote get-url origin >/dev/null 2>&1 || { echo "[prod->dev] ERROR: PROD origin missing" >&2; exit 1; }
+    [[ "$prod_branch" == "main" ]] || fail "PROD must be on main (got $prod_branch)"
+    [[ "$dev_branch" == "dev" ]] || fail "DEV must be on dev (got $dev_branch)"
+}
 
-if [[ -n "$(git status --short)" ]]; then
-    if [[ "$DRY_RUN" == "1" ]]; then
-        log "DRY-RUN: would safecommit dirty PROD changes and push main"
-    else
-        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
-            echo "[prod->dev] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2
-            exit 1
-        fi
-        "$SAFECOMMIT_SCRIPT" "chore(prod): checkpoint direct production changes before dev sync"
-        git push origin main
+checkpoint_prod_if_dirty() {
+    local prod_status
+    prod_status="$(git -C "$PROD_ROOT" status --short || true)"
+    if [[ -z "$prod_status" ]]; then
+        return 0
     fi
+
+    [[ "$DRY_RUN" == "1" ]] && { log "DRY-RUN: PROD dirty -> would checkpoint with safecommit and push origin main"; return 0; }
+
+    local safecommit_script="${PROD_ROOT}/scripts/deploy/safecommit.sh"
+    [[ -x "$safecommit_script" ]] || fail "safecommit missing or not executable: $safecommit_script"
+
+    if [[ "$ASSUME_YES" != "1" ]]; then
+        fail "PROD has uncommitted changes. Re-run with --yes to checkpoint automatically."
+    fi
+
+    (cd "$PROD_ROOT" && "$safecommit_script" "chore(prod): checkpoint direct changes before prod->dev sync")
+    (cd "$PROD_ROOT" && git push origin main)
+}
+
+TIMESTAMP="$(current_ts)"
+DEV_BACKUP_DIR="${DEV_ROOT}/backups/dev_before_prod_sync_${TIMESTAMP}"
+PROD_BACKUP_DIR=""
+CHECKPOINT_BRANCH="safety/dev-before-prod-sync-${TIMESTAMP}"
+CHECKPOINT_TAG="dev-before-prod-sync-${TIMESTAMP}"
+RESTORE_FROM_CHECKPOINT=0
+
+on_error() {
+    local ec=$?
+    warn "Sync failed (exit=$ec)"
+    if [[ "$DRY_RUN" == "0" ]]; then
+        print_recovery_instructions "$CHECKPOINT_BRANCH" "$CHECKPOINT_TAG" "$DEV_BACKUP_DIR"
+        if [[ "$RESTORE_FROM_CHECKPOINT" == "1" && "$NO_AUTO_RECOVER" == "0" ]]; then
+            warn "Auto-recovering local DEV branch to checkpoint"
+            git -C "$DEV_ROOT" checkout dev || true
+            git -C "$DEV_ROOT" reset --hard "$CHECKPOINT_BRANCH" || true
+        fi
+    fi
+    exit "$ec"
+}
+trap on_error ERR
+
+require_paths
+check_branch_state
+checkpoint_prod_if_dirty
+
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "DRY-RUN: would create DEV checkpoint branch/tag and push both"
+else
+    git -C "$DEV_ROOT" branch "$CHECKPOINT_BRANCH"
+    git -C "$DEV_ROOT" tag "$CHECKPOINT_TAG"
+    git -C "$DEV_ROOT" push origin "$CHECKPOINT_BRANCH"
+    git -C "$DEV_ROOT" push origin "$CHECKPOINT_TAG"
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
-    prod_backup_dir="${PROD_ROOT}/backups/prod_backup_DRYRUN_full_snapshot"
-    prod_db_file="${prod_backup_dir}/database_DRYRUN.sql.gz"
-    prod_data_file="${prod_backup_dir}/project_data_DRYRUN.tar.gz"
+    log "DRY-RUN: would back up DEV DB/storage/.env into $DEV_BACKUP_DIR"
 else
-    BACKUP_KEEP_COUNT=2 "$BACKUP_SCRIPT"
-    prod_backup_dir="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
-    [[ -n "$prod_backup_dir" ]] || { echo "[prod->dev] ERROR: PROD backup not found" >&2; exit 1; }
-    prod_db_file="$(ls -1 "$prod_backup_dir"/database_*.sql.gz 2>/dev/null | head -n1 || true)"
-    prod_data_file="$(ls -1 "$prod_backup_dir"/project_data_*.tar.gz 2>/dev/null | head -n1 || true)"
-    [[ -n "$prod_db_file" && -f "$prod_db_file" ]] || { echo "[prod->dev] ERROR: PROD DB dump missing" >&2; exit 1; }
-    [[ -n "$prod_data_file" && -f "$prod_data_file" ]] || { echo "[prod->dev] ERROR: PROD project_data archive missing" >&2; exit 1; }
-    gzip -t "$prod_db_file"
-    tar -tzf "$prod_data_file" >/dev/null
-fi
+    mkdir -p "$DEV_BACKUP_DIR"
+    backup_env_file "$DEV_ROOT" "$DEV_BACKUP_DIR/env.backup"
+    (cd "$DEV_ROOT" && git status --short > "$DEV_BACKUP_DIR/git_status.txt")
+    (cd "$DEV_ROOT" && git rev-parse HEAD > "$DEV_BACKUP_DIR/git_head.txt")
+    (cd "$DEV_ROOT" && php artisan migrate:status > "$DEV_BACKUP_DIR/migrate_status.txt" || true)
 
-# B. DEV branch + checkpoint + backup
-run_cmd "'${ENSURE_DEV_BRANCH_SCRIPT}' $([[ "$DRY_RUN" == "1" ]] && echo --dry-run || true)"
+    DEV_DB_CONNECTION="$(grep -E '^DB_CONNECTION=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+    DEV_DB_HOST="$(grep -E '^DB_HOST=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+    DEV_DB_PORT="$(grep -E '^DB_PORT=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+    DEV_DB_DATABASE="$(grep -E '^DB_DATABASE=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+    DEV_DB_USERNAME="$(grep -E '^DB_USERNAME=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+    DEV_DB_PASSWORD="$(grep -E '^DB_PASSWORD=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
 
-cd "$DEV_ROOT"
-[[ "$(pwd)" == "$DEV_ROOT" ]] || { echo "[prod->dev] ERROR: wrong DEV path" >&2; exit 1; }
-[[ "$(git branch --show-current)" == "dev" ]] || { echo "[prod->dev] ERROR: DEV must be on dev branch" >&2; exit 1; }
-
-dev_checkpoint_tag=""
-if [[ -n "$(git status --short)" ]]; then
-    if [[ "$DRY_RUN" == "1" ]]; then
-        log "DRY-RUN: would checkpoint dirty DEV changes and push dev"
-        dev_checkpoint_tag="dev-checkpoint-${TIMESTAMP}"
-    else
-        if [[ ! -x "$SAFECOMMIT_SCRIPT" ]]; then
-            echo "[prod->dev] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2
-            exit 1
-        fi
-        "$SAFECOMMIT_SCRIPT" "chore(dev): checkpoint local dev changes before prod sync"
-        dev_checkpoint_tag="dev-checkpoint-${TIMESTAMP}"
-        git tag "$dev_checkpoint_tag"
-        git push origin dev
-        git push origin "$dev_checkpoint_tag"
-    fi
-fi
-
-dev_env_file="${DEV_ROOT}/.env"
-tmp_dev_env="/tmp/laravel-react-dev-env-${TIMESTAMP}"
-run_cmd "cp '${dev_env_file}' '${tmp_dev_env}'"
-
-# DEV backup
-DEV_BACKUP_DIR="${DEV_ROOT}/backups/dev_backup_${TIMESTAMP}_before_prod_sync"
-run_cmd "mkdir -p '${DEV_BACKUP_DIR}'"
-run_cmd "cp '${dev_env_file}' '${DEV_BACKUP_DIR}/env_${TIMESTAMP}.backup'"
-run_cmd "chmod 600 '${DEV_BACKUP_DIR}/env_${TIMESTAMP}.backup'"
-
-DEV_DB_CONNECTION="$(env_value DB_CONNECTION "$dev_env_file")"
-DEV_DB_HOST="$(env_value DB_HOST "$dev_env_file")"
-DEV_DB_PORT="$(env_value DB_PORT "$dev_env_file")"
-DEV_DB_DATABASE="$(env_value DB_DATABASE "$dev_env_file")"
-DEV_DB_USERNAME="$(env_value DB_USERNAME "$dev_env_file")"
-DEV_DB_PASSWORD="$(env_value DB_PASSWORD "$dev_env_file")"
-
-if [[ "${DEV_DB_CONNECTION:-mysql}" == "sqlite" ]]; then
-    DEV_SQLITE_PATH="$DEV_DB_DATABASE"
-    [[ "$DEV_SQLITE_PATH" == /* ]] || DEV_SQLITE_PATH="${DEV_ROOT}/${DEV_SQLITE_PATH}"
-    run_cmd "cp '${DEV_SQLITE_PATH}' '${DEV_BACKUP_DIR}/database_${TIMESTAMP}.sqlite'"
-    run_cmd "gzip -f '${DEV_BACKUP_DIR}/database_${TIMESTAMP}.sqlite'"
-else
-    run_cmd "MYSQL_PWD='${DEV_DB_PASSWORD}' mysqldump --single-transaction --routines --triggers --events --hex-blob --default-character-set=utf8mb4 --no-tablespaces -h'${DEV_DB_HOST}' -P'${DEV_DB_PORT}' -u'${DEV_DB_USERNAME}' '${DEV_DB_DATABASE}' | gzip -c > '${DEV_BACKUP_DIR}/database_${TIMESTAMP}.sql.gz'"
-fi
-run_cmd "tar -czf '${DEV_BACKUP_DIR}/storage_public_${TIMESTAMP}.tar.gz' -C '${DEV_ROOT}' storage public"
-
-# Move DEV code to PROD main state through git
-run_cmd "git fetch origin"
-run_cmd "git checkout dev"
-run_cmd "git reset --hard origin/main"
-run_cmd "git checkout -B dev"
-run_cmd "git push -f origin dev"
-
-# Restore DEV env
-run_cmd "cp '${tmp_dev_env}' '${dev_env_file}'"
-run_cmd "chmod 600 '${dev_env_file}'"
-
-# Restore DEV DB from PROD dump using DEV credentials
-if [[ "$DRY_RUN" == "1" ]]; then
-    log "DRY-RUN: would restore DEV DB from PROD dump (${prod_db_file})"
-else
     if [[ "${DEV_DB_CONNECTION:-mysql}" == "sqlite" ]]; then
         DEV_SQLITE_PATH="$DEV_DB_DATABASE"
-        [[ "$DEV_SQLITE_PATH" == /* ]] || DEV_SQLITE_PATH="${DEV_ROOT}/${DEV_SQLITE_PATH}"
-        gunzip -c "$prod_db_file" > "$DEV_SQLITE_PATH"
+        [[ "$DEV_SQLITE_PATH" == /* ]] || DEV_SQLITE_PATH="$DEV_ROOT/$DEV_SQLITE_PATH"
+        cp "$DEV_SQLITE_PATH" "$DEV_BACKUP_DIR/database_before_sync.sqlite"
+        gzip -f "$DEV_BACKUP_DIR/database_before_sync.sqlite"
     else
-        gunzip -c "$prod_db_file" | MYSQL_PWD="$DEV_DB_PASSWORD" mysql -h"$DEV_DB_HOST" -P"$DEV_DB_PORT" -u"$DEV_DB_USERNAME" "$DEV_DB_DATABASE"
+        MYSQL_PWD="$DEV_DB_PASSWORD" mysqldump --single-transaction --routines --triggers --events --hex-blob --default-character-set=utf8mb4 --no-tablespaces -h"$DEV_DB_HOST" -P"$DEV_DB_PORT" -u"$DEV_DB_USERNAME" "$DEV_DB_DATABASE" | gzip -c > "$DEV_BACKUP_DIR/database_before_sync.sql.gz"
+    fi
+
+    tar -czf "$DEV_BACKUP_DIR/storage_public_before_sync.tar.gz" -C "$DEV_ROOT" storage public
+fi
+
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "DRY-RUN: would run PROD backup script and verify db/project_data artifacts"
+    PROD_BACKUP_DIR="${PROD_ROOT}/backups/prod_backup_DRYRUN_full_snapshot"
+else
+    BACKUP_KEEP_COUNT=2 "$BACKUP_SCRIPT"
+    PROD_BACKUP_DIR="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot | head -n1)"
+    [[ -n "$PROD_BACKUP_DIR" ]] || fail "Unable to locate PROD backup dir"
+    ls -1 "$PROD_BACKUP_DIR"/database_*.sql.gz >/dev/null
+    ls -1 "$PROD_BACKUP_DIR"/project_data_*.tar.gz >/dev/null
+fi
+
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "DRY-RUN: would reset local DEV to origin/main then restore .env and permissions"
+else
+    cp "$DEV_ROOT/.env" "/tmp/laravel-react-dev-env-${TIMESTAMP}.tmp"
+    git -C "$DEV_ROOT" fetch origin --quiet
+    git -C "$DEV_ROOT" checkout dev
+    git -C "$DEV_ROOT" reset --hard origin/main
+    RESTORE_FROM_CHECKPOINT=1
+    cp "/tmp/laravel-react-dev-env-${TIMESTAMP}.tmp" "$DEV_ROOT/.env"
+    chgrp www-data "$DEV_ROOT/.env" || true
+    chmod 640 "$DEV_ROOT/.env"
+
+    if ! grep -E '^APP_KEY=' "$DEV_ROOT/.env" >/dev/null 2>&1 || [[ -z "$(grep -E '^APP_KEY=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)" ]]; then
+        if [[ "$FIX_DEV_APP_KEY" == "1" ]]; then
+            (cd "$DEV_ROOT" && php artisan key:generate --force)
+        else
+            fail "APP_KEY missing in DEV .env. Fix manually or re-run with --fix-dev-app-key"
+        fi
+    fi
+
+    check_env_key_readable_by_www_data "$DEV_ROOT"
+fi
+
+if [[ "$SKIP_DB" == "0" ]]; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+        log "DRY-RUN: would restore DEV DB from latest PROD backup using DEV DB credentials"
+    else
+        PROD_DB_FILE="$(ls -1 "$PROD_BACKUP_DIR"/database_*.sql.gz | head -n1)"
+        DEV_DB_CONNECTION="$(grep -E '^DB_CONNECTION=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+        DEV_DB_HOST="$(grep -E '^DB_HOST=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+        DEV_DB_PORT="$(grep -E '^DB_PORT=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+        DEV_DB_DATABASE="$(grep -E '^DB_DATABASE=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+        DEV_DB_USERNAME="$(grep -E '^DB_USERNAME=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+        DEV_DB_PASSWORD="$(grep -E '^DB_PASSWORD=' "$DEV_ROOT/.env" | tail -n1 | cut -d= -f2-)"
+
+        if [[ "${DEV_DB_CONNECTION:-mysql}" == "sqlite" ]]; then
+            DEV_SQLITE_PATH="$DEV_DB_DATABASE"
+            [[ "$DEV_SQLITE_PATH" == /* ]] || DEV_SQLITE_PATH="$DEV_ROOT/$DEV_SQLITE_PATH"
+            gunzip -c "$PROD_DB_FILE" > "$DEV_SQLITE_PATH"
+        else
+            gunzip -c "$PROD_DB_FILE" | MYSQL_PWD="$DEV_DB_PASSWORD" mysql -h"$DEV_DB_HOST" -P"$DEV_DB_PORT" -u"$DEV_DB_USERNAME" "$DEV_DB_DATABASE"
+        fi
+
+        if [[ "$SKIP_MIGRATE" == "0" ]]; then
+            (cd "$DEV_ROOT" && php artisan migrate --force)
+        fi
     fi
 fi
 
-# Restore project data from PROD backup, then restore DEV env again
+if [[ "$SKIP_FILES" == "0" ]]; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+        log "DRY-RUN: would restore runtime files from PROD project_data backup via temp extract"
+    else
+        PROD_DATA_FILE="$(ls -1 "$PROD_BACKUP_DIR"/project_data_*.tar.gz | head -n1)"
+        TMP_EXTRACT_DIR="$DEV_ROOT/backups/tmp_extract_${TIMESTAMP}"
+        mkdir -p "$TMP_EXTRACT_DIR"
+        tar -xzf "$PROD_DATA_FILE" -C "$TMP_EXTRACT_DIR"
+
+        # Copy only runtime-safe directories to avoid destructive overwrite.
+        if [[ -d "$TMP_EXTRACT_DIR/storage" ]]; then
+            rm -rf "$DEV_ROOT/storage"
+            cp -a "$TMP_EXTRACT_DIR/storage" "$DEV_ROOT/storage"
+        fi
+        if [[ -d "$TMP_EXTRACT_DIR/public" ]]; then
+            mkdir -p "$DEV_ROOT/public"
+            for p in uploads storage; do
+                [[ -e "$TMP_EXTRACT_DIR/public/$p" ]] && cp -a "$TMP_EXTRACT_DIR/public/$p" "$DEV_ROOT/public/" || true
+            done
+        fi
+
+        chgrp -R www-data "$DEV_ROOT/storage" "$DEV_ROOT/bootstrap/cache" || true
+        chmod -R ug+rwX "$DEV_ROOT/storage" "$DEV_ROOT/bootstrap/cache" || true
+    fi
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then
-    log "DRY-RUN: would extract PROD project_data archive into DEV root"
+    log "DRY-RUN: would run composer install, npm ci/build, optimize:clear, about, and health checks"
 else
-    tar -xzf "$prod_data_file" -C "$DEV_ROOT"
-    cp "$tmp_dev_env" "$dev_env_file"
-    chmod 600 "$dev_env_file"
-    chmod -R ug+rwX "${DEV_ROOT}/storage" "${DEV_ROOT}/bootstrap/cache" || true
+    (cd "$DEV_ROOT" && composer install)
+    if [[ "$SKIP_BUILD" == "0" ]]; then
+        if [[ -f "$DEV_ROOT/package-lock.json" ]]; then
+            (cd "$DEV_ROOT" && npm ci)
+        else
+            (cd "$DEV_ROOT" && npm install)
+        fi
+        (cd "$DEV_ROOT" && npm run build)
+    fi
+
+    (cd "$DEV_ROOT" && php artisan optimize:clear)
+    check_laravel_health "$DEV_ROOT"
+    check_storage_permissions "$DEV_ROOT"
+    if [[ "$SKIP_BUILD" == "0" ]]; then
+        check_public_build "$DEV_ROOT"
+    fi
+
+    dev_http_code="$(curl -s -o /dev/null -w '%{http_code}' https://dev-crm.kaztbu.edu.kz/)"
+    dev_profile_code="$(curl -s -o /dev/null -w '%{http_code}' https://dev-crm.kaztbu.edu.kz/profile)"
+
+    [[ "$dev_http_code" != "500" ]] || fail "DEV health check failed: / returned 500"
+    [[ "$dev_profile_code" != "500" ]] || fail "DEV health check failed: /profile returned 500"
 fi
 
-# DEV post-refresh
-cd "$DEV_ROOT"
-run_cmd "composer install"
-if [[ -f "${DEV_ROOT}/package-lock.json" ]]; then
-    run_cmd "npm ci"
-else
-    run_cmd "npm install"
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "Dry-run completed. No changes were made."
+    exit 0
 fi
-run_cmd "npm run build"
-run_cmd "php artisan optimize:clear"
-run_cmd "php artisan migrate --force"
-run_cmd "php artisan storage:link || true"
 
-cat <<EOF
+# Push only after all checks passed.
+git -C "$DEV_ROOT" checkout dev
+git -C "$DEV_ROOT" add -A
+if [[ -n "$(git -C "$DEV_ROOT" status --short)" ]]; then
+    git -C "$DEV_ROOT" commit -m "sync(dev): refresh from production main"
+fi
+git -C "$DEV_ROOT" push origin dev
+RESTORE_FROM_CHECKPOINT=0
 
-PROD -> DEV sync completed.
-PROD backup used: ${prod_backup_dir}
-DEV backup created: ${DEV_BACKUP_DIR}
-DEV checkpoint tag: ${dev_checkpoint_tag:-none}
-DEV DB restored from PROD: yes
-DEV .env preserved: yes
-DEV branch pushed: dev
-EOF
+log "PROD->DEV sync completed successfully"
+log "PROD backup used: ${PROD_BACKUP_DIR}"
+log "DEV backup created: ${DEV_BACKUP_DIR}"
+log "DEV checkpoint branch/tag: ${CHECKPOINT_BRANCH} / ${CHECKPOINT_TAG}"

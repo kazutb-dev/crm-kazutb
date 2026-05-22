@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+LOG_PREFIX="[release]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib_deploy_common.sh"
+
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 CHECKPOINT_SCRIPT="${PROD_ROOT}/scripts/deploy/pre_deploy_prod_checkpoint.sh"
-SAFECOMMIT_SCRIPT="${PROD_ROOT}/scripts/deploy/safecommit.sh"
+
 DRY_RUN=0
 ASSUME_YES=0
 NO_MIGRATE=0
 SKIP_BUILD=0
-TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+FORCE_PROTECTED_DELETE=0
 
 for arg in "$@"; do
     case "$arg" in
@@ -17,23 +21,17 @@ for arg in "$@"; do
         --yes) ASSUME_YES=1 ;;
         --no-migrate) NO_MIGRATE=1 ;;
         --skip-build) SKIP_BUILD=1 ;;
+        --force-protected-delete) FORCE_PROTECTED_DELETE=1 ;;
         -h|--help)
-            cat <<'EOF'
+            cat <<USAGE
 Usage:
-  /var/www/laravel-react/scripts/deploy/dev_to_prod_release.sh [--dry-run] [--yes] [--no-migrate] [--skip-build]
-EOF
+  ${PROD_ROOT}/scripts/deploy/dev_to_prod_release.sh [--dry-run] [--yes] [--no-migrate] [--skip-build] [--force-protected-delete]
+USAGE
             exit 0
             ;;
-        *)
-            echo "[release] ERROR: Unknown argument: $arg" >&2
-            exit 1
-            ;;
+        *) fail "Unknown argument: $arg" ;;
     esac
 done
-
-log() {
-    echo "[release] $*"
-}
 
 run_cmd() {
     if [[ "$DRY_RUN" == "1" ]]; then
@@ -68,76 +66,41 @@ is_excluded_path() {
     return 1
 }
 
-extract_up_block() {
-    local file="$1"
-    awk '
-      /function up\(\)[: ]*void/ {in_up=1}
-      in_up {print}
-      /function down\(\)[: ]*void/ {in_up=0}
-    ' "$file"
-}
+[[ -d "$PROD_ROOT" ]] || fail "PROD root missing"
+[[ -d "$DEV_ROOT" ]] || fail "DEV root missing"
+[[ -x "$CHECKPOINT_SCRIPT" ]] || fail "Checkpoint script missing or not executable: $CHECKPOINT_SCRIPT"
 
-scan_dangerous_migration() {
-    local file="$1"
-    extract_up_block "$file" | grep -nE 'dropColumn|dropTable|Schema::drop|Schema::dropIfExists|truncate|delete\(|DB::statement|renameColumn|change\('
-}
+require_command git
+require_command php
+require_command curl
 
-ensure_paths() {
-    [[ -d "$PROD_ROOT" ]] || { echo "[release] ERROR: PROD path missing" >&2; exit 1; }
-    [[ -d "$DEV_ROOT" ]] || { echo "[release] ERROR: DEV path missing" >&2; exit 1; }
-    [[ -f "$CHECKPOINT_SCRIPT" ]] || { echo "[release] ERROR: checkpoint script missing" >&2; exit 1; }
-}
+# Preflight states
+require_branch_main() { [[ "$(git -C "$PROD_ROOT" branch --show-current)" == "main" ]] || fail "PROD must be on main"; }
+require_branch_dev() { [[ "$(git -C "$DEV_ROOT" branch --show-current)" == "dev" ]] || fail "DEV must be on dev"; }
+require_branch_main
+require_branch_dev
 
-ensure_paths
+require_clean_git_or_checkpoint "$PROD_ROOT" fail
+ensure_no_sensitive_tracked "$PROD_ROOT"
+ensure_no_sensitive_tracked "$DEV_ROOT"
 
-# A. Preflight
-cd "$PROD_ROOT"
-[[ "$(pwd)" == "$PROD_ROOT" ]] || { echo "[release] ERROR: wrong PROD path" >&2; exit 1; }
-[[ "$(git branch --show-current)" == "main" ]] || { echo "[release] ERROR: PROD must be on main" >&2; exit 1; }
-[[ -z "$(git status --short)" ]] || { echo "[release] ERROR: PROD must be clean before release" >&2; exit 1; }
+git -C "$PROD_ROOT" fetch origin --quiet
+git -C "$DEV_ROOT" fetch origin --quiet
 
-git remote get-url origin >/dev/null 2>&1 || { echo "[release] ERROR: PROD origin missing" >&2; exit 1; }
-
-cd "$DEV_ROOT"
-[[ "$(git branch --show-current)" == "dev" ]] || { echo "[release] ERROR: DEV must be on dev branch" >&2; exit 1; }
-
-dev_dirty=0
-if [[ -n "$(git status --short)" ]]; then
-    dev_dirty=1
+protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev)"
+if [[ -n "$protected_deletes" && "$FORCE_PROTECTED_DELETE" != "1" ]]; then
+    fail "Protected deletions detected between origin/main..origin/dev:\n$protected_deletes\nUse --force-protected-delete only after explicit approval."
 fi
 
-if (( dev_dirty == 1 )); then
-    if [[ "$DRY_RUN" == "1" ]]; then
-        log "DRY-RUN: DEV is dirty; would request checkpoint commit"
-    elif [[ "$ASSUME_YES" == "1" ]]; then
-        :
-    else
-        if ! confirm_word "DEV has uncommitted changes. Commit them to dev branch? type YES: " "YES"; then
-            echo "[release] ERROR: aborted due to dirty DEV" >&2
-            exit 1
-        fi
-    fi
+dangerous_migrations="$(detect_dangerous_migrations "$PROD_ROOT" origin/main origin/dev)"
+[[ -z "$dangerous_migrations" ]] || fail "Dangerous migration patterns detected:\n$dangerous_migrations"
 
-    if [[ "$DRY_RUN" != "1" ]]; then
-        [[ -x "$SAFECOMMIT_SCRIPT" ]] || { echo "[release] ERROR: safecommit wrapper missing or not executable: $SAFECOMMIT_SCRIPT" >&2; exit 1; }
-        "$SAFECOMMIT_SCRIPT" "chore(dev): checkpoint dev changes before prod release"
-        git push origin dev
-    fi
+changed_seeders="$(detect_changed_seeders "$PROD_ROOT" origin/main origin/dev)"
+if [[ -n "$changed_seeders" ]]; then
+    warn "Seeders changed (will not be auto-run on PROD):\n$changed_seeders"
 fi
 
-# Sensitive tracked files checks
-sensitive_pattern='(^|/)\.env$|(^|/)\.env\.|^backups/|\.sql$|\.sql\.gz$|\.dump$|\.tar\.gz$|^vendor/|^node_modules/|^skills/'
-prod_sensitive="$(git -C "$PROD_ROOT" ls-files | grep -E "$sensitive_pattern" | grep -Ev '(^|/)\.env\.example$' || true)"
-dev_sensitive="$(git -C "$DEV_ROOT" ls-files | grep -E "$sensitive_pattern" | grep -Ev '(^|/)\.env\.example$' || true)"
-[[ -z "$prod_sensitive" ]] || { echo "[release] ERROR: sensitive files tracked in PROD" >&2; echo "$prod_sensitive"; exit 1; }
-[[ -z "$dev_sensitive" ]] || { echo "[release] ERROR: sensitive files tracked in DEV" >&2; echo "$dev_sensitive"; exit 1; }
-
-# Fetch and compare
-run_cmd "git -C '$DEV_ROOT' push origin dev"
-run_cmd "git -C '$PROD_ROOT' fetch origin"
-
-# Build diff lists from origin/main -> origin/dev
-changes="$(git -C "$PROD_ROOT" diff --name-status origin/main..origin/dev || true)"
+changes="$(list_diff_name_status "$PROD_ROOT" origin/main origin/dev || true)"
 create_list=""
 modify_list=""
 delete_list=""
@@ -150,25 +113,17 @@ while IFS= read -r line; do
 
     case "$status" in
         A)
-            p="$path1"
-            is_excluded_path "$p" && continue
-            create_list+="$p"$'\n'
+            is_excluded_path "$path1" || create_list+="$path1"$'\n'
             ;;
         M)
-            p="$path1"
-            is_excluded_path "$p" && continue
-            modify_list+="$p"$'\n'
+            is_excluded_path "$path1" || modify_list+="$path1"$'\n'
             ;;
         D)
-            p="$path1"
-            is_excluded_path "$p" && continue
-            delete_list+="$p"$'\n'
+            is_excluded_path "$path1" || delete_list+="$path1"$'\n'
             ;;
         R*)
-            p_old="$path1"
-            p_new="$path2"
-            is_excluded_path "$p_old" || delete_list+="$p_old"$'\n'
-            is_excluded_path "$p_new" || create_list+="$p_new"$'\n'
+            is_excluded_path "$path1" || delete_list+="$path1"$'\n'
+            is_excluded_path "$path2" || create_list+="$path2"$'\n'
             ;;
     esac
 done <<< "$changes"
@@ -183,136 +138,100 @@ echo ""
 echo "Files to delete:"
 echo "${delete_list:-<none>}"
 
-if [[ -n "$delete_list" ]]; then
-    echo ""
-    echo "The following files would be deleted from PROD:"
-    echo "$delete_list"
-    if [[ "$DRY_RUN" == "1" ]]; then
-        log "DRY-RUN: deletions present; deploy would be BLOCKED without DELETE confirmation"
-    elif [[ "$ASSUME_YES" == "1" ]]; then
-        echo "[release] ERROR: deletions require explicit DELETE confirmation in interactive mode" >&2
-        exit 1
-    else
-        if ! confirm_word "Type DELETE to allow these deletions, or press Enter to keep them: " "DELETE"; then
-            echo "[release] ERROR: deploy blocked because deletions are not confirmed" >&2
-            exit 1
-        fi
+if [[ -n "$delete_list" && "$DRY_RUN" != "1" ]]; then
+    if [[ "$ASSUME_YES" == "1" ]]; then
+        fail "Deletions require interactive DELETE confirmation."
     fi
+    confirm_word "Type DELETE to allow file deletions listed above: " "DELETE" || fail "Release blocked: deletions not confirmed"
 fi
 
-if [[ "$DRY_RUN" == "1" ]]; then
-    log "DRY-RUN: would ask confirmation 'Apply these changes? type YES'"
-else
-    if [[ "$ASSUME_YES" != "1" ]]; then
-        if ! confirm_word "Apply these changes? type YES: " "YES"; then
-            echo "[release] ERROR: deploy aborted by operator" >&2
-            exit 1
-        fi
-    fi
+if [[ "$DRY_RUN" != "1" && "$ASSUME_YES" != "1" ]]; then
+    confirm_word "Apply release changes to PROD main? type YES: " "YES" || fail "Release canceled"
 fi
 
-# C. Migration safety
-migration_candidates="$(comm -13 \
-    <(find "$PROD_ROOT/database/migrations" -maxdepth 1 -type f -name '*.php' -printf '%f\n' | sort) \
-    <(find "$DEV_ROOT/database/migrations" -maxdepth 1 -type f -name '*.php' -printf '%f\n' | sort) || true)"
-
-danger_hits=""
-while IFS= read -r mf; do
-    [[ -n "$mf" ]] || continue
-    file_path="$DEV_ROOT/database/migrations/$mf"
-    [[ -f "$file_path" ]] || continue
-    hits="$(scan_dangerous_migration "$file_path" || true)"
-    if [[ -n "$hits" ]]; then
-        danger_hits+="${file_path}"$'\n'"${hits}"$'\n'
-    fi
-done <<< "$migration_candidates"
-
-if [[ -n "$danger_hits" ]]; then
-    echo "[release] ERROR: dangerous migration patterns detected in up() blocks" >&2
-    echo "$danger_hits" >&2
-    exit 1
-fi
-
-# D. Seeder safety (warn only, never run seeders)
-changed_seeders="$(git -C "$PROD_ROOT" diff --name-only origin/main..origin/dev -- database/seeders/*.php 2>/dev/null || true)"
-if [[ -n "$changed_seeders" ]]; then
-    echo ""
-    echo "Changed/new seeders (will NOT be run on PROD):"
-    echo "$changed_seeders"
-fi
-
-# E. PROD checkpoint
 run_cmd "'${CHECKPOINT_SCRIPT}' $([[ "$DRY_RUN" == "1" ]] && echo --dry-run || true)"
 
-# Stop after dry-run preflight
 if [[ "$DRY_RUN" == "1" ]]; then
-    log "Dry-run completed. No deploy actions executed."
+    log "Dry-run completed. No release actions executed."
     exit 0
 fi
 
-# F. Merge dev into main
-cd "$PROD_ROOT"
-prod_old_head="$(git rev-parse HEAD)"
-run_cmd "git checkout main"
-run_cmd "git fetch origin"
-if ! git merge --no-ff origin/dev -m "release: merge dev into main"; then
-    echo "[release] ERROR: merge conflict detected" >&2
-    git diff --name-only --diff-filter=U >&2 || true
-    exit 1
-fi
-run_cmd "git push origin main"
-prod_new_head="$(git rev-parse HEAD)"
+TIMESTAMP="$(current_ts)"
+PROD_OLD_HEAD="$(git -C "$PROD_ROOT" rev-parse HEAD)"
+ROLLBACK_NEEDED=0
 
-# G. PROD install/build/migrate
-run_cmd "composer install --no-dev --optimize-autoloader"
-if [[ "$SKIP_BUILD" != "1" ]]; then
-    if [[ -f "${PROD_ROOT}/package-lock.json" ]]; then
-        run_cmd "npm ci"
-    else
-        echo "[release] ERROR: package-lock.json missing; npm ci cannot run safely" >&2
-        exit 1
+on_error() {
+    local ec=$?
+    warn "Release failed (exit=$ec)"
+    if [[ "$ROLLBACK_NEEDED" == "1" ]]; then
+        warn "Rolling back local PROD git state to $PROD_OLD_HEAD"
+        git -C "$PROD_ROOT" reset --hard "$PROD_OLD_HEAD" || true
     fi
-    run_cmd "npm run build"
+    exit "$ec"
+}
+trap on_error ERR
+
+# Merge dev into local main but do not push yet.
+git -C "$PROD_ROOT" checkout main
+git -C "$PROD_ROOT" fetch origin --quiet
+git -C "$PROD_ROOT" merge --no-ff origin/dev -m "release: merge dev into main"
+ROLLBACK_NEEDED=1
+
+(cd "$PROD_ROOT" && composer install --no-dev --optimize-autoloader)
+if [[ "$SKIP_BUILD" != "1" ]]; then
+    [[ -f "$PROD_ROOT/package-lock.json" ]] || fail "package-lock.json missing; refusing npm install in release"
+    (cd "$PROD_ROOT" && npm ci)
+    (cd "$PROD_ROOT" && npm run build)
 fi
 
-run_cmd "php artisan migrate:status"
+(cd "$PROD_ROOT" && php artisan migrate:status)
 if [[ "$NO_MIGRATE" != "1" ]]; then
-    run_cmd "php artisan migrate --force"
+    (cd "$PROD_ROOT" && php artisan migrate --force)
 fi
-run_cmd "php artisan optimize:clear"
-run_cmd "php artisan config:cache"
-run_cmd "php artisan route:cache"
-run_cmd "php artisan view:cache"
-run_cmd "php artisan queue:restart"
-run_cmd "sudo systemctl reload php8.3-fpm || true"
-run_cmd "sudo systemctl reload nginx || true"
-run_cmd "php artisan about"
 
-# H. Report
+(cd "$PROD_ROOT" && php artisan optimize:clear)
+(cd "$PROD_ROOT" && php artisan config:cache)
+(cd "$PROD_ROOT" && php artisan route:cache)
+(cd "$PROD_ROOT" && php artisan view:cache)
+(cd "$PROD_ROOT" && php artisan queue:restart)
+sudo systemctl reload php8.3-fpm || true
+sudo systemctl reload nginx || true
+check_laravel_health "$PROD_ROOT"
+check_storage_permissions "$PROD_ROOT"
+if [[ "$SKIP_BUILD" != "1" ]]; then
+    check_public_build "$PROD_ROOT"
+fi
+
+prod_http_code="$(curl -s -o /dev/null -w '%{http_code}' https://crm.kaztbu.edu.kz/)"
+[[ "$prod_http_code" != "500" ]] || fail "PROD health check failed: / returned 500"
+
+# Push only after all checks are green.
+git -C "$PROD_ROOT" push origin main
+ROLLBACK_NEEDED=0
+
 report_dir="${PROD_ROOT}/storage/app/deploy_reports"
-run_cmd "mkdir -p '${report_dir}'"
+mkdir -p "$report_dir"
 report_file="${report_dir}/deploy_${TIMESTAMP}.txt"
-checkpoint_tag="$(git tag --list 'pre-deploy-*' --sort=-creatordate | head -n1)"
+checkpoint_tag="$(git -C "$PROD_ROOT" tag --list 'pre-deploy-*' --sort=-creatordate | head -n1)"
 backup_dir="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
 
-if [[ "$DRY_RUN" != "1" ]]; then
-    {
-        echo "timestamp=$(date -Iseconds)"
-        echo "prod_old_head=${prod_old_head}"
-        echo "dev_head=$(git -C "$DEV_ROOT" rev-parse origin/dev)"
-        echo "prod_new_head=${prod_new_head}"
-        echo "files_created=$(echo "$create_list" | tr '\n' ';')"
-        echo "files_modified=$(echo "$modify_list" | tr '\n' ';')"
-        echo "files_deleted=$(echo "$delete_list" | tr '\n' ';')"
-        echo "migration_list=$(echo "$migration_candidates" | tr '\n' ';')"
-        echo "checkpoint_tag=${checkpoint_tag}"
-        echo "backup_dir=${backup_dir}"
-        echo "build_status=$([[ "$SKIP_BUILD" == "1" ]] && echo skipped || echo done)"
-        echo "migrate_status=$([[ "$NO_MIGRATE" == "1" ]] && echo skipped || echo done)"
-        echo "health_check=php artisan about"
-        echo "rollback_command=./scripts/deploy/rollback_prod_to_tag.sh ${checkpoint_tag} --yes"
-    } > "$report_file"
-fi
+{
+    echo "timestamp=$(date -Iseconds)"
+    echo "prod_old_head=${PROD_OLD_HEAD}"
+    echo "prod_new_head=$(git -C "$PROD_ROOT" rev-parse HEAD)"
+    echo "dev_head=$(git -C "$DEV_ROOT" rev-parse origin/dev)"
+    echo "files_created=$(echo "$create_list" | tr '\n' ';')"
+    echo "files_modified=$(echo "$modify_list" | tr '\n' ';')"
+    echo "files_deleted=$(echo "$delete_list" | tr '\n' ';')"
+    echo "dangerous_migrations=$(echo "$dangerous_migrations" | tr '\n' ';')"
+    echo "changed_seeders=$(echo "$changed_seeders" | tr '\n' ';')"
+    echo "checkpoint_tag=${checkpoint_tag}"
+    echo "backup_dir=${backup_dir}"
+    echo "build_status=$([[ "$SKIP_BUILD" == "1" ]] && echo skipped || echo done)"
+    echo "migrate_status=$([[ "$NO_MIGRATE" == "1" ]] && echo skipped || echo done)"
+    echo "health_http_status=${prod_http_code}"
+    echo "rollback_command=./scripts/deploy/rollback_prod_to_tag.sh ${checkpoint_tag} --yes"
+} > "$report_file"
 
-echo "Release finished."
-echo "Report: ${report_file}"
+log "Release finished"
+log "Report: $report_file"
