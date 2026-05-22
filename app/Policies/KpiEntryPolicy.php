@@ -107,6 +107,34 @@ class KpiEntryPolicy
         return false;
     }
 
+    public function delete(User $user, KpiEntry $entry): bool
+    {
+        if ($entry->isLocked()) {
+            return false;
+        }
+
+        if ($entry->status === KpiEntry::STATUS_APPROVED) {
+            return false;
+        }
+
+        if (!$this->isEntryInAccessiblePeriod($entry)) {
+            return false;
+        }
+
+        if ($this->isAdmin($user)) {
+            return true;
+        }
+
+        if ($this->isTeacher($user)
+            || $this->isDepartmentHead($user)
+            || $this->isDean($user)
+            || $this->isStructuralDivisionUser($user)) {
+            return (int) $entry->user_id === (int) $user->id;
+        }
+
+        return false;
+    }
+
     public function submit(User $user, KpiEntry $entry): bool
     {
         if (!$entry->canBeSubmitted()) {

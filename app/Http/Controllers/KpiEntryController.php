@@ -974,7 +974,7 @@ class KpiEntryController extends Controller
 
     public function destroyMyEntry(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('update', $entry);
+        $this->authorize('delete', $entry);
 
         $this->fileService->purgeForEntry($entry);
         $entry->delete();
