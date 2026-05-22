@@ -112,7 +112,12 @@ class KpiEntryController extends Controller
         /** @var User $user */
         $user = $request->user();
         $stage = trim((string) $request->query('stage', KpiPeriod::STAGE_PLAN));
-        $academicYearId = $request->integer('academic_year_id');
+        $activeFactSeason = KpiPeriod::query()
+            ->active()
+            ->where('stage', KpiPeriod::STAGE_FACT)
+            ->orderByDesc('academic_year_id')
+            ->first(['academic_year_id']);
+        $academicYearId = $request->integer('academic_year_id') ?: (int) ($activeFactSeason?->academic_year_id ?? 0);
         $periodId = $request->integer('period_id');
         $status = trim((string) $request->query('status', ''));
         $module = trim((string) $request->query('module', ''));
@@ -438,9 +443,26 @@ class KpiEntryController extends Controller
                 ])
                 ->all();
         }
+    $totalPointsQuery = KpiEntry::query()
+        ->from('kpi_entries')
+        ->leftJoin('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
+        ->where('kpi_entries.user_id', $user->id)
+        ->where('kpi_entries.entity_type', $entityType)
+        ->when($period?->id !== null, fn (Builder $query) => $query->where('kpi_entries.kpi_period_id', $period->id));
 
-        // Summary stats (unfiltered by module/status but filtered by period)
-        $totalPoints = (float) ((clone $summaryQuery)->sum(DB::raw('COALESCE(manual_points, calculated_points, 0)')));
+    $totalPoints = (float) ($totalPointsQuery
+        ->selectRaw("
+            ROUND(SUM(
+                CASE
+                    WHEN kpi_entries.manual_points IS NOT NULL THEN kpi_entries.manual_points
+                    WHEN kpi_entries.fact_value IS NOT NULL THEN COALESCE(kpi_indicators.base_points, 0) * kpi_entries.fact_value
+                    WHEN kpi_entries.plan_value IS NOT NULL THEN COALESCE(kpi_indicators.base_points, 0) * kpi_entries.plan_value
+                    WHEN kpi_entries.calculated_points IS NOT NULL THEN kpi_entries.calculated_points
+                    ELSE 0
+                END
+            ), 2) as total_points
+        ")
+        ->value('total_points') ?? 0);
         $totalEntries = (int) ((clone $summaryQuery)->count());
         $approvedEntries = (int) ((clone $summaryQuery)->where('status', KpiEntry::STATUS_APPROVED)->count());
         $rejectedEntries = (int) ((clone $summaryQuery)->where('status', KpiEntry::STATUS_REJECTED)->count());
@@ -591,11 +613,13 @@ class KpiEntryController extends Controller
         };
         $data = $request->validate([
             'academic_year_id' => ['required', 'integer', 'exists:academic_years,id'],
+            'module' => ['required', 'string', 'max:64'],
+            'group_code' => ['required', 'string', 'max:64'],
             'indicator_id' => ['required', 'integer', 'exists:kpi_indicators,id'],
-            'value' => ['nullable', 'integer', 'min:0'],
+            'value' => ['required', 'integer', 'min:1'],
             'manual_points' => ['nullable', 'numeric'],
             'calculation_details' => ['nullable', 'array'],
-            'comment' => ['nullable', 'string'],
+            'comment' => ['required', 'string'],
             'external_source_url' => ['nullable', 'url', 'max:2048'],
             'external_source_urls' => ['nullable', 'array', 'max:10'],
             'external_source_urls.*' => ['nullable', 'url', 'max:2048'],
@@ -619,6 +643,19 @@ class KpiEntryController extends Controller
                 : null;
         }
 
+        $filesToUpload = [];
+        if (array_key_exists('files', $data) && is_array($data['files'])) {
+            $filesToUpload = array_values(array_filter($data['files']));
+        } elseif (array_key_exists('file', $data) && $data['file'] !== null) {
+            $filesToUpload = [$data['file']];
+        }
+
+        if ($externalLinks->isEmpty() && empty($data['external_source_url']) && count($filesToUpload) === 0) {
+            throw ValidationException::withMessages([
+                'evidence' => 'Укажите хотя бы одну ссылку на внешний источник или прикрепите файл подтверждения.',
+            ]);
+        }
+
         // Stage is always 'fact' — seasons are no longer stage-separated.
         $data['stage'] = KpiPeriod::STAGE_FACT;
 
@@ -632,6 +669,23 @@ class KpiEntryController extends Controller
             return $this->errorResponse($request, 'Индикатор не найден или неактивен.');
         }
 
+        if ((string) $indicator->section !== (string) $data['module']) {
+            throw ValidationException::withMessages([
+                'module' => 'Выбранный показатель не соответствует модулю.',
+            ]);
+        }
+
+        $requestedGroupCode = $this->normalizeGroupCodeInput((string) ($data['group_code'] ?? ''));
+        $indicatorGroupCode = $this->normalizeGroupCodeInput(
+            (string) ($indicator->group_code ?: $this->resolveGroupCode((string) $indicator->code))
+        );
+
+        if ($indicatorGroupCode === '' || $requestedGroupCode !== $indicatorGroupCode) {
+            throw ValidationException::withMessages([
+                'group_code' => 'Выбранный показатель не соответствует коду блока.',
+            ]);
+        }
+
         $period = $this->periodService->getCurrentOpenPeriod(
             KpiPeriod::STAGE_FACT,
             (int) $data['academic_year_id'],
@@ -642,12 +696,18 @@ class KpiEntryController extends Controller
         }
 
         $this->assertIndicatorValueRules($indicator, $data['value'] ?? null, 'value');
+        $this->assertRuleDrivenFields($indicator, $data['calculation_details'] ?? null, 'value');
+        $resolvedManualPoints = $this->resolveRuleBasedManualPoints(
+            $indicator,
+            $data['value'] ?? null,
+            $data['calculation_details'] ?? null,
+        );
 
         $userFacultyId = $this->userFacultyId($user);
         $userDepartmentId = $this->userDepartmentId($user);
 
         try {
-            $entry = DB::transaction(function () use ($user, $data, $period, $indicator, $userFacultyId, $userDepartmentId, $entityType): KpiEntry {
+            $entry = DB::transaction(function () use ($user, $data, $period, $indicator, $userFacultyId, $userDepartmentId, $entityType, $filesToUpload, $resolvedManualPoints): KpiEntry {
                 $entry = new KpiEntry([
                     'kpi_period_id' => $period->id,
                     'academic_year_id' => $period->academic_year_id,
@@ -666,7 +726,7 @@ class KpiEntryController extends Controller
                     $entry->fact_value = $data['value'];
                 }
 
-                $entry->manual_points = $data['manual_points'] ?? null;
+                $entry->manual_points = $resolvedManualPoints ?? ($data['manual_points'] ?? null);
                 if ($entry->manual_points !== null) {
                     $entry->calculated_points = '0.00';
                 } else {
@@ -692,13 +752,6 @@ class KpiEntryController extends Controller
                 ]);
 
                 $uploadedFilesCount = 0;
-
-                $filesToUpload = [];
-                if (array_key_exists('files', $data) && is_array($data['files'])) {
-                    $filesToUpload = array_values(array_filter($data['files']));
-                } elseif (array_key_exists('file', $data) && $data['file'] !== null) {
-                    $filesToUpload = [$data['file']];
-                }
 
                 $this->assertTotalUploadSizeWithinLimit($filesToUpload);
 
@@ -769,8 +822,9 @@ class KpiEntryController extends Controller
                 KpiPeriod::STAGE_PLAN,
                 KpiPeriod::STAGE_FACT,
             ])],
-            'value' => ['nullable', 'integer', 'min:0'],
-            'comment' => ['nullable', 'string'],
+            'value' => ['required', 'integer', 'min:1'],
+            'manual_points' => ['nullable', 'numeric'],
+            'comment' => ['required', 'string'],
             'calculation_details' => ['nullable', 'array'],
             'external_source_url' => ['nullable', 'url', 'max:2048'],
             'external_source_urls' => ['nullable', 'array', 'max:10'],
@@ -803,6 +857,23 @@ class KpiEntryController extends Controller
 
         $data['calculation_details'] = ! empty($details) ? $details : null;
 
+        $filesToUpload = [];
+        if (array_key_exists('files', $data) && is_array($data['files'])) {
+            $filesToUpload = array_values(array_filter($data['files']));
+        } elseif (array_key_exists('file', $data) && $data['file'] !== null) {
+            $filesToUpload = [$data['file']];
+        }
+
+        $entry->loadMissing('files');
+        $hasAnyFile = count($filesToUpload) > 0 || $entry->files->isNotEmpty();
+        $hasAnyLink = ! empty($externalLinks) || ! empty($data['external_source_url']) || ! empty($entry->external_source_url);
+
+        if (! $hasAnyFile && ! $hasAnyLink) {
+            throw ValidationException::withMessages([
+                'evidence' => 'Укажите хотя бы одну ссылку на внешний источник или прикрепите файл подтверждения.',
+            ]);
+        }
+
         $entry->loadMissing('period');
         $entry->loadMissing('indicator:id,base_points,unit');
 
@@ -813,6 +884,12 @@ class KpiEntryController extends Controller
             $data['value'] ?? null,
             'value',
         );
+        $this->assertRuleDrivenFields($entry->indicator, $data['calculation_details'] ?? null, 'value');
+        $resolvedManualPoints = $this->resolveRuleBasedManualPoints(
+            $entry->indicator,
+            $data['value'] ?? null,
+            $data['calculation_details'] ?? null,
+        );
 
         if (array_key_exists('value', $data) && $stage === KpiPeriod::STAGE_PLAN) {
             $entry->plan_value = $data['value'];
@@ -822,23 +899,19 @@ class KpiEntryController extends Controller
             $entry->fact_value = $data['value'];
         }
 
-        $entry->comment = $data['comment'] ?? null;
-        $entry->calculation_details = $data['calculation_details'] ?? null;
-        $entry->external_source_url = $data['external_source_url'] ?? null;
-        if ($entry->manual_points === null) {
+        $entry->manual_points = $resolvedManualPoints ?? ($data['manual_points'] ?? null);
+        if ($entry->manual_points !== null) {
+            $entry->calculated_points = '0.00';
+        } else {
             $entry->calculated_points = $this->resolveAutoCalculatedPoints(
                 $entry->indicator,
                 $entry->fact_value ?? $entry->plan_value,
             );
         }
+        $entry->comment = $data['comment'] ?? null;
+        $entry->calculation_details = $data['calculation_details'] ?? null;
+        $entry->external_source_url = $data['external_source_url'] ?? null;
         $entry->save();
-
-        $filesToUpload = [];
-        if (array_key_exists('files', $data) && is_array($data['files'])) {
-            $filesToUpload = array_values(array_filter($data['files']));
-        } elseif (array_key_exists('file', $data) && $data['file'] !== null) {
-            $filesToUpload = [$data['file']];
-        }
 
         $this->assertTotalUploadSizeWithinLimit($filesToUpload);
 
@@ -861,6 +934,13 @@ class KpiEntryController extends Controller
         $this->authorize('submit', $entry);
 
         $entry->loadMissing('indicator');
+
+        $this->assertIndicatorValueRules(
+            $entry->indicator,
+            $entry->fact_value ?? $entry->plan_value,
+            'value',
+        );
+        $this->assertRuleDrivenFields($entry->indicator, $entry->calculation_details, 'value');
 
         if ($entry->entity_type === KpiEntry::ENTITY_TYPE_TEACHER) {
             $entry->faculty_id = $entry->faculty_id ?? $this->userFacultyId($request->user());
@@ -894,7 +974,7 @@ class KpiEntryController extends Controller
 
     public function destroyMyEntry(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('update', $entry);
+        $this->authorize('delete', $entry);
 
         $this->fileService->purgeForEntry($entry);
         $entry->delete();
@@ -1321,7 +1401,7 @@ class KpiEntryController extends Controller
             ])],
             'entries.*.faculty_id' => ['nullable', 'integer', 'exists:faculties,id'],
             'entries.*.department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'entries.*.' . $valueField => ['nullable', 'integer', 'min:0'],
+            'entries.*.' . $valueField => ['nullable', 'integer', 'min:1'],
             'entries.*.manual_points' => ['nullable', 'numeric'],
             'entries.*.comment' => ['nullable', 'string'],
         ];
@@ -1374,9 +1454,9 @@ class KpiEntryController extends Controller
 
         $numericValue = (float) $value;
 
-        if ($numericValue < 0) {
+        if ($numericValue <= 0) {
             throw ValidationException::withMessages([
-                $field => 'Значение не может быть отрицательным.',
+                $field => 'Значение KPI должно быть целым числом больше 0.',
             ]);
         }
 
@@ -1385,6 +1465,161 @@ class KpiEntryController extends Controller
                 $field => 'Значение KPI должно быть целым числом.',
             ]);
         }
+    }
+
+    private function assertRuleDrivenFields(?KpiIndicator $indicator, $details, string $field): void
+    {
+        $ruleKind = $this->detectIndicatorRuleKind($indicator);
+        if ($ruleKind === 'none') {
+            return;
+        }
+
+        $details = is_array($details) ? $details : [];
+
+        if ($ruleKind === 'coauthors') {
+            if (! $this->isPositiveWholeNumber($details['sheet_count'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'rule_sheet_count' => 'Количество печатных листов должно быть целым числом больше 0.',
+                ]);
+            }
+
+            if (! $this->isPositiveWholeNumber($details['coauthors_count'] ?? null)) {
+                throw ValidationException::withMessages([
+                    'rule_coauthors_count' => 'Количество соавторов должно быть целым числом больше 0.',
+                ]);
+            }
+
+            return;
+        }
+
+        if (in_array($ruleKind, ['podium', 'improvement', 'roleSplit', 'quartile', 'optionRate'], true)) {
+            $selectionPoints = $this->parseNumericValue($details['selection_points'] ?? null);
+
+            if ($selectionPoints === null || $selectionPoints <= 0) {
+                throw ValidationException::withMessages([
+                    $field => 'Для выбранного индикатора нужно заполнить все поля расчета по правилу.',
+                ]);
+            }
+        }
+    }
+
+    private function resolveRuleBasedManualPoints(?KpiIndicator $indicator, $value, $details): ?string
+    {
+        $ruleKind = $this->detectIndicatorRuleKind($indicator);
+        if ($ruleKind === 'none') {
+            return null;
+        }
+
+        $quantity = $this->parseNumericValue($value);
+        if ($quantity === null || $quantity <= 0) {
+            return null;
+        }
+
+        $details = is_array($details) ? $details : [];
+
+        if ($ruleKind === 'coauthors') {
+            $perSheet = $this->parseNumericValue($details['per_sheet_points'] ?? ($indicator?->base_points ?? 0)) ?? 0.0;
+            $sheetCount = $this->parseNumericValue($details['sheet_count'] ?? null);
+            $coauthorsCount = $this->parseNumericValue($details['coauthors_count'] ?? null);
+
+            if ($sheetCount === null || $coauthorsCount === null || $sheetCount <= 0 || $coauthorsCount <= 0) {
+                return null;
+            }
+
+            return number_format($quantity * $perSheet * $sheetCount / $coauthorsCount, 2, '.', '');
+        }
+
+        $selectionPoints = $this->parseNumericValue($details['selection_points'] ?? null);
+        if ($selectionPoints === null || $selectionPoints <= 0) {
+            return null;
+        }
+
+        return number_format($quantity * $selectionPoints, 2, '.', '');
+    }
+
+    private function detectIndicatorRuleKind(?KpiIndicator $indicator): string
+    {
+        $rawRules = preg_replace('/\s+/u', ' ', trim((string) ($indicator?->scoring_rules ?? '')));
+        $lowerRules = mb_strtolower($rawRules);
+
+        if ($lowerRules === '') {
+            return 'none';
+        }
+
+        if (str_contains($lowerRules, '1 место') && str_contains($lowerRules, '2 место') && str_contains($lowerRules, '3 место')) {
+            return 'podium';
+        }
+
+        if (str_contains($lowerRules, 'улучш') && str_contains($lowerRules, 'ухудш')) {
+            return 'improvement';
+        }
+
+        if (str_contains($lowerRules, 'соавтор') && str_contains($lowerRules, 'п.л')) {
+            return 'coauthors';
+        }
+
+        if (str_contains($lowerRules, 'руководитель') && str_contains($lowerRules, 'исполнитель')) {
+            return 'roleSplit';
+        }
+
+        if ((str_contains($lowerRules, 'q1') || str_contains($lowerRules, 'q2')) && (str_contains($lowerRules, 'wos') || str_contains($lowerRules, 'scopus'))) {
+            return 'quartile';
+        }
+
+        if (count($this->parseScoringRuleOptions($rawRules)) >= 2) {
+            return 'optionRate';
+        }
+
+        return 'none';
+    }
+
+    private function parseScoringRuleOptions(string $rawRules): array
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $rawRules));
+        if ($text === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*[\/;]\s*/u', $text) ?: [];
+        $options = [];
+
+        foreach ($parts as $part) {
+            $part = trim(str_replace('−', '-', $part));
+            if ($part === '') {
+                continue;
+            }
+
+            if (preg_match('/^(.+?)\s*:\s*([-+]?\d+(?:[.,]\d+)?)\s*б/iu', $part)) {
+                $options[] = $part;
+                continue;
+            }
+
+            if (preg_match('/^([-+]?\d+(?:[.,]\d+)?)\s*балл(?:а|ов)?\s+за\s+(.+)$/iu', $part)) {
+                $options[] = $part;
+            }
+        }
+
+        return $options;
+    }
+
+    private function parseNumericValue($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $normalized = str_replace(['−', ','], ['-', '.'], trim((string) $value));
+        if (! is_numeric($normalized)) {
+            return null;
+        }
+
+        return (float) $normalized;
+    }
+
+    private function isPositiveWholeNumber($value): bool
+    {
+        $parsed = $this->parseNumericValue($value);
+        return $parsed !== null && $parsed > 0 && $this->isWholeNumber($parsed);
     }
 
     private function resolveAutoCalculatedPoints(?KpiIndicator $indicator, ?float $value): string
@@ -2229,5 +2464,20 @@ class KpiEntryController extends Controller
         }
 
         return $code;
+    }
+
+    private function normalizeGroupCodeInput(string $value): string
+    {
+        $normalized = trim($value);
+
+        // Support UI values that may include label, e.g. "1.2 — Разработка ..."
+        $normalized = preg_replace('/\s*[—-].*$/u', '', $normalized) ?? $normalized;
+        $normalized = trim($normalized);
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        return $this->resolveGroupCode($normalized);
     }
 }

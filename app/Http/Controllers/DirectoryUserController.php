@@ -1128,6 +1128,21 @@ class DirectoryUserController extends Controller
             : [];
         $hasKpiAdminAccess = $localUser ? $this->hasKpiAdminAccess($localUser) : false;
 
+        $displayDivisions = $localUser
+            ? $localUser->kpiStructuralUnits
+                ->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)
+                ->values()
+                ->all()
+            : [];
+
+        $displayDepartment = $localUser?->department?->name ?? $localUser?->ad_department ?? null;
+        if ($localUser instanceof User && $roleSlug === 'structural' && $localUser->kpiStructuralUnits->isNotEmpty()) {
+            $displayDepartment = $localUser->kpiStructuralUnits
+                ->map(fn (KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
+                ->values()
+                ->implode(', ');
+        }
+
         return [
             'id' => $localUser?->id ?? ('ad:' . ($login !== '' ? $login : ($email !== '' ? $email : md5($displayName)))),
             'local_user_id' => $localUser?->id,
@@ -1167,10 +1182,8 @@ class DirectoryUserController extends Controller
             'can_edit' => $localUser instanceof User,
             'can_change_role' => $localUser instanceof User,
             'display_faculty' => $localUser?->faculty?->name ?? $localUser?->department?->faculty?->name ?? null,
-            'display_department' => $localUser?->department?->name ?? $localUser?->ad_department ?? null,
-            'display_divisions' => $localUser
-                ? $localUser->kpiStructuralUnits->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)->values()->all()
-                : [],
+            'display_department' => $displayDepartment,
+            'display_divisions' => $displayDivisions,
             'binding_status' => $this->resolveBindingStatus($localUser),
             'binding_label' => $this->resolveBindingLabel($localUser),
             'is_binding_missing' => $this->isBindingMissing($localUser),
@@ -1185,6 +1198,19 @@ class DirectoryUserController extends Controller
         $roleSlug = $this->resolveMergedRoleForLocalUser($user);
         $structuralAccessDivisionIds = $structuralAccessByUser[$user->id] ?? [];
         $hasKpiAdminAccess = $this->hasKpiAdminAccess($user);
+
+        $displayDivisions = $user->kpiStructuralUnits
+            ->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)
+            ->values()
+            ->all();
+
+        $displayDepartment = $user->department?->name ?? $user->ad_department ?? null;
+        if ($roleSlug === 'structural' && $user->kpiStructuralUnits->isNotEmpty()) {
+            $displayDepartment = $user->kpiStructuralUnits
+                ->map(fn (KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
+                ->values()
+                ->implode(', ');
+        }
 
         return [
             'id' => $user->id,
@@ -1222,12 +1248,24 @@ class DirectoryUserController extends Controller
             'can_edit' => true,
             'can_change_role' => true,
             'display_faculty' => $user->faculty?->name ?? $user->department?->faculty?->name ?? null,
-            'display_department' => $user->department?->name ?? $user->ad_department ?? null,
-            'display_divisions' => $user->kpiStructuralUnits->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)->values()->all(),
+            'display_department' => $displayDepartment,
+            'display_divisions' => $displayDivisions,
             'binding_status' => $this->resolveBindingStatus($user),
             'binding_label' => $this->resolveBindingLabel($user),
             'is_binding_missing' => $this->isBindingMissing($user),
         ];
+    }
+
+    private function formatStructuralDivisionLabel(KpiStructuralUnit $division): string
+    {
+        $code = trim((string) $division->code);
+        $name = trim((string) $division->name);
+
+        if ($code !== '' && $name !== '') {
+            return $code . ' - ' . $name;
+        }
+
+        return $name !== '' ? $name : $code;
     }
 
     private function applyCommonFiltersToRows(Collection $rows, array $filters): Collection

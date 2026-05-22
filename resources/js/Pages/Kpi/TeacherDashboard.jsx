@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const SECTION_SHORT = {
     teaching: 'УМР',
@@ -120,6 +120,10 @@ function formatDate(value) {
     }).format(date);
 }
 
+function normalizeSearchText(value) {
+    return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
 function formatScore(value) {
     const parsed = Number(value ?? 0);
 
@@ -167,6 +171,38 @@ function parseNumber(value, fallback = 0) {
 
 function toNonNegativeIntegerInput(value) {
     return String(value ?? '').replace(/\D+/g, '');
+}
+
+function toPositiveIntegerInput(value) {
+    const digitsOnly = String(value ?? '').replace(/\D+/g, '');
+    const normalized = digitsOnly.replace(/^0+/, '');
+    return normalized;
+}
+
+function normalizeIntegerInput(value) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const parsed = parseNumber(value, NaN);
+    if (!Number.isFinite(parsed)) {
+        return '';
+    }
+
+    if (parsed <= 0) {
+        return '';
+    }
+
+    return String(Math.trunc(parsed));
+}
+
+function isPositiveIntegerValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return false;
+    }
+
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0;
 }
 
 function extractNumberNear(text, needle, fallback = null) {
@@ -349,9 +385,12 @@ function resolveManualPoints(indicator, formData, ruleSpec) {
             return quantity * rate;
         }
         case 'coauthors': {
-            const coauthors = Math.max(1, parseNumber(formData.rule_coauthors_count, 1));
-            const sheets = parseNumber(formData.rule_sheet_count, 0);
+            const coauthors = parseNumber(formData.rule_coauthors_count, NaN);
+            const sheets = parseNumber(formData.rule_sheet_count, NaN);
             const perSheet = parseNumber(ruleSpec.perSheet, parseNumber(indicator?.base_points, 0));
+            if (!Number.isInteger(coauthors) || !Number.isInteger(sheets) || coauthors <= 0 || sheets <= 0) {
+                return null;
+            }
             return quantity * perSheet * sheets / coauthors;
         }
         case 'roleSplit': {
@@ -410,8 +449,8 @@ function buildCalculationDetails(indicator, formData, ruleSpec, computedPoints) 
 
     if (ruleSpec.kind === 'coauthors') {
         details.per_sheet_points = parseNumber(ruleSpec.perSheet, parseNumber(indicator?.base_points, 0));
-        details.sheet_count = parseNumber(formData.rule_sheet_count, 0);
-        details.coauthors_count = Math.max(1, parseNumber(formData.rule_coauthors_count, 1));
+        details.sheet_count = parseNumber(formData.rule_sheet_count, NaN);
+        details.coauthors_count = parseNumber(formData.rule_coauthors_count, NaN);
     }
 
     if (ruleSpec.kind === 'roleSplit') {
@@ -430,6 +469,81 @@ function buildCalculationDetails(indicator, formData, ruleSpec, computedPoints) 
     }
 
     return details;
+}
+
+function validateRuleFields(ruleSpec, formData) {
+    const errors = {};
+
+    if (ruleSpec.kind === 'coauthors') {
+        if (!isPositiveIntegerValue(formData.rule_sheet_count)) {
+            errors.rule_sheet_count = 'Количество печатных листов должно быть целым числом больше 0.';
+        }
+
+        if (!isPositiveIntegerValue(formData.rule_coauthors_count)) {
+            errors.rule_coauthors_count = 'Количество соавторов должно быть целым числом больше 0.';
+        }
+    }
+
+    if (ruleSpec.kind === 'podium' && !String(formData.rule_place_points ?? '').trim()) {
+        errors.rule_place_points = 'Выберите место.';
+    }
+
+    if (ruleSpec.kind === 'improvement' && !String(formData.rule_improvement_rate ?? '').trim()) {
+        errors.rule_improvement_rate = 'Выберите тип изменения позиции.';
+    }
+
+    if (ruleSpec.kind === 'roleSplit' && !String(formData.rule_role_points ?? '').trim()) {
+        errors.rule_role_points = 'Выберите роль.';
+    }
+
+    if (ruleSpec.kind === 'quartile' && !String(formData.rule_tier_points ?? '').trim()) {
+        errors.rule_tier_points = 'Выберите категорию публикации.';
+    }
+
+    if (ruleSpec.kind === 'optionRate' && !String(formData.rule_option_points ?? '').trim()) {
+        errors.rule_option_points = 'Выберите категорию или условие.';
+    }
+
+    return errors;
+}
+
+function buildRuleFormulaPreview(indicator, formData, ruleSpec, computedPoints) {
+    if (!indicator || ruleSpec.kind === 'none' || computedPoints === null) {
+        return null;
+    }
+
+    const quantity = parseNumber(formData.value, NaN);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+    }
+
+    if (ruleSpec.kind === 'coauthors') {
+        const perSheet = parseNumber(ruleSpec.perSheet, parseNumber(indicator?.base_points, 0));
+        const sheetCount = parseNumber(formData.rule_sheet_count, NaN);
+        const coauthorsCount = parseNumber(formData.rule_coauthors_count, NaN);
+
+        if (!Number.isFinite(sheetCount) || !Number.isFinite(coauthorsCount) || sheetCount <= 0 || coauthorsCount <= 0) {
+            return null;
+        }
+
+        return `Баллы = Кол-во × Балл/п.л × П.л. / Соавторы = ${formatScore(quantity)} × ${formatScore(perSheet)} × ${formatScore(sheetCount)} / ${formatScore(coauthorsCount)} = ${formatScore(computedPoints)} б.`;
+    }
+
+    const selectedPoints = ruleSpec.kind === 'podium'
+        ? parseNumber(formData.rule_place_points, NaN)
+        : ruleSpec.kind === 'improvement'
+            ? parseNumber(formData.rule_improvement_rate, NaN)
+            : ruleSpec.kind === 'roleSplit'
+                ? parseNumber(formData.rule_role_points, NaN)
+                : ruleSpec.kind === 'quartile'
+                    ? parseNumber(formData.rule_tier_points, NaN)
+                    : parseNumber(formData.rule_option_points, NaN);
+
+    if (!Number.isFinite(selectedPoints)) {
+        return null;
+    }
+
+    return `Баллы = Кол-во × Коэффициент = ${formatScore(quantity)} × ${formatScore(selectedPoints)} = ${formatScore(computedPoints)} б.`;
 }
 
 const SELECT_CLS =
@@ -895,7 +1009,10 @@ export default function TeacherDashboard({
     const [editingEntryId, setEditingEntryId] = useState(null);
     const [editingEntryFiles, setEditingEntryFiles] = useState([]);
     const [activeMainTab, setActiveMainTab] = useState('entries');
+    const [entrySearch, setEntrySearch] = useState('');
     const createFileInputRef = useRef(null);
+    const createDialogContentRef = useRef(null);
+    const activeSeason = activeSeasons[0] ?? null;
 
     const filterForm = useForm({
         stage: filters.stage ?? 'plan',
@@ -904,7 +1021,7 @@ export default function TeacherDashboard({
         group_code: filters.group_code ?? '',
     });
 
-    const initialAcademicYearId = filters.academic_year_id ?? activeSeasons[0]?.academic_year_id ?? '';
+    const initialAcademicYearId = filters.academic_year_id ?? activeSeason?.academic_year_id ?? '';
 
     const createForm = useForm({
         academic_year_id: initialAcademicYearId ? String(initialAcademicYearId) : '',
@@ -968,6 +1085,70 @@ export default function TeacherDashboard({
         return value === null ? null : Number(value.toFixed(2));
     }, [selectedIndicator, createForm.data, selectedRuleSpec]);
 
+    const ruleFormulaPreview = useMemo(() => {
+        return buildRuleFormulaPreview(selectedIndicator, createForm.data, selectedRuleSpec, calculatedManualPoints);
+    }, [selectedIndicator, createForm.data, selectedRuleSpec, calculatedManualPoints]);
+
+    const scrollToFirstCreateError = (errorKeys = null) => {
+        const keys = (errorKeys ?? Object.keys(createForm.errors)).filter(Boolean);
+        if (keys.length === 0) {
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            const container = createDialogContentRef.current;
+            if (!container) {
+                return;
+            }
+
+            const fieldPriority = [
+                'academic_year_id',
+                'module',
+                'group_code',
+                'indicator_id',
+                'value',
+                'rule_place_points',
+                'rule_improvement_rate',
+                'rule_sheet_count',
+                'rule_coauthors_count',
+                'rule_role_points',
+                'rule_tier_points',
+                'rule_option_points',
+                'comment',
+                'external_source_url',
+                'external_source_urls',
+                'evidence',
+                'files',
+            ];
+
+            const firstField = fieldPriority.find((field) => keys.includes(field) || keys.some((key) => key.startsWith(`${field}.`)));
+            const target = firstField
+                ? container.querySelector(`[data-error-field="${firstField}"]`)
+                : null;
+
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (createOpen && Object.keys(createForm.errors).length > 0) {
+            scrollToFirstCreateError();
+        }
+    }, [createOpen, createForm.errors]);
+
+    useEffect(() => {
+        if (!activeSeason?.academic_year_id) {
+            return;
+        }
+
+        const activeSeasonId = String(activeSeason.academic_year_id);
+        if (createForm.data.academic_year_id !== activeSeasonId) {
+            createForm.setData('academic_year_id', activeSeasonId);
+        }
+    }, [activeSeason?.academic_year_id]);
+
     const hasActiveSeason = activeSeasons.length > 0;
 
     const applyFilters = (event) => {
@@ -1003,29 +1184,92 @@ export default function TeacherDashboard({
     const submitCreate = (event, action) => {
         event.preventDefault();
 
+        createForm.clearErrors(
+            'academic_year_id',
+            'module',
+            'group_code',
+            'indicator_id',
+            'value',
+            'comment',
+            'external_source_url',
+            'external_source_urls',
+            'files',
+            'evidence',
+            'rule_place_points',
+            'rule_improvement_rate',
+            'rule_sheet_count',
+            'rule_coauthors_count',
+            'rule_role_points',
+            'rule_tier_points',
+            'rule_option_points',
+        );
+
         if (isTotalFileSizeExceeded) {
             createForm.setError('files', 'Общий размер файлов не должен превышать 100 МБ.');
+            scrollToFirstCreateError(['files']);
             return;
         }
 
-        const hasDynamicRule = selectedRuleSpec.kind !== 'none';
-        const effectiveValue = createForm.data.value === '' && hasDynamicRule
-            ? '1'
-            : createForm.data.value;
-
         const computedData = {
             ...createForm.data,
-            value: effectiveValue,
+            value: createForm.data.value,
         };
 
+        if (!computedData.academic_year_id) {
+            createForm.setError('academic_year_id', 'Сезон обязателен.');
+            scrollToFirstCreateError(['academic_year_id']);
+            return;
+        }
+
+        if (!String(computedData.module ?? '').trim()) {
+            createForm.setError('module', 'Модуль обязателен.');
+            scrollToFirstCreateError(['module']);
+            return;
+        }
+
+        if (!String(computedData.group_code ?? '').trim()) {
+            createForm.setError('group_code', 'Код блока обязателен.');
+            scrollToFirstCreateError(['group_code']);
+            return;
+        }
+
+        if (!String(computedData.indicator_id ?? '').trim()) {
+            createForm.setError('indicator_id', 'Код показателя обязателен.');
+            scrollToFirstCreateError(['indicator_id']);
+            return;
+        }
+
+        if (!String(computedData.value ?? '').trim()) {
+            createForm.setError('value', 'Значение обязательно.');
+            scrollToFirstCreateError(['value']);
+            return;
+        }
+
+        if (!String(computedData.comment ?? '').trim()) {
+            createForm.setError('comment', 'Комментарий обязателен.');
+            scrollToFirstCreateError(['comment']);
+            return;
+        }
+
+        const ruleFieldErrors = validateRuleFields(selectedRuleSpec, computedData);
+        if (Object.keys(ruleFieldErrors).length > 0) {
+            Object.entries(ruleFieldErrors).forEach(([field, message]) => {
+                createForm.setError(field, message);
+            });
+            scrollToFirstCreateError(Object.keys(ruleFieldErrors));
+            return;
+        }
+
         const numericValue = parseNumber(computedData.value, NaN);
-        if (Number.isFinite(numericValue) && numericValue < 0) {
-            createForm.setError('value', 'Значение не может быть отрицательным.');
+        if (!Number.isFinite(numericValue) || numericValue <= 0) {
+            createForm.setError('value', 'Значение KPI должно быть целым числом больше 0.');
+            scrollToFirstCreateError(['value']);
             return;
         }
 
         if (Number.isFinite(numericValue) && !Number.isInteger(numericValue)) {
-            createForm.setError('value', 'Значение KPI должно быть целым числом.');
+            createForm.setError('value', 'Значение KPI должно быть целым числом больше 0.');
+            scrollToFirstCreateError(['value']);
             return;
         }
 
@@ -1033,6 +1277,14 @@ export default function TeacherDashboard({
             .map((url) => String(url ?? '').trim())
             .filter(Boolean)
             .slice(0, MAX_EXTERNAL_LINKS);
+
+        const hasEvidenceLink = externalLinks.length > 0;
+        const hasEvidenceFile = createFilesList.length > 0 || editingEntryFiles.length > 0;
+        if (!hasEvidenceLink && !hasEvidenceFile) {
+            createForm.setError('evidence', 'Укажите хотя бы одну ссылку на внешний источник или прикрепите файл подтверждения.');
+            scrollToFirstCreateError(['evidence']);
+            return;
+        }
 
         const manualPoints = resolveManualPoints(selectedIndicator, computedData, selectedRuleSpec);
         const calculationDetails = buildCalculationDetails(selectedIndicator, computedData, selectedRuleSpec, manualPoints);
@@ -1116,7 +1368,7 @@ export default function TeacherDashboard({
     };
 
     const handleCreateValueChange = (event) => {
-        createForm.setData('value', toNonNegativeIntegerInput(event.target.value));
+        createForm.setData('value', toPositiveIntegerInput(event.target.value));
     };
 
     const handleCreateValueKeyDown = (event) => {
@@ -1135,23 +1387,25 @@ export default function TeacherDashboard({
         const details = entry.calculation_details ?? {};
         const ruleKind = String(details.rule_kind ?? '');
         const selectionPoints = details.selection_points !== undefined && details.selection_points !== null
-            ? String(details.selection_points)
+            ? normalizeIntegerInput(details.selection_points)
             : '';
+        const matchedIndicator = indicators.find((indicator) => String(indicator.id) === String(entry.indicator_id ?? entry.indicator?.id ?? '')) ?? null;
 
         createForm.setData((prev) => ({
             ...prev,
+            academic_year_id: activeSeason?.academic_year_id ? String(activeSeason.academic_year_id) : prev.academic_year_id,
             stage: 'fact',
             module: entry.indicator?.section ?? prev.module,
-            group_code: '',
+            group_code: matchedIndicator?.group_code ?? '',
             indicator_id: String(entry.indicator_id ?? entry.indicator?.id ?? ''),
-            value: entry.fact_value ?? '',
+            value: normalizeIntegerInput(entry.fact_value),
             rule_place_points: ruleKind === 'podium' ? selectionPoints : '',
             rule_improvement_rate: ruleKind === 'improvement' ? selectionPoints : '',
             rule_coauthors_count: ruleKind === 'coauthors' && details.coauthors_count !== undefined && details.coauthors_count !== null
-                ? String(details.coauthors_count)
+                ? normalizeIntegerInput(details.coauthors_count)
                 : '',
             rule_sheet_count: ruleKind === 'coauthors' && details.sheet_count !== undefined && details.sheet_count !== null
-                ? String(details.sheet_count)
+                ? normalizeIntegerInput(details.sheet_count)
                 : '',
             rule_role_points: ruleKind === 'roleSplit' ? selectionPoints : '',
             rule_tier_points: ruleKind === 'quartile' ? selectionPoints : '',
@@ -1229,6 +1483,17 @@ export default function TeacherDashboard({
 
     const isEditableEntry = (entry) => entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected';
 
+    const openCreateEntry = () => {
+        createForm.reset();
+        if (activeSeason?.academic_year_id) {
+            createForm.setData('academic_year_id', String(activeSeason.academic_year_id));
+        }
+        createForm.clearErrors();
+        setCreateFilesList([]);
+        setEditingEntryId(null);
+        setEditingEntryFiles([]);
+    };
+
     const isFileMissing = (entry) => {
         if (!entry.indicator?.requires_file) {
             return false;
@@ -1237,27 +1502,49 @@ export default function TeacherDashboard({
         return (entry.files?.length ?? 0) === 0;
     };
 
-    const handleSeasonChange = (value) => {
-        const params = { ...filters };
-        params.academic_year_id = value || undefined;
-        params.period_id = undefined;
-        router.get(route('kpi.my-form'), params, { preserveState: false });
-    };
+    const filteredItems = useMemo(() => {
+        const query = normalizeSearchText(entrySearch);
+
+        if (query === '') {
+            return items;
+        }
+
+        return items.filter((entry) => {
+            const confirmations = (entry.structural_confirmation_matrix ?? entry.structural_confirmations ?? [])
+                .map((item) => `${item.name ?? ''} ${item.status ?? ''} ${item.comment ?? ''} ${item.confirmed_by ?? ''}`)
+                .join(' ');
+
+            const filesText = (entry.files ?? []).map((file) => file.file_name ?? '').join(' ');
+
+            const haystack = normalizeSearchText([
+                entry.indicator?.code,
+                entry.indicator?.name,
+                SECTION_LABELS[entry.indicator?.section] ?? entry.indicator?.section,
+                entry.fact_value,
+                entry.points_for_display ?? entry.manual_points ?? entry.calculated_points,
+                statusLabels[entry.status] ?? entry.status,
+                entry.comment,
+                entry.external_source_url,
+                filesText,
+                confirmations,
+                'открыть редактировать исправить отправить удалить',
+            ].join(' '));
+
+            return haystack.includes(query);
+        });
+    }, [entrySearch, items]);
 
     return (
         <AuthenticatedLayout
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm" onClick={() => {
-                            setEditingEntryId(null);
-                            setEditingEntryFiles([]);
-                        }}>
+                        <Button size="sm" onClick={openCreateEntry}>
                             <Plus className="h-4 w-4" />
                             Создать запись
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                    <DialogContent ref={createDialogContentRef} className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                         <DialogHeader>
                             <DialogTitle>{editingEntryId ? 'Исправление KPI-записи' : 'Новая KPI-запись'}</DialogTitle>
                             <DialogDescription>
@@ -1268,21 +1555,13 @@ export default function TeacherDashboard({
                         </DialogHeader>
 
                         <form className="space-y-4">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-sm font-medium">Сезон (учебный год)</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                                        value={createForm.data.academic_year_id}
-                                        onChange={(event) => createForm.setData('academic_year_id', event.target.value)}
-                                    >
-                                        <option value="">Выберите активный сезон</option>
-                                        {activeSeasons.map((item) => (
-                                            <option key={item.academic_year_id} value={item.academic_year_id}>
-                                                {item.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                            <div className="grid gap-4 sm:grid-cols-2" data-error-field="evidence">
+                                <div className="space-y-2 sm:col-span-2" data-error-field="academic_year_id">
+                                    <label className="text-sm font-medium">Сезон</label>
+                                    <div className="h-9 w-full rounded-md border border-input bg-muted/20 px-3 text-sm shadow-sm flex items-center text-foreground">
+                                        {activeSeason?.label ?? academicYear?.name ?? 'Нет активного сезона'}
+                                    </div>
+                                    <input type="hidden" value={createForm.data.academic_year_id} readOnly />
                                     {!hasActiveSeason && (
                                         <p className="text-xs text-amber-600">
                                             Нет активных KPI-сезонов. Обратитесь к администратору.
@@ -1293,13 +1572,14 @@ export default function TeacherDashboard({
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-error-field="module">
                                     <label className="text-sm font-medium">Модуль</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
                                         value={createForm.data.module}
                                         onChange={(event) => {
                                             createForm.setData('module', event.target.value);
+                                            createForm.clearErrors('module', 'group_code', 'indicator_id');
                                             createForm.setData('group_code', '');
                                             createForm.setData('indicator_id', '');
                                             createForm.setData('rule_place_points', '');
@@ -1316,15 +1596,17 @@ export default function TeacherDashboard({
                                             <option key={item.value} value={item.value}>{item.label}</option>
                                         ))}
                                     </select>
+                                    {createForm.errors.module && <p className="text-sm text-destructive">{createForm.errors.module}</p>}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-error-field="group_code">
                                     <label className="text-sm font-medium">Код блока</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
                                         value={createForm.data.group_code}
                                         onChange={(event) => {
                                             createForm.setData('group_code', event.target.value);
+                                            createForm.clearErrors('group_code', 'indicator_id');
                                             createForm.setData('indicator_id', '');
                                             createForm.setData('rule_place_points', '');
                                             createForm.setData('rule_improvement_rate', '');
@@ -1340,15 +1622,17 @@ export default function TeacherDashboard({
                                             <option key={item.value} value={item.value}>{item.label}</option>
                                         ))}
                                     </select>
+                                    {createForm.errors.group_code && <p className="text-sm text-destructive">{createForm.errors.group_code}</p>}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-error-field="indicator_id">
                                     <label className="text-sm font-medium">Код показателя</label>
                                     <select
                                         className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
                                         value={createForm.data.indicator_id}
                                         onChange={(event) => {
                                             createForm.setData('indicator_id', event.target.value);
+                                            createForm.clearErrors('indicator_id', 'value', 'rule_place_points', 'rule_improvement_rate', 'rule_sheet_count', 'rule_coauthors_count', 'rule_role_points', 'rule_tier_points', 'rule_option_points');
                                             createForm.setData('rule_place_points', '');
                                             createForm.setData('rule_improvement_rate', '');
                                             createForm.setData('rule_coauthors_count', '');
@@ -1367,21 +1651,21 @@ export default function TeacherDashboard({
                                     </select>
                                     {createForm.errors.indicator_id && <p className="text-sm text-destructive">{createForm.errors.indicator_id}</p>}
                                 </div>
-                            {selectedIndicator && (
-                                <div className="space-y-2 sm:col-span-2">
-                                    <label className="text-sm font-medium">Описание показателя</label>
-                                    <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-sm whitespace-pre-line text-foreground/90">
-                                        {selectedIndicator.description || 'Описание не указано'}
+                                {selectedIndicator && (
+                                    <div className="space-y-2 sm:col-span-2">
+                                        <label className="text-sm font-medium">Описание показателя</label>
+                                        <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-sm whitespace-pre-line text-foreground/90">
+                                            {selectedIndicator.description || 'Описание не указано'}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                                <div className="space-y-2">
+                                )}
+                                <div className="space-y-2" data-error-field="value">
                                     <label className="text-sm font-medium">Значение</label>
                                     <div className="flex items-center gap-2">
                                         <Input
                                             type="number"
                                             step="1"
-                                            min="0"
+                                            min="1"
                                             inputMode="numeric"
                                             pattern="[0-9]*"
                                             value={createForm.data.value}
@@ -1395,12 +1679,12 @@ export default function TeacherDashboard({
                                     <p className="text-xs text-muted-foreground">
                                         Единица измерения: <span className="font-medium text-foreground">{selectedIndicator?.unit || 'не указана'}</span>
                                     </p>
-                                    <p className="text-xs text-muted-foreground">Значение KPI должно быть целым неотрицательным числом.</p>
+                                    <p className="text-xs text-muted-foreground">Значение KPI должно быть целым числом больше 0.</p>
                                     {createForm.errors.value && <p className="text-sm text-destructive">{createForm.errors.value}</p>}
                                 </div>
 
                                 {selectedRuleSpec.kind === 'podium' && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2" data-error-field="rule_place_points">
                                         <label className="text-sm font-medium">Место</label>
                                         <select
                                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
@@ -1412,11 +1696,12 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
+                                        {createForm.errors.rule_place_points && <p className="text-sm text-destructive">{createForm.errors.rule_place_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'improvement' && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2" data-error-field="rule_improvement_rate">
                                         <label className="text-sm font-medium">Тип изменения позиции</label>
                                         <select
                                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
@@ -1428,36 +1713,45 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
+                                        {createForm.errors.rule_improvement_rate && <p className="text-sm text-destructive">{createForm.errors.rule_improvement_rate}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'coauthors' && (
                                     <>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2" data-error-field="rule_sheet_count">
                                             <label className="text-sm font-medium">Количество печатных листов</label>
                                             <Input
                                                 type="number"
-                                                step="0.01"
-                                                min="0"
+                                                step="1"
+                                                min="1"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
                                                 value={createForm.data.rule_sheet_count}
-                                                onChange={(event) => createForm.setData('rule_sheet_count', event.target.value)}
+                                                onChange={(event) => createForm.setData('rule_sheet_count', toPositiveIntegerInput(event.target.value))}
+                                                onKeyDown={handleCreateValueKeyDown}
                                             />
+                                            {createForm.errors.rule_sheet_count && <p className="text-sm text-destructive">{createForm.errors.rule_sheet_count}</p>}
                                         </div>
-                                        <div className="space-y-2">
+                                        <div className="space-y-2" data-error-field="rule_coauthors_count">
                                             <label className="text-sm font-medium">Количество соавторов</label>
                                             <Input
                                                 type="number"
                                                 step="1"
                                                 min="1"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
                                                 value={createForm.data.rule_coauthors_count}
-                                                onChange={(event) => createForm.setData('rule_coauthors_count', event.target.value)}
+                                                onChange={(event) => createForm.setData('rule_coauthors_count', toPositiveIntegerInput(event.target.value))}
+                                                onKeyDown={handleCreateValueKeyDown}
                                             />
+                                            {createForm.errors.rule_coauthors_count && <p className="text-sm text-destructive">{createForm.errors.rule_coauthors_count}</p>}
                                         </div>
                                     </>
                                 )}
 
                                 {selectedRuleSpec.kind === 'roleSplit' && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2" data-error-field="rule_role_points">
                                         <label className="text-sm font-medium">Ваша роль</label>
                                         <select
                                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
@@ -1469,11 +1763,12 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
+                                        {createForm.errors.rule_role_points && <p className="text-sm text-destructive">{createForm.errors.rule_role_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'quartile' && (
-                                    <div className="space-y-2">
+                                    <div className="space-y-2" data-error-field="rule_tier_points">
                                         <label className="text-sm font-medium">Категория публикации</label>
                                         <select
                                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
@@ -1485,11 +1780,12 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
+                                        {createForm.errors.rule_tier_points && <p className="text-sm text-destructive">{createForm.errors.rule_tier_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'optionRate' && (
-                                    <div className="space-y-2 sm:col-span-2">
+                                    <div className="space-y-2 sm:col-span-2" data-error-field="rule_option_points">
                                         <label className="text-sm font-medium">Категория/условие</label>
                                         <select
                                             className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
@@ -1501,6 +1797,7 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
+                                        {createForm.errors.rule_option_points && <p className="text-sm text-destructive">{createForm.errors.rule_option_points}</p>}
                                     </div>
                                 )}
                             </div>
@@ -1515,10 +1812,13 @@ export default function TeacherDashboard({
                             {calculatedManualPoints !== null && (
                                 <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
                                     Расчет по правилу: <span className="font-semibold">{formatScore(calculatedManualPoints)} б.</span>
+                                    {ruleFormulaPreview && (
+                                        <p className="mt-1 text-xs text-emerald-900/80">{ruleFormulaPreview}</p>
+                                    )}
                                 </div>
                             )}
 
-                            <div className="space-y-2">
+                            <div className="space-y-2" data-error-field="comment">
                                 <label className="text-sm font-medium">Комментарий</label>
                                 <textarea
                                     className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
@@ -1526,10 +1826,11 @@ export default function TeacherDashboard({
                                     onChange={(event) => createForm.setData('comment', event.target.value)}
                                     placeholder="Комментарий к записи"
                                 />
+                                {createForm.errors.comment && <p className="text-sm text-destructive">{createForm.errors.comment}</p>}
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-error-field="external_source_url">
                                     <label className="text-sm font-medium">Ссылка на внешний источник</label>
                                     {editingEntryId && (createForm.data.external_source_urls ?? []).some((url) => String(url ?? '').trim() !== '') && (
                                         <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
@@ -1636,9 +1937,12 @@ export default function TeacherDashboard({
                                     {createForm.errors['external_source_urls.0'] && (
                                         <p className="text-sm text-destructive">{createForm.errors['external_source_urls.0']}</p>
                                     )}
+                                    {createForm.errors.evidence && (
+                                        <p className="text-sm text-destructive">{createForm.errors.evidence}</p>
+                                    )}
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-2" data-error-field="files">
                                     <label className="text-sm font-medium">Файл подтверждения</label>
                                     {editingEntryId && editingEntryFiles.length > 0 && (
                                         <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
@@ -1735,6 +2039,9 @@ export default function TeacherDashboard({
                                     {(createForm.errors.files || createForm.errors['files.0']) && (
                                         <p className="text-sm text-destructive">{createForm.errors.files || createForm.errors['files.0']}</p>
                                     )}
+                                    {createForm.errors.evidence && (
+                                        <p className="text-sm text-destructive">{createForm.errors.evidence}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -1802,27 +2109,14 @@ export default function TeacherDashboard({
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
-                        {/* Season (academic year) selector */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            <select
-                                className={SELECT_CLS + ' pe-8'}
-                                value={filters.academic_year_id ?? ''}
-                                onChange={(e) => handleSeasonChange(e.target.value)}
-                            >
-                                <option value="">— Учебный год —</option>
-                                {(filterOptions.academicYears ?? []).map((y) => (
-                                    <option key={y.id} value={y.id}>{y.name}</option>
-                                ))}
-                            </select>
-                        </div>
                         <div className="flex items-center gap-2">
-                            {academicYear ? (
+                            {(activeSeason?.label || academicYear) ? (
                                 <>
                                     <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
                                     <span className="text-xs text-muted-foreground">
-                                        <strong className="text-foreground">{academicYear.name}</strong>
+                                        <strong className="text-foreground">{activeSeason?.label ?? academicYear?.name}</strong>
                                     </span>
-                                    {period?.status === 'active' && (
+                                    {(period?.status === 'active' || activeSeason) && (
                                         <Badge variant="default" className="h-5 text-[0.65rem] px-2">Активный</Badge>
                                     )}
                                 </>
@@ -2009,13 +2303,21 @@ export default function TeacherDashboard({
                                 <Button type="button" size="sm" variant="outline" onClick={resetFilters}>Сбросить</Button>
                             </form>
 
-                            {items.length === 0 ? (
+                            <div className="mb-4">
+                                <Input
+                                    value={entrySearch}
+                                    onChange={(event) => setEntrySearch(event.target.value)}
+                                    placeholder="Быстрый поиск по моим KPI-записям: показатель, код, статус, баллы, комментарий, действия"
+                                />
+                            </div>
+
+                            {filteredItems.length === 0 ? (
                                 <div className="admin-empty-state">
                                     <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                                    Записей пока нет. Создайте первую KPI-запись.
+                                    Записи не найдены. Измените фильтры или очистите быстрый поиск.
                                 </div>
                             ) : (
-                                <EntriesBySection items={items} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
+                                <EntriesBySection items={filteredItems} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
                             )}
 
                             {links.length > 3 && (

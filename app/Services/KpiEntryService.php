@@ -33,18 +33,7 @@ class KpiEntryService
     ): KpiEntry
     {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
-            $role = $actor->resolvedRoleSlug();
-            $isAdmin = in_array($role, ['admin', 'superadmin'], true);
-
-            // Для обычного пользователя СП берется только из его привязок.
-            // Для admin/superadmin разрешаем подтверждение от выбранного СП из интерфейса.
-            if ($structuralUnitId !== null) {
-                $structuralUnit = $isAdmin
-                    ? KpiStructuralUnit::query()->find($structuralUnitId)
-                    : $actor->kpiStructuralUnits()->whereKey($structuralUnitId)->first();
-            } else {
-                $structuralUnit = $actor->kpiStructuralUnits()->first();
-            }
+            $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
             if (!$structuralUnit) {
                 throw new KpiEntryStatusException('Пользователь не привязан к структурному подразделению.');
@@ -130,16 +119,7 @@ class KpiEntryService
     ): KpiEntry
     {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
-            $role = $actor->resolvedRoleSlug();
-            $isAdmin = in_array($role, ['admin', 'superadmin'], true);
-
-            if ($structuralUnitId !== null) {
-                $structuralUnit = $isAdmin
-                    ? KpiStructuralUnit::query()->find($structuralUnitId)
-                    : $actor->kpiStructuralUnits()->whereKey($structuralUnitId)->first();
-            } else {
-                $structuralUnit = $actor->kpiStructuralUnits()->first();
-            }
+            $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
             if (!$structuralUnit) {
                 throw new KpiEntryStatusException('Пользователь не привязан к структурному подразделению.');
@@ -174,6 +154,30 @@ class KpiEntryService
     public function __construct(
         private readonly KpiCalculationService $calculationService,
     ) {
+    }
+
+    private function resolveActingStructuralUnit(User $actor, ?int $structuralUnitId): ?KpiStructuralUnit
+    {
+        $role = $actor->resolvedRoleSlug();
+        $isAdmin = in_array($role, ['admin', 'superadmin'], true);
+
+        if ($structuralUnitId !== null) {
+            return $isAdmin
+                ? KpiStructuralUnit::query()->find($structuralUnitId)
+                : $actor->kpiStructuralUnits()->whereKey($structuralUnitId)->first();
+        }
+
+        $actorUnits = $actor->kpiStructuralUnits()->get(['kpi_structural_units.id']);
+
+        if ($actorUnits->count() > 1) {
+            throw new KpiEntryStatusException('У пользователя несколько структурных подразделений. Выберите подразделение явно.');
+        }
+
+        $unitId = $actorUnits->first()?->id;
+
+        return $unitId !== null
+            ? KpiStructuralUnit::query()->find((int) $unitId)
+            : null;
     }
 
     /**

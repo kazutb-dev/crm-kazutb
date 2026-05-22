@@ -313,10 +313,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                     <p className="text-sm text-muted-foreground">Единица измерения</p>
                                     <p className="mt-1 font-medium">{entry.indicator?.unit ?? '—'}</p>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Плановое значение</p>
-                                    <p className="mt-1 font-medium">{entry.plan_value ?? '—'}</p>
-                                </div>
+                 
                                 <div>
                                     <p className="text-sm text-muted-foreground">Фактическое значение</p>
                                     <p className="mt-1 font-medium">{entry.fact_value ?? '—'}</p>

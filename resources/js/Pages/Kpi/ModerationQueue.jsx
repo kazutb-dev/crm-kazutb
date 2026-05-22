@@ -2,8 +2,10 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Eye, Filter, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 
 const statusLabels = {
@@ -81,6 +83,10 @@ function formatDate(value) {
         month: '2-digit',
         year: 'numeric',
     }).format(date);
+}
+
+function normalizeSearchText(value) {
+    return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 function resolvePoints(entry) {
@@ -288,6 +294,7 @@ export default function ModerationQueue({
     const isStructuralMode = mode === 'structural';
     const showBindingColumn = isAdminViewer || isStructuralMode;
     const hasUnrestrictedStructuralAccess = structuralScope?.type === 'unrestricted';
+    const [quickSearch, setQuickSearch] = useState('');
 
     const filterForm = useForm({
         academic_year_id: filters.academic_year_id ? String(filters.academic_year_id) : '',
@@ -398,6 +405,58 @@ export default function ModerationQueue({
         (mode === 'structural' && entry.status === 'pending_structural')
         || (isAdminViewer && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status))
     );
+
+    const filteredItems = useMemo(() => {
+        const query = normalizeSearchText(quickSearch);
+
+        if (query === '') {
+            return items;
+        }
+
+        return items.filter((entry) => {
+            const structuralUnits = resolveStructuralUnits(entry).join(' ');
+            const confirmations = resolveEntryStructuralConfirmations(entry)
+                .map((item) => `${item.name} ${item.status} ${item.comment ?? ''} ${item.confirmed_by ?? ''}`)
+                .join(' ');
+
+            const actions = [
+                'откр',
+                showApproveAction(entry) ? 'утвердить approve' : '',
+                showRejectAction(entry) ? 'отклонить reject' : '',
+            ].join(' ');
+
+            const haystack = normalizeSearchText([
+                entry.user?.name,
+                entry.user?.email,
+                entityLabels[entry.entity_type] ?? entry.entity_type,
+                entry.indicator?.name,
+                entry.indicator?.code,
+                entry.period?.name,
+                stageLabels[entry.period?.stage] ?? entry.period?.stage,
+                formatDate(entry.period?.start_date),
+                formatDate(entry.period?.end_date),
+                entry.faculty?.name,
+                entry.department?.name,
+                sectionLabels[entry.indicator?.section] ?? entry.indicator?.section,
+                structuralUnits,
+                resolveResponsibleReviewer(entry, mode),
+                confirmations,
+                resolvePoints(entry),
+                statusLabels[entry.status] ?? entry.status,
+                actions,
+            ].join(' '));
+
+            return haystack.includes(query);
+        });
+    }, [
+        quickSearch,
+        items,
+        mode,
+        canModerate,
+        isAdminViewer,
+        hasUnrestrictedStructuralAccess,
+        myStructuralUnitIds,
+    ]);
 
     return (
         <AuthenticatedLayout>
@@ -539,12 +598,20 @@ export default function ModerationQueue({
                         <CardTitle className="text-base">Список KPI-записей</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {items.length === 0 ? (
+                        <div className="mb-4">
+                            <Input
+                                value={quickSearch}
+                                onChange={(event) => setQuickSearch(event.target.value)}
+                                placeholder="Быстрый поиск: сотрудник, показатель, период, структура, привязка, баллы, статус, действия"
+                            />
+                        </div>
+
+                        {filteredItems.length === 0 ? (
                             <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
                                 <ShieldAlert className="h-8 w-8 text-muted-foreground" />
                                 <div>
                                     <p className="font-medium">Записи не найдены</p>
-                                    <p className="text-sm text-muted-foreground">Измените фильтры или дождитесь новых KPI-записей в очереди.</p>
+                                    <p className="text-sm text-muted-foreground">Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди.</p>
                                 </div>
                             </div>
                         ) : (
@@ -564,7 +631,7 @@ export default function ModerationQueue({
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {items.map((entry) => (
+                                            {filteredItems.map((entry) => (
                                                 <tr key={entry.id} className="border-b align-top last:border-0">
                                                     <td className="py-4 pe-3 break-words">
                                                         <div className="font-medium leading-6">{entry.user?.name ?? '—'}</div>

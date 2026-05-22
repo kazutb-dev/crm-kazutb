@@ -91,10 +91,13 @@ class KpiStructuralUnitController extends Controller
             ->values()
             ->all();
 
-        $alreadyAttachedIds = $unit->users->pluck('id')->all();
+        $alreadyAttachedIds = $unit->users->pluck('id')->map(fn ($id) => (int) $id)->all();
 
         $staffOptions = User::query()
-            ->with('roleRef:id,slug,name')
+            ->with([
+                'roleRef:id,slug,name',
+                'kpiStructuralUnits:id,code,name',
+            ])
             ->select([
                 'id',
                 'name',
@@ -109,22 +112,42 @@ class KpiStructuralUnitController extends Controller
                 return $user->resolvedRoleSlug() !== 'student';
             })
             ->reject(fn (User $user): bool => in_array($user->id, $alreadyAttachedIds, true))
-            ->map(fn (User $user): array => [
-                'id' => $user->id,
-                'name' => $user->display_name ?: $user->name,
-                'email' => $user->email,
-                'role_label' => $user->resolveRoleLabel(),
-            ])
+            ->map(function (User $user) use ($unit): array {
+                $otherStructuralUnits = $user->kpiStructuralUnits
+                    ->reject(fn (KpiStructuralUnit $attachedUnit): bool => (int) $attachedUnit->id === (int) $unit->id)
+                    ->map(fn (KpiStructuralUnit $attachedUnit): array => [
+                        'id' => $attachedUnit->id,
+                        'code' => $attachedUnit->code,
+                        'name' => $attachedUnit->name,
+                    ])
+                    ->sortBy(['code', 'name'])
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->display_name ?: $user->name,
+                    'email' => $user->email,
+                    'role_label' => $user->resolveRoleLabel(),
+                    'structural_units' => $otherStructuralUnits,
+                ];
+            })
+            ->sortBy('name')
             ->values()
             ->all();
 
         $unassignedStaffOptions = collect($staffOptions)
-            ->filter(function (array $user) use ($unit): bool {
-                $isAlreadyAttached = in_array((int) $user['id'], $unit->users->pluck('id')->all(), true);
-                $hasNoStructuralLabel = ! in_array($user['role_label'] ?? '', ['Декан', 'Завед. кафедрой', 'Структурное подразделение'], true);
+            ->filter(function (array $user) use ($alreadyAttachedIds): bool {
+                $isAlreadyAttached = in_array((int) $user['id'], $alreadyAttachedIds, true);
+                $hasNoAttachedUnits = empty($user['structural_units'] ?? []);
 
-                return ! $isAlreadyAttached && $hasNoStructuralLabel;
+                return ! $isAlreadyAttached && $hasNoAttachedUnits;
             })
+            ->values()
+            ->all();
+
+        $assignedElsewhereStaffOptions = collect($staffOptions)
+            ->filter(fn (array $user): bool => ! empty($user['structural_units'] ?? []))
             ->values()
             ->all();
 
@@ -148,6 +171,7 @@ class KpiStructuralUnitController extends Controller
             ],
             'staffOptions' => $staffOptions,
             'unassignedStaffOptions' => $unassignedStaffOptions,
+            'assignedElsewhereStaffOptions' => $assignedElsewhereStaffOptions,
             'availableRecords' => $availableRecords,
         ]);
     }

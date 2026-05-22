@@ -39,8 +39,12 @@ vendor
 ssl/*
 
 # Backups / Archives
-backup_*
 /backups/
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.tar.gz
 
 # Temporary Outputs / Logs
 build_output.txt
@@ -61,3 +65,10 @@ ql -u*
 
 # Local Generated Reports
 CLEANUP_AUDIT_REPORT.md
+
+skills/
+
+# Catch-all for any .env.* variants not already listed above
+# (e.g. .env.local, .env.staging, .env.ci)
+.env.*
+!.env.example

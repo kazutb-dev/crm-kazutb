@@ -50,6 +50,7 @@ const defaultForm = {
     is_active: true,
     sort_order: 0,
     checker_structural_unit_id: '',
+    checker_structural_unit_ids: [],
     scoring_rules: '',
 };
 
@@ -92,6 +93,22 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
     const filteredDivisions = checkerSearch.trim() === ''
         ? divisions
         : divisions.filter((div) => String(div.name ?? '').toLowerCase().includes(checkerSearch.trim().toLowerCase()));
+    const selectedCheckerUnitIds = Array.isArray(form.data.checker_structural_unit_ids)
+        ? form.data.checker_structural_unit_ids.map((id) => String(id))
+        : [];
+
+    const toggleCheckerUnit = (unitId, checked) => {
+        const normalizedId = String(unitId);
+        const next = checked
+            ? [...new Set([...selectedCheckerUnitIds, normalizedId])]
+            : selectedCheckerUnitIds.filter((id) => id !== normalizedId);
+
+        form.setData((data) => ({
+            ...data,
+            checker_structural_unit_ids: next,
+            checker_structural_unit_id: next[0] ?? '',
+        }));
+    };
 
     return (
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -99,17 +116,30 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
                 <div className="space-y-2 sm:col-span-2">
                     <label className="text-sm font-medium">Структурное подразделение (кто будет проверять)</label>
                     <Input value={checkerSearch} onChange={(e) => setCheckerSearch(e.target.value)} placeholder="Поиск подразделения" />
-                    <select
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
-                        value={form.data.checker_structural_unit_id}
-                        onChange={(e) => form.setData('checker_structural_unit_id', e.target.value)}
-                    >
-                        <option value="">Выберите подразделение</option>
-                        {filteredDivisions.map((div) => (
-                            <option key={div.id} value={div.id}>{div.code ? `${div.code} — ${div.name}` : div.name}</option>
-                        ))}
-                    </select>
+                    <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                        {filteredDivisions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">Подразделения не найдены.</p>
+                        ) : (
+                            filteredDivisions.map((div) => {
+                                const divisionId = String(div.id);
+                                const label = div.code ? `${div.code} — ${div.name}` : div.name;
+
+                                return (
+                                    <label key={div.id} className="flex items-center gap-2 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCheckerUnitIds.includes(divisionId)}
+                                            onChange={(e) => toggleCheckerUnit(divisionId, e.target.checked)}
+                                        />
+                                        <span>{label}</span>
+                                    </label>
+                                );
+                            })
+                        )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Можно выбрать одно или несколько подразделений.</p>
                     {form.errors.checker_structural_unit_id && <p className="text-sm text-destructive">{form.errors.checker_structural_unit_id}</p>}
+                    {form.errors.checker_structural_unit_ids && <p className="text-sm text-destructive">{form.errors.checker_structural_unit_ids}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -271,11 +301,18 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
         event.preventDefault();
 
         const composedCode = composeIndicatorCode(createForm.data.block_code, createForm.data.indicator_code);
-        createForm.transform((data) => ({
-            ...data,
-            code: composedCode,
-            checker_structural_unit_id: data.checker_structural_unit_id !== '' ? data.checker_structural_unit_id : null,
-        }));
+        createForm.transform((data) => {
+            const normalizedUnitIds = (Array.isArray(data.checker_structural_unit_ids) ? data.checker_structural_unit_ids : [])
+                .map((id) => String(id))
+                .filter((id) => id !== '');
+
+            return {
+                ...data,
+                code: composedCode,
+                checker_structural_unit_ids: normalizedUnitIds,
+                checker_structural_unit_id: normalizedUnitIds[0] ?? null,
+            };
+        });
         createForm.post(route('kpi.indicators.store'), {
             preserveScroll: true,
             onSuccess: () => {
@@ -306,6 +343,12 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
             is_active: Boolean(indicator.is_active),
             sort_order: indicator.sort_order ?? 0,
             checker_structural_unit_id: indicator.checker_structural_unit_id ? String(indicator.checker_structural_unit_id) : '',
+            checker_structural_unit_ids: Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
+                ? indicator.structural_units
+                    .map((unit) => unit?.id)
+                    .filter((id) => id !== null && id !== undefined)
+                    .map((id) => String(id))
+                : (indicator.checker_structural_unit_id ? [String(indicator.checker_structural_unit_id)] : []),
             scoring_rules: indicator.scoring_rules ?? '',
         });
         editForm.clearErrors();
@@ -320,11 +363,18 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
         }
 
         const composedCode = composeIndicatorCode(editForm.data.block_code, editForm.data.indicator_code);
-        editForm.transform((data) => ({
-            ...data,
-            code: composedCode,
-            checker_structural_unit_id: data.checker_structural_unit_id !== '' ? data.checker_structural_unit_id : null,
-        }));
+        editForm.transform((data) => {
+            const normalizedUnitIds = (Array.isArray(data.checker_structural_unit_ids) ? data.checker_structural_unit_ids : [])
+                .map((id) => String(id))
+                .filter((id) => id !== '');
+
+            return {
+                ...data,
+                code: composedCode,
+                checker_structural_unit_ids: normalizedUnitIds,
+                checker_structural_unit_id: normalizedUnitIds[0] ?? null,
+            };
+        });
         editForm.post(route('kpi.indicators.update.post', editingIndicator.id), {
             preserveScroll: true,
             onSuccess: () => {
