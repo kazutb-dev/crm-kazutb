@@ -117,6 +117,8 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Calendar/Conferences': 'Smart Calendar — Конференции',
         'Calendar/Analytics': 'Smart Calendar — Аналитика',
         'Calendar/Settings': 'Smart Calendar — Настройки',
+        'Questionnaire/Student/Index': 'Анкетирование — Студент',
+        'Questionnaire/Admin/Specialities': 'Анкетирование — Специальности',
     };
 
     const pageTitleBase =

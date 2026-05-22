@@ -21,6 +21,7 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
     const [isEditing, setIsEditing] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
     const avatarSrc = profile.avatar_url && !avatarFailed ? profile.avatar_url : null;
+    const isStudent = profile.role_slug === 'student';
 
     const handleEdit = () => setIsEditing(true);
     const handleCancel = () => setIsEditing(false);
@@ -72,11 +73,13 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                                             </h1>
                                         </div>
                                         <p className="mt-2 text-sm font-medium text-gray-600 sm:text-base">
-                                            {profile.position_title || 'Степень не указана'} · {profile.role_label}
+                                            {isStudent ? profile.role_label : `${profile.position_title || 'Степень не указана'} · ${profile.role_label}`}
                                         </p>
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            {profile.faculty?.name || 'Факультет не привязан'} · {profile.department?.name || 'Кафедра не привязана'}
-                                        </p>
+                                        {!isStudent && (
+                                            <p className="mt-1 text-sm text-gray-500">
+                                                {profile.faculty?.name || 'Факультет не привязан'} · {profile.department?.name || 'Кафедра не привязана'}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="grid gap-2.5 text-sm text-gray-600 sm:grid-cols-1">
@@ -117,38 +120,64 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
                             <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                                 <h3 className="text-lg font-semibold text-gray-900">Связи и привязки</h3>
-                                <p className="mt-1 text-sm text-gray-500">Факультет, кафедра и подразделения, которые уже назначены в системе.</p>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {isStudent
+                                        ? 'Привязка к учебной группе и связанным академическим данным.'
+                                        : 'Факультет, кафедра и подразделения, которые уже назначены в системе.'}
+                                </p>
 
                                 <div className="mt-4 space-y-4">
-                                    {[
-                                        { label: 'Факультет', value: profile.faculty?.name },
-                                        { label: 'Кафедра', value: profile.department?.name },
-                                    ].map((item) => (
-                                        <div key={item.label} className="rounded-2xl border border-gray-100 p-4">
-                                            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">{item.label}</div>
-                                            <div className="mt-2 text-sm font-semibold text-gray-900">{item.value || 'Не привязан'}</div>
-                                        </div>
-                                    ))}
+                                    {!isStudent && (
+                                        <>
+                                            {[
+                                                { label: 'Факультет', value: profile.faculty?.name },
+                                                { label: 'Кафедра', value: profile.department?.name },
+                                            ].map((item) => (
+                                                <div key={item.label} className="rounded-2xl border border-gray-100 p-4">
+                                                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">{item.label}</div>
+                                                    <div className="mt-2 text-sm font-semibold text-gray-900">{item.value || 'Не привязан'}</div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
 
-                                    <div className="rounded-2xl border border-gray-100 p-4">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Подразделения</div>
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            {profile.divisions.length > 0 ? (
-                                                profile.divisions.map((division) => (
-                                                    <span
-                                                        key={division.id}
-                                                        className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700"
-                                                    >
-                                                        {division.name}
+                                    {profile.student_binding && (
+                                        <>
+                                            {[
+                                                { label: 'Группа', value: profile.student_binding.group?.name },
+                                                { label: 'Кафедра (группа)', value: profile.student_binding.department?.name },
+                                                { label: 'Специальность', value: profile.student_binding.speciality?.name },
+                                                { label: 'ОП', value: profile.student_binding.educational_program?.name },
+                                            ].map((item) => (
+                                                <div key={item.label} className="rounded-2xl border border-gray-100 p-4">
+                                                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">{item.label}</div>
+                                                    <div className="mt-2 text-sm font-semibold text-gray-900">{item.value || 'Не привязан'}</div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {!isStudent && (
+                                        <div className="rounded-2xl border border-gray-100 p-4">
+                                            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Подразделения</div>
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {profile.divisions.length > 0 ? (
+                                                    profile.divisions.map((division) => (
+                                                        <span
+                                                            key={division.id}
+                                                            className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700"
+                                                        >
+                                                            {division.name}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-100">
+                                                        Не привязан
                                                     </span>
-                                                ))
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-100">
-                                                    Не привязан
-                                                </span>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

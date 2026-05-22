@@ -94,80 +94,80 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
         return [
             [
                 'full_name' => 'Сафуани Жанар Есенқұлқызы',
-                'faculty_name' => 'Faculty of Technology',
+                'faculty_name' => 'Факультет «Технология и инжиниринг»',
                 'department_name' => null,
                 'target_role_slug' => 'dean',
             ],
             [
                 'full_name' => 'Оразов Аян Жарилкасинович',
-                'faculty_name' => 'Faculty of Technology',
+                'faculty_name' => 'Факультет «Технология и инжиниринг»',
                 'department_name' => 'Технология и стандартизация',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Байжанова Жазира Болатбековна',
-                'faculty_name' => 'Faculty of Technology',
+                'faculty_name' => 'Факультет «Технология и инжиниринг»',
                 'department_name' => 'Технология легкой промышленности и дизайна',
                 'target_role_slug' => 'hod',
             ],
             [
-                'full_name' => 'Магауянов Даурен Абильтаевич',
-                'faculty_name' => 'Faculty of Technology',
-                'department_name' => 'Социально-гуманитарные дисциплины',
+                'full_name' => 'Акишев Каршыга Максутович',
+                'faculty_name' => 'Факультет «Технология и инжиниринг»',
+                'department_name' => 'Автоматизация и инженерных систем',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Мақыш Мулдир Кикбаевна',
-                'faculty_name' => 'Faculty of Economics and Business',
+                'faculty_name' => 'Факультет «Экономика и бизнес»',
                 'department_name' => null,
                 'target_role_slug' => 'dean',
             ],
             [
                 'full_name' => 'Жунусова Алия Анархановна',
-                'faculty_name' => 'Faculty of Economics and Business',
+                'faculty_name' => 'Факультет «Экономика и бизнес»',
                 'department_name' => 'Туризм и сервис',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Абдильдинова Найля Ермухановна',
-                'faculty_name' => 'Faculty of Economics and Business',
-                'department_name' => 'Экономика и управление',
+                'faculty_name' => 'Факультет «Экономика и бизнес»',
+                'department_name' => 'Менеджмент',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Бекбусинова Гульнафиз Кенжебековна',
-                'faculty_name' => 'Faculty of Economics and Business',
-                'department_name' => 'Финансы и учет',
+                'faculty_name' => 'Факультет «Экономика и бизнес»',
+                'department_name' => 'Экономика и финансы',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Канафиева Куланда Кабылсеитовна',
-                'faculty_name' => 'Faculty of Economics and Business',
+                'faculty_name' => 'Факультет «Экономика и бизнес»',
                 'department_name' => 'Государственный и иностранные языки',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Серимбетов Булат Абуталибович',
-                'faculty_name' => 'Faculty of Engineering and Information Technologies',
+                'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»',
                 'department_name' => null,
                 'target_role_slug' => 'dean',
             ],
             [
                 'full_name' => 'Абдукаримова Алия Амировна',
-                'faculty_name' => 'Faculty of Engineering and Information Technologies',
+                'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»',
                 'department_name' => 'Информационные технологии',
                 'target_role_slug' => 'hod',
             ],
             [
-                'full_name' => 'Акишев Каршыга Максутович',
-                'faculty_name' => 'Faculty of Engineering and Information Technologies',
-                'department_name' => 'Компьютерная инженерия и автоматизация',
+                'full_name' => 'Магауянов Даурен Абильтаевич',
+                'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»',
+                'department_name' => 'Социально-гуманитарные дисциплины',
                 'target_role_slug' => 'hod',
             ],
             [
                 'full_name' => 'Нұртай Жадыра Тастенбековна',
-                'faculty_name' => 'Faculty of Engineering and Information Technologies',
-                'department_name' => 'Химия, химическая технология и экология',
+                'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»',
+                'department_name' => 'Химическая технология и рационального природопользования',
                 'target_role_slug' => 'hod',
             ],
         ];
@@ -192,9 +192,11 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
     private function ensureFaculties(): array
     {
         $rows = [
-            ['name' => 'Faculty of Technology', 'code' => 'FT'],
-            ['name' => 'Faculty of Economics and Business', 'code' => 'FEB'],
-            ['name' => 'Faculty of Engineering and Information Technologies', 'code' => 'FEIT'],
+            ['name' => 'Военная кафедра', 'code' => 'MIL'],
+            ['name' => 'Колледж', 'code' => 'COL'],
+            ['name' => 'Факультет «Технология и инжиниринг»', 'code' => 'TF'],
+            ['name' => 'Факультет «Экономика и бизнес»', 'code' => 'FEB'],
+            ['name' => 'Факультет «Инжиниринг и информационных технологий»', 'code' => 'FEIT'],
         ];
 
         $map = [];
@@ -226,16 +228,17 @@ class FacultyDepartmentLeadershipReconciliationSeeder extends Seeder
     private function ensureDepartments(array $facultyMap): array
     {
         $rows = [
-            ['name' => 'Технология и стандартизация', 'code' => 'TST', 'faculty_name' => 'Faculty of Technology'],
-            ['name' => 'Технология легкой промышленности и дизайна', 'code' => 'TLPD', 'faculty_name' => 'Faculty of Technology'],
-            ['name' => 'Социально-гуманитарные дисциплины', 'code' => 'SHD', 'faculty_name' => 'Faculty of Technology'],
-            ['name' => 'Туризм и сервис', 'code' => 'TS', 'faculty_name' => 'Faculty of Economics and Business'],
-            ['name' => 'Экономика и управление', 'code' => 'EU', 'faculty_name' => 'Faculty of Economics and Business'],
-            ['name' => 'Финансы и учет', 'code' => 'FA', 'faculty_name' => 'Faculty of Economics and Business'],
-            ['name' => 'Государственный и иностранные языки', 'code' => 'GIY', 'faculty_name' => 'Faculty of Economics and Business'],
-            ['name' => 'Информационные технологии', 'code' => 'IT', 'faculty_name' => 'Faculty of Engineering and Information Technologies'],
-            ['name' => 'Компьютерная инженерия и автоматизация', 'code' => 'KIA', 'faculty_name' => 'Faculty of Engineering and Information Technologies'],
-            ['name' => 'Химия, химическая технология и экология', 'code' => 'HHTE', 'faculty_name' => 'Faculty of Engineering and Information Technologies'],
+            ['name' => 'Технология и стандартизация', 'code' => 'TST', 'faculty_name' => 'Факультет «Технология и инжиниринг»'],
+            ['name' => 'Технология легкой промышленности и дизайна', 'code' => 'TLPD', 'faculty_name' => 'Факультет «Технология и инжиниринг»'],
+            ['name' => 'Автоматизация и инженерных систем', 'code' => 'KIA', 'faculty_name' => 'Факультет «Технология и инжиниринг»'],
+            ['name' => 'Физическое воспитание', 'code' => 'PE', 'faculty_name' => 'Факультет «Технология и инжиниринг»'],
+            ['name' => 'Менеджмент', 'code' => 'EU', 'faculty_name' => 'Факультет «Экономика и бизнес»'],
+            ['name' => 'Экономика и финансы', 'code' => 'FA', 'faculty_name' => 'Факультет «Экономика и бизнес»'],
+            ['name' => 'Туризм и сервис', 'code' => 'TS', 'faculty_name' => 'Факультет «Экономика и бизнес»'],
+            ['name' => 'Государственный и иностранные языки', 'code' => 'GIY', 'faculty_name' => 'Факультет «Экономика и бизнес»'],
+            ['name' => 'Химическая технология и рационального природопользования', 'code' => 'HHTE', 'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»'],
+            ['name' => 'Информационные технологии', 'code' => 'IT', 'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»'],
+            ['name' => 'Социально-гуманитарные дисциплины', 'code' => 'SHD', 'faculty_name' => 'Факультет «Инжиниринг и информационных технологий»'],
         ];
 
         $hasFacultyColumn = Schema::hasColumn('departments', 'faculty_id');

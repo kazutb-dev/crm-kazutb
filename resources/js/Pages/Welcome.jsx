@@ -50,18 +50,11 @@ const safeRoute = (name) => {
 const serviceCards = [
     // ── Учебный процесс ──
     {
-        title: 'Факультеты',
-        desc: 'Структура факультетов университета.',
+        title: 'Факультеты и кафедры',
+        desc: 'Единая структура факультетов, кафедр и сотрудников.',
         category: 'Учебный процесс',
         href: safeRoute('faculties.index'),
         icon: GraduationCap,
-    },
-    {
-        title: 'Кафедры',
-        desc: 'Управление кафедрами и их составом.',
-        category: 'Учебный процесс',
-        href: safeRoute('departments.index'),
-        icon: Building2,
     },
     {
         title: 'Учебные годы',
@@ -115,14 +108,14 @@ const serviceCards = [
         icon: SlidersHorizontal,
     },
     {
-        title: 'KPI — Проверка Завкафедрой',
+        title: 'KPI — Очередь проверки',
         desc: 'Проверка KPI-записей сотрудников кафедры.',
         category: 'KPI и аналитика',
         href: safeRoute('kpi.review-queue'),
         icon: ShieldCheck,
     },
     {
-        title: 'KPI — Проверка Деканом',
+        title: 'KPI — Утверждение',
         desc: 'Деканское утверждение KPI-показателей.',
         category: 'KPI и аналитика',
         href: safeRoute('kpi.approval-queue'),
@@ -217,6 +210,13 @@ const serviceCards = [
         category: 'Документы и сервисы',
         href: safeRoute('tickets.index'),
         icon: ClipboardList,
+    },
+    {
+        title: 'Навигация',
+        desc: 'Маршруты и точки навигации по кампусу.',
+        category: 'Документы и сервисы',
+        href: safeRoute('nav.index'),
+        icon: Search,
     },
     {
         title: 'Шаблоны',

@@ -11,16 +11,9 @@ use Inertia\Response;
 
 class DepartmentController extends Controller
 {
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $departments = Department::query()
-            ->orderBy('name')
-            ->paginate(12)
-            ->withQueryString();
-
-        return Inertia::render('Departments/Index', [
-            'departments' => $departments,
-        ]);
+        return redirect()->route('faculties.index');
     }
 
     public function create(): Response
@@ -34,12 +27,13 @@ class DepartmentController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:departments,name'],
             'code' => ['nullable', 'string', 'max:50', 'unique:departments,code'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'faculty_id' => ['required', 'integer', 'exists:faculties,id'],
         ]);
 
         Department::create($data);
 
         return redirect()
-            ->route('departments.index')
+            ->route('faculties.index')
             ->with('success', 'Кафедра успешно создана.');
     }
 
@@ -66,12 +60,13 @@ class DepartmentController extends Controller
                 Rule::unique('departments', 'code')->ignore($department->id),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
+            'faculty_id' => ['required', 'integer', 'exists:faculties,id'],
         ]);
 
         $department->update($data);
 
         return redirect()
-            ->route('departments.index')
+            ->route('faculties.index')
             ->with('success', 'Кафедра успешно обновлена.');
     }
 
@@ -80,7 +75,7 @@ class DepartmentController extends Controller
         $department->delete();
 
         return redirect()
-            ->route('departments.index')
+            ->route('faculties.index')
             ->with('success', 'Кафедра удалена.');
     }
 }

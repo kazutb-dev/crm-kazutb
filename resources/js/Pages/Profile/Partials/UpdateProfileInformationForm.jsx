@@ -25,6 +25,7 @@ export default function UpdateProfileInformation({
     };
 
     const canEditAcademicBindings = Boolean(profile.academic_bindings?.can_edit);
+    const isStudent = profile.role_slug === 'student';
     const faculties = profile.academic_bindings?.faculties ?? [];
     const departments = profile.academic_bindings?.departments ?? [];
     const positions = profile.academic_bindings?.positions ?? [];
@@ -130,31 +131,32 @@ export default function UpdateProfileInformation({
                                 </div>
                             ))}
 
-                            {/* Degree view card */}
-                            <div className="rounded-2xl bg-gray-50 p-3.5">
-                                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Степень</div>
-                                <div className="mt-2 text-sm text-gray-900">
-                                    <div>
-                                        <span className="text-gray-500">Текущая степень: </span>
-                                        <span className="font-semibold">
-                                            {latestSystemPosition || 'Не указана'}
-                                        </span>
-                                    </div>
-                                    {profile.pending_position_request && (
-                                        <div className="mt-1">
-                                            <span className="text-amber-600">На рассмотрении: </span>
-                                            <span className="font-semibold text-amber-700">
-                                                {profile.pending_position_request.requested_position || 'Не указана'}
+                            {!isStudent && (
+                                <div className="rounded-2xl bg-gray-50 p-3.5">
+                                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Степень</div>
+                                    <div className="mt-2 text-sm text-gray-900">
+                                        <div>
+                                            <span className="text-gray-500">Текущая степень: </span>
+                                            <span className="font-semibold">
+                                                {latestSystemPosition || 'Не указана'}
                                             </span>
                                         </div>
+                                        {profile.pending_position_request && (
+                                            <div className="mt-1">
+                                                <span className="text-amber-600">На рассмотрении: </span>
+                                                <span className="font-semibold text-amber-700">
+                                                    {profile.pending_position_request.requested_position || 'Не указана'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {profile.snapshot.position_confirmed === null && (
+                                        <div className="mt-1 text-[11px] text-amber-500">Требует подтверждения</div>
                                     )}
                                 </div>
-                                {profile.snapshot.position_confirmed === null && (
-                                    <div className="mt-1 text-[11px] text-amber-500">Требует подтверждения</div>
-                                )}
-                            </div>
+                            )}
 
-                            {canEditAcademicBindings && (
+                            {canEditAcademicBindings && !isStudent && (
                                 <>
                                     <div className="rounded-2xl bg-gray-50 p-3.5">
                                         <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Факультет</div>
@@ -204,8 +206,9 @@ export default function UpdateProfileInformation({
 
 
 
-                            <div className="md:col-span-2">
-                                <InputLabel value="Степень" />
+                            {!isStudent && (
+                                <div className="md:col-span-2">
+                                    <InputLabel value="Степень" />
 
                                 {/* Current position value shown to user */}
                                 <div className="mt-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
@@ -224,63 +227,64 @@ export default function UpdateProfileInformation({
                                     </div>
                                 )}
 
-                                {profile.snapshot.ad_title && (
-                                    <p className="mt-1 text-xs text-gray-400">
-                                        Значение из системы кадров: {profile.snapshot.ad_title}
-                                    </p>
-                                )}
+                                    {profile.snapshot.ad_title && (
+                                        <p className="mt-1 text-xs text-gray-400">
+                                            Значение из системы кадров: {profile.snapshot.ad_title}
+                                        </p>
+                                    )}
 
                                 {/* Confirmation buttons */}
-                                {!profile.has_pending_position_request && (
-                                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                                        <span className="text-sm text-gray-600">Это ваша степень?</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setData((d) => ({ ...d, position_confirmed: true, position_id: '' }))}
-                                            className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
-                                                data.position_confirmed === true
-                                                    ? 'border-emerald-600 bg-emerald-600 text-white'
-                                                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                            }`}
-                                        >
-                                            Да, верно
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setData((d) => ({ ...d, position_confirmed: false }))}
-                                            className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
-                                                data.position_confirmed === false
-                                                    ? 'border-rose-500 bg-rose-500 text-white'
-                                                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                            }`}
-                                        >
-                                            Нет, другая
-                                        </button>
-                                    </div>
-                                )}
+                                    {!profile.has_pending_position_request && (
+                                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                                            <span className="text-sm text-gray-600">Это ваша степень?</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData((d) => ({ ...d, position_confirmed: true, position_id: '' }))}
+                                                className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
+                                                    data.position_confirmed === true
+                                                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                                                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                                                }`}
+                                            >
+                                                Да, верно
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setData((d) => ({ ...d, position_confirmed: false }))}
+                                                className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
+                                                    data.position_confirmed === false
+                                                        ? 'border-rose-500 bg-rose-500 text-white'
+                                                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                                                }`}
+                                            >
+                                                Нет, другая
+                                            </button>
+                                        </div>
+                                    )}
 
                                 {/* Position select – only when "No" */}
-                                {data.position_confirmed === false && (
-                                    <div className="mt-3">
-                                        <InputLabel htmlFor="position_id" value="Выберите степень из справочника" />
-                                        <select
-                                            id="position_id"
-                                            className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
-                                            value={data.position_id}
-                                            onChange={(e) => setData('position_id', e.target.value)}
-                                            disabled={profile.has_pending_position_request}
-                                        >
-                                            <option value="">— выберите степень —</option>
-                                            {positions.map((p) => (
-                                                <option key={p.id} value={String(p.id)}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <InputError className="mt-2" message={errors.position_id} />
-                                    </div>
-                                )}
-                            </div>
+                                    {data.position_confirmed === false && (
+                                        <div className="mt-3">
+                                            <InputLabel htmlFor="position_id" value="Выберите степень из справочника" />
+                                            <select
+                                                id="position_id"
+                                                className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                                value={data.position_id}
+                                                onChange={(e) => setData('position_id', e.target.value)}
+                                                disabled={profile.has_pending_position_request}
+                                            >
+                                                <option value="">— выберите степень —</option>
+                                                {positions.map((p) => (
+                                                    <option key={p.id} value={String(p.id)}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                            <InputError className="mt-2" message={errors.position_id} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                            {canEditAcademicBindings && (
+                            {canEditAcademicBindings && !isStudent && (
                                 <>
                                     <div>
                                         <InputLabel htmlFor="faculty_id" value="Факультет" />

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Survey;
 use App\Models\SurveyAnswer;
+use App\Models\SurveyQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -24,7 +25,9 @@ class SurveyStudentController extends Controller
         }
         $survey->start();
         $survey->save();
-        return view('surveys.student.start', compact('survey'));
+        $questions = SurveyQuestion::active()->get();
+
+        return view('surveys.student.start', compact('survey', 'questions'));
     }
 
     public function store(Request $request, Survey $survey)

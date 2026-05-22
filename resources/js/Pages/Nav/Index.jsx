@@ -2,6 +2,8 @@ import { Head, Link } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import '../../../css/welcome.css';
 
+const SEARCH_HISTORY_KEY = 'nav.search.history';
+
 const fallbackPoints = [
     { badge: '100', title: 'Кабинет 100', meta: '1 корпус • 1 этаж', kind: 'cabinet' },
     { badge: '101', title: 'Кабинет 101', meta: '2 корпус • 1 этаж', kind: 'cabinet' },
@@ -56,11 +58,106 @@ function extractFloor(meta) {
     return floorMatch ? Number(floorMatch[1]) : 1;
 }
 
+function extractBuilding(item) {
+    if (item.building) {
+        return String(item.building);
+    }
+
+    return String(item.meta?.split('•')?.[0]?.trim() ?? 'Не указан');
+}
+
+function getItemSearchText(item) {
+    const attachedUsersText = Array.isArray(item.attached_users)
+        ? item.attached_users
+            .map((user) => `${user.name ?? ''} ${user.ad_login ?? ''}`)
+            .join(' ')
+        : '';
+
+    return `${item.title} ${item.meta} ${item.badge} ${item.room ?? ''} ${item.building ?? ''} ${attachedUsersText}`.toLowerCase();
+}
+
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightMatch(text, query) {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery || !text) {
+        return text;
+    }
+
+    const pattern = new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'ig');
+    const parts = String(text).split(pattern);
+
+    return parts.map((part, index) => {
+        if (part.toLowerCase() === normalizedQuery.toLowerCase()) {
+            return (
+                <mark
+                    key={`match-${index}`}
+                    className="bg-[#E8A020]/80 px-0.5 text-[#0f243f]"
+                >
+                    {part}
+                </mark>
+            );
+        }
+
+        return <span key={`text-${index}`}>{part}</span>;
+    });
+}
+
+function normalizePolyline(polyline) {
+    if (!Array.isArray(polyline)) {
+        return [];
+    }
+
+    return polyline
+        .map((point) => ({
+            x: Number(point?.x),
+            y: Number(point?.y),
+        }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        .filter((point) => point.x >= 0 && point.x <= 100 && point.y >= 0 && point.y <= 100);
+}
+
+function buildSmoothPath(points) {
+    if (!Array.isArray(points) || points.length === 0) {
+        return '';
+    }
+
+    if (points.length === 1) {
+        return `M ${points[0].x} ${points[0].y}`;
+    }
+
+    if (points.length === 2) {
+        return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+    }
+
+    const pathParts = [`M ${points[0].x} ${points[0].y}`];
+
+    for (let index = 1; index < points.length - 1; index += 1) {
+        const current = points[index];
+        const next = points[index + 1];
+        const midX = (current.x + next.x) / 2;
+        const midY = (current.y + next.y) / 2;
+        pathParts.push(`Q ${current.x} ${current.y}, ${midX} ${midY}`);
+    }
+
+    const lastIndex = points.length - 1;
+    pathParts.push(`Q ${points[lastIndex - 1].x} ${points[lastIndex - 1].y}, ${points[lastIndex].x} ${points[lastIndex].y}`);
+
+    return pathParts.join(' ');
+}
+
 export default function Index() {
     const [points, setPoints] = useState(fallbackPoints);
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
     const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedBuilding, setSelectedBuilding] = useState('all');
+    const [selectedFloor, setSelectedFloor] = useState('all');
+    const [onlyCabinets, setOnlyCabinets] = useState(false);
+    const [searchHistory, setSearchHistory] = useState([]);
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -96,6 +193,78 @@ export default function Index() {
         };
     }, []);
 
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+            if (!raw) {
+                return;
+            }
+
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                setSearchHistory(parsed.filter((entry) => typeof entry === 'string').slice(0, 8));
+            }
+        } catch {
+            // Ignore history parsing errors.
+        }
+    }, []);
+
+    const saveHistory = (nextHistory) => {
+        setSearchHistory(nextHistory);
+        try {
+            localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(nextHistory));
+        } catch {
+            // Ignore storage write failures.
+        }
+    };
+
+    const rememberSearch = (value) => {
+        const normalized = value.trim();
+        if (!normalized) {
+            return;
+        }
+
+        const nextHistory = [
+            normalized,
+            ...searchHistory.filter((entry) => entry.toLowerCase() !== normalized.toLowerCase()),
+        ].slice(0, 8);
+        saveHistory(nextHistory);
+    };
+
+    const buildings = useMemo(() => {
+        const values = Array.from(new Set(points.map((item) => extractBuilding(item))));
+        return values.sort((a, b) => a.localeCompare(b, 'ru'));
+    }, [points]);
+
+    const floors = useMemo(() => {
+        const values = Array.from(new Set(points.map((item) => String(item.floor ?? extractFloor(item.meta)))));
+        return values.sort((a, b) => Number(a) - Number(b));
+    }, [points]);
+
+    const suggestions = useMemo(() => {
+        const normalizedQuery = query.trim().toLowerCase();
+
+        if (normalizedQuery.length < 1) {
+            return searchHistory.slice(0, 5).map((entry) => ({ type: 'history', value: entry }));
+        }
+
+        const pointSuggestions = points
+            .filter((item) => getItemSearchText(item).includes(normalizedQuery))
+            .slice(0, 6)
+            .map((item) => ({
+                type: 'point',
+                value: item.title,
+                item,
+            }));
+
+        const historySuggestions = searchHistory
+            .filter((entry) => entry.toLowerCase().includes(normalizedQuery))
+            .slice(0, 3)
+            .map((entry) => ({ type: 'history', value: entry }));
+
+        return [...pointSuggestions, ...historySuggestions].slice(0, 8);
+    }, [points, query, searchHistory]);
+
     const filteredPoints = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
 
@@ -105,103 +274,149 @@ export default function Index() {
                 return false;
             }
 
+            const buildingOk = selectedBuilding === 'all' || extractBuilding(item) === selectedBuilding;
+            if (!buildingOk) {
+                return false;
+            }
+
+            const floorOk = selectedFloor === 'all' || String(item.floor ?? extractFloor(item.meta)) === selectedFloor;
+            if (!floorOk) {
+                return false;
+            }
+
+            if (onlyCabinets && item.kind !== 'cabinet') {
+                return false;
+            }
+
             if (normalizedQuery === '') {
                 return true;
             }
 
-            const haystack = `${item.title} ${item.meta} ${item.badge} ${item.room ?? ''} ${item.building ?? ''}`.toLowerCase();
-            return haystack.includes(normalizedQuery);
+            return getItemSearchText(item).includes(normalizedQuery);
         });
-    }, [activeTab, query]);
+    }, [activeTab, onlyCabinets, points, query, selectedBuilding, selectedFloor]);
 
     const routeSteps = selectedItem
         ? (Array.isArray(selectedItem.steps) && selectedItem.steps.length > 0
             ? selectedItem.steps
             : getRouteSteps(selectedItem, 'stairs'))
         : [];
-    const selectedFloor = selectedItem ? (selectedItem.floor ?? extractFloor(selectedItem.meta)) : 1;
+    const selectedRouteFloor = selectedItem ? (selectedItem.floor ?? extractFloor(selectedItem.meta)) : 1;
+    const selectedPolyline = selectedItem ? normalizePolyline(selectedItem.map_polyline) : [];
+    const selectedMapImage = selectedItem?.map_image_url || selectedItem?.map_image_path || null;
+    const svgPath = buildSmoothPath(selectedPolyline);
+    const startPoint = selectedPolyline.length > 0 ? selectedPolyline[0] : null;
+    const finishPoint = selectedPolyline.length > 1 ? selectedPolyline[selectedPolyline.length - 1] : null;
 
     const handleFind = () => {
+        rememberSearch(query);
         if (filteredPoints.length > 0) {
             setSelectedItem(filteredPoints[0]);
         }
+        setSuggestionsOpen(false);
     };
+
+    const applySuggestion = (value) => {
+        setQuery(value);
+        rememberSearch(value);
+        setSuggestionsOpen(false);
+    };
+
+    const headingFont = { fontFamily: '"Literata", ui-serif, Georgia, Times, serif' };
 
     return (
         <>
-            <Head title="Заявка" />
+            <Head title="Навигация по кампусу" />
 
-            <div className="page nav-page">
-                <div className="brand-blob" aria-hidden="true" />
-                <div className="container">
-                    <header className="topbar">
-                        <div className="logo">
-                            <div className="logo-badge">
-                                <img src="/assets/images/logo.png" alt="KazUTB" />
+            <main className="relative min-h-screen overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
+                <div className="pointer-events-none absolute inset-0 bg-[url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-45 blur-[2px] scale-[1.03]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/86 to-[#18b8b3]/28" />
+                <div className="pointer-events-none absolute inset-0 bg-black/15 backdrop-blur-[2px]" />
+
+                <section className="relative z-10 mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl bg-[#0f243f]/55 px-4 py-6 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-6 lg:px-8 lg:py-8">
+                    <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-[#0f243f]">
+                                <img src="/assets/images/logo.png" alt="KazUTB" className="h-8 w-8 object-contain" />
                             </div>
-                            <div className="logo-title">
-                                <b>KazUTB</b>
-                                <span>Заявка</span>
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#E8A020]">Навигация</p>
+                                <h1 style={headingFont} className="text-xl font-extrabold leading-tight sm:text-2xl">Поиск кабинетов и маршрутов</h1>
                             </div>
                         </div>
-                        <div className="right-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <button
-                                    className="btn btn-primary"
-                                    type="button"
-                                    style={{ padding: '8px 12px', fontSize: '14px', minWidth: 'auto' }}
-                                >
-                                    РУС
-                                </button>
-                                <button
-                                    className="btn btn-ghost"
-                                    type="button"
-                                    style={{ padding: '8px 12px', fontSize: '14px', minWidth: 'auto' }}
-                                >
-                                    ҚАЗ
-                                </button>
-                                <button
-                                    className="btn btn-ghost"
-                                    type="button"
-                                    style={{ padding: '8px 12px', fontSize: '14px', minWidth: 'auto' }}
-                                >
-                                    ENG
-                                </button>
-                            </div>
-                            <Link className="btn btn-ghost" href="/">
-                                На главную
-                            </Link>
-                        </div>
+
+                        <Link
+                            className="inline-flex min-h-10 items-center justify-center border border-white/30 bg-white/10 px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                            href="/"
+                        >
+                            На главную
+                        </Link>
                     </header>
 
-                    <main className="fr2 nav-template-main">
-                        <section className="tiles-wrap">
-                            <h1 className="page-title">Куда вам нужно?</h1>
-                            <p className="subtitle">Введите номер кабинета, фамилию сотрудника или название отдела.</p>
+                    <main className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-[0_16px_38px_rgba(0,0,0,.24)] backdrop-blur-md sm:p-5">
+                            <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[#E8A020]">Поиск</p>
+                            <p className="mb-4 text-sm text-white/70">Введите номер кабинета, фамилию сотрудника или название отдела.</p>
 
-                            <div className="searchRow">
-                                <div className="search searchRowInput">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="11" cy="11" r="7" />
-                                        <path d="M21 21l-4.3-4.3" />
-                                    </svg>
-                                    <input
-                                        placeholder="Например: 315 или Деканат ИТ"
-                                        autoComplete="off"
-                                        value={query}
-                                        onChange={(event) => setQuery(event.target.value)}
-                                    />
+                            <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                                <div className="relative flex-1">
+                                    <div className="flex items-center gap-2 border border-white/20 bg-white/10 px-3 py-2.5">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/55">
+                                            <circle cx="11" cy="11" r="7" />
+                                            <path d="M21 21l-4.3-4.3" />
+                                        </svg>
+                                        <input
+                                            className="w-full bg-transparent text-sm text-white placeholder:text-white/45 focus:outline-none"
+                                            placeholder="Например: 315 или Деканат ИТ"
+                                            autoComplete="off"
+                                            value={query}
+                                            onFocus={() => setSuggestionsOpen(true)}
+                                            onBlur={() => setTimeout(() => setSuggestionsOpen(false), 140)}
+                                            onKeyDown={(event) => {
+                                                if (event.key === 'Enter') {
+                                                    event.preventDefault();
+                                                    handleFind();
+                                                }
+                                            }}
+                                            onChange={(event) => {
+                                                setQuery(event.target.value);
+                                                setSuggestionsOpen(true);
+                                            }}
+                                        />
+                                    </div>
+
+                                    {suggestionsOpen && suggestions.length > 0 && (
+                                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto border border-white/20 bg-[#122a47] shadow-xl">
+                                            {suggestions.map((suggestion, index) => (
+                                                <button
+                                                    key={`${suggestion.type}-${suggestion.value}-${index}`}
+                                                    type="button"
+                                                    className="flex w-full items-center justify-between border-b border-white/10 px-3 py-2 text-left text-xs text-white/85 transition last:border-b-0 hover:bg-white/10"
+                                                    onMouseDown={() => applySuggestion(suggestion.value)}
+                                                >
+                                                    <span className="truncate">{suggestion.value}</span>
+                                                    <span className="ml-3 text-[10px] uppercase tracking-[0.12em] text-white/50">
+                                                        {suggestion.type === 'history' ? 'история' : 'подсказка'}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <button className="btn btn-primary" type="button" onClick={handleFind}>
-                                    Найти →
+                                <button
+                                    className="inline-flex min-h-[42px] items-center justify-center bg-[#E8A020] px-5 text-sm font-bold text-[#0f243f] transition hover:bg-[#d08c12]"
+                                    type="button"
+                                    onClick={handleFind}
+                                >
+                                    Найти
                                 </button>
                             </div>
 
-                            <div className="seg" role="tablist" aria-label="Фильтр">
+                            <div className="mb-3 flex flex-wrap gap-2" role="tablist" aria-label="Фильтр">
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab.key}
-                                        className={`chip ${activeTab === tab.key ? 'active' : ''}`}
+                                        className={`px-3 py-1.5 text-xs font-bold transition ${activeTab === tab.key ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/75 hover:bg-white/20 hover:text-white'}`}
                                         type="button"
                                         onClick={() => setActiveTab(tab.key)}
                                     >
@@ -210,93 +425,258 @@ export default function Index() {
                                 ))}
                             </div>
 
-                            <div className="results" aria-label="Результаты поиска">
-                                {filteredPoints.map((item) => (
-                                    <div
-                                        className={`result ${selectedItem?.title === item.title ? 'active' : ''}`}
-                                        key={item.badge + item.title}
-                                    >
-                                        <div className="r-left">
-                                            <div className="badge">{item.badge}</div>
-                                            <div>
-                                                <div className="r-title">{item.title}</div>
-                                                <div className="r-meta">
-                                                    {item.meta}
-                                                    {(item.kind === 'staff' || item.kind === 'cabinet') && item.room ? ` • каб. ${item.room}` : ''}
+                            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <select
+                                    value={selectedBuilding}
+                                    onChange={(event) => setSelectedBuilding(event.target.value)}
+                                    className="border border-white/20 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+                                >
+                                    <option value="all" className="text-slate-900">Все корпуса</option>
+                                    {buildings.map((building) => (
+                                        <option key={building} value={building} className="text-slate-900">
+                                            {building}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={selectedFloor}
+                                    onChange={(event) => setSelectedFloor(event.target.value)}
+                                    className="border border-white/20 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+                                >
+                                    <option value="all" className="text-slate-900">Все этажи</option>
+                                    {floors.map((floor) => (
+                                        <option key={floor} value={floor} className="text-slate-900">
+                                            Этаж {floor}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setOnlyCabinets((value) => !value)}
+                                    className={`px-3 py-2 text-xs font-bold transition ${onlyCabinets ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/80 hover:bg-white/20'}`}
+                                >
+                                    Только кабинеты
+                                </button>
+                            </div>
+
+                            <div className="max-h-[420px] space-y-2 overflow-auto pr-1" aria-label="Результаты поиска">
+                                {filteredPoints.map((item) => {
+                                    const metaText = `${item.meta}${(item.kind === 'staff' || item.kind === 'cabinet') && item.room ? ` • каб. ${item.room}` : ''}`;
+                                    const attachedNames = Array.isArray(item.attached_users) && item.attached_users.length > 0
+                                        ? item.attached_users.map((user) => user.name).join(', ')
+                                        : '';
+
+                                    return (
+                                        <div
+                                            className={`flex flex-col gap-3 border p-3 transition sm:flex-row sm:items-center sm:justify-between ${selectedItem?.title === item.title ? 'border-[#E8A020]/70 bg-[#E8A020]/12' : 'border-white/15 bg-white/8 hover:bg-white/12'}`}
+                                            key={item.badge + item.title}
+                                        >
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <div className="flex h-11 min-w-11 items-center justify-center rounded-full border border-white/35 bg-white/10 text-sm font-extrabold text-white">
+                                                    {item.badge}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-bold text-white break-words">{highlightMatch(item.title, query)}</div>
+                                                    <div className="text-xs text-white/60 break-words">{highlightMatch(metaText, query)}</div>
+                                                    {attachedNames && (
+                                                        <div className="mt-0.5 text-[11px] text-white/70 break-words">
+                                                            Сотрудники: {highlightMatch(attachedNames, query)}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
+                                            <button
+                                                className="inline-flex w-full items-center justify-center border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 sm:w-auto"
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedItem(item);
+                                                    rememberSearch(item.title);
+                                                }}
+                                            >
+                                                Построить маршрут
+                                            </button>
                                         </div>
-                                        <button
-                                            className="btn btn-primary"
-                                            type="button"
-                                            onClick={() => setSelectedItem(item)}
-                                        >
-                                            Показать →
-                                        </button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {filteredPoints.length === 0 && (
-                                    <div className="route-empty">Ничего не найдено. Уточните запрос.</div>
+                                    <div className="border border-dashed border-white/25 bg-white/5 p-4 text-center text-sm text-white/65">
+                                        Ничего не найдено. Уточните запрос.
+                                    </div>
                                 )}
                             </div>
 
-                            <div className="hint">
-                                <span>Подсказка: нажмите на результат → маршрут построится справа.</span>
-                                <span>Опция: лифт/лестница учитывается в шагах.</span>
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/55">
+                                <span>Подсказка: нажмите на результат — маршрут появится справа.</span>
                             </div>
                         </section>
 
-                        <section className="tiles-wrap">
-                            <header className="routeHeader">
-                                <div>
-                                    <h1 className="page-title routeTitle">
-                                        {selectedItem ? `Маршрут: ${selectedItem.title}` : 'Маршрут'}
-                                    </h1>
-                                    <div className="subtitle routeSubtitle">
-                                        {selectedItem
-                                            ? `${selectedItem.meta.split('•')[0]?.trim()} • Старт: Холл (вход) → Цель: ${getDestinationLabel(selectedItem)}`
-                                            : 'Выберите кабинет/отдел — покажем путь от киоска до двери.'}
+                        <section className="rounded-2xl border border-white/15 bg-white/10 p-4 shadow-[0_16px_38px_rgba(0,0,0,.24)] backdrop-blur-md sm:p-5">
+                            <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[#E8A020]">Маршрут</p>
+                            <h2 style={headingFont} className="text-2xl font-extrabold leading-tight text-white sm:text-3xl">
+                                {selectedItem ? `Маршрут: ${selectedItem.title}` : 'Маршрут не выбран'}
+                            </h2>
+                            <p className="mt-2 text-sm text-white/70">
+                                {selectedItem
+                                    ? `${selectedItem.meta.split('•')[0]?.trim()} • Старт: Холл (вход) → Цель: ${getDestinationLabel(selectedItem)}`
+                                    : 'Выберите кабинет или отдел, и мы покажем путь от киоска до двери.'}
+                            </p>
+
+                            <div className="mt-4 min-h-[360px] rounded-xl border border-white/15 bg-[#0b1a2e]/35 p-4">
+                                {!selectedItem && (
+                                    <div className="flex h-full min-h-[300px] items-center justify-center text-sm text-white/60">
+                                        Выберите слева кабинет.
                                     </div>
-                                </div>
-                            </header>
+                                )}
 
-                            <div className="routeBox">
-                                <div className="steps">
-                                    {!selectedItem && <div className="subtitle">Выберите слева кабинет.</div>}
-                                    {selectedItem && (
-                                        <>
-                                            <div className="route-flow-card">
-                                                <div className="route-step-index">1</div>
-                                                <div>
-                                                    <div className="route-flow-title">Следуйте по маршруту</div>
-                                                    <div className="route-flow-subtitle">Маршрут задан вручную.</div>
-                                                </div>
+                                {selectedItem && (
+                                    <>
+                                        <div className="mb-3 flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 p-3">
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-2xl font-bold">1</div>
+                                            <div>
+                                                <div className="text-sm font-bold text-white">Следуйте по маршруту</div>
+                                                <div className="text-xs text-white/60">Маршрут задан вручную.</div>
                                             </div>
+                                        </div>
 
-                                            <div className="route-floor-card">
-                                                <div className="route-floor-title">Этаж {selectedFloor} — до {getDestinationLabel(selectedItem)}</div>
-                                                <span className="floor-chip">Эт. {selectedFloor}</span>
-                                                <div className="route-map-preview" aria-hidden="true" />
+                                        <div className="rounded-lg border border-white/15 bg-white/8 p-4">
+                                            <div className="text-xl font-bold text-white sm:text-2xl">Этаж {selectedRouteFloor} — до {getDestinationLabel(selectedItem)}</div>
+                                            <span className="mt-2 inline-flex border border-white/20 bg-white/10 px-2.5 py-1 text-xs text-white/75">Эт. {selectedRouteFloor}</span>
+                                            <div className="relative mt-3 overflow-hidden rounded-lg border border-white/15 bg-[linear-gradient(180deg,#f9fafb_0%,#e5e7eb_62%,#d1d5db_100%)]">
+                                                {selectedMapImage ? (
+                                                    <img
+                                                        src={selectedMapImage}
+                                                        alt="План этажа"
+                                                        className="block h-56 w-full object-cover sm:h-64"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-56 w-full items-center justify-center text-sm text-slate-600 sm:h-64">
+                                                        Добавьте картинку плана этажа в админке.
+                                                    </div>
+                                                )}
+
+                                                {selectedPolyline.length > 1 && (
+                                                    <svg
+                                                        viewBox="0 0 100 100"
+                                                        preserveAspectRatio="none"
+                                                        className="pointer-events-none absolute inset-0 h-full w-full"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <defs>
+                                                            <linearGradient id="flagPolePublic" x1="0" y1="-3.6" x2="0.6" y2="1.4" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#9ea7b1" />
+                                                                <stop offset="55%" stopColor="#6f7781" />
+                                                                <stop offset="100%" stopColor="#4e555f" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagMainPublic" x1="0" y1="-3.1" x2="2.7" y2="-1.8" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#7fa06f" />
+                                                                <stop offset="65%" stopColor="#5f7c55" />
+                                                                <stop offset="100%" stopColor="#485e43" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagSidePublic" x1="0" y1="-3.1" x2="0.65" y2="-1.45" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#6d8a60" />
+                                                                <stop offset="100%" stopColor="#3f5239" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagBasePublic" x1="-1.8" y1="0.65" x2="1.8" y2="1.9" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#6f8f61" />
+                                                                <stop offset="100%" stopColor="#486244" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <path
+                                                            d={svgPath}
+                                                            fill="none"
+                                                            stroke="#000000"
+                                                            strokeWidth="1.18"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            opacity="0.16"
+                                                        />
+                                                        <path
+                                                            d={svgPath}
+                                                            fill="none"
+                                                            stroke="#111111"
+                                                            strokeWidth="0.62"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeDasharray="1.55 2.35"
+                                                            strokeDashoffset="0"
+                                                            opacity="0.95"
+                                                        >
+                                                            <animate
+                                                                attributeName="stroke-dashoffset"
+                                                                from="0"
+                                                                to="-7.8"
+                                                                dur="1.25s"
+                                                                repeatCount="indefinite"
+                                                            />
+                                                        </path>
+                                                        {startPoint && (
+                                                            <g>
+                                                                <circle
+                                                                    cx={startPoint.x}
+                                                                    cy={startPoint.y}
+                                                                    r="0.7"
+                                                                    fill="none"
+                                                                    stroke="#e5242a"
+                                                                    strokeWidth="0.36"
+                                                                    opacity="0.66"
+                                                                >
+                                                                    <animate attributeName="r" values="0.7;1.45;0.7" dur="1.6s" repeatCount="indefinite" />
+                                                                    <animate attributeName="opacity" values="0.66;0.18;0.66" dur="1.6s" repeatCount="indefinite" />
+                                                                </circle>
+                                                                <g transform={`translate(${startPoint.x} ${startPoint.y}) scale(0.28)`}>
+                                                                    <path
+                                                                        d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
+                                                                        fill="#e5242a"
+                                                                        stroke="#ffffff"
+                                                                        strokeWidth="0.44"
+                                                                    />
+                                                                    <circle cx="0" cy="-4.55" r="1.02" fill="#ffffff" />
+                                                                </g>
+                                                            </g>
+                                                        )}
+                                                        {finishPoint && (
+                                                            <g>
+                                                                <g transform={`translate(${finishPoint.x} ${finishPoint.y})`}>
+                                                                    <animateTransform
+                                                                        attributeName="transform"
+                                                                        type="translate"
+                                                                        values={`${finishPoint.x} ${finishPoint.y}; ${finishPoint.x} ${finishPoint.y - 0.16}; ${finishPoint.x} ${finishPoint.y}`}
+                                                                        dur="1.8s"
+                                                                        repeatCount="indefinite"
+                                                                    />
+                                                                    <g transform="scale(0.46)">
+                                                                        <ellipse cx="0.12" cy="1.86" rx="2.1" ry="0.54" fill="#0f1a12" opacity="0.22" />
+                                                                        <rect x="-0.2" y="-3.45" width="0.4" height="4.85" rx="0.16" fill="url(#flagPolePublic)" />
+                                                                        <path d="M 0 -3.08 L 2.7 -2.18 L 0 -1.32 Z" fill="url(#flagMainPublic)" />
+                                                                        <path d="M 0 -3.08 L 0.55 -2.89 L 0.55 -1.5 L 0 -1.32 Z" fill="url(#flagSidePublic)" opacity="0.92" />
+                                                                        <path d="M 0.18 -2.86 L 2.05 -2.22 L 0.18 -1.62 Z" fill="#d8e6cf" opacity="0.24" />
+                                                                        <rect x="-1.65" y="0.66" width="3.3" height="0.54" rx="0.22" fill="url(#flagBasePublic)" />
+                                                                        <path d="M -1.72 1.2 L 1.72 1.2 L 1.45 1.7 L -1.45 1.7 Z" fill="#4b6345" />
+                                                                    </g>
+                                                                </g>
+                                                            </g>
+                                                        )}
+                                                    </svg>
+                                                )}
                                             </div>
+                                        </div>
 
-                                            <ol className="route-list sr-only">
-                                                {routeSteps.map((step) => (
-                                                    <li key={step}>{step}</li>
-                                                ))}
-                                            </ol>
-                                        </>
-                                    )}
-                                </div>
+                                        <ol className="sr-only">
+                                            {routeSteps.map((step) => (
+                                                <li key={step}>{step}</li>
+                                            ))}
+                                        </ol>
+                                    </>
+                                )}
                             </div>
 
-                            <div className="hint mb10">
-                                <span>Киоск фиксирован: маршрут строится без QR и без сканирования.</span>
-                                <span>Для телефонов можно добавить QR "забрать маршрут" (опционально).</span>
-                            </div>
+                            <div className="mt-3 text-xs text-white/55">Киоск фиксирован: маршрут строится без QR и без сканирования.</div>
                         </section>
                     </main>
-                </div>
-            </div>
+                </section>
+            </main>
         </>
     );
 }

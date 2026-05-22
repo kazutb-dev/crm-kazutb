@@ -4,6 +4,9 @@ use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Questionnaire\AdminDictionaryController;
+use App\Http\Controllers\Api\Questionnaire\AdminSurveyResultController;
+use App\Http\Controllers\Api\Questionnaire\StudentSurveyController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\HrPercoController;
 use App\Http\Controllers\Api\LibraryReservationController;
@@ -48,4 +51,65 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('admin/users', [UserController::class, 'index']);
     Route::get('hr/perco', [HrPercoController::class, 'index']);
+
+    Route::prefix('questionnaire')->group(function (): void {
+        Route::get('student/surveys', [StudentSurveyController::class, 'index']);
+        Route::post('student/surveys/submit', [StudentSurveyController::class, 'store']);
+        Route::get('admin/results', [AdminSurveyResultController::class, 'index']);
+
+        Route::prefix('admin')->group(function (): void {
+            Route::get('students', [AdminDictionaryController::class, 'studentsIndex']);
+            Route::get('students/ad-search', [AdminDictionaryController::class, 'studentsAdSearch']);
+            Route::post('students', [AdminDictionaryController::class, 'studentsStore']);
+            Route::patch('students/{student}', [AdminDictionaryController::class, 'studentsUpdate']);
+            Route::delete('students/{student}', [AdminDictionaryController::class, 'studentsDestroy']);
+
+            Route::get('teachers', [AdminDictionaryController::class, 'teachersIndex']);
+
+            Route::get('teacher-disciplines', [AdminDictionaryController::class, 'teacherDisciplinesIndex']);
+            Route::post('teacher-disciplines', [AdminDictionaryController::class, 'teacherDisciplinesStore']);
+            Route::patch('teacher-disciplines/{teacherDiscipline}', [AdminDictionaryController::class, 'teacherDisciplinesUpdate']);
+            Route::delete('teacher-disciplines/{teacherDiscipline}', [AdminDictionaryController::class, 'teacherDisciplinesDestroy']);
+
+            Route::get('group-disciplines', [AdminDictionaryController::class, 'groupDisciplinesIndex']);
+            Route::post('group-disciplines', [AdminDictionaryController::class, 'groupDisciplinesStore']);
+            Route::patch('group-disciplines/{groupDiscipline}', [AdminDictionaryController::class, 'groupDisciplinesUpdate']);
+            Route::delete('group-disciplines/{groupDiscipline}', [AdminDictionaryController::class, 'groupDisciplinesDestroy']);
+
+            Route::get('groups', [AdminDictionaryController::class, 'groupsIndex']);
+            Route::post('groups', [AdminDictionaryController::class, 'groupsStore']);
+            Route::patch('groups/{group}', [AdminDictionaryController::class, 'groupsUpdate']);
+            Route::delete('groups/{group}', [AdminDictionaryController::class, 'groupsDestroy']);
+
+            Route::get('specialities', [AdminDictionaryController::class, 'specialitiesIndex']);
+            Route::post('specialities', [AdminDictionaryController::class, 'specialitiesStore']);
+            Route::patch('specialities/{speciality}', [AdminDictionaryController::class, 'specialitiesUpdate']);
+            Route::delete('specialities/{speciality}', [AdminDictionaryController::class, 'specialitiesDestroy']);
+
+            Route::get('educational-programs', [AdminDictionaryController::class, 'educationalProgramsIndex']);
+            Route::post('educational-programs', [AdminDictionaryController::class, 'educationalProgramsStore']);
+            Route::patch('educational-programs/{educationalProgram}', [AdminDictionaryController::class, 'educationalProgramsUpdate']);
+            Route::delete('educational-programs/{educationalProgram}', [AdminDictionaryController::class, 'educationalProgramsDestroy']);
+
+            Route::get('disciplines', [AdminDictionaryController::class, 'disciplinesIndex']);
+            Route::post('disciplines', [AdminDictionaryController::class, 'disciplinesStore']);
+            Route::patch('disciplines/{discipline}', [AdminDictionaryController::class, 'disciplinesUpdate']);
+            Route::delete('disciplines/{discipline}', [AdminDictionaryController::class, 'disciplinesDestroy']);
+
+            Route::get('surveys', [AdminDictionaryController::class, 'surveysIndex']);
+            Route::post('surveys', [AdminDictionaryController::class, 'surveysStore']);
+            Route::patch('surveys/{survey}', [AdminDictionaryController::class, 'surveysUpdate']);
+            Route::delete('surveys/{survey}', [AdminDictionaryController::class, 'surveysDestroy']);
+
+            Route::get('questions', [AdminDictionaryController::class, 'questionsIndex']);
+            Route::post('questions', [AdminDictionaryController::class, 'questionsStore']);
+            Route::patch('questions/{question}', [AdminDictionaryController::class, 'questionsUpdate']);
+            Route::delete('questions/{question}', [AdminDictionaryController::class, 'questionsDestroy']);
+
+            Route::get('options', [AdminDictionaryController::class, 'optionsIndex']);
+            Route::post('options', [AdminDictionaryController::class, 'optionsStore']);
+            Route::patch('options/{option}', [AdminDictionaryController::class, 'optionsUpdate']);
+            Route::delete('options/{option}', [AdminDictionaryController::class, 'optionsDestroy']);
+        });
+    });
 });
