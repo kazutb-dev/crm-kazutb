@@ -542,7 +542,14 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                 </Button>
                                             )}
 
-                                            {!permissions.canApprove && !permissions.canReject && (
+                                            {!permissions.canReject && permissions.canReturn && (
+                                                <Button type="button" disabled={form.processing} variant="destructive" onClick={() => submitAction('kpi.entries.return')}>
+                                                    <ShieldAlert className="h-4 w-4" />
+                                                    Отклонить запись
+                                                </Button>
+                                            )}
+
+                                            {!permissions.canApprove && !permissions.canReject && !permissions.canReturn && (
                                                 <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
                                             )}
                                         </>

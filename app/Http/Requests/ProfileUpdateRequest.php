@@ -6,6 +6,7 @@ use App\Models\Department;
 use App\Models\PositionChangeRequest;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -54,12 +55,14 @@ class ProfileUpdateRequest extends FormRequest
             $positionConfirmed = $this->input('position_confirmed');
             $positionId = $this->input('position_id');
             $user = $this->user();
-            $hasPendingPositionRequest = $user instanceof User
-                ? PositionChangeRequest::query()
+            $hasPendingPositionRequest = false;
+
+            if ($user instanceof User && Schema::hasTable('position_change_requests')) {
+                $hasPendingPositionRequest = PositionChangeRequest::query()
                     ->where('user_id', $user->id)
                     ->where('status', 'pending')
-                    ->exists()
-                : false;
+                    ->exists();
+            }
 
             if (($positionConfirmed === false || $positionConfirmed === 'false' || $positionConfirmed === 0 || $positionConfirmed === '0')
                 && ! $hasPendingPositionRequest

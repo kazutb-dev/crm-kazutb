@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -98,12 +99,15 @@ class ProfileController extends Controller
             $user->position_confirmed = true;
         } elseif ($confirmed === false && ! empty($validated['position_id'])) {
             $requestedPosition = Position::query()->find((int) $validated['position_id']);
+            $positionRequestsEnabled = $this->positionRequestsTableExists();
 
             if ($requestedPosition !== null) {
-                $hasPendingRequest = PositionChangeRequest::query()
-                    ->where('user_id', $user->id)
-                    ->where('status', 'pending')
-                    ->exists();
+                $hasPendingRequest = $positionRequestsEnabled
+                    ? PositionChangeRequest::query()
+                        ->where('user_id', $user->id)
+                        ->where('status', 'pending')
+                        ->exists()
+                    : false;
 
                 if ($hasPendingRequest) {
                     // Position change is locked while request is pending; keep saving other profile fields.
@@ -116,13 +120,15 @@ class ProfileController extends Controller
                     if ($currentPosition !== '' && $currentPosition === (string) $requestedPosition->name) {
                         // Selecting the already assigned position is a no-op: continue saving other profile fields.
                         unset($validated['position_id']);
-                    } else {
+                    } elseif ($positionRequestsEnabled) {
                         PositionChangeRequest::query()->create([
                             'user_id' => $user->id,
                             'current_position' => $user->position_title ?: $user->ad_title,
                             'requested_position_id' => $requestedPosition->id,
                             'status' => 'pending',
                         ]);
+                    } else {
+                        unset($validated['position_id']);
                     }
                 }
             }
@@ -213,30 +219,38 @@ class ProfileController extends Controller
                 'name' => $division->name,
             ])->values();
         $canEditAcademicBindings = $this->canEditAcademicBindings($user);
-        $positionRequests = PositionChangeRequest::query()
-            ->where('user_id', $user->id)
-            ->with('requestedPosition:id,name')
-            ->latest('id')
-            ->limit(5)
-            ->get()
-            ->map(static fn (PositionChangeRequest $request) => [
-                'id' => $request->id,
-                'status' => $request->status,
-                'requested_position' => $request->requestedPosition?->name,
-                'created_at' => $request->created_at?->toDateString(),
-                'admin_note' => $request->admin_note,
-            ])
-            ->values();
-        $hasPendingPositionRequest = PositionChangeRequest::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->exists();
-        $pendingPositionRequest = PositionChangeRequest::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->with('requestedPosition:id,name')
-            ->latest('id')
-            ->first();
+        $positionRequests = collect();
+        $hasPendingPositionRequest = false;
+        $pendingPositionRequest = null;
+
+        if ($this->positionRequestsTableExists()) {
+            $positionRequests = PositionChangeRequest::query()
+                ->where('user_id', $user->id)
+                ->with('requestedPosition:id,name')
+                ->latest('id')
+                ->limit(5)
+                ->get()
+                ->map(static fn (PositionChangeRequest $request) => [
+                    'id' => $request->id,
+                    'status' => $request->status,
+                    'requested_position' => $request->requestedPosition?->name,
+                    'created_at' => $request->created_at?->toDateString(),
+                    'admin_note' => $request->admin_note,
+                ])
+                ->values();
+
+            $hasPendingPositionRequest = PositionChangeRequest::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->exists();
+
+            $pendingPositionRequest = PositionChangeRequest::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->with('requestedPosition:id,name')
+                ->latest('id')
+                ->first();
+        }
 
         return [
             'id' => $user->id,
@@ -473,5 +487,16 @@ class ProfileController extends Controller
             'private' => 'Приватный',
             default => 'Внутренний',
         };
+    }
+
+    private function positionRequestsTableExists(): bool
+    {
+        static $exists = null;
+
+        if ($exists === null) {
+            $exists = Schema::hasTable('position_change_requests');
+        }
+
+        return $exists;
     }
 }
