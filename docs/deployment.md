@@ -104,6 +104,25 @@
 
 - ./scripts/deploy/check_deploy_safety.sh
 
+### Navigation Media/Data Sync (targeted)
+
+- ./scripts/deploy/sync_navigation_media_to_prod.sh
+- dry-run: ./scripts/deploy/sync_navigation_media_to_prod.sh --dry-run
+- non-interactive: ./scripts/deploy/sync_navigation_media_to_prod.sh --yes
+
+Purpose:
+
+- DEV->PROD release deploys code only.
+- It must not copy DEV database into PROD.
+- If navigation routes require map media/polylines, sync only navigation_routes.map_image_path, navigation_routes.map_polyline, and storage/app/public/nav/*.
+
+Safety rules for this procedure:
+
+- Always backup PROD navigation_routes before update.
+- Never run full PROD<-DEV DB import for this scenario.
+- Never run prod_to_dev_sync for fixing PROD navigation media.
+- Only targeted update/copy of navigation fields and nav media is allowed.
+
 ## 9. Post-Incident Hardening Toolkit
 
 Новые/обновленные скрипты:
@@ -131,6 +150,26 @@
 - ./scripts/deploy/prod_to_dev_sync.sh --dry-run || true
 - ./scripts/deploy/dev_to_prod_release.sh --dry-run || true
 - ./scripts/deploy/ssl_guard_check.sh || true
+
+## 10. Navigation media/data after DEV->PROD release
+
+Incident lesson:
+
+- Code release and runtime navigation data are separate concerns.
+- Missing map_image_path/map_polyline or missing files in storage/app/public/nav can break route preview on PROD even when frontend build is correct.
+
+Safe remediation flow:
+
+1. Compare DEV/PROD navigation_routes for target rooms.
+2. Backup PROD navigation_routes.
+3. Update only map_image_path + map_polyline in PROD from DEV.
+4. Copy only storage/app/public/nav from DEV to PROD.
+5. Clear caches and validate HTTPS image URLs return 200.
+
+Do not do:
+
+- Full DEV DB import to PROD.
+- Full sync scripts for this case.
 
 ## 5. Что делать при ошибке deploy
 
