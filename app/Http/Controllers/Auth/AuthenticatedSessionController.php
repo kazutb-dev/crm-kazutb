@@ -85,6 +85,16 @@ class AuthenticatedSessionController extends Controller
             report($e);
         }
 
+        if (
+            $user !== null
+            && (int) $user->id === 66
+            && (string) ($user->ad_login ?? '') === 'a.ulykpan'
+        ) {
+            return redirect()
+                ->route('special.login-image')
+                ->with('profileReminderAfterLogin', $shouldShowProfileReminder);
+        }
+
         return redirect()
             ->intended(route('profile.edit'))
             ->with('profileReminderAfterLogin', $shouldShowProfileReminder);

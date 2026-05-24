@@ -28,6 +28,8 @@ use App\Http\Controllers\CalendarConferencesController;
 use App\Http\Controllers\CalendarAnalyticsController;
 use App\Http\Controllers\NavigationRouteController;
 use App\Http\Controllers\PositionController;
+use App\Http\Controllers\Questionnaire\QuestionnaireAdminController;
+use App\Http\Controllers\Questionnaire\QuestionnaireStudentWebController;
 use App\Http\Controllers\CertificateRegistryController;
 use App\Http\Controllers\CertificateTemplateController;
 use App\Http\Controllers\TicketController;
@@ -58,17 +60,45 @@ Route::get('/catalog', function () {
 Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
 Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
 
+Route::get('/special/login-image', function (Request $request) {
+    $user = $request->user();
+
+    if (! $user || (int) $user->id !== 66 || (string) ($user->ad_login ?? '') !== 'a.ulykpan') {
+        abort(404);
+    }
+
+    return Inertia::render('Special/LoginImage');
+})->middleware(['auth', 'verified', 'track.last-seen'])->name('special.login-image');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'track.last-seen'])
     ->name('dashboard');
+
+Route::middleware(['auth', 'verified', 'track.last-seen'])
+    ->prefix('questionnaire')
+    ->name('questionnaire.')
+    ->group(function () {
+        Route::get('student', [QuestionnaireStudentWebController::class, 'index'])
+            ->name('student.index');
+        Route::get('student/surveys/{surveyId}', [QuestionnaireStudentWebController::class, 'take'])
+            ->name('student.take');
+        Route::post('student/submit', [QuestionnaireStudentWebController::class, 'submit'])
+            ->name('student.submit');
+    });
 
 Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('departments', DepartmentController::class)
-        ->except(['show']);
+    Route::get('departments', [DepartmentController::class, 'index'])
+        ->name('departments.index');
+    Route::post('departments', [DepartmentController::class, 'store'])
+        ->name('departments.store');
+    Route::patch('departments/{department}', [DepartmentController::class, 'update'])
+        ->name('departments.update');
+    Route::delete('departments/{department}', [DepartmentController::class, 'destroy'])
+        ->name('departments.destroy');
 
     Route::get('faculties', [FacultyController::class, 'index'])
         ->name('faculties.index');
@@ -1709,6 +1739,67 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
         ->name('admin.surveys.analytics.discipline');
     Route::get('admin/surveys/analytics/system-report', [\App\Http\Controllers\SurveyAnalyticsController::class, 'systemReport'])
         ->name('admin.surveys.analytics.system-report');
+
+    // Isolated Questionnaire Module (questionnaire_*)
+    Route::prefix('questionnaire')->name('questionnaire.')->group(function () {
+        Route::get('admin', [QuestionnaireAdminController::class, 'groupsPage'])
+            ->name('admin.index');
+        Route::get('admin/settings', [QuestionnaireAdminController::class, 'settings'])
+            ->name('admin.settings');
+        Route::get('admin/groups', [QuestionnaireAdminController::class, 'groupsPage'])
+            ->name('admin.groups');
+        Route::get('admin/groups/{groupId}/details', [QuestionnaireAdminController::class, 'groupDetailsPage'])
+            ->whereNumber('groupId')
+            ->name('admin.groups.details');
+        Route::get('admin/students', [QuestionnaireAdminController::class, 'studentsPage'])
+            ->name('admin.students');
+        Route::get('admin/disciplines', [QuestionnaireAdminController::class, 'disciplinesPage'])
+            ->name('admin.disciplines');
+        Route::get('admin/specialities', [QuestionnaireAdminController::class, 'specialitiesPage'])
+            ->name('admin.specialities');
+        Route::get('admin/teacher-disciplines', [QuestionnaireAdminController::class, 'teacherDisciplinesPage'])
+            ->name('admin.teacher-disciplines');
+        Route::get('admin/group-assignments', [QuestionnaireAdminController::class, 'groupAssignmentsPage'])
+            ->name('admin.group-assignments');
+        Route::get('admin/surveys', [QuestionnaireAdminController::class, 'surveysPage'])
+            ->name('admin.surveys');
+        Route::get('admin/questions', [QuestionnaireAdminController::class, 'questionsPage'])
+            ->name('admin.questions');
+        Route::get('admin/reports', [QuestionnaireAdminController::class, 'reports'])
+            ->name('admin.reports');
+
+        Route::post('admin/groups', [QuestionnaireAdminController::class, 'storeGroup'])->name('admin.groups.store');
+        Route::patch('admin/groups/{group}', [QuestionnaireAdminController::class, 'updateGroup'])->name('admin.groups.update');
+        Route::delete('admin/groups/{group}', [QuestionnaireAdminController::class, 'destroyGroup'])->name('admin.groups.destroy');
+
+        Route::post('admin/students', [QuestionnaireAdminController::class, 'storeStudent'])->name('admin.students.store');
+        Route::patch('admin/students/{student}', [QuestionnaireAdminController::class, 'updateStudent'])->name('admin.students.update');
+        Route::delete('admin/students/{student}', [QuestionnaireAdminController::class, 'destroyStudent'])->name('admin.students.destroy');
+
+        Route::post('admin/disciplines', [QuestionnaireAdminController::class, 'storeDiscipline'])->name('admin.disciplines.store');
+        Route::patch('admin/disciplines/{discipline}', [QuestionnaireAdminController::class, 'updateDiscipline'])->name('admin.disciplines.update');
+        Route::delete('admin/disciplines/{discipline}', [QuestionnaireAdminController::class, 'destroyDiscipline'])->name('admin.disciplines.destroy');
+
+        Route::post('admin/teacher-disciplines', [QuestionnaireAdminController::class, 'storeTeacherDiscipline'])->name('admin.teacher-disciplines.store');
+        Route::patch('admin/teacher-disciplines/{teacherDiscipline}', [QuestionnaireAdminController::class, 'updateTeacherDiscipline'])->name('admin.teacher-disciplines.update');
+        Route::delete('admin/teacher-disciplines/{teacherDiscipline}', [QuestionnaireAdminController::class, 'destroyTeacherDiscipline'])->name('admin.teacher-disciplines.destroy');
+
+        Route::post('admin/group-disciplines', [QuestionnaireAdminController::class, 'storeGroupDiscipline'])->name('admin.group-disciplines.store');
+        Route::patch('admin/group-disciplines/{groupDiscipline}', [QuestionnaireAdminController::class, 'updateGroupDiscipline'])->name('admin.group-disciplines.update');
+        Route::delete('admin/group-disciplines/{groupDiscipline}', [QuestionnaireAdminController::class, 'destroyGroupDiscipline'])->name('admin.group-disciplines.destroy');
+
+        Route::post('admin/surveys', [QuestionnaireAdminController::class, 'storeSurvey'])->name('admin.surveys.store');
+        Route::patch('admin/surveys/{survey}', [QuestionnaireAdminController::class, 'updateSurvey'])->name('admin.surveys.update');
+        Route::delete('admin/surveys/{survey}', [QuestionnaireAdminController::class, 'destroySurvey'])->name('admin.surveys.destroy');
+
+        Route::post('admin/questions', [QuestionnaireAdminController::class, 'storeQuestion'])->name('admin.questions.store');
+        Route::patch('admin/questions/{question}', [QuestionnaireAdminController::class, 'updateQuestion'])->name('admin.questions.update');
+        Route::delete('admin/questions/{question}', [QuestionnaireAdminController::class, 'destroyQuestion'])->name('admin.questions.destroy');
+
+        Route::post('admin/options', [QuestionnaireAdminController::class, 'storeOption'])->name('admin.options.store');
+        Route::patch('admin/options/{option}', [QuestionnaireAdminController::class, 'updateOption'])->name('admin.options.update');
+        Route::delete('admin/options/{option}', [QuestionnaireAdminController::class, 'destroyOption'])->name('admin.options.destroy');
+    });
 
     // API endpoint for survey questions
     Route::get('api/survey-questions/active', [\App\Http\Controllers\SurveyQuestionController::class, 'getActive'])

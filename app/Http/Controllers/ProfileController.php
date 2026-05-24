@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
+use App\Models\Questionnaire\Student as QuestionnaireStudent;
 use App\Models\User;
 use App\Services\BusinessActivityLogger;
 use App\Services\GreenApiWhatsAppNotifier;
@@ -296,6 +297,7 @@ class ProfileController extends Controller
                 'id' => $user->department->id,
                 'name' => $user->department->name,
             ] : null,
+            'student_binding' => $this->resolveStudentBinding($user),
             'divisions' => $divisionSource->all(),
             'bindings' => [
                 'faculty_label' => $user->faculty?->name,
@@ -345,6 +347,64 @@ class ProfileController extends Controller
                 'faculty_id' => $user->faculty_id,
                 'department_id' => $user->department_id,
             ],
+        ];
+    }
+
+    private function resolveStudentBinding(User $user): ?array
+    {
+        $student = QuestionnaireStudent::query()
+            ->with([
+                'group:id,name,group_speciality_id,group_educational_program_id,speciality,educational_program',
+                'group.specialityRef:id,name,department_id',
+                'group.specialityRef.department:id,name',
+                'group.educationalProgramRef:id,name',
+            ])
+            ->where(function ($query) use ($user): void {
+                $query->where('user_id', $user->id);
+
+                if (filled($user->ad_login)) {
+                    $query->orWhere('login', (string) $user->ad_login);
+                }
+
+                if (filled($user->name)) {
+                    $query->orWhere('login', (string) $user->name);
+                }
+            })
+            ->orderByDesc('id')
+            ->first();
+
+        if ($student === null) {
+            return null;
+        }
+
+        $group = $student->group;
+        if ($group === null) {
+            return null;
+        }
+
+        return [
+            'group' => [
+                'id' => $group->id,
+                'name' => $group->name,
+            ],
+            'department' => $group->specialityRef?->department ? [
+                'id' => $group->specialityRef->department->id,
+                'name' => $group->specialityRef->department->name,
+            ] : null,
+            'speciality' => $group->specialityRef ? [
+                'id' => $group->specialityRef->id,
+                'name' => $group->specialityRef->name,
+            ] : (filled($group->speciality) ? [
+                'id' => null,
+                'name' => (string) $group->speciality,
+            ] : null),
+            'educational_program' => $group->educationalProgramRef ? [
+                'id' => $group->educationalProgramRef->id,
+                'name' => $group->educationalProgramRef->name,
+            ] : (filled($group->educational_program) ? [
+                'id' => null,
+                'name' => (string) $group->educational_program,
+            ] : null),
         ];
     }
 

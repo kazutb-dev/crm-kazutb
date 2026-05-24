@@ -50,6 +50,7 @@ const SIDEBAR_GROUP_KEYS = [
     'main',
     'directories',
     'kpi',
+    'questionnaire',
     'hr',
     'library',
     'calendarAdmin',
@@ -411,16 +412,10 @@ export function AppSidebar() {
 
     const management = isAdminRole ? [
         {
-            title: 'Факультеты',
+            title: 'Факультеты и кафедры',
             href: route('faculties.index'),
             icon: GraduationCap,
-            active: route().current('faculties.*'),
-        },
-        {
-            title: 'Кафедры',
-            href: route('departments.index'),
-            icon: Building2,
-            active: route().current('departments.*'),
+            active: route().current('faculties.*') || route().current('departments.*'),
         },
         {
             title: 'Департаменты',
@@ -455,9 +450,9 @@ export function AppSidebar() {
         ...(isAdminRole
             ? [{
                 title: 'Навигация',
-                href: route('nav.routes.admin'),
+                href: route('nav.index'),
                 icon: MapPinned,
-                active: route().current('nav.routes.*'),
+                active: route().current('nav.index') || route().current('nav.routes.*'),
             }]
             : []),
     ] : [];
@@ -529,6 +524,46 @@ export function AppSidebar() {
                 active: route().current('library.reservations.admin'),
             }]
             : []),
+    ] : [];
+
+    const questionnaire = isAdminRole ? [
+        {
+            title: 'Группы',
+            href: route('questionnaire.admin.groups'),
+            icon: Users,
+            active: route().current('questionnaire.admin.groups') || route().current('questionnaire.admin.index'),
+        },
+        {
+            title: 'Специальности',
+            href: route('questionnaire.admin.specialities'),
+            icon: GraduationCap,
+            active: route().current('questionnaire.admin.specialities'),
+        },
+        {
+            title: 'Преподаватели',
+            href: route('questionnaire.admin.teacher-disciplines'),
+            icon: UserCog,
+            active: route().current('questionnaire.admin.teacher-disciplines'),
+        },
+        {
+            title: 'Опросы',
+            href: route('questionnaire.admin.surveys'),
+            icon: CheckCircle2,
+            active: route().current('questionnaire.admin.surveys'),
+        },
+        {
+            title: 'Отчеты',
+            href: route('questionnaire.admin.reports'),
+            icon: BarChart3,
+            active: route().current('questionnaire.admin.reports'),
+        },
+    ] : isStudentRole ? [
+        {
+            title: 'Анкетирование',
+            href: route('questionnaire.student.index'),
+            icon: CheckCircle2,
+            active: route().current('questionnaire.student.index') || route().current('questionnaire.student.take'),
+        },
     ] : [];
 
     const nonAdminCalendarItems = [
@@ -610,6 +645,7 @@ export function AppSidebar() {
     const groupActivity = {
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && management.some((item) => item.active),
         kpi: kpiMenuItems.length > 0 && kpiMenuItems.some((item) => item.active),
+        questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
         hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
@@ -707,6 +743,7 @@ export function AppSidebar() {
         main: !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
         kpi: kpiMenuItems.length > 0,
+        questionnaire: isAdminRole && !showOnlyKpiMenus,
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
         hr: isAdminRole && !showOnlyKpiMenus,
         library: isAdminRole && !showOnlyKpiMenus,
@@ -718,6 +755,7 @@ export function AppSidebar() {
         main: navigation,
         directories: management,
         kpi: kpiMenuItems,
+        questionnaire,
         calendarShared: nonAdminCalendarItems,
         hr,
         library,
@@ -832,6 +870,10 @@ export function AppSidebar() {
 
                 {kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
+                )}
+
+                {questionnaire.length > 0 && !showOnlyKpiMenus && (
+                    renderGroup('questionnaire', 'Анкетирование', questionnaire)
                 )}
 
                 {/* Smart Calendar for non-admin users with calendar access */}
