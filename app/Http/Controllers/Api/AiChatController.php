@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class AiChatController extends Controller
 {
@@ -21,18 +22,13 @@ class AiChatController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => 'Invalid request.'], 422);
+            $firstError = (string) ($validator->errors()->first() ?: 'Некорректный формат запроса.');
+
+            return response()->json([
+                'text' => 'Проверьте сообщение и попробуйте снова. ' . $firstError,
+            ], 422);
         }
 
-        $apiKey = config('services.openai.api_key');
-
-        if (empty($apiKey)) {
-            return response()->json(['error' => 'AI service is not configured.'], 503);
-        }
-
-        // Initialize KPI knowledge service
-        $kpiService = new KpiKnowledgeService();
-        
         // Get the latest user message to determine context
         $messages = $request->input('messages');
         $latestUserMessage = '';
@@ -42,6 +38,17 @@ class AiChatController extends Controller
                 break;
             }
         }
+
+        $matchedRoute = $this->findRouteFromMessages($messages, $latestUserMessage);
+
+        $apiKey = config('services.openai.api_key');
+
+        if (empty($apiKey)) {
+            return response()->json($this->buildFallbackPayload($latestUserMessage, $matchedRoute));
+        }
+
+        // Initialize KPI knowledge service
+        $kpiService = new KpiKnowledgeService();
 
         // Check if this is a KPI question
         $isKpiQuestion = $kpiService->isKpiQuestion($latestUserMessage);
@@ -58,22 +65,219 @@ class AiChatController extends Controller
             ];
         }
 
-        $response = Http::timeout(20)
-            ->withToken($apiKey)
-            ->post('https://api.openai.com/v1/chat/completions', [
-                'model' => config('services.openai.model', 'gpt-4o-mini'),
-                'temperature' => 0.7,
-                'max_tokens' => 500,
-                'messages' => $messages,
-            ]);
+        try {
+            $response = Http::timeout(20)
+                ->withToken($apiKey)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => config('services.openai.model', 'gpt-4o-mini'),
+                    'temperature' => 0.7,
+                    'max_tokens' => 500,
+                    'messages' => $messages,
+                ]);
 
-        if ($response->failed()) {
-            return response()->json(['error' => 'AI service unavailable.'], 502);
+            if ($response->failed()) {
+                return response()->json($this->buildFallbackPayload($latestUserMessage, $matchedRoute));
+            }
+
+            $text = trim((string) $response->json('choices.0.message.content', ''));
+
+            if ($text === '') {
+                return response()->json($this->buildFallbackPayload($latestUserMessage, $matchedRoute));
+            }
+
+            return response()->json([
+                'text' => $text,
+                'image_url' => $this->extractRouteImageUrl($matchedRoute),
+                'route_polyline' => $this->extractRoutePolyline($matchedRoute),
+            ]);
+        } catch (Throwable) {
+            return response()->json($this->buildFallbackPayload($latestUserMessage, $matchedRoute));
+        }
+    }
+
+    /**
+     * @return array{text: string, image_url: string|null, route_polyline: array<int, array{x: float, y: float}>}
+     */
+    private function buildFallbackPayload(string $query, ?NavigationRoute $route = null): array
+    {
+        return [
+            'text' => $this->buildFallbackAnswer($query, $route),
+            'image_url' => $this->extractRouteImageUrl($route),
+            'route_polyline' => $this->extractRoutePolyline($route),
+        ];
+    }
+
+    private function buildFallbackAnswer(string $query, ?NavigationRoute $route = null): string
+    {
+        $normalized = trim(mb_strtolower($query));
+
+        if ($normalized === '') {
+            return 'Уточните, что нужно найти: кабинет, сотрудника или отдел.';
         }
 
-        $text = $response->json('choices.0.message.content', '');
+        $route = $route ?? $this->findRouteFromMessages([
+            ['role' => 'user', 'text' => $query],
+        ], $query);
 
-        return response()->json(['text' => trim($text)]);
+        if (!$route) {
+            return 'Сейчас AI-сервис временно недоступен. Попробуйте переформулировать запрос (например: "кабинет 100" или "деканат ИТ").';
+        }
+
+        $destination = $route->room ? 'кабинет ' . $route->room : $route->title;
+        $meta = trim((string) ($route->meta ?? ''));
+        $location = $meta !== '' ? $meta : trim(implode(' • ', array_filter([
+            $route->building,
+            $route->floor !== null ? ((string) $route->floor . ' этаж') : null,
+        ])));
+
+        $steps = is_array($route->steps) ? $route->steps : [];
+        $stepsText = '';
+
+        if ($steps !== []) {
+            $stepsText = "\nМаршрут:\n" . collect($steps)
+                ->map(fn (string $step, int $index): string => ($index + 1) . '. ' . $step)
+                ->implode("\n");
+        }
+
+        return trim("Найдено: {$destination}." . ($location !== '' ? " {$location}." : '') . $stepsText);
+    }
+
+    private function extractRouteImageUrl(?NavigationRoute $route): ?string
+    {
+        if (!$route) {
+            return null;
+        }
+
+        $value = trim((string) ($route->map_image_path ?? ''));
+        if ($value === '') {
+            return null;
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://') || str_starts_with($value, '/')) {
+            return $value;
+        }
+
+        return '/' . ltrim($value, '/');
+    }
+
+    /**
+     * @return array<int, array{x: float, y: float}>
+     */
+    private function extractRoutePolyline(?NavigationRoute $route): array
+    {
+        if (!$route || !is_array($route->map_polyline)) {
+            return [];
+        }
+
+        return collect($route->map_polyline)
+            ->map(function ($point): ?array {
+                if (!is_array($point)) {
+                    return null;
+                }
+
+                $x = isset($point['x']) && is_numeric($point['x']) ? (float) $point['x'] : null;
+                $y = isset($point['y']) && is_numeric($point['y']) ? (float) $point['y'] : null;
+
+                if ($x === null || $y === null || $x < 0 || $x > 100 || $y < 0 || $y > 100) {
+                    return null;
+                }
+
+                return ['x' => $x, 'y' => $y];
+            })
+            ->filter(fn (?array $point): bool => $point !== null)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<int, array{role: string, text: string}> $messages
+     */
+    private function findRouteFromMessages(array $messages, string $latestUserMessage): ?NavigationRoute
+    {
+        $queries = [];
+
+        $latest = trim($latestUserMessage);
+        if ($latest !== '') {
+            $queries[] = $latest;
+        }
+
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            $msg = $messages[$i] ?? null;
+            if (!is_array($msg) || ($msg['role'] ?? '') !== 'user') {
+                continue;
+            }
+
+            $text = trim((string) ($msg['text'] ?? ''));
+            if ($text !== '') {
+                $queries[] = $text;
+            }
+        }
+
+        $queries = array_values(array_unique($queries));
+
+        foreach ($queries as $query) {
+            foreach ($this->buildRouteSearchCandidates($query) as $candidate) {
+                $route = NavigationRoute::query()
+                    ->where('is_active', true)
+                    ->where(function ($q) use ($candidate): void {
+                        $q->where('title', 'like', "%{$candidate}%")
+                            ->orWhere('badge', 'like', "%{$candidate}%")
+                            ->orWhere('room', 'like', "%{$candidate}%")
+                            ->orWhere('meta', 'like', "%{$candidate}%");
+                    })
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->first(['title', 'meta', 'building', 'floor', 'room', 'steps', 'map_image_path', 'map_polyline']);
+
+                if ($route) {
+                    return $route;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildRouteSearchCandidates(string $query): array
+    {
+        $base = trim($query);
+        $candidates = $base !== '' ? [$base] : [];
+
+        preg_match_all('/\d+[\/\-]?\d*/u', $base, $matches);
+        $numbers = $matches[0] ?? [];
+
+        foreach ($numbers as $number) {
+            $token = trim($number);
+            if ($token === '') {
+                continue;
+            }
+
+            $candidates[] = $token;
+            $candidates[] = 'кабинет ' . $token;
+
+            if (str_contains($token, '/')) {
+                foreach (explode('/', $token) as $part) {
+                    $part = trim($part);
+                    if ($part !== '') {
+                        $candidates[] = $part;
+                        $candidates[] = 'кабинет ' . $part;
+                    }
+                }
+            }
+        }
+
+        $words = preg_split('/\s+/u', mb_strtolower($base)) ?: [];
+        foreach ($words as $word) {
+            $word = trim($word);
+            if ($word !== '' && mb_strlen($word) >= 3) {
+                $candidates[] = $word;
+            }
+        }
+
+        return array_values(array_unique($candidates));
     }
 
     /**

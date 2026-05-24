@@ -545,120 +545,157 @@ export default function Index() {
                                             <span className="mt-2 inline-flex border border-white/20 bg-white/10 px-2.5 py-1 text-xs text-white/75">Эт. {selectedRouteFloor}</span>
                                             <div className="relative mt-3 overflow-hidden rounded-lg border border-white/15 bg-[linear-gradient(180deg,#f9fafb_0%,#e5e7eb_62%,#d1d5db_100%)]">
                                                 {selectedMapImage ? (
-                                                    <img
-                                                        src={selectedMapImage}
-                                                        alt="План этажа"
-                                                        className="block h-56 w-full object-cover sm:h-64"
-                                                    />
+                                                    <div className="relative mx-auto w-fit max-w-full">
+                                                        <img
+                                                            src={selectedMapImage}
+                                                            alt="План этажа"
+                                                            className="block max-h-[70vh] w-auto max-w-full bg-slate-100"
+                                                        />
+
+                                                        {selectedPolyline.length > 0 && (
+                                                            <svg
+                                                                viewBox="0 0 100 100"
+                                                                preserveAspectRatio="none"
+                                                                className="pointer-events-none absolute inset-0 h-full w-full"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <defs>
+                                                                    <filter id="routeShadowPublic" x="-40%" y="-40%" width="200%" height="200%">
+                                                                        <feDropShadow dx="0" dy="0.2" stdDeviation="0.4" floodColor="#111111" floodOpacity="0.32" />
+                                                                    </filter>
+                                                                    <linearGradient id="flagPolePublic" x1="0" y1="-3.6" x2="0.6" y2="1.4" gradientUnits="userSpaceOnUse">
+                                                                        <stop offset="0%" stopColor="#9ea7b1" />
+                                                                        <stop offset="55%" stopColor="#6f7781" />
+                                                                        <stop offset="100%" stopColor="#4e555f" />
+                                                                    </linearGradient>
+                                                                    <linearGradient id="flagMainPublic" x1="0" y1="-3.1" x2="2.7" y2="-1.8" gradientUnits="userSpaceOnUse">
+                                                                        <stop offset="0%" stopColor="#7fa06f" />
+                                                                        <stop offset="65%" stopColor="#5f7c55" />
+                                                                        <stop offset="100%" stopColor="#485e43" />
+                                                                    </linearGradient>
+                                                                    <linearGradient id="flagSidePublic" x1="0" y1="-3.1" x2="0.65" y2="-1.45" gradientUnits="userSpaceOnUse">
+                                                                        <stop offset="0%" stopColor="#6d8a60" />
+                                                                        <stop offset="100%" stopColor="#3f5239" />
+                                                                    </linearGradient>
+                                                                    <linearGradient id="flagBasePublic" x1="-1.8" y1="0.65" x2="1.8" y2="1.9" gradientUnits="userSpaceOnUse">
+                                                                        <stop offset="0%" stopColor="#6f8f61" />
+                                                                        <stop offset="100%" stopColor="#486244" />
+                                                                    </linearGradient>
+                                                                </defs>
+                                                                {selectedPolyline.length > 1 && (
+                                                                    <>
+                                                                        <path
+                                                                            d={svgPath}
+                                                                            fill="none"
+                                                                            stroke="#000000"
+                                                                            strokeWidth="1.16"
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            opacity="0.16"
+                                                                            filter="url(#routeShadowPublic)"
+                                                                        />
+                                                                        <path
+                                                                            d={svgPath}
+                                                                            fill="none"
+                                                                            stroke="#111111"
+                                                                            strokeWidth="0.6"
+                                                                            strokeLinecap="round"
+                                                                            strokeLinejoin="round"
+                                                                            strokeDasharray="1.55 2.35"
+                                                                            strokeDashoffset="0"
+                                                                            opacity="0.92"
+                                                                        >
+                                                                            <animate
+                                                                                attributeName="stroke-dashoffset"
+                                                                                from="0"
+                                                                                to="-7.8"
+                                                                                dur="1.25s"
+                                                                                repeatCount="indefinite"
+                                                                            />
+                                                                        </path>
+                                                                    </>
+                                                                )}
+                                                                {selectedPolyline.slice(1, -1).map((point, index) => (
+                                                                    <g key={`${point.x}-${point.y}-${index}`}>
+                                                                        <circle
+                                                                            cx={point.x}
+                                                                            cy={point.y}
+                                                                            r="1.18"
+                                                                            fill="#ffffff"
+                                                                            opacity="0.9"
+                                                                        />
+                                                                        <circle
+                                                                            cx={point.x}
+                                                                            cy={point.y}
+                                                                            r="0.56"
+                                                                            fill="#64748b"
+                                                                        />
+                                                                    </g>
+                                                                ))}
+                                                                {startPoint && (
+                                                                    <g>
+                                                                        <circle
+                                                                            cx={startPoint.x}
+                                                                            cy={startPoint.y}
+                                                                            r="0.7"
+                                                                            fill="none"
+                                                                            stroke="#e5242a"
+                                                                            strokeWidth="0.36"
+                                                                            opacity="0.66"
+                                                                        >
+                                                                            <animate attributeName="r" values="0.7;1.45;0.7" dur="1.6s" repeatCount="indefinite" />
+                                                                            <animate attributeName="opacity" values="0.66;0.18;0.66" dur="1.6s" repeatCount="indefinite" />
+                                                                        </circle>
+                                                                        <g transform={`translate(${startPoint.x} ${startPoint.y}) scale(0.28)`}>
+                                                                            <path
+                                                                                d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
+                                                                                fill="#e5242a"
+                                                                                stroke="#ffffff"
+                                                                                strokeWidth="0.44"
+                                                                            />
+                                                                            <circle cx="0" cy="-4.55" r="1.02" fill="#ffffff" />
+                                                                        </g>
+                                                                    </g>
+                                                                )}
+                                                                {finishPoint && (
+                                                                    <g>
+                                                                        <circle
+                                                                            cx={finishPoint.x}
+                                                                            cy={finishPoint.y}
+                                                                            r="0.8"
+                                                                            fill="none"
+                                                                            stroke="#16a34a"
+                                                                            strokeWidth="0.34"
+                                                                            opacity="0.7"
+                                                                        >
+                                                                            <animate attributeName="r" values="0.8;1.5;0.8" dur="1.5s" repeatCount="indefinite" />
+                                                                            <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.5s" repeatCount="indefinite" />
+                                                                        </circle>
+                                                                        <g transform={`translate(${finishPoint.x} ${finishPoint.y}) scale(0.34)`}>
+                                                                            <path
+                                                                                d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
+                                                                                fill="#16a34a"
+                                                                                stroke="#ffffff"
+                                                                                strokeWidth="0.44"
+                                                                            />
+                                                                            <path
+                                                                                d="M -0.95 -4.6 L -0.2 -3.88 L 1.15 -5.22"
+                                                                                fill="none"
+                                                                                stroke="#ffffff"
+                                                                                strokeWidth="0.46"
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                            />
+                                                                        </g>
+                                                                    </g>
+                                                                )}
+                                                            </svg>
+                                                        )}
+                                                    </div>
                                                 ) : (
                                                     <div className="flex h-56 w-full items-center justify-center text-sm text-slate-600 sm:h-64">
                                                         Добавьте картинку плана этажа в админке.
                                                     </div>
-                                                )}
-
-                                                {selectedPolyline.length > 1 && (
-                                                    <svg
-                                                        viewBox="0 0 100 100"
-                                                        preserveAspectRatio="none"
-                                                        className="pointer-events-none absolute inset-0 h-full w-full"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <defs>
-                                                            <linearGradient id="flagPolePublic" x1="0" y1="-3.6" x2="0.6" y2="1.4" gradientUnits="userSpaceOnUse">
-                                                                <stop offset="0%" stopColor="#9ea7b1" />
-                                                                <stop offset="55%" stopColor="#6f7781" />
-                                                                <stop offset="100%" stopColor="#4e555f" />
-                                                            </linearGradient>
-                                                            <linearGradient id="flagMainPublic" x1="0" y1="-3.1" x2="2.7" y2="-1.8" gradientUnits="userSpaceOnUse">
-                                                                <stop offset="0%" stopColor="#7fa06f" />
-                                                                <stop offset="65%" stopColor="#5f7c55" />
-                                                                <stop offset="100%" stopColor="#485e43" />
-                                                            </linearGradient>
-                                                            <linearGradient id="flagSidePublic" x1="0" y1="-3.1" x2="0.65" y2="-1.45" gradientUnits="userSpaceOnUse">
-                                                                <stop offset="0%" stopColor="#6d8a60" />
-                                                                <stop offset="100%" stopColor="#3f5239" />
-                                                            </linearGradient>
-                                                            <linearGradient id="flagBasePublic" x1="-1.8" y1="0.65" x2="1.8" y2="1.9" gradientUnits="userSpaceOnUse">
-                                                                <stop offset="0%" stopColor="#6f8f61" />
-                                                                <stop offset="100%" stopColor="#486244" />
-                                                            </linearGradient>
-                                                        </defs>
-                                                        <path
-                                                            d={svgPath}
-                                                            fill="none"
-                                                            stroke="#000000"
-                                                            strokeWidth="1.18"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            opacity="0.16"
-                                                        />
-                                                        <path
-                                                            d={svgPath}
-                                                            fill="none"
-                                                            stroke="#111111"
-                                                            strokeWidth="0.62"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeDasharray="1.55 2.35"
-                                                            strokeDashoffset="0"
-                                                            opacity="0.95"
-                                                        >
-                                                            <animate
-                                                                attributeName="stroke-dashoffset"
-                                                                from="0"
-                                                                to="-7.8"
-                                                                dur="1.25s"
-                                                                repeatCount="indefinite"
-                                                            />
-                                                        </path>
-                                                        {startPoint && (
-                                                            <g>
-                                                                <circle
-                                                                    cx={startPoint.x}
-                                                                    cy={startPoint.y}
-                                                                    r="0.7"
-                                                                    fill="none"
-                                                                    stroke="#e5242a"
-                                                                    strokeWidth="0.36"
-                                                                    opacity="0.66"
-                                                                >
-                                                                    <animate attributeName="r" values="0.7;1.45;0.7" dur="1.6s" repeatCount="indefinite" />
-                                                                    <animate attributeName="opacity" values="0.66;0.18;0.66" dur="1.6s" repeatCount="indefinite" />
-                                                                </circle>
-                                                                <g transform={`translate(${startPoint.x} ${startPoint.y}) scale(0.28)`}>
-                                                                    <path
-                                                                        d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
-                                                                        fill="#e5242a"
-                                                                        stroke="#ffffff"
-                                                                        strokeWidth="0.44"
-                                                                    />
-                                                                    <circle cx="0" cy="-4.55" r="1.02" fill="#ffffff" />
-                                                                </g>
-                                                            </g>
-                                                        )}
-                                                        {finishPoint && (
-                                                            <g>
-                                                                <g transform={`translate(${finishPoint.x} ${finishPoint.y})`}>
-                                                                    <animateTransform
-                                                                        attributeName="transform"
-                                                                        type="translate"
-                                                                        values={`${finishPoint.x} ${finishPoint.y}; ${finishPoint.x} ${finishPoint.y - 0.16}; ${finishPoint.x} ${finishPoint.y}`}
-                                                                        dur="1.8s"
-                                                                        repeatCount="indefinite"
-                                                                    />
-                                                                    <g transform="scale(0.46)">
-                                                                        <ellipse cx="0.12" cy="1.86" rx="2.1" ry="0.54" fill="#0f1a12" opacity="0.22" />
-                                                                        <rect x="-0.2" y="-3.45" width="0.4" height="4.85" rx="0.16" fill="url(#flagPolePublic)" />
-                                                                        <path d="M 0 -3.08 L 2.7 -2.18 L 0 -1.32 Z" fill="url(#flagMainPublic)" />
-                                                                        <path d="M 0 -3.08 L 0.55 -2.89 L 0.55 -1.5 L 0 -1.32 Z" fill="url(#flagSidePublic)" opacity="0.92" />
-                                                                        <path d="M 0.18 -2.86 L 2.05 -2.22 L 0.18 -1.62 Z" fill="#d8e6cf" opacity="0.24" />
-                                                                        <rect x="-1.65" y="0.66" width="3.3" height="0.54" rx="0.22" fill="url(#flagBasePublic)" />
-                                                                        <path d="M -1.72 1.2 L 1.72 1.2 L 1.45 1.7 L -1.45 1.7 Z" fill="#4b6345" />
-                                                                    </g>
-                                                                </g>
-                                                            </g>
-                                                        )}
-                                                    </svg>
                                                 )}
                                             </div>
                                         </div>

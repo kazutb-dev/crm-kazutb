@@ -282,6 +282,49 @@ const serviceCards = [
     },
 ];
 
+function normalizePolyline(polyline) {
+    if (!Array.isArray(polyline)) {
+        return [];
+    }
+
+    return polyline
+        .map((point) => ({
+            x: Number(point?.x),
+            y: Number(point?.y),
+        }))
+        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        .filter((point) => point.x >= 0 && point.x <= 100 && point.y >= 0 && point.y <= 100);
+}
+
+function buildSmoothPath(points) {
+    if (!Array.isArray(points) || points.length === 0) {
+        return '';
+    }
+
+    if (points.length === 1) {
+        return `M ${points[0].x} ${points[0].y}`;
+    }
+
+    if (points.length === 2) {
+        return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+    }
+
+    const pathParts = [`M ${points[0].x} ${points[0].y}`];
+
+    for (let index = 1; index < points.length - 1; index += 1) {
+        const current = points[index];
+        const next = points[index + 1];
+        const midX = (current.x + next.x) / 2;
+        const midY = (current.y + next.y) / 2;
+        pathParts.push(`Q ${current.x} ${current.y}, ${midX} ${midY}`);
+    }
+
+    const lastIndex = points.length - 1;
+    pathParts.push(`Q ${points[lastIndex - 1].x} ${points[lastIndex - 1].y}, ${points[lastIndex].x} ${points[lastIndex].y}`);
+
+    return pathParts.join(' ');
+}
+
 export default function Welcome({ canLogin }) {
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('Учебный процесс');
@@ -337,6 +380,9 @@ export default function Welcome({ canLogin }) {
         }, 260);
     };
 
+    const getCsrfToken = () =>
+        decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+
     const sendAiMessage = async () => {
         const value = aiInput.trim();
         if (!value || aiLoading) return;
@@ -351,18 +397,35 @@ export default function Welcome({ canLogin }) {
         try {
             const res = await fetch('/api/ai/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'include',
                 body: JSON.stringify({
                     messages: nextMessages.map(({ role, text }) => ({ role, text })),
                 }),
             });
 
-            const data = await res.json();
-            const botText = data.text || 'Извините, не удалось получить ответ.';
+            let data = {};
+            try {
+                data = await res.json();
+            } catch {
+                data = {};
+            }
+
+            const botText = data.text || data.error || 'Извините, не удалось получить ответ.';
 
             setAiMessages((prev) => [
                 ...prev,
-                { id: Date.now(), role: 'assistant', text: botText },
+                {
+                    id: Date.now(),
+                    role: 'assistant',
+                    text: botText,
+                    imageUrl: typeof data.image_url === 'string' ? data.image_url : null,
+                    routePolyline: normalizePolyline(data.route_polyline),
+                },
             ]);
         } catch {
             setAiMessages((prev) => [
@@ -603,7 +666,66 @@ export default function Welcome({ canLogin }) {
                                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`max-w-[80%] px-4 py-2 text-sm ${message.role === 'user' ? 'bg-[#16355A] text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'}`}>
-                                            {message.text}
+                                            <p>{message.text}</p>
+                                            {message.role === 'assistant' && typeof message.imageUrl === 'string' && message.imageUrl.trim() !== '' && (
+                                                <div className="relative mt-3 w-full max-w-sm overflow-hidden border border-slate-200 bg-white">
+                                                    <img
+                                                        src={message.imageUrl}
+                                                        alt="Маршрут"
+                                                        className="block max-h-56 w-full object-contain"
+                                                        loading="lazy"
+                                                    />
+                                                    {Array.isArray(message.routePolyline) && message.routePolyline.length > 0 && (
+                                                        <svg
+                                                            viewBox="0 0 100 100"
+                                                            preserveAspectRatio="none"
+                                                            className="pointer-events-none absolute inset-0 h-full w-full"
+                                                            aria-hidden="true"
+                                                        >
+                                                            {message.routePolyline.length > 1 && (
+                                                                <>
+                                                                    <path
+                                                                        d={buildSmoothPath(message.routePolyline)}
+                                                                        fill="none"
+                                                                        stroke="#000"
+                                                                        strokeWidth="1.08"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        opacity="0.18"
+                                                                    />
+                                                                    <path
+                                                                        d={buildSmoothPath(message.routePolyline)}
+                                                                        fill="none"
+                                                                        stroke="#111"
+                                                                        strokeWidth="0.64"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeDasharray="1.45 2.2"
+                                                                    />
+                                                                </>
+                                                            )}
+                                                            <circle
+                                                                cx={message.routePolyline[0]?.x}
+                                                                cy={message.routePolyline[0]?.y}
+                                                                r="1.1"
+                                                                fill="#e5242a"
+                                                                stroke="#fff"
+                                                                strokeWidth="0.32"
+                                                            />
+                                                            {message.routePolyline.length > 1 && (
+                                                                <circle
+                                                                    cx={message.routePolyline[message.routePolyline.length - 1]?.x}
+                                                                    cy={message.routePolyline[message.routePolyline.length - 1]?.y}
+                                                                    r="1.1"
+                                                                    fill="#16a34a"
+                                                                    stroke="#fff"
+                                                                    strokeWidth="0.32"
+                                                                />
+                                                            )}
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

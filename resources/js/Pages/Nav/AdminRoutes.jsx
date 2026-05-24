@@ -621,158 +621,170 @@ export default function AdminRoutes({ navigationRoutes }) {
                                         </div>
                                     </div>
 
-                                    <div
-                                        ref={mapEditorRef}
-                                        className="relative overflow-hidden rounded-md border border-slate-300 bg-white"
-                                        onClick={addPointByMapClick}
-                                        role="button"
-                                        tabIndex={0}
-                                        onKeyDown={(event) => {
-                                            if (event.key === 'Enter' || event.key === ' ') {
-                                                event.preventDefault();
-                                            }
-                                        }}
-                                    >
+                                    <div className="relative overflow-hidden rounded-md border border-slate-300 bg-white">
                                         {mapPreviewUrl ? (
-                                            <img
-                                                src={mapPreviewUrl}
-                                                alt="План этажа для редактора маршрута"
-                                                className="block w-full h-auto max-h-[70vh] object-contain bg-slate-100"
-                                            />
+                                            <div
+                                                ref={mapEditorRef}
+                                                className="relative mx-auto w-fit max-w-full cursor-crosshair"
+                                                onClick={addPointByMapClick}
+                                                role="button"
+                                                tabIndex={0}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter' || event.key === ' ') {
+                                                        event.preventDefault();
+                                                    }
+                                                }}
+                                            >
+                                                <img
+                                                    src={mapPreviewUrl}
+                                                    alt="План этажа для редактора маршрута"
+                                                    className="block max-h-[70vh] w-auto max-w-full bg-slate-100"
+                                                />
+
+                                                {editorPoints.length > 0 && (
+                                                    <svg
+                                                        viewBox="0 0 100 100"
+                                                        preserveAspectRatio="none"
+                                                        className="pointer-events-none absolute inset-0 h-full w-full"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <defs>
+                                                            <filter id="routeShadowEditor" x="-40%" y="-40%" width="200%" height="200%">
+                                                                <feDropShadow dx="0" dy="0.2" stdDeviation="0.4" floodColor="#111111" floodOpacity="0.32" />
+                                                            </filter>
+                                                            <linearGradient id="flagPoleEditor" x1="0" y1="-3.6" x2="0.6" y2="1.4" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#9ea7b1" />
+                                                                <stop offset="55%" stopColor="#6f7781" />
+                                                                <stop offset="100%" stopColor="#4e555f" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagMainEditor" x1="0" y1="-3.1" x2="2.7" y2="-1.8" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#7fa06f" />
+                                                                <stop offset="65%" stopColor="#5f7c55" />
+                                                                <stop offset="100%" stopColor="#485e43" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagSideEditor" x1="0" y1="-3.1" x2="0.65" y2="-1.45" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#6d8a60" />
+                                                                <stop offset="100%" stopColor="#3f5239" />
+                                                            </linearGradient>
+                                                            <linearGradient id="flagBaseEditor" x1="-1.8" y1="0.65" x2="1.8" y2="1.9" gradientUnits="userSpaceOnUse">
+                                                                <stop offset="0%" stopColor="#6f8f61" />
+                                                                <stop offset="100%" stopColor="#486244" />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        {editorPoints.length > 1 && (
+                                                            <>
+                                                                <path
+                                                                    d={editorPathD}
+                                                                    fill="none"
+                                                                    stroke="#000000"
+                                                                    strokeWidth="1.16"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    opacity="0.16"
+                                                                    filter="url(#routeShadowEditor)"
+                                                                />
+                                                                <path
+                                                                    d={editorPathD}
+                                                                    fill="none"
+                                                                    stroke="#111111"
+                                                                    strokeWidth="0.6"
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeDasharray="1.55 2.35"
+                                                                    strokeDashoffset="0"
+                                                                    opacity="0.92"
+                                                                >
+                                                                    <animate
+                                                                        attributeName="stroke-dashoffset"
+                                                                        from="0"
+                                                                        to="-7.8"
+                                                                        dur="1.25s"
+                                                                        repeatCount="indefinite"
+                                                                    />
+                                                                </path>
+                                                            </>
+                                                        )}
+                                                        {editorPoints.slice(1, -1).map((point, index) => (
+                                                            <g key={`${point.x}-${point.y}-${index}`}>
+                                                                <circle
+                                                                    cx={point.x}
+                                                                    cy={point.y}
+                                                                    r="1.18"
+                                                                    fill="#ffffff"
+                                                                    opacity="0.9"
+                                                                />
+                                                                <circle
+                                                                    cx={point.x}
+                                                                    cy={point.y}
+                                                                    r="0.56"
+                                                                    fill="#64748b"
+                                                                />
+                                                            </g>
+                                                        ))}
+                                                        {editorStartPoint && (
+                                                            <g>
+                                                                <circle
+                                                                    cx={editorStartPoint.x}
+                                                                    cy={editorStartPoint.y}
+                                                                    r="0.7"
+                                                                    fill="none"
+                                                                    stroke="#e5242a"
+                                                                    strokeWidth="0.36"
+                                                                    opacity="0.66"
+                                                                >
+                                                                    <animate attributeName="r" values="0.7;1.45;0.7" dur="1.6s" repeatCount="indefinite" />
+                                                                    <animate attributeName="opacity" values="0.66;0.18;0.66" dur="1.6s" repeatCount="indefinite" />
+                                                                </circle>
+                                                                <g transform={`translate(${editorStartPoint.x} ${editorStartPoint.y}) scale(0.28)`}>
+                                                                    <path
+                                                                        d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
+                                                                        fill="#e5242a"
+                                                                        stroke="#ffffff"
+                                                                        strokeWidth="0.44"
+                                                                    />
+                                                                    <circle cx="0" cy="-4.55" r="1.02" fill="#ffffff" />
+                                                                </g>
+                                                            </g>
+                                                        )}
+                                                        {editorFinishPoint && (
+                                                            <g>
+                                                                <circle
+                                                                    cx={editorFinishPoint.x}
+                                                                    cy={editorFinishPoint.y}
+                                                                    r="0.8"
+                                                                    fill="none"
+                                                                    stroke="#16a34a"
+                                                                    strokeWidth="0.34"
+                                                                    opacity="0.7"
+                                                                >
+                                                                    <animate attributeName="r" values="0.8;1.5;0.8" dur="1.5s" repeatCount="indefinite" />
+                                                                    <animate attributeName="opacity" values="0.7;0.2;0.7" dur="1.5s" repeatCount="indefinite" />
+                                                                </circle>
+                                                                <g transform={`translate(${editorFinishPoint.x} ${editorFinishPoint.y}) scale(0.34)`}>
+                                                                    <path
+                                                                        d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
+                                                                        fill="#16a34a"
+                                                                        stroke="#ffffff"
+                                                                        strokeWidth="0.44"
+                                                                    />
+                                                                    <path
+                                                                        d="M -0.95 -4.6 L -0.2 -3.88 L 1.15 -5.22"
+                                                                        fill="none"
+                                                                        stroke="#ffffff"
+                                                                        strokeWidth="0.46"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                    />
+                                                                </g>
+                                                            </g>
+                                                        )}
+                                                    </svg>
+                                                )}
+                                            </div>
                                         ) : (
                                             <div className="flex h-64 w-full items-center justify-center text-sm text-slate-500">
                                                 Сначала укажите путь к картинке плана этажа.
                                             </div>
-                                        )}
-
-                                        {editorPoints.length > 0 && (
-                                            <svg
-                                                viewBox="0 0 100 100"
-                                                preserveAspectRatio="none"
-                                                className="pointer-events-none absolute inset-0 h-full w-full"
-                                                aria-hidden="true"
-                                            >
-                                                <defs>
-                                                    <filter id="routeShadowEditor" x="-40%" y="-40%" width="200%" height="200%">
-                                                        <feDropShadow dx="0" dy="0.2" stdDeviation="0.4" floodColor="#111111" floodOpacity="0.32" />
-                                                    </filter>
-                                                    <linearGradient id="flagPoleEditor" x1="0" y1="-3.6" x2="0.6" y2="1.4" gradientUnits="userSpaceOnUse">
-                                                        <stop offset="0%" stopColor="#9ea7b1" />
-                                                        <stop offset="55%" stopColor="#6f7781" />
-                                                        <stop offset="100%" stopColor="#4e555f" />
-                                                    </linearGradient>
-                                                    <linearGradient id="flagMainEditor" x1="0" y1="-3.1" x2="2.7" y2="-1.8" gradientUnits="userSpaceOnUse">
-                                                        <stop offset="0%" stopColor="#7fa06f" />
-                                                        <stop offset="65%" stopColor="#5f7c55" />
-                                                        <stop offset="100%" stopColor="#485e43" />
-                                                    </linearGradient>
-                                                    <linearGradient id="flagSideEditor" x1="0" y1="-3.1" x2="0.65" y2="-1.45" gradientUnits="userSpaceOnUse">
-                                                        <stop offset="0%" stopColor="#6d8a60" />
-                                                        <stop offset="100%" stopColor="#3f5239" />
-                                                    </linearGradient>
-                                                    <linearGradient id="flagBaseEditor" x1="-1.8" y1="0.65" x2="1.8" y2="1.9" gradientUnits="userSpaceOnUse">
-                                                        <stop offset="0%" stopColor="#6f8f61" />
-                                                        <stop offset="100%" stopColor="#486244" />
-                                                    </linearGradient>
-                                                </defs>
-                                                {editorPoints.length > 1 && (
-                                                    <>
-                                                        <path
-                                                            d={editorPathD}
-                                                            fill="none"
-                                                            stroke="#000000"
-                                                            strokeWidth="1.16"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            opacity="0.16"
-                                                            filter="url(#routeShadowEditor)"
-                                                        />
-                                                        <path
-                                                            d={editorPathD}
-                                                            fill="none"
-                                                            stroke="#111111"
-                                                            strokeWidth="0.6"
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeDasharray="1.55 2.35"
-                                                            strokeDashoffset="0"
-                                                            opacity="0.92"
-                                                        >
-                                                            <animate
-                                                                attributeName="stroke-dashoffset"
-                                                                from="0"
-                                                                to="-7.8"
-                                                                dur="1.25s"
-                                                                repeatCount="indefinite"
-                                                            />
-                                                        </path>
-                                                    </>
-                                                )}
-                                                {editorPoints.slice(1, -1).map((point, index) => (
-                                                    <g key={`${point.x}-${point.y}-${index}`}>
-                                                        <circle
-                                                            cx={point.x}
-                                                            cy={point.y}
-                                                            r="1.18"
-                                                            fill="#ffffff"
-                                                            opacity="0.9"
-                                                        />
-                                                        <circle
-                                                            cx={point.x}
-                                                            cy={point.y}
-                                                            r="0.56"
-                                                            fill="#64748b"
-                                                        />
-                                                    </g>
-                                                ))}
-                                                {editorStartPoint && (
-                                                    <g>
-                                                        <circle
-                                                            cx={editorStartPoint.x}
-                                                            cy={editorStartPoint.y}
-                                                            r="0.7"
-                                                            fill="none"
-                                                            stroke="#e5242a"
-                                                            strokeWidth="0.36"
-                                                            opacity="0.66"
-                                                        >
-                                                            <animate attributeName="r" values="0.7;1.45;0.7" dur="1.6s" repeatCount="indefinite" />
-                                                            <animate attributeName="opacity" values="0.66;0.18;0.66" dur="1.6s" repeatCount="indefinite" />
-                                                        </circle>
-                                                        <g transform={`translate(${editorStartPoint.x} ${editorStartPoint.y}) scale(0.28)`}>
-                                                            <path
-                                                                d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
-                                                                fill="#e5242a"
-                                                                stroke="#ffffff"
-                                                                strokeWidth="0.44"
-                                                            />
-                                                            <circle cx="0" cy="-4.55" r="1.02" fill="#ffffff" />
-                                                        </g>
-                                                    </g>
-                                                )}
-                                                {editorFinishPoint && (
-                                                    <g>
-                                                        <g transform={`translate(${editorFinishPoint.x} ${editorFinishPoint.y})`}>
-                                                            <animateTransform
-                                                                attributeName="transform"
-                                                                type="translate"
-                                                                values={`${editorFinishPoint.x} ${editorFinishPoint.y}; ${editorFinishPoint.x} ${editorFinishPoint.y - 0.16}; ${editorFinishPoint.x} ${editorFinishPoint.y}`}
-                                                                dur="1.8s"
-                                                                repeatCount="indefinite"
-                                                            />
-                                                            <g transform="scale(0.46)">
-                                                                <ellipse cx="0.12" cy="1.86" rx="2.1" ry="0.54" fill="#0f1a12" opacity="0.22" />
-                                                                <rect x="-0.2" y="-3.45" width="0.4" height="4.85" rx="0.16" fill="url(#flagPoleEditor)" />
-                                                                <path d="M 0 -3.08 L 2.7 -2.18 L 0 -1.32 Z" fill="url(#flagMainEditor)" />
-                                                                <path d="M 0 -3.08 L 0.55 -2.89 L 0.55 -1.5 L 0 -1.32 Z" fill="url(#flagSideEditor)" opacity="0.92" />
-                                                                <path d="M 0.18 -2.86 L 2.05 -2.22 L 0.18 -1.62 Z" fill="#d8e6cf" opacity="0.24" />
-                                                                <rect x="-1.65" y="0.66" width="3.3" height="0.54" rx="0.22" fill="url(#flagBaseEditor)" />
-                                                                <path d="M -1.72 1.2 L 1.72 1.2 L 1.45 1.7 L -1.45 1.7 Z" fill="#4b6345" />
-                                                            </g>
-                                                        </g>
-                                                    </g>
-                                                )}
-                                            </svg>
                                         )}
                                     </div>
 
