@@ -402,7 +402,9 @@ export default function ModerationQueue({
 
     // Show reject action based on current mode and entry status
     const showRejectAction = (entry) => canModerate && (
-        (mode === 'structural' && entry.status === 'pending_structural')
+        (mode === 'review' && entry.status === 'submitted')
+        || (mode === 'approval' && ['pending_dean', 'reviewed'].includes(entry.status))
+        || (mode === 'structural' && entry.status === 'pending_structural')
         || (isAdminViewer && ['submitted', 'reviewed', 'pending_dean', 'pending_structural'].includes(entry.status))
     );
 
@@ -801,7 +803,13 @@ export default function ModerationQueue({
                                                                             size="sm"
                                                                             className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                             variant="destructive"
-                                                                            onClick={() => submitAction('kpi.entries.reject', entry.id, 'Причина отклонения')}
+                                                                            onClick={() => submitAction(
+                                                                                mode === 'review' || mode === 'approval'
+                                                                                    ? 'kpi.entries.return'
+                                                                                    : 'kpi.entries.reject',
+                                                                                entry.id,
+                                                                                'Причина отклонения',
+                                                                            )}
                                                                         >
                                                                             <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                                                                             <span className="min-w-0 text-left">Отклонить</span>

@@ -1,0 +1,128 @@
+[1mdiff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php[m
+[1mindex 44c8bbf..23466f1 100644[m
+[1m--- a/app/Http/Controllers/ProfileController.php[m
+[1m+++ b/app/Http/Controllers/ProfileController.php[m
+[36m@@ -15,6 +15,7 @@[m
+ use Illuminate\Http\Request;[m
+ use Illuminate\Support\Facades\Auth;[m
+ use Illuminate\Support\Facades\Redirect;[m
+[32m+[m[32muse Illuminate\Support\Facades\Schema;[m
+ use Inertia\Inertia;[m
+ use Inertia\Response;[m
+ [m
+[36m@@ -97,12 +98,15 @@[m [mpublic function update(ProfileUpdateRequest $request, GreenApiWhatsAppNotifier $[m
+             $user->position_confirmed = true;[m
+         } elseif ($confirmed === false && ! empty($validated['position_id'])) {[m
+             $requestedPosition = Position::query()->find((int) $validated['position_id']);[m
+[32m+[m[32m            $positionRequestsEnabled = $this->positionRequestsTableExists();[m
+ [m
+             if ($requestedPosition !== null) {[m
+[31m-                $hasPendingRequest = PositionChangeRequest::query()[m
+[31m-                    ->where('user_id', $user->id)[m
+[31m-                    ->where('status', 'pending')[m
+[31m-                    ->exists();[m
+[32m+[m[32m                $hasPendingRequest = $positionRequestsEnabled[m
+[32m+[m[32m                    ? PositionChangeRequest::query()[m
+[32m+[m[32m                        ->where('user_id', $user->id)[m
+[32m+[m[32m                        ->where('status', 'pending')[m
+[32m+[m[32m                        ->exists()[m
+[32m+[m[32m                    : false;[m
+ [m
+                 if ($hasPendingRequest) {[m
+                     // Position change is locked while request is pending; keep saving other profile fields.[m
+[36m@@ -115,13 +119,15 @@[m [mpublic function update(ProfileUpdateRequest $request, GreenApiWhatsAppNotifier $[m
+                     if ($currentPosition !== '' && $currentPosition === (string) $requestedPosition->name) {[m
+                         // Selecting the already assigned position is a no-op: continue saving other profile fields.[m
+                         unset($validated['position_id']);[m
+[31m-                    } else {[m
+[32m+[m[32m                    } elseif ($positionRequestsEnabled) {[m
+                         PositionChangeRequest::query()->create([[m
+                             'user_id' => $user->id,[m
+                             'current_position' => $user->position_title ?: $user->ad_title,[m
+                             'requested_position_id' => $requestedPosition->id,[m
+                             'status' => 'pending',[m
+                         ]);[m
+[32m+[m[32m                    } else {[m
+[32m+[m[32m                        unset($validated['position_id']);[m
+                     }[m
+                 }[m
+             }[m
+[36m@@ -212,30 +218,38 @@[m [mprivate function buildProfilePayload(User $user): array[m
+                 'name' => $division->name,[m
+             ])->values();[m
+         $canEditAcademicBindings = $this->canEditAcademicBindings($user);[m
+[31m-        $positionRequests = PositionChangeRequest::query()[m
+[31m-            ->where('user_id', $user->id)[m
+[31m-            ->with('requestedPosition:id,name')[m
+[31m-            ->latest('id')[m
+[31m-            ->limit(5)[m
+[31m-            ->get()[m
+[31m-            ->map(static fn (PositionChangeRequest $request) => [[m
+[31m-                'id' => $request->id,[m
+[31m-                'status' => $request->status,[m
+[31m-                'requested_position' => $request->requestedPosition?->name,[m
+[31m-                'created_at' => $request->created_at?->toDateString(),[m
+[31m-                'admin_note' => $request->admin_note,[m
+[31m-            ])[m
+[31m-            ->values();[m
+[31m-        $hasPendingPositionRequest = PositionChangeRequest::query()[m
+[31m-            ->where('user_id', $user->id)[m
+[31m-            ->where('status', 'pending')[m
+[31m-            ->exists();[m
+[31m-        $pendingPositionRequest = PositionChangeRequest::query()[m
+[31m-            ->where('user_id', $user->id)[m
+[31m-            ->where('status', 'pending')[m
+[31m-            ->with('requestedPosition:id,name')[m
+[31m-            ->latest('id')[m
+[31m-            ->first();[m
+[32m+[m[32m        $positionRequests = collect();[m
+[32m+[m[32m        $hasPendingPositionRequest = false;[m
+[32m+[m[32m        $pendingPositionRequest = null;[m
+[32m+[m
+[32m+[m[32m        if ($this->positionRequestsTableExists()) {[m
+[32m+[m[32m            $positionRequests = PositionChangeRequest::query()[m
+[32m+[m[32m                ->where('user_id', $user->id)[m
+[32m+[m[32m                ->with('requestedPosition:id,name')[m
+[32m+[m[32m                ->latest('id')[m
+[32m+[m[32m                ->limit(5)[m
+[32m+[m[32m                ->get()[m
+[32m+[m[32m                ->map(static fn (PositionChangeRequest $request) => [[m
+[32m+[m[32m                    'id' => $request->id,[m
+[32m+[m[32m                    'status' => $request->status,[m
+[32m+[m[32m                    'requested_position' => $request->requestedPosition?->name,[m
+[32m+[m[32m                    'created_at' => $request->created_at?->toDateString(),[m
+[32m+[m[32m                    'admin_note' => $request->admin_note,[m
+[32m+[m[32m                ])[m
+[32m+[m[32m                ->values();[m
+[32m+[m
+[32m+[m[32m            $hasPendingPositionRequest = PositionChangeRequest::query()[m
+[32m+[m[32m                ->where('user_id', $user->id)[m
+[32m+[m[32m                ->where('status', 'pending')[m
+[32m+[m[32m                ->exists();[m
+[32m+[m
+[32m+[m[32m            $pendingPositionRequest = PositionChangeRequest::query()[m
+[32m+[m[32m                ->where('user_id', $user->id)[m
+[32m+[m[32m                ->where('status', 'pending')[m
+[32m+[m[32m                ->with('requestedPosition:id,name')[m
+[32m+[m[32m                ->latest('id')[m
+[32m+[m[32m                ->first();[m
+[32m+[m[32m        }[m
+ [m
+         return [[m
+             'id' => $user->id,[m
+[36m@@ -414,4 +428,15 @@[m [mprivate function profileVisibilityLabel(?string $visibility): string[m
+             default => 'Внутренний',[m
+         };[m
+     }[m
+[32m+[m
+[32m+[m[32m    private function positionRequestsTableExists(): bool[m
+[32m+[m[32m    {[m
+[32m+[m[32m        static $exists = null;[m
+[32m+[m
+[32m+[m[32m        if ($exists === null) {[m
+[32m+[m[32m            $exists = Schema::hasTable('position_change_requests');[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        return $exists;[m
+[32m+[m[32m    }[m
+ }[m
