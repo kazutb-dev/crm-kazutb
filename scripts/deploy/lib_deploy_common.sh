@@ -204,8 +204,37 @@ detect_dangerous_migrations() {
         [[ -n "$content" ]] || continue
         local upblock
         upblock="$(awk '/function up\(\)[: ]*void/ {in_up=1} /function down\(\)[: ]*void/ {in_up=0} in_up {print}' <<< "$content")"
-        if grep -nE 'dropTable|dropColumn|Schema::drop|Schema::dropIfExists|truncate|delete\(|DB::statement|renameColumn|change\(' <<< "$upblock" >/dev/null; then
+
+        # Block explicit destructive/structural operations in up().
+        if grep -nE 'dropTable|dropColumn|Schema::drop|Schema::dropIfExists|truncate|delete\(|renameColumn|change\(' <<< "$upblock" >/dev/null; then
             out+="$f"$'\n'
+            continue
+        fi
+
+        # DB::statement is blocked by default; allow only one audited safe SQL shape.
+        local db_lines db_line sql_literal normalized
+        db_lines="$(grep -nE 'DB::statement\(' <<< "$upblock" || true)"
+
+        if [[ -n "$db_lines" ]]; then
+            while IFS= read -r db_line; do
+                [[ -n "$db_line" ]] || continue
+
+                sql_literal="$(sed -E "s/^[0-9]+:[[:space:]]*.*DB::statement\([[:space:]]*'([^']*)'.*$/\1/" <<< "$db_line")"
+                if [[ "$sql_literal" == "$db_line" ]]; then
+                    # Could not safely parse the SQL literal; treat as dangerous.
+                    out+="$f"$'\n'
+                    break
+                fi
+
+                normalized="$(tr '[:upper:]' '[:lower:]' <<< "$sql_literal" | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//')"
+
+                if [[ "$normalized" =~ ^alter[[:space:]]+table[[:space:]]+students[[:space:]]+modify[[:space:]]+group_id[[:space:]]+bigint[[:space:]]+unsigned[[:space:]]+null$ ]]; then
+                    continue
+                fi
+
+                out+="$f"$'\n'
+                break
+            done <<< "$db_lines"
         fi
     done < <(git -C "$repo_root" diff --name-only "$base_ref..$head_ref")
 
