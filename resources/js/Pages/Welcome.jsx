@@ -121,13 +121,13 @@ const serviceCards = [
         href: safeRoute('kpi.approval-queue'),
         icon: ShieldCheck,
     },
-    {
-        title: 'KPI — Аналитика',
-        desc: 'Сводная аналитика и экспорт данных KPI.',
-        category: 'KPI и аналитика',
-        href: safeRoute('kpi.analytics.index'),
-        icon: TrendingUp,
-    },
+        {
+            title: 'KPI — Сводка',
+            desc: 'Сводная аналитика и экспорт KPI-отчётов.',
+            category: 'KPI и аналитика',
+            href: safeRoute('kpi.summary'),
+            icon: TrendingUp,
+        },
 
     // ── HR и кадры ──
     {
