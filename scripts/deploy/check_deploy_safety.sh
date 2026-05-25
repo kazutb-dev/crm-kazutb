@@ -90,11 +90,27 @@ else
     fail_item "Disk free space below ${EXPECTED_FREE_GB}G"
 fi
 
-latest_backups="$(ls -1dt "$PROD_ROOT"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n2 || true)"
-if [[ -n "$latest_backups" ]]; then
-    pass "Latest PROD backup snapshots found"
+_latest_backup="$(ls -1dt "$PROD_ROOT"/backups/prod_backup_*_full_snapshot 2>/dev/null \
+    | grep -v '\.incomplete$' | head -n1 || true)"
+_incomplete_backups="$(ls -1d "$PROD_ROOT"/backups/prod_backup_*_full_snapshot.incomplete 2>/dev/null || true)"
+if [[ -n "$_incomplete_backups" ]]; then
+    warn_item "Stale .incomplete backup detected: $(basename "$(echo "$_incomplete_backups" | head -n1)")"
+fi
+if [[ -z "$_latest_backup" ]]; then
+    warn_item "No completed PROD full snapshot found"
 else
-    warn_item "No prod backup snapshots found"
+    _bk_db="$(find "$_latest_backup" -maxdepth 1 -name 'database_*.sql.gz' 2>/dev/null | head -n1 || true)"
+    _bk_data="$(find "$_latest_backup" -maxdepth 1 -name 'project_data_*.tar.gz' 2>/dev/null | head -n1 || true)"
+    _bk_sha="$_latest_backup/SHA256SUMS"
+    if [[ -n "$_bk_db" && -f "$_bk_db" && -n "$_bk_data" && -f "$_bk_data" && -f "$_bk_sha" ]]; then
+        if gzip -t "$_bk_db" 2>/dev/null && tar -tzf "$_bk_data" >/dev/null 2>&1; then
+            pass "Latest PROD backup valid: $(basename "$_latest_backup")"
+        else
+            warn_item "Latest PROD backup failed integrity check: $(basename "$_latest_backup")"
+        fi
+    else
+        warn_item "Latest PROD backup has missing files: $(basename "$_latest_backup")"
+    fi
 fi
 
 protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev || true)"
@@ -149,6 +165,13 @@ if check_storage_permissions "$DEV_ROOT" >/dev/null 2>&1; then
     pass "DEV storage/bootstrap permissions look writable"
 else
     fail_item "DEV storage/bootstrap permissions check failed"
+fi
+
+# Node version check — WARN only (Vite >= 20.19 recommended but build works on 18).
+if check_node_version 20 19 2>/dev/null; then
+    pass "Node version OK ($(node --version 2>/dev/null || echo 'n/a'))"
+else
+    warn_item "Node $(node --version 2>/dev/null || echo 'unknown') is below 20.19 required by Vite. npm run build may fail. Upgrade Node.js."
 fi
 
 # HTTP checks must reject 500. 200/301/302/401/403 are acceptable for this probe.

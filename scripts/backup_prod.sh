@@ -6,9 +6,15 @@ BACKUP_ROOT="${PROJECT_ROOT}/backups"
 EXPECTED_BACKUP_ROOT="/var/www/laravel-react/backups"
 DRY_RUN="${BACKUP_DRY_RUN:-0}"
 CLEANUP_ONLY="${BACKUP_CLEANUP_ONLY:-0}"
-BACKUP_KEEP_COUNT="${BACKUP_KEEP_COUNT:-2}"
+# Keep only 1 completed full_snapshot (old default was 2; now hardened).
+BACKUP_KEEP_COUNT="${BACKUP_KEEP_COUNT:-1}"
+# Keep this many per-prefix runtime backups (nav_fix_*, nginx_ssl_fix_*, etc.)
+RUNTIME_BACKUP_KEEP_COUNT="${RUNTIME_BACKUP_KEEP_COUNT:-3}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-BACKUP_DIR="${BACKUP_ROOT}/prod_backup_${TIMESTAMP}_full_snapshot"
+# Use .incomplete suffix while the backup is in progress.
+# Only rename to final path after validation succeeds.
+BACKUP_DIR_FINAL="${BACKUP_ROOT}/prod_backup_${TIMESTAMP}_full_snapshot"
+BACKUP_DIR="${BACKUP_DIR_FINAL}.incomplete"
 MANIFEST_FILE="${BACKUP_DIR}/manifest_${TIMESTAMP}.txt"
 
 DB_BACKUP_FILE=""
@@ -127,22 +133,108 @@ cleanup_ranked_items() {
     done < <(eval "${find_expr}" | sort -nr)
 }
 
+cleanup_full_snapshots() {
+    # Keep BACKUP_KEEP_COUNT completed (non-.incomplete) full snapshots; remove older ones.
+    local kept=0
+    while IFS= read -r line; do
+        local path="${line#* }"
+        [[ -n "${path}" && -d "${path}" ]] || continue
+        if (( kept < BACKUP_KEEP_COUNT )); then
+            (( kept++ )) || true
+            add_cleanup_detail "Keeping completed snapshot (${kept}/${BACKUP_KEEP_COUNT}): ${path}"
+        else
+            safe_delete_path "${path}" "directory"
+        fi
+    done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d \
+        -name 'prod_backup_*_full_snapshot' \
+        ! -name '*.incomplete' \
+        -printf '%T@ %p\n' 2>/dev/null | sort -nr)
+}
+
+cleanup_incomplete_backups() {
+    # Remove .incomplete backup dirs older than 24 hours (failed / interrupted runs).
+    local cutoff
+    cutoff="$(date -d '24 hours ago' +%s 2>/dev/null || echo 0)"
+    while IFS= read -r line; do
+        local mtime="${line%% *}"
+        local path="${line#* }"
+        local mtime_int="${mtime%%.*}"
+        [[ -n "${path}" && -d "${path}" ]] || continue
+        if [[ "${mtime_int}" -lt "${cutoff}" ]]; then
+            safe_delete_path "${path}" "directory"
+        else
+            add_cleanup_detail "Keeping recent .incomplete (< 24h): ${path}"
+        fi
+    done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d \
+        -name '*.incomplete' \
+        -printf '%T@ %p\n' 2>/dev/null)
+}
+
+cleanup_runtime_backups_by_prefix() {
+    # Keep RUNTIME_BACKUP_KEEP_COUNT most recent dirs/files matching <prefix>*.
+    local prefix="$1"
+    local keep="${2:-${RUNTIME_BACKUP_KEEP_COUNT}}"
+    local kept=0
+    while IFS= read -r line; do
+        local path="${line#* }"
+        [[ -n "${path}" ]] || continue
+        if (( kept < keep )); then
+            (( kept++ )) || true
+            add_cleanup_detail "Keeping runtime backup [${prefix}*] (${kept}/${keep}): ${path}"
+        else
+            if [[ -d "${path}" ]]; then
+                safe_delete_path "${path}" "directory"
+            else
+                safe_delete_path "${path}" "file"
+            fi
+        fi
+    done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 \
+        \( -type d -o -type f \) \
+        -name "${prefix}*" \
+        -printf '%T@ %p\n' 2>/dev/null | sort -nr)
+}
+
+cleanup_misc_files() {
+    # cleanup_only_* manifest dirs: always remove (they're just temporary cleanup logs).
+    while IFS= read -r line; do
+        local path="${line#* }"
+        [[ -n "${path}" && -d "${path}" ]] || continue
+        safe_delete_path "${path}" "directory"
+    done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d \
+        -name 'cleanup_only_*' \
+        -printf '%T@ %p\n' 2>/dev/null)
+
+    # Legacy loose files: keep at most 1 each.
+    for pattern in 'pre_seeder_backup_*' 'db_backup_*' 'laravel_react_*' 'pre_deploy_*.manifest' '*.sql.gz' '*.tar.gz'; do
+        local kept=0
+        while IFS= read -r line; do
+            local path="${line#* }"
+            [[ -n "${path}" && -f "${path}" ]] || continue
+            if (( kept < 1 )); then
+                (( kept++ )) || true
+                add_cleanup_detail "Keeping legacy file [${pattern}]: ${path}"
+            else
+                safe_delete_path "${path}" "file"
+            fi
+        done < <(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type f \
+            -name "${pattern}" \
+            -printf '%T@ %p\n' 2>/dev/null | sort -nr)
+    done
+}
+
 cleanup_old_backups() {
     [[ "${BACKUP_ROOT}" == "${EXPECTED_BACKUP_ROOT}" ]] || err "Cleanup aborted: BACKUP_ROOT mismatch"
     [[ -n "${BACKUP_ROOT}" ]] || err "Cleanup aborted: BACKUP_ROOT empty"
     [[ -d "${BACKUP_ROOT}" ]] || err "Cleanup aborted: BACKUP_ROOT missing"
 
-    add_cleanup_detail "Cleanup started (keep latest ${BACKUP_KEEP_COUNT})."
+    add_cleanup_detail "Cleanup started (keep_full=${BACKUP_KEEP_COUNT}, keep_runtime=${RUNTIME_BACKUP_KEEP_COUNT})."
 
-    cleanup_ranked_items "directory" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type d \\
-        \\( -name 'prod_backup_*' -o -name 'pre_seeder_backup_*' -o -name 'pre_deploy_*' \\) -printf '%T@ %p\\n'"
-
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name 'db_backup_*' -printf '%T@ %p\\n'"
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name 'laravel_react_*' -printf '%T@ %p\\n'"
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name 'pre_deploy_*' -printf '%T@ %p\\n'"
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name '*.manifest' -printf '%T@ %p\\n'"
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name '*.sql.gz' -printf '%T@ %p\\n'"
-    cleanup_ranked_items "file" "find '${BACKUP_ROOT}' -mindepth 1 -maxdepth 1 -type f -name '*.tar.gz' -printf '%T@ %p\\n'"
+    cleanup_full_snapshots
+    cleanup_incomplete_backups
+    cleanup_runtime_backups_by_prefix "nav_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
+    cleanup_runtime_backups_by_prefix "nginx_ssl_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
+    cleanup_runtime_backups_by_prefix "dev_before_prod_sync_" "2"
+    cleanup_misc_files
 
     add_cleanup_detail "Cleanup finished. directories_removed=${CLEANUP_DIRS_REMOVED}, files_removed=${CLEANUP_FILES_REMOVED}, dry_run=${DRY_RUN}"
 }
@@ -387,6 +479,17 @@ tar -tzf "${PROJECT_DATA_ARCHIVE_FILE}" >/dev/null || err "Project data archive 
 if [[ -s "${TAR_WARNING_LOG}" ]]; then
     warn "tar warnings log contains entries: ${TAR_WARNING_LOG}"
 fi
+
+# Both files validated. Rename .incomplete → final path.
+log "Backup files validated. Renaming .incomplete → final..."
+mv "${BACKUP_DIR}" "${BACKUP_DIR_FINAL}"
+DB_BACKUP_FILE="${BACKUP_DIR_FINAL}/${DB_BACKUP_FILE##*/}"
+PROJECT_DATA_ARCHIVE_FILE="${BACKUP_DIR_FINAL}/${PROJECT_DATA_ARCHIVE_FILE##*/}"
+ENV_BACKUP_FILE="${BACKUP_DIR_FINAL}/${ENV_BACKUP_FILE##*/}"
+[[ -n "${TAR_WARNING_LOG}" ]] && TAR_WARNING_LOG="${BACKUP_DIR_FINAL}/${TAR_WARNING_LOG##*/}" || true
+BACKUP_DIR="${BACKUP_DIR_FINAL}"
+MANIFEST_FILE="${BACKUP_DIR}/manifest_${TIMESTAMP}.txt"
+log "Renamed: ${BACKUP_DIR}"
 
 cleanup_old_backups
 
