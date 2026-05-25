@@ -37,7 +37,9 @@ done
 
 run_cmd() {
     if [[ "$DRY_RUN" == "1" ]]; then
-        log "DRY-RUN: $*"
+    local display_cmd="$*"
+    display_cmd="$(printf '%s' "$display_cmd" | sed -E "s/MYSQL_PWD='[^']*'/MYSQL_PWD='[REDACTED]'/g; s/MYSQL_PWD=\"[^\"]*\"/MYSQL_PWD=\"[REDACTED]\"/g")"
+    log "DRY-RUN: $display_cmd"
     else
         eval "$@"
     fi
@@ -101,7 +103,16 @@ WHERE
 ORDER BY d.room, d.title
 LIMIT 200;
 "
-MYSQL_PWD="$DB_PASS" mysql -u "$DB_USER" -N -B -e "$DIFF_SQL" || fail "Failed to query route diff"
+DIFF_RESULT="$(MYSQL_PWD="$DB_PASS" mysql -u "$DB_USER" -N -B -e "$DIFF_SQL")" || fail "Failed to query route diff"
+
+if [[ -z "$(printf '%s' "$DIFF_RESULT" | tr -d '[:space:]')" ]]; then
+    log "No navigation map differences found."
+    log "Nothing to sync."
+    exit 0
+fi
+
+log "Navigation differences found (room/title/prod_path/dev_path/polyline_diff):"
+printf '%s\n' "$DIFF_RESULT"
 
 if [[ "$ASSUME_YES" != "1" && "$DRY_RUN" != "1" ]]; then
     confirm_yes || fail "Canceled by operator"
