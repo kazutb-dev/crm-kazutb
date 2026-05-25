@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, BookOpenText, Building2, GraduationCap, Search, Sparkles, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Building2, GraduationCap, Search, Users, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const getAcademicYearOptions = () => {
@@ -441,20 +441,9 @@ export default function GroupDetails({ groupId }) {
                     <div className="pointer-events-none absolute -bottom-24 left-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
                     <CardContent className="relative flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-wide">
-                                <Sparkles className="h-3.5 w-3.5" />
-                                Анкетирование / Группы
-                            </div>
                             <h1 className="text-3xl font-semibold tracking-tight">
                                 {group ? `Группа ${group.name}` : `Группа #${groupId}`}
                             </h1>
-                            <p className="mt-1 text-sm text-blue-100">Детальная рабочая зона: состав группы, назначения, быстрые привязки.</p>
-
-                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Курс: {getGroupCourseRef(group)?.name || group?.course || '—'}</span>
-                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Статус: {group?.status || '—'}</span>
-                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Кафедра: {getGroupDepartment(group)?.name || '—'}</span>
-                            </div>
                         </div>
                         <Link href={route('questionnaire.admin.groups')} className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">
                             <ArrowLeft className="h-4 w-4" />
@@ -466,15 +455,15 @@ export default function GroupDetails({ groupId }) {
                 {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
                 {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard title="Студентов" value={studentsOfGroup.length} icon={<Users className="h-5 w-5 text-cyan-600" />} accent="cyan" />
-                    <MetricCard title="Дисциплин" value={disciplines.length} icon={<BookOpenText className="h-5 w-5 text-indigo-600" />} accent="indigo" />
-                    <MetricCard title="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} icon={<GraduationCap className="h-5 w-5 text-emerald-600" />} accent="emerald" />
-                    <MetricCard title="Статус" value={group?.status || '—'} icon={<Building2 className="h-5 w-5 text-amber-600" />} accent="amber" />
-                </div>
-
                 <Card className="border-border/80 bg-white shadow-sm">
-                    <CardContent className="pt-6">
+                    <CardContent className="space-y-4 pt-6">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <MetricCard title="Студентов" value={studentsOfGroup.length} icon={<Users className="h-5 w-5 text-cyan-600" />} accent="cyan" />
+                            <MetricCard title="Дисциплин" value={disciplines.length} icon={<BookOpenText className="h-5 w-5 text-indigo-600" />} accent="indigo" />
+                            <MetricCard title="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} icon={<GraduationCap className="h-5 w-5 text-emerald-600" />} accent="emerald" />
+                            <MetricCard title="Статус" value={group?.status || '—'} icon={<Building2 className="h-5 w-5 text-amber-600" />} accent="amber" />
+                        </div>
+
                         <div className="grid gap-3 sm:grid-cols-3">
                             <div className="rounded-xl border border-cyan-200/70 bg-cyan-50/60 px-3 py-2 text-sm">
                                 <span className="text-muted-foreground">Специальность: </span>
@@ -489,24 +478,6 @@ export default function GroupDetails({ groupId }) {
                                 <span className="font-medium text-[#132844]">{getGroupDepartment(group)?.name || '—'}</span>
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-border/80 bg-white shadow-sm">
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between gap-3">
-                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
-                                <BookOpenText className="h-4 w-4 text-indigo-600" />
-                                Назначения группы
-                            </CardTitle>
-                            <Button type="button" className="gap-2" onClick={openCreateAssignmentDialog}>
-                                <Sparkles className="h-4 w-4" />
-                                Назначить дисциплину
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground">Добавляйте назначение через модальное окно. Текущие назначения отображаются в таблице ниже.</p>
                     </CardContent>
                 </Card>
 
@@ -595,6 +566,7 @@ export default function GroupDetails({ groupId }) {
                     </DialogContent>
                 </Dialog>
 
+                <div className="grid gap-6 xl:grid-cols-2 items-start">
                 <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -602,14 +574,19 @@ export default function GroupDetails({ groupId }) {
                                 <BookOpenText className="h-4 w-4 text-indigo-600" />
                                 Дисциплины группы
                             </CardTitle>
-                            <div className="relative w-full sm:w-80">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    className="pl-9"
-                                    placeholder="Поиск назначения"
-                                    value={assignmentSearch}
-                                    onChange={(e) => setAssignmentSearch(e.target.value)}
-                                />
+                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                                <Button type="button" className="gap-2" onClick={openCreateAssignmentDialog}>
+                                    Назначить дисциплину
+                                </Button>
+                                <div className="relative w-full sm:w-80">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        className="pl-9"
+                                        placeholder="Поиск назначения"
+                                        value={assignmentSearch}
+                                        onChange={(e) => setAssignmentSearch(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </CardHeader>
@@ -723,6 +700,7 @@ export default function GroupDetails({ groupId }) {
                         )}
                     </CardContent>
                 </Card>
+                </div>
 
                 <Dialog
                     open={studentDialogOpen}
