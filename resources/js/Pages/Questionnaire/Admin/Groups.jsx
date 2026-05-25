@@ -55,6 +55,15 @@ function applyQuickChip(group, studentCount, chip) {
     return true;
 }
 
+function getSpecialityRef(group) {
+    return group?.specialityRef ?? group?.speciality_ref ?? null;
+}
+
+function getSpecialityDepartment(group) {
+    const specialityRef = getSpecialityRef(group);
+    return specialityRef?.department ?? specialityRef?.department_ref ?? null;
+}
+
 export default function Groups() {
     const [groups, setGroups] = useState([]);
     const [courses, setCourses] = useState([]);
@@ -270,7 +279,9 @@ export default function Groups() {
                 return false;
             }
 
-            if ((filters.departmentId ?? 'all') !== 'all' && String(group.specialityRef?.department?.id || '') !== String(filters.departmentId)) {
+            const department = getSpecialityDepartment(group);
+
+            if ((filters.departmentId ?? 'all') !== 'all' && String(department?.id || '') !== String(filters.departmentId)) {
                 return false;
             }
 
@@ -290,9 +301,9 @@ export default function Groups() {
             return [
                 group.name,
                 group.courseRef?.name || group.course,
-                group.specialityRef?.name || group.speciality,
+                getSpecialityRef(group)?.name || group.speciality,
                 group.educationalProgramRef?.name || group.educational_program,
-                group.specialityRef?.department?.name,
+                department?.name,
             ]
                 .filter(Boolean)
                 .join(' ')
@@ -314,7 +325,7 @@ export default function Groups() {
         const map = new Map();
 
         for (const group of groups) {
-            const department = group.specialityRef?.department;
+            const department = getSpecialityDepartment(group);
             if (department?.id && department?.name && !map.has(Number(department.id))) {
                 map.set(Number(department.id), department.name);
             }
@@ -533,9 +544,9 @@ export default function Groups() {
                                                             </Link>
                                                         </td>
                                                         <td className="px-3 py-2">{group.courseRef?.name || group.course || '—'}</td>
-                                                        <td className="px-3 py-2">{group.specialityRef?.name || group.speciality || '—'}</td>
+                                                        <td className="px-3 py-2">{getSpecialityRef(group)?.name || group.speciality || '—'}</td>
                                                         <td className="px-3 py-2">{group.educationalProgramRef?.name || group.educational_program || '—'}</td>
-                                                        <td className="px-3 py-2">{group.specialityRef?.department?.name || '—'}</td>
+                                                        <td className="px-3 py-2">{getSpecialityDepartment(group)?.name || '—'}</td>
                                                         <td className="px-3 py-2">
                                                             <button
                                                                 type="button"

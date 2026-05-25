@@ -122,10 +122,10 @@ const serviceCards = [
         icon: ShieldCheck,
     },
     {
-        title: 'KPI — Аналитика',
-        desc: 'Сводная аналитика и экспорт данных KPI.',
+        title: 'KPI — Сводка',
+        desc: 'Сводная аналитика и экспорт KPI-отчётов.',
         category: 'KPI и аналитика',
-        href: safeRoute('kpi.analytics.index'),
+        href: safeRoute('kpi.summary'),
         icon: TrendingUp,
     },
 
@@ -666,7 +666,7 @@ export default function Welcome({ canLogin }) {
                                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`max-w-[80%] px-4 py-2 text-sm ${message.role === 'user' ? 'bg-[#16355A] text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'}`}>
-                                            <p>{message.text}</p>
+                                            <p className="whitespace-pre-line">{message.text}</p>
                                             {message.role === 'assistant' && typeof message.imageUrl === 'string' && message.imageUrl.trim() !== '' && (
                                                 <div className="relative mt-3 w-full max-w-sm overflow-hidden border border-slate-200 bg-white">
                                                     <img

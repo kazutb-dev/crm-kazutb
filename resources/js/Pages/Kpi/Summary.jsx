@@ -4,12 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
 import {
+    Bot,
     BarChart3,
     BookOpen,
     Building2,
     CalendarRange,
+    Copy,
+    FileDown,
     FileText,
     GraduationCap,
+    Sparkles,
     TrendingUp,
     Users,
 } from 'lucide-react';
@@ -137,6 +141,193 @@ function fmtDateTime(value) {
 
 function normalizeSearchText(value) {
     return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function buildKpiAiReportText({ type, role, summary, academicYear, period, adminTab }) {
+    const yearLabel = academicYear?.name ?? '—';
+    const periodLabel = period?.name ?? '—';
+
+    const section = (title, lines) => [title, ...lines, ''].join('\n');
+
+    const baseHeader = [
+        `KPI AI: ${type === 'risks' ? 'Риски' : type === 'recommendations' ? 'Рекомендации' : 'Сводный отчет'}`,
+        `Роль: ${role}`,
+        `Учебный год: ${yearLabel}`,
+        `Период: ${periodLabel}`,
+        '',
+    ].join('\n');
+
+    if (role === 'teacher') {
+        const totals = summary?.totals ?? {};
+        const result = summary?.result ?? {};
+        const currentScore = Number(result.rank_score ?? 0);
+        const submitted = Number(totals.submitted ?? 0) + Number(totals.pending ?? 0);
+
+        if (type === 'risks') {
+            return baseHeader + section('Ключевые риски:', [
+                `1. Записей на проверке: ${submitted}.`,
+                `2. Отклонено записей: ${Number(totals.rejected ?? 0)}.`,
+                `3. Текущий рейтинг R: ${fmt(currentScore)}.`,
+                'Риск: незавершенные и отклоненные записи снижают итоговый рейтинг после закрытия периода.',
+            ]);
+        }
+
+        if (type === 'recommendations') {
+            return baseHeader + section('Рекомендации:', [
+                '1. Закрыть все записи со статусом "на проверке".',
+                '2. Перезаполнить отклоненные показатели с подтверждающими данными.',
+                '3. Сфокусироваться на разделах с минимальными баллами K1–K5.',
+                '4. Подать обновления до закрытия периода для фиксации R.',
+            ]);
+        }
+
+        return baseHeader + section('Сводка:', [
+            `Всего записей: ${Number(totals.total ?? 0)}.`,
+            `Утверждено: ${Number(totals.approved ?? 0)}.`,
+            `На проверке: ${submitted}.`,
+            `Отклонено: ${Number(totals.rejected ?? 0)}.`,
+            `Сумма баллов: ${fmt(totals.total_points)}.`,
+            `Текущий рейтинг R: ${fmt(currentScore)}.`,
+        ]);
+    }
+
+    if (role === 'hod' || role === 'department_head') {
+        const ownTotals = summary?.own_totals ?? {};
+        const deptResult = summary?.dept_result ?? {};
+        const teachers = summary?.teachers ?? [];
+        const activeTeachers = teachers.filter((t) => Number(t.approved_entries ?? 0) > 0).length;
+
+        if (type === 'risks') {
+            return baseHeader + section('Ключевые риски:', [
+                `1. ППС кафедры с подтвержденными KPI: ${activeTeachers} из ${teachers.length}.`,
+                `2. Записей кафедры в ожидании: ${Number(ownTotals.submitted ?? 0) + Number(ownTotals.pending ?? 0)}.`,
+                `3. Рейтинг кафедры R: ${fmt(deptResult.rank_score)}.`,
+                'Риск: низкая доля подтвержденных KPI у ППС снижает итоговый рейтинг кафедры.',
+            ]);
+        }
+
+        if (type === 'recommendations') {
+            return baseHeader + section('Рекомендации:', [
+                '1. Провести адресный разбор KPI с ППС без утвержденных записей.',
+                '2. Приоритизировать проверку разделов с низким вкладом в R.',
+                '3. Закрыть pending/returned кейсы до даты закрытия периода.',
+                '4. Использовать таблицу ППС для ранжирования и точечных корректировок.',
+            ]);
+        }
+
+        return baseHeader + section('Сводка:', [
+            `Кафедра: ${summary?.department?.name ?? '—'}.`,
+            `ППС кафедры: ${teachers.length}.`,
+            `ППС со сданным KPI: ${activeTeachers}.`,
+            `Записей (мои KPI): ${Number(ownTotals.total ?? 0)}.`,
+            `Утверждено (мои KPI): ${Number(ownTotals.approved ?? 0)}.`,
+            `Рейтинг кафедры R: ${fmt(deptResult.rank_score)}.`,
+        ]);
+    }
+
+    if (role === 'dean') {
+        const departments = summary?.departments ?? [];
+        const teachers = summary?.teachers ?? [];
+        const facultyResult = summary?.faculty_result ?? {};
+        const ownTotals = summary?.own_totals ?? {};
+
+        if (type === 'risks') {
+            return baseHeader + section('Ключевые риски:', [
+                `1. Кафедр в зоне факультета: ${departments.length}.`,
+                `2. ППС в сводной выборке: ${teachers.length}.`,
+                `3. Рейтинг факультета R: ${fmt(facultyResult.rank_score)}.`,
+                `4. Записей декана в ожидании: ${Number(ownTotals.submitted ?? 0) + Number(ownTotals.pending ?? 0)}.`,
+                'Риск: задержка согласования на уровне кафедр напрямую влияет на рейтинг факультета.',
+            ]);
+        }
+
+        if (type === 'recommendations') {
+            return baseHeader + section('Рекомендации:', [
+                '1. Еженедельно контролировать кафедры с минимальным R.',
+                '2. Ускорить закрытие возвращенных и pending записей.',
+                '3. Проверить баланс вкладов K1–K4 в рамках факультета.',
+                '4. Назначить KPI-сессии по кафедрам с низкой долей утверждений.',
+            ]);
+        }
+
+        return baseHeader + section('Сводка:', [
+            `Факультет: ${summary?.faculty?.name ?? '—'}.`,
+            `Кафедры факультета: ${departments.length}.`,
+            `ППС факультета (в выборке): ${teachers.length}.`,
+            `Рейтинг факультета R: ${fmt(facultyResult.rank_score)}.`,
+            `Мои утвержденные записи: ${Number(ownTotals.approved ?? 0)} из ${Number(ownTotals.total ?? 0)}.`,
+        ]);
+    }
+
+    if (role === 'department' || role === 'structural') {
+        const faculties = summary?.faculties ?? [];
+        const pendingTeachers = summary?.pending_teachers ?? [];
+        const totalPending = faculties.reduce((acc, row) => acc + Number(row.pending ?? 0), 0);
+
+        if (type === 'risks') {
+            return baseHeader + section('Ключевые риски:', [
+                `1. Факультетов в контуре: ${faculties.length}.`,
+                `2. Ожидают финального утверждения: ${pendingTeachers.length} сотрудников.`,
+                `3. Суммарный pending по факультетам: ${totalPending} записей.`,
+                'Риск: накопление pending увеличивает задержки финального закрытия периода.',
+            ]);
+        }
+
+        if (type === 'recommendations') {
+            return baseHeader + section('Рекомендации:', [
+                '1. Приоритизировать обработку pending в факультетах с максимальным backlog.',
+                '2. Настроить SLA на этапы согласования для сокращения очереди.',
+                '3. Выполнить еженедельный контроль динамики утверждений.',
+            ]);
+        }
+
+        return baseHeader + section('Сводка:', [
+            `Факультетов в сводке: ${faculties.length}.`,
+            `Ожидают финального утверждения: ${pendingTeachers.length} сотрудников.`,
+            `Суммарный pending: ${totalPending} записей.`,
+        ]);
+    }
+
+    const statusCounts = summary?.status_counts ?? {};
+    const faculties = summary?.faculties ?? [];
+    const topTeachers = summary?.top_teachers ?? [];
+    const topFaculties = [...faculties]
+        .sort((a, b) => Number(b.rank_score ?? b.approved ?? 0) - Number(a.rank_score ?? a.approved ?? 0))
+        .slice(0, 3)
+        .map((f, idx) => `${idx + 1}. ${f.name} — R ${fmt(f.rank_score ?? 0)}, утверждено ${Number(f.approved ?? 0)}`)
+        .join('\n') || 'Нет данных по факультетам.';
+
+    if (type === 'risks') {
+        return baseHeader + section('Ключевые риски:', [
+            `1. Подано: ${Number(statusCounts.submitted ?? 0)}.`,
+            `2. На утверждении (декан/структурный): ${Number(statusCounts.pending_dean ?? 0) + Number(statusCounts.pending_structural ?? 0)}.`,
+            `3. Возвращено/отклонено: ${Number(statusCounts.returned ?? 0) + Number(statusCounts.rejected ?? 0)}.`,
+            `4. Текущая вкладка: ${adminTab}.`,
+            'Риск: рост возвращенных и pending-кейсов снижает скорость закрытия KPI-периода.',
+        ]);
+    }
+
+    if (type === 'recommendations') {
+        return baseHeader + section('Рекомендации:', [
+            '1. Разобрать причины returned/rejected по факультетам и категориям KPI.',
+            '2. Ввести недельный SLA на проверку submitted и pending записей.',
+            '3. Сфокусировать поддержку на факультетах с наименьшим R.',
+            '4. Контролировать Top-10 ППС и масштабировать практики лидеров.',
+        ]);
+    }
+
+    return [
+        baseHeader,
+        section('Сводка:', [
+            `Всего факультетов: ${faculties.length}.`,
+            `Топ ППС в выборке: ${topTeachers.length}.`,
+            `Утверждено записей: ${Number(statusCounts.approved ?? 0)}.`,
+            `Подано записей: ${Number(statusCounts.submitted ?? 0)}.`,
+            `На утверждении: ${Number(statusCounts.pending_dean ?? 0) + Number(statusCounts.pending_structural ?? 0)}.`,
+            `Возвращено/отклонено: ${Number(statusCounts.returned ?? 0) + Number(statusCounts.rejected ?? 0)}.`,
+        ]),
+        section('Топ факультетов:', [topFaculties]),
+    ].join('');
 }
 
 function formatStructuralUnitName(item) {
@@ -1904,6 +2095,43 @@ export default function Summary({
 }) {
     const normalizedRole = ['superadmin', 'structural'].includes(roleSlug) ? 'admin' : (roleSlug ?? 'teacher');
     const [adminTab, setAdminTab] = useState('overview');
+    const [aiReportType, setAiReportType] = useState('summary');
+    const [aiReportText, setAiReportText] = useState('');
+
+    const generateAiReport = (type = 'summary') => {
+        setAiReportType(type);
+        setAiReportText(buildKpiAiReportText({
+            type,
+            role: normalizedRole,
+            summary,
+            academicYear,
+            period,
+            adminTab,
+        }));
+    };
+
+    const copyAiReport = async () => {
+        if (!aiReportText) return;
+        try {
+            await navigator.clipboard.writeText(aiReportText);
+        } catch {
+            // Ignore clipboard errors in unsupported browsers.
+        }
+    };
+
+    const downloadAiReport = () => {
+        if (!aiReportText) return;
+
+        const blob = new Blob([aiReportText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `kpi-ai-report-${aiReportType}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const renderContent = () => {
         if (normalizedRole === 'teacher') return <TeacherView summary={summary} />;
@@ -2009,6 +2237,80 @@ export default function Summary({
                         </div>
                     </div>
                 </div>
+
+                <Card className="admin-surface">
+                    <CardHeader className="pb-3 pt-4">
+                        <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-[#132844]">
+                            <span className="flex items-center gap-2">
+                                <Bot className="h-4 w-4 text-[#139AA4]" />
+                                ИИ помощник KPI
+                            </span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Генерация отчётов и выводов по текущей сводке в один клик
+                            </span>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => generateAiReport('summary')}
+                                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#132844] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0f1f36] transition-colors"
+                            >
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Сформировать сводный отчёт
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => generateAiReport('risks')}
+                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
+                            >
+                                <BarChart3 className="h-3.5 w-3.5" />
+                                Риски
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => generateAiReport('recommendations')}
+                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
+                            >
+                                <BookOpen className="h-3.5 w-3.5" />
+                                Рекомендации
+                            </button>
+                        </div>
+
+                        {aiReportText ? (
+                            <>
+                                <textarea
+                                    value={aiReportText}
+                                    onChange={(e) => setAiReportText(e.target.value)}
+                                    className="min-h-[220px] w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                                />
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={copyAiReport}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
+                                    >
+                                        <Copy className="h-3.5 w-3.5" />
+                                        Копировать
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={downloadAiReport}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
+                                    >
+                                        <FileDown className="h-3.5 w-3.5" />
+                                        Скачать TXT
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="rounded-md border border-dashed border-border/80 bg-muted/20 p-3 text-xs text-muted-foreground">
+                                Нажмите кнопку выше, чтобы помощник сформировал текстовый KPI-отчёт по текущему периоду.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {renderContent()}
             </div>

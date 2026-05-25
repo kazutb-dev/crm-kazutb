@@ -88,7 +88,7 @@ class AuthenticatedSessionController extends Controller
         if (
             $user !== null
             && (int) $user->id === 66
-            && (string) ($user->ad_login ?? '') === 'a.ulykpan'
+            && (string) ($user->ad_login ?? '') === 'a.ulykpan1'
         ) {
             return redirect()
                 ->route('special.login-image')

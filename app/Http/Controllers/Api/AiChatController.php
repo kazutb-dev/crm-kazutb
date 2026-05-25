@@ -53,6 +53,14 @@ class AiChatController extends Controller
         // Check if this is a KPI question
         $isKpiQuestion = $kpiService->isKpiQuestion($latestUserMessage);
 
+        if (!$isKpiQuestion && $matchedRoute) {
+            return response()->json([
+                'text' => $this->buildRouteAnswer($matchedRoute),
+                'image_url' => $this->extractRouteImageUrl($matchedRoute),
+                'route_polyline' => $this->extractRoutePolyline($matchedRoute),
+            ]);
+        }
+
         // Build system prompt
         $systemPrompt = $this->buildSystemPrompt($kpiService, $isKpiQuestion, $latestUserMessage);
 
@@ -160,6 +168,35 @@ class AiChatController extends Controller
         return '/' . ltrim($value, '/');
     }
 
+    private function buildRouteAnswer(NavigationRoute $route): string
+    {
+        $destination = $route->room ? 'кабинет ' . $route->room : $route->title;
+        $meta = trim((string) ($route->meta ?? ''));
+        $location = $meta !== '' ? $meta : trim(implode(' • ', array_filter([
+            $route->building,
+            $route->floor !== null ? ((string) $route->floor . ' этаж') : null,
+        ])));
+
+        $steps = is_array($route->steps) ? $route->steps : [];
+        $stepsText = '';
+
+        if ($steps !== []) {
+            $stepsText = "\nМаршрут:\n" . collect($steps)
+                ->map(fn (string $step, int $index): string => ($index + 1) . '. ' . $step)
+                ->implode("\n");
+        } else {
+            $stepsText = "\nМаршрут:\n1. Войдите в {$route->building} корпус.";
+            if ($route->floor !== null) {
+                $stepsText .= "\n2. Поднимитесь на {$route->floor} этаж.";
+                $stepsText .= "\n3. Найдите {$destination}.";
+            } else {
+                $stepsText .= "\n2. Найдите {$destination}.";
+            }
+        }
+
+        return trim("Найдено: {$destination}." . ($location !== '' ? " {$location}." : '') . $stepsText);
+    }
+
     /**
      * @return array<int, array{x: float, y: float}>
      */
@@ -223,7 +260,12 @@ class AiChatController extends Controller
                         $q->where('title', 'like', "%{$candidate}%")
                             ->orWhere('badge', 'like', "%{$candidate}%")
                             ->orWhere('room', 'like', "%{$candidate}%")
-                            ->orWhere('meta', 'like', "%{$candidate}%");
+                            ->orWhere('meta', 'like', "%{$candidate}%")
+                            ->orWhereHas('attachedUsers', function ($users) use ($candidate): void {
+                                $users->where('name', 'like', "%{$candidate}%")
+                                    ->orWhere('ad_login', 'like', "%{$candidate}%")
+                                    ->orWhere('room', 'like', "%{$candidate}%");
+                            });
                     })
                     ->orderBy('sort_order')
                     ->orderBy('id')

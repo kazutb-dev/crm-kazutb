@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertCircle, BarChart3, Download, LogOut, TrendingDown, TrendingUp, Users } from 'lucide-react';
+import { AlertCircle, BarChart3, Bot, Copy, Download, FileDown, LogOut, Sparkles, TrendingDown, TrendingUp, Users } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
@@ -135,11 +135,81 @@ function DonutCard({ title, segments, total, donut = true, onSegmentClick = null
     );
 }
 
+function buildAiReportText(type, payload) {
+    const {
+        employeesTotal,
+        employeesActive,
+        latePeriodPeople,
+        earlyPeriodPeople,
+        periodTitle,
+        topDivisions,
+    } = payload;
+
+    const top3 = topDivisions.slice(0, 3);
+    const topText = top3.length > 0
+        ? top3
+            .map((row, idx) => `${idx + 1}. ${row.division} — ${row.late_events} опозданий, ${row.late_people} сотрудников`)
+            .join('\n')
+        : 'Нет данных по подразделениям за выбранный период.';
+
+    const lateRate = employeesActive > 0
+        ? ((latePeriodPeople / employeesActive) * 100).toFixed(1)
+        : '0.0';
+
+    const earlyRate = employeesActive > 0
+        ? ((earlyPeriodPeople / employeesActive) * 100).toFixed(1)
+        : '0.0';
+
+    if (type === 'risks') {
+        return [
+            `HR AI: Риски дисциплины (${periodTitle})`,
+            '',
+            `1. Уровень опозданий: ${latePeriodPeople} сотрудников (${lateRate}% от активных).`,
+            `2. Ранние уходы: ${earlyPeriodPeople} сотрудников (${earlyRate}% от активных).`,
+            '3. Подразделения с наибольшей концентрацией опозданий:',
+            topText,
+            '',
+            'Риск-оценка: при сохранении динамики возможен рост дисциплинарной нагрузки и снижение операционной доступности в пиковые часы.',
+        ].join('\n');
+    }
+
+    if (type === 'recommendations') {
+        return [
+            `HR AI: Рекомендации (${periodTitle})`,
+            '',
+            '1. Назначить точечные встречи с руководителями топ-3 подразделений по опозданиям.',
+            '2. Ввести еженедельный контроль сотрудников с повторными нарушениями.',
+            '3. Проверить расписание смен и транспортные окна для проблемных групп.',
+            '4. Сравнить долю ранних уходов и опозданий по дням недели для корректировки графиков.',
+            '5. На следующий период поставить KPI снижения опозданий минимум на 10%.',
+            '',
+            'Текущие подразделения приоритета:',
+            topText,
+        ].join('\n');
+    }
+
+    return [
+        `HR AI: Сводный отчет (${periodTitle})`,
+        '',
+        `Всего сотрудников: ${employeesTotal}`,
+        `Активных сотрудников: ${employeesActive}`,
+        `Опоздали за период: ${latePeriodPeople} (${lateRate}%)`,
+        `Ушли раньше за период: ${earlyPeriodPeople} (${earlyRate}%)`,
+        '',
+        'Топ подразделений по опозданиям:',
+        topText,
+        '',
+        'Вывод: рекомендуется фокус на подразделениях из топа и еженедельный мониторинг динамики.',
+    ].join('\n');
+}
+
 export default function HrDashboard({ summary = {}, series = [], topDivisions = [], divisions = [], filters = {} }) {
     const [division, setDivision] = useState(filters.division ?? '');
     const [days, setDays] = useState(String(filters.days ?? 1));
     const [fromDate, setFromDate] = useState(filters.from ?? '');
     const [selectedDivision, setSelectedDivision] = useState(null);
+    const [aiReportText, setAiReportText] = useState('');
+    const [aiReportType, setAiReportType] = useState('summary');
 
     const applyFilters = (overrides = {}) => {
         const params = { division, days, ...overrides };
@@ -257,6 +327,41 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
     }
     const topTotal = top3.reduce((acc, row) => acc + row.value, 0);
 
+    const generateAiReport = (type = 'summary') => {
+        setAiReportType(type);
+        setAiReportText(buildAiReportText(type, {
+            employeesTotal,
+            employeesActive,
+            latePeriodPeople,
+            earlyPeriodPeople,
+            periodTitle,
+            topDivisions,
+        }));
+    };
+
+    const copyAiReport = async () => {
+        if (!aiReportText) return;
+        try {
+            await navigator.clipboard.writeText(aiReportText);
+        } catch {
+            // Ignore clipboard failures in unsupported browsers.
+        }
+    };
+
+    const downloadAiReport = () => {
+        if (!aiReportText) return;
+
+        const blob = new Blob([aiReportText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `hr-ai-report-${aiReportType}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const handleExport = () => {
         const summaryRows = [
             { metric: 'Всего сотрудников', value: employeesTotal },
@@ -340,6 +445,59 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                     <h1 className="text-3xl font-bold text-slate-900">HR Dashboard</h1>
                     <p className="text-sm text-slate-600 mt-1">Аналитика по опозданиям и персоналу</p>
                 </div>
+
+                <Card className="border border-slate-200 bg-white shadow-sm mb-6">
+                    <CardHeader className="pb-3 border-b border-slate-200">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                                    <Bot className="h-4 w-4 text-blue-600" />
+                                    ИИ помощник HR
+                                </CardTitle>
+                                <p className="text-sm text-slate-500 mt-1">Формирование готовых отчетов и выводов в один клик.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button type="button" size="sm" onClick={() => generateAiReport('summary')}>
+                                    <Sparkles className="mr-1 h-4 w-4" />
+                                    Сводный отчет
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => generateAiReport('risks')}>
+                                    <AlertCircle className="mr-1 h-4 w-4" />
+                                    Риски
+                                </Button>
+                                <Button type="button" size="sm" variant="outline" onClick={() => generateAiReport('recommendations')}>
+                                    <BarChart3 className="mr-1 h-4 w-4" />
+                                    Рекомендации
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                        {aiReportText ? (
+                            <>
+                                <textarea
+                                    value={aiReportText}
+                                    onChange={(e) => setAiReportText(e.target.value)}
+                                    className="min-h-[220px] w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap"
+                                />
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Button type="button" size="sm" variant="outline" onClick={copyAiReport}>
+                                        <Copy className="mr-1 h-4 w-4" />
+                                        Копировать
+                                    </Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={downloadAiReport}>
+                                        <FileDown className="mr-1 h-4 w-4" />
+                                        Скачать TXT
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                                Нажмите одну из кнопок выше — помощник сформирует отчет автоматически.
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
                     <Link href={route('hr.perco.timetracking')} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
