@@ -48,19 +48,39 @@
 
 1. Вести изменения только в branch dev.
 2. Проверять безопасность:
-   - ./scripts/deploy/check_deploy_safety.sh
+   - ./scripts/deploy/deploy.sh safety
+   - _или напрямую:_ ./scripts/deploy/check_deploy_safety.sh
 3. Перед deploy в PROD запускать dry-run:
-   - ./scripts/deploy/dev_to_prod_release.sh --dry-run
+   - ./scripts/deploy/deploy.sh release --dry-run
+   - _или напрямую:_ ./scripts/deploy/dev_to_prod_release.sh --dry-run
 
 ### Если нужно освежить DEV из PROD
 
 1. Запустить:
-   - ./scripts/deploy/prod_to_dev_sync.sh
+   - ./scripts/deploy/deploy.sh prod-to-dev
+   - _или напрямую:_ ./scripts/deploy/prod_to_dev_sync.sh
 2. Скрипт создаёт backup DEV перед перезаписью и backup PROD перед синком.
 3. DEV .env сохраняется и восстанавливается обратно.
 4. Код DEV приводится к origin/main и пушится в origin/dev.
 
 ## 4. Команды
+
+### deploy.sh — унифицированный точка входа (рекомендован)
+
+Все команды доступны через единый скрипт `./scripts/deploy/deploy.sh <command>`.
+
+```bash
+./scripts/deploy/deploy.sh help           # показать справку
+./scripts/deploy/deploy.sh safety         # 24+ pre-deploy проверок
+./scripts/deploy/deploy.sh release [--dry-run] [--yes] [--no-migrate] [--skip-build]
+./scripts/deploy/deploy.sh sync-runtime --type navigation [--dry-run] [--yes]
+./scripts/deploy/deploy.sh prod-to-dev [--dry-run] [--yes] [--skip-db] ...
+./scripts/deploy/deploy.sh rollback --tag TAG [--dry-run] [--yes]
+./scripts/deploy/deploy.sh backup-prod [--dry-run]
+./scripts/deploy/deploy.sh ssl-check
+```
+
+Прямые вызовы скриптов также работают (см. ниже) — `deploy.sh` оборачивает их без изменений.
 
 ### Ensure DEV branch
 
@@ -106,9 +126,10 @@
 
 ### Navigation Media/Data Sync (targeted)
 
-- ./scripts/deploy/sync_navigation_media_to_prod.sh
-- dry-run: ./scripts/deploy/sync_navigation_media_to_prod.sh --dry-run
-- non-interactive: ./scripts/deploy/sync_navigation_media_to_prod.sh --yes
+- ./scripts/deploy/deploy.sh sync-runtime --type navigation
+- dry-run: ./scripts/deploy/deploy.sh sync-runtime --type navigation --dry-run
+- non-interactive: ./scripts/deploy/deploy.sh sync-runtime --type navigation --yes
+- _или напрямую:_ ./scripts/deploy/sync_navigation_media_to_prod.sh
 
 Purpose:
 
@@ -127,10 +148,22 @@ Safety rules for this procedure:
 
 Новые/обновленные скрипты:
 
-- /var/www/laravel-react/scripts/deploy/lib_deploy_common.sh
-- /var/www/laravel-react/scripts/deploy/check_deploy_safety.sh
+- /var/www/laravel-react/scripts/deploy/deploy.sh _(NEW — унифицированный точка входа)_
+- /var/www/laravel-react/scripts/deploy/lib_deploy_common.sh _(+check_node_version)_
+- /var/www/laravel-react/scripts/deploy/check_deploy_safety.sh _(+Node warn, +backup validity)_
 - /var/www/laravel-react/scripts/deploy/prod_to_dev_sync.sh
 - /var/www/laravel-react/scripts/deploy/dev_to_prod_release.sh
+- /var/www/laravel-react/scripts/backup_prod.sh _(BACKUP_KEEP_COUNT=1, .incomplete pattern)_
+
+### Backup retention policy (hardened)
+
+- **BACKUP_KEEP_COUNT=1** по умолчанию (было 2). Хранится только 1 завершённый full_snapshot.
+- **`.incomplete` паттерн**: backup пишется в `prod_backup_TIMESTAMP_full_snapshot.incomplete`
+  и переименовывается в финальный путь только после успешной валидации gzip/tar.
+- `.incomplete` каталоги старше 24 часов удаляются при следующем запуске cleanup.
+- Runtime backups (`nav_fix_*`, `nginx_ssl_fix_*`) хранятся по **RUNTIME_BACKUP_KEEP_COUNT=3**.
+- `cleanup_only_*` каталоги (артефакты CLEANUP_ONLY-режима) удаляются полностью при cleanup.
+- `pre_seeder_backup_*`, `db_backup_*`, `laravel_react_*`, loose `*.sql.gz`/`*.tar.gz` — keep 1 each.
 
 Что теперь обязательно проверяется автоматически:
 

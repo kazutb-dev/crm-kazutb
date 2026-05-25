@@ -248,6 +248,30 @@ detect_changed_seeders() {
     git -C "$repo_root" diff --name-only "$base_ref..$head_ref" -- 'database/seeders/*.php' 2>/dev/null || true
 }
 
+check_node_version() {
+    local required_major="${1:-20}"
+    local required_minor="${2:-19}"
+    if ! command -v node >/dev/null 2>&1; then
+        warn "node not found in PATH; skipping version check"
+        return 0
+    fi
+    local version
+    version="$(node --version 2>/dev/null | sed 's/^v//')"
+    local major minor
+    major="$(printf '%s' "$version" | cut -d. -f1)"
+    minor="$(printf '%s' "$version" | cut -d. -f2)"
+    if [[ -z "$major" || -z "$minor" ]]; then
+        warn "Could not parse node version: $version"
+        return 0
+    fi
+    if [[ "$major" -lt "$required_major" ]] || \
+       [[ "$major" -eq "$required_major" && "$minor" -lt "$required_minor" ]]; then
+        warn "Node version is v${version}; Vite requires >= ${required_major}.${required_minor}. Build may still succeed but upgrade is recommended."
+        return 1
+    fi
+    return 0
+}
+
 print_recovery_instructions() {
     local checkpoint_branch="$1"
     local checkpoint_tag="$2"
