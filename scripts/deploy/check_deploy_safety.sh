@@ -90,26 +90,52 @@ else
     fail_item "Disk free space below ${EXPECTED_FREE_GB}G"
 fi
 
-_latest_backup="$(ls -1dt "$PROD_ROOT"/backups/prod_backup_*_full_snapshot 2>/dev/null \
-    | grep -v '\.incomplete$' | head -n1 || true)"
-_incomplete_backups="$(ls -1d "$PROD_ROOT"/backups/prod_backup_*_full_snapshot.incomplete 2>/dev/null || true)"
-if [[ -n "$_incomplete_backups" ]]; then
-    warn_item "Stale .incomplete backup detected: $(basename "$(echo "$_incomplete_backups" | head -n1)")"
-fi
-if [[ -z "$_latest_backup" ]]; then
-    warn_item "No completed PROD full snapshot found"
-else
-    _bk_db="$(find "$_latest_backup" -maxdepth 1 -name 'database_*.sql.gz' 2>/dev/null | head -n1 || true)"
-    _bk_data="$(find "$_latest_backup" -maxdepth 1 -name 'project_data_*.tar.gz' 2>/dev/null | head -n1 || true)"
-    _bk_sha="$_latest_backup/SHA256SUMS"
-    if [[ -n "$_bk_db" && -f "$_bk_db" && -n "$_bk_data" && -f "$_bk_data" && -f "$_bk_sha" ]]; then
-        if gzip -t "$_bk_db" 2>/dev/null && tar -tzf "$_bk_data" >/dev/null 2>&1; then
-            pass "Latest PROD backup valid: $(basename "$_latest_backup")"
+mapfile -t _completed_backups < <(find "$PROD_ROOT/backups" -mindepth 1 -maxdepth 1 -type d -name 'prod_backup_*_full_snapshot' ! -name '*.incomplete' -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk '{print $2}')
+mapfile -t _incomplete_backups < <(find "$PROD_ROOT/backups" -mindepth 1 -maxdepth 1 -type d -name 'prod_backup_*_full_snapshot.incomplete' -printf '%T@ %p\n' 2>/dev/null | sort -nr)
+
+if [[ "${#_incomplete_backups[@]}" -gt 0 ]]; then
+    _now_ts="$(date +%s)"
+    _incomplete_ttl="$((24 * 3600))"
+    for _inc in "${_incomplete_backups[@]}"; do
+        _inc_path="${_inc#* }"
+        _inc_mtime="${_inc%% *}"
+        _inc_age="$((_now_ts - ${_inc_mtime%.*}))"
+        if [[ "$_inc_age" -gt "$_incomplete_ttl" ]]; then
+            warn_item "Stale .incomplete backup exists (>24h): $(basename "$_inc_path")"
         else
-            warn_item "Latest PROD backup failed integrity check: $(basename "$_latest_backup")"
+            warn_item "Current .incomplete backup exists (<24h): $(basename "$_inc_path")"
         fi
+    done
+fi
+
+if [[ "${#_completed_backups[@]}" -eq 0 ]]; then
+    fail_item "No completed PROD full snapshot found"
+else
+    _latest_backup="${_completed_backups[0]}"
+    _latest_valid=0
+    _first_valid_backup=""
+
+    if validate_completed_backup_dir "$_latest_backup"; then
+        _latest_valid=1
+        _first_valid_backup="$_latest_backup"
+        pass "Latest PROD backup valid: $(basename "$_latest_backup")"
     else
-        warn_item "Latest PROD backup has missing files: $(basename "$_latest_backup")"
+        warn_item "Newest completed PROD backup is invalid: $(basename "$_latest_backup")"
+    fi
+
+    if [[ "$_latest_valid" -eq 0 ]]; then
+        for _candidate in "${_completed_backups[@]:1}"; do
+            if validate_completed_backup_dir "$_candidate"; then
+                _first_valid_backup="$_candidate"
+                warn_item "Latest backup invalid, but older valid snapshot exists: $(basename "$_candidate")"
+                pass "Latest valid PROD backup found: $(basename "$_candidate")"
+                break
+            fi
+        done
+    fi
+
+    if [[ -z "$_first_valid_backup" ]]; then
+        fail_item "No valid completed PROD full snapshot exists"
     fi
 fi
 

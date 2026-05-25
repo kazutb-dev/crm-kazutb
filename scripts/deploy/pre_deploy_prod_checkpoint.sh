@@ -78,9 +78,9 @@ fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
     backup_dir="${PROJECT_ROOT}/backups/prod_backup_DRYRUN_full_snapshot"
-    log "DRY-RUN: would run backup script with retention keep=2"
+    log "DRY-RUN: would run backup script with default retention policy"
 else
-    BACKUP_KEEP_COUNT=2 "$BACKUP_SCRIPT"
+    "$BACKUP_SCRIPT"
     backup_dir="$(ls -1dt "${PROJECT_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
     [[ -n "$backup_dir" ]] || { echo "[checkpoint] ERROR: latest backup directory not found" >&2; exit 1; }
 

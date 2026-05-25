@@ -272,6 +272,53 @@ check_node_version() {
     return 0
 }
 
+redact_command_for_log() {
+    local cmd="$*"
+    cmd="$(printf '%s' "$cmd" | sed -E "s/MYSQL_PWD='[^']*'/MYSQL_PWD='[REDACTED]'/g")"
+    cmd="$(printf '%s' "$cmd" | sed -E 's/MYSQL_PWD="[^"]*"/MYSQL_PWD="[REDACTED]"/g')"
+    cmd="$(printf '%s' "$cmd" | sed -E 's/(DB_PASSWORD=)[^[:space:]]+/\1[REDACTED]/g')"
+    cmd="$(printf '%s' "$cmd" | sed -E 's/(APP_KEY=)[^[:space:]]+/\1[REDACTED]/g')"
+    printf '%s' "$cmd"
+}
+
+validate_completed_backup_dir() {
+    local backup_dir="$1"
+    local db_file data_file env_file manifest_file sha_file
+
+    [[ -d "$backup_dir" ]] || return 1
+    [[ "$backup_dir" != *.incomplete ]] || return 1
+
+    db_file="$(find "$backup_dir" -maxdepth 1 -type f -name 'database_*.sql.gz' | head -n1 || true)"
+    data_file="$(find "$backup_dir" -maxdepth 1 -type f -name 'project_data_*.tar.gz' | head -n1 || true)"
+    env_file="$(find "$backup_dir" -maxdepth 1 -type f -name 'env_*.backup' | head -n1 || true)"
+    manifest_file="$(find "$backup_dir" -maxdepth 1 -type f -name 'manifest_*.txt' | head -n1 || true)"
+    sha_file="$backup_dir/SHA256SUMS"
+
+    [[ -n "$db_file" && -f "$db_file" && -s "$db_file" ]] || return 1
+    [[ -n "$data_file" && -f "$data_file" && -s "$data_file" ]] || return 1
+    [[ -n "$env_file" && -f "$env_file" && -s "$env_file" ]] || return 1
+    [[ -n "$manifest_file" && -f "$manifest_file" && -s "$manifest_file" ]] || return 1
+    [[ -f "$sha_file" && -s "$sha_file" ]] || return 1
+
+    gzip -t "$db_file" >/dev/null 2>&1 || return 1
+    tar -tzf "$data_file" >/dev/null 2>&1 || return 1
+
+    return 0
+}
+
+find_latest_valid_full_backup() {
+    local backup_root="$1"
+    while IFS= read -r backup_dir; do
+        [[ -n "$backup_dir" ]] || continue
+        if validate_completed_backup_dir "$backup_dir"; then
+            printf '%s' "$backup_dir"
+            return 0
+        fi
+    done < <(find "$backup_root" -mindepth 1 -maxdepth 1 -type d -name 'prod_backup_*_full_snapshot' ! -name '*.incomplete' -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk '{print $2}')
+
+    return 1
+}
+
 print_recovery_instructions() {
     local checkpoint_branch="$1"
     local checkpoint_tag="$2"

@@ -100,11 +100,13 @@ case "$CMD" in
             "")
                 echo "[deploy] ERROR: sync-runtime requires --type <type>" >&2
                 echo "  Available types: navigation" >&2
+                echo "  Future types (planned): questionnaire-media, public-assets" >&2
                 exit 1
                 ;;
             *)
                 echo "[deploy] ERROR: Unknown sync-runtime type: '${SYNC_TYPE}'" >&2
                 echo "  Available types: navigation" >&2
+                echo "  Future types (planned): questionnaire-media, public-assets" >&2
                 exit 1
                 ;;
         esac

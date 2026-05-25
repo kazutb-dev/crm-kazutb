@@ -9,5 +9,5 @@ if [[ ! -x "$NEW_SCRIPT" ]]; then
     exit 1
 fi
 
-echo "[deploy-prod] Deprecated wrapper: forwarding to dev_to_prod_release.sh"
+echo "[deploy-prod] WARNING: deprecated wrapper. Forwarding to dev_to_prod_release.sh"
 exec "$NEW_SCRIPT" "$@"
