@@ -63,7 +63,7 @@ Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store
 Route::get('/special/login-image', function (Request $request) {
     $user = $request->user();
 
-    if (! $user || (int) $user->id !== 66 || (string) ($user->ad_login ?? '') !== 'a.ulykpan') {
+    if (! $user || (int) $user->id !== 66 || (string) ($user->ad_login ?? '') !== 'a.ulykpan1') {
         abort(404);
     }
 

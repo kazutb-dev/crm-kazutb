@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, BookOpenText, Search, Users } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Building2, GraduationCap, Search, Sparkles, Users, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const getAcademicYearOptions = () => {
@@ -16,6 +16,17 @@ const getAcademicYearOptions = () => {
         const start = currentYear - 2 + index;
         return `${start}/${start + 1}`;
     });
+};
+
+const getGroupCourseRef = (group) => group?.courseRef ?? group?.course_ref ?? null;
+
+const getGroupSpecialityRef = (group) => group?.specialityRef ?? group?.speciality_ref ?? null;
+
+const getGroupProgramRef = (group) => group?.educationalProgramRef ?? group?.educational_program_ref ?? null;
+
+const getGroupDepartment = (group) => {
+    const specialityRef = getGroupSpecialityRef(group);
+    return specialityRef?.department ?? specialityRef?.department_ref ?? null;
 };
 
 export default function GroupDetails({ groupId }) {
@@ -36,6 +47,9 @@ export default function GroupDetails({ groupId }) {
     const [editingAssignmentId, setEditingAssignmentId] = useState(null);
     const [selectedDisciplineId, setSelectedDisciplineId] = useState('');
     const [studentDialogOpen, setStudentDialogOpen] = useState(false);
+    const [studentLookupQuery, setStudentLookupQuery] = useState('');
+    const [studentLookupLoading, setStudentLookupLoading] = useState(false);
+    const [assignmentSearch, setAssignmentSearch] = useState('');
     const [studentForm, setStudentForm] = useState({
         student_key: '',
         status: 'active',
@@ -64,15 +78,6 @@ export default function GroupDetails({ groupId }) {
             setStudentUsers(studentsResponse.data?.meta?.student_users ?? []);
             setGroupDisciplines(groupDisciplinesResponse.data?.data ?? []);
             setTeacherDisciplines(groupDisciplinesResponse.data?.meta?.teacher_disciplines ?? []);
-
-            try {
-                const adResponse = await axios.get('/api/questionnaire/admin/students/ad-search', {
-                    params: { q: '' },
-                });
-                setAdStudents(adResponse.data?.data ?? []);
-            } catch {
-                setAdStudents([]);
-            }
         } catch (e) {
             setError(e?.response?.data?.message || 'Не удалось загрузить данные группы.');
         } finally {
@@ -83,6 +88,47 @@ export default function GroupDetails({ groupId }) {
     useEffect(() => {
         load();
     }, []);
+
+    useEffect(() => {
+        if (!studentDialogOpen) {
+            return;
+        }
+
+        const term = studentLookupQuery.trim();
+        if (term.length < 2) {
+            setAdStudents([]);
+            setStudentLookupLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        const timeoutId = setTimeout(async () => {
+            setStudentLookupLoading(true);
+
+            try {
+                const adResponse = await axios.get('/api/questionnaire/admin/students/ad-search', {
+                    params: { q: term },
+                });
+
+                if (!cancelled) {
+                    setAdStudents(adResponse.data?.data ?? []);
+                }
+            } catch {
+                if (!cancelled) {
+                    setAdStudents([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setStudentLookupLoading(false);
+                }
+            }
+        }, 300);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timeoutId);
+        };
+    }, [studentDialogOpen, studentLookupQuery]);
 
     const group = useMemo(() => {
         return groups.find((item) => Number(item.id) === Number(groupId)) || null;
@@ -135,8 +181,24 @@ export default function GroupDetails({ groupId }) {
     }, [students, groupId]);
 
     const availableStudentUsers = useMemo(() => {
-        return studentUsers.filter((user) => !studentsOfGroupUserIds.has(Number(user.id)));
-    }, [studentUsers, studentsOfGroupUserIds]);
+        const term = studentLookupQuery.trim().toLowerCase();
+
+        return studentUsers.filter((user) => {
+            if (studentsOfGroupUserIds.has(Number(user.id))) {
+                return false;
+            }
+
+            if (!term) {
+                return true;
+            }
+
+            return [user.display_name, user.name, user.ad_login, user.email]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .includes(term);
+        });
+    }, [studentUsers, studentsOfGroupUserIds, studentLookupQuery]);
 
     const availableAdStudents = useMemo(() => {
         return adStudents.filter((user) => {
@@ -148,7 +210,9 @@ export default function GroupDetails({ groupId }) {
     const availableStudentChoices = useMemo(() => {
         const localChoices = availableStudentUsers.map((user) => ({
             key: `local:${user.id}`,
-            label: `${user.display_name || user.name} (${user.ad_login || user.email || `id:${user.id}`})`,
+            title: user.display_name || user.name || `id:${user.id}`,
+            subtitle: user.ad_login || user.email || `id:${user.id}`,
+            source: 'local',
         }));
 
         const adChoices = availableAdStudents
@@ -158,7 +222,9 @@ export default function GroupDetails({ groupId }) {
             })
             .map((user) => ({
                 key: `ad:${user.ad_login}`,
-                label: `${user.display_name || user.ad_login} (${user.ad_login}) [AD]`,
+                title: user.display_name || user.ad_login,
+                subtitle: `${user.ad_login}${user.department ? ` • ${user.department}` : ''}`,
+                source: 'ad',
             }));
 
         return [...localChoices, ...adChoices];
@@ -167,6 +233,28 @@ export default function GroupDetails({ groupId }) {
     const assignmentsOfGroup = useMemo(() => {
         return groupDisciplines.filter((item) => Number(item.group_id) === Number(groupId));
     }, [groupDisciplines, groupId]);
+
+    const filteredAssignmentsOfGroup = useMemo(() => {
+        const term = assignmentSearch.trim().toLowerCase();
+        if (!term) {
+            return assignmentsOfGroup;
+        }
+
+        return assignmentsOfGroup.filter((item) => {
+            return [
+                item.teacher_discipline?.teacher?.display_name,
+                item.teacher_discipline?.teacher?.name,
+                item.teacher_discipline?.discipline?.name,
+                item.academic_year,
+                item.semester,
+                item.status,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase()
+                .includes(term);
+        });
+    }, [assignmentsOfGroup, assignmentSearch]);
 
     const disciplineOptions = useMemo(() => {
         const map = new Map();
@@ -348,16 +436,27 @@ export default function GroupDetails({ groupId }) {
             <Head title="Анкетирование - Детали группы" />
 
             <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
+                <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-[#132844] via-[#1b3a60] to-[#245279] text-white shadow-lg">
+                    <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -bottom-24 left-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
+                    <CardContent className="relative flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Анкетирование / Группы</p>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">
+                            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-wide">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Анкетирование / Группы
+                            </div>
+                            <h1 className="text-3xl font-semibold tracking-tight">
                                 {group ? `Группа ${group.name}` : `Группа #${groupId}`}
                             </h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Отдельная страница группы: студенты и дисциплины.</p>
+                            <p className="mt-1 text-sm text-blue-100">Детальная рабочая зона: состав группы, назначения, быстрые привязки.</p>
+
+                            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Курс: {getGroupCourseRef(group)?.name || group?.course || '—'}</span>
+                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Статус: {group?.status || '—'}</span>
+                                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1">Кафедра: {getGroupDepartment(group)?.name || '—'}</span>
+                            </div>
                         </div>
-                        <Link href={route('questionnaire.admin.groups')} className="inline-flex items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-sm hover:bg-muted/40">
+                        <Link href={route('questionnaire.admin.groups')} className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">
                             <ArrowLeft className="h-4 w-4" />
                             К списку групп
                         </Link>
@@ -368,17 +467,40 @@ export default function GroupDetails({ groupId }) {
                 {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard title="Студентов" value={studentsOfGroup.length} icon={<Users className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Дисциплин" value={disciplines.length} icon={<BookOpenText className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Курс" value={group?.courseRef?.name || group?.course || '—'} />
-                    <MetricCard title="Статус" value={group?.status || '—'} />
+                    <MetricCard title="Студентов" value={studentsOfGroup.length} icon={<Users className="h-5 w-5 text-cyan-600" />} accent="cyan" />
+                    <MetricCard title="Дисциплин" value={disciplines.length} icon={<BookOpenText className="h-5 w-5 text-indigo-600" />} accent="indigo" />
+                    <MetricCard title="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} icon={<GraduationCap className="h-5 w-5 text-emerald-600" />} accent="emerald" />
+                    <MetricCard title="Статус" value={group?.status || '—'} icon={<Building2 className="h-5 w-5 text-amber-600" />} accent="amber" />
                 </div>
 
-                <Card className="border-border/80 bg-white/90 shadow-sm">
+                <Card className="border-border/80 bg-white shadow-sm">
+                    <CardContent className="pt-6">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-xl border border-cyan-200/70 bg-cyan-50/60 px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Специальность: </span>
+                                <span className="font-medium text-[#132844]">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</span>
+                            </div>
+                            <div className="rounded-xl border border-indigo-200/70 bg-indigo-50/60 px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">ОП: </span>
+                                <span className="font-medium text-[#132844]">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</span>
+                            </div>
+                            <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/60 px-3 py-2 text-sm">
+                                <span className="text-muted-foreground">Кафедра: </span>
+                                <span className="font-medium text-[#132844]">{getGroupDepartment(group)?.name || '—'}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between gap-3">
-                            <CardTitle className="text-base text-[#132844]">Назначения группы</CardTitle>
-                            <Button type="button" onClick={openCreateAssignmentDialog}>
+                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
+                                <BookOpenText className="h-4 w-4 text-indigo-600" />
+                                Назначения группы
+                            </CardTitle>
+                            <Button type="button" className="gap-2" onClick={openCreateAssignmentDialog}>
+                                <Sparkles className="h-4 w-4" />
                                 Назначить дисциплину
                             </Button>
                         </div>
@@ -473,14 +595,28 @@ export default function GroupDetails({ groupId }) {
                     </DialogContent>
                 </Dialog>
 
-                <Card className="border-border/80 bg-white/90 shadow-sm">
+                <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-[#132844]">Дисциплины группы</CardTitle>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
+                                <BookOpenText className="h-4 w-4 text-indigo-600" />
+                                Дисциплины группы
+                            </CardTitle>
+                            <div className="relative w-full sm:w-80">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    className="pl-9"
+                                    placeholder="Поиск назначения"
+                                    value={assignmentSearch}
+                                    onChange={(e) => setAssignmentSearch(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         {loading ? (
                             <p className="text-sm text-muted-foreground">Загрузка...</p>
-                        ) : assignmentsOfGroup.length === 0 ? (
+                        ) : filteredAssignmentsOfGroup.length === 0 ? (
                             <p className="text-sm text-muted-foreground">У группы пока нет назначенных дисциплин.</p>
                         ) : (
                             <div className="overflow-x-auto">
@@ -495,7 +631,7 @@ export default function GroupDetails({ groupId }) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {assignmentsOfGroup.map((item) => (
+                                        {filteredAssignmentsOfGroup.map((item) => (
                                             <tr key={item.id} className="border-b last:border-b-0">
                                                 <td className="px-3 py-2">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
                                                 <td className="px-3 py-2">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
@@ -524,12 +660,16 @@ export default function GroupDetails({ groupId }) {
                     </CardContent>
                 </Card>
 
-                <Card className="border-border/80 bg-white/90 shadow-sm">
+                <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="text-base text-[#132844]">Студенты группы</CardTitle>
+                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
+                                <Users className="h-4 w-4 text-cyan-600" />
+                                Студенты группы
+                            </CardTitle>
                             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                <Button type="button" onClick={() => setStudentDialogOpen(true)}>
+                                <Button type="button" className="gap-2" onClick={() => setStudentDialogOpen(true)}>
+                                    <UserPlus className="h-4 w-4" />
                                     Привязать студента
                                 </Button>
                                 <div className="relative w-full sm:w-80">
@@ -589,6 +729,8 @@ export default function GroupDetails({ groupId }) {
                     onOpenChange={(open) => {
                         setStudentDialogOpen(open);
                         if (!open) {
+                            setStudentLookupQuery('');
+                            setAdStudents([]);
                             setStudentForm({ student_key: '', status: 'active' });
                         }
                     }}
@@ -602,18 +744,42 @@ export default function GroupDetails({ groupId }) {
                         </DialogHeader>
 
                         <form className="space-y-3" onSubmit={submitStudentBinding}>
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={studentForm.student_key}
-                                onChange={(e) => setStudentForm((prev) => ({ ...prev, student_key: e.target.value }))}
-                            >
-                                <option value="">Выберите студента (система/AD)</option>
-                                {availableStudentChoices.map((choice) => (
-                                    <option key={choice.key} value={choice.key}>
-                                        {choice.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    className="pl-9"
+                                    placeholder="Поиск по ФИО, login, email (для AD от 2 символов)"
+                                    value={studentLookupQuery}
+                                    onChange={(e) => setStudentLookupQuery(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="max-h-64 overflow-y-auto rounded-md border border-input bg-white">
+                                {studentLookupLoading && <p className="px-3 py-2 text-sm text-muted-foreground">Поиск в AD...</p>}
+
+                                {!studentLookupLoading && availableStudentChoices.length === 0 && (
+                                    <p className="px-3 py-2 text-sm text-muted-foreground">Совпадений не найдено.</p>
+                                )}
+
+                                {!studentLookupLoading && availableStudentChoices.map((choice) => {
+                                    const isSelected = studentForm.student_key === choice.key;
+
+                                    return (
+                                        <button
+                                            key={choice.key}
+                                            type="button"
+                                            className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-3 py-2 text-left last:border-b-0 hover:bg-muted/40 ${isSelected ? 'bg-muted/50' : ''}`}
+                                            onClick={() => setStudentForm((prev) => ({ ...prev, student_key: choice.key }))}
+                                        >
+                                            <span>
+                                                <span className="block text-sm font-medium text-[#132844]">{choice.title}</span>
+                                                <span className="block text-xs text-muted-foreground">{choice.subtitle}</span>
+                                            </span>
+                                            <Badge variant={choice.source === 'ad' ? 'secondary' : 'outline'}>{choice.source.toUpperCase()}</Badge>
+                                        </button>
+                                    );
+                                })}
+                            </div>
 
                             <select
                                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -638,12 +804,21 @@ export default function GroupDetails({ groupId }) {
     );
 }
 
-function MetricCard({ title, value, icon = null }) {
+function MetricCard({ title, value, icon = null, accent = 'cyan' }) {
+    const accentStyles = {
+        cyan: 'from-cyan-500/20 to-cyan-100 border-cyan-200/80',
+        indigo: 'from-indigo-500/20 to-indigo-100 border-indigo-200/80',
+        emerald: 'from-emerald-500/20 to-emerald-100 border-emerald-200/80',
+        amber: 'from-amber-500/20 to-amber-100 border-amber-200/80',
+    };
+
+    const cardTone = accentStyles[accent] || accentStyles.cyan;
+
     return (
-        <Card className="border-border/80 bg-white/90 shadow-sm">
+        <Card className={`overflow-hidden border bg-gradient-to-br ${cardTone} shadow-sm`}>
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
                     <p className="text-2xl font-semibold text-[#132844]">{value}</p>
                 </div>
                 {icon}
