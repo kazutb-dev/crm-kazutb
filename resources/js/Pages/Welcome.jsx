@@ -508,6 +508,12 @@ export default function Welcome({ canLogin }) {
                             >
                                 Открыть каталог
                             </button>
+                            <Link
+                                href={safeRoute('nav.index')}
+                                className="inline-flex min-h-12 items-center justify-center border border-white/30 bg-white/10 px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                            >
+                                Навигация
+                            </Link>
                             <button
                                 type="button"
                                 onClick={() => setIsAiOpen(true)}

@@ -8,6 +8,7 @@ source "${SCRIPT_DIR}/lib_deploy_common.sh"
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
+RUNTIME_ASSET_MANIFEST="${PROD_ROOT}/scripts/deploy/runtime_public_assets_manifest.txt"
 EXPECTED_FREE_GB=20
 
 PASS_COUNT=0
@@ -27,6 +28,56 @@ warn_item() {
 fail_item() {
     echo "FAIL: $*"
     (( FAIL_COUNT++ )) || true
+}
+
+check_runtime_public_assets() {
+    if [[ ! -f "$RUNTIME_ASSET_MANIFEST" ]]; then
+        warn_item "Runtime asset manifest not found: $RUNTIME_ASSET_MANIFEST"
+        return 0
+    fi
+
+    local listed=0
+    while IFS= read -r raw_line; do
+        local rel_path
+        rel_path="$(sed -E 's/#.*$//' <<< "$raw_line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+        [[ -n "$rel_path" ]] || continue
+
+        listed=$(( listed + 1 ))
+
+        if [[ "$rel_path" != public/* ]]; then
+            fail_item "Invalid runtime asset path in manifest (must start with public/): $rel_path"
+            continue
+        fi
+
+        local prod_path="$PROD_ROOT/$rel_path"
+        local dev_path="$DEV_ROOT/$rel_path"
+
+        if [[ ! -f "$prod_path" ]]; then
+            fail_item "Missing runtime asset in PROD: $rel_path"
+            continue
+        fi
+
+        if [[ ! -f "$dev_path" ]]; then
+            fail_item "Missing runtime asset in DEV: $rel_path"
+            continue
+        fi
+
+        pass "Runtime asset exists in both envs: $rel_path"
+
+        local prod_hash dev_hash
+        prod_hash="$(sha256sum "$prod_path" | awk '{print $1}')"
+        dev_hash="$(sha256sum "$dev_path" | awk '{print $1}')"
+
+        if [[ "$prod_hash" == "$dev_hash" ]]; then
+            pass "Runtime asset hash is synced: $rel_path"
+        else
+            warn_item "Runtime asset hash differs: $rel_path (use deploy.sh sync-runtime --type public-assets --direction dev-to-prod|prod-to-dev)"
+        fi
+    done < "$RUNTIME_ASSET_MANIFEST"
+
+    if [[ "$listed" -eq 0 ]]; then
+        warn_item "Runtime asset manifest is empty: $RUNTIME_ASSET_MANIFEST"
+    fi
 }
 
 safe_check() {
@@ -83,6 +134,12 @@ fi
 
 [[ -x "$BACKUP_SCRIPT" ]] && pass "Backup script exists and executable" || fail_item "Backup script missing or not executable"
 
+if command -v sha256sum >/dev/null 2>&1; then
+    pass "sha256sum command is available"
+else
+    fail_item "sha256sum command is missing"
+fi
+
 avail_gb="$(df -BG "$PROD_ROOT" | awk 'NR==2 {gsub(/G/,"",$4); print $4}')"
 if [[ -n "$avail_gb" && "$avail_gb" -ge "$EXPECTED_FREE_GB" ]]; then
     pass "Disk free space is ${avail_gb}G (>= ${EXPECTED_FREE_GB}G)"
@@ -138,6 +195,8 @@ else
         fail_item "No valid completed PROD full snapshot exists"
     fi
 fi
+
+check_runtime_public_assets
 
 protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev || true)"
 if [[ -n "$protected_deletes" ]]; then

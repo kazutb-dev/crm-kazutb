@@ -31,7 +31,9 @@ Commands:
       Sync runtime data/media DEV→PROD without touching code.
       --type navigation    Sync navigation_routes map_image_path/map_polyline
                            + storage/app/public/nav/ files.
-      (future types: questionnaire-media, public-assets)
+      --type public-assets Sync required runtime public assets listed in
+                           scripts/deploy/runtime_public_assets_manifest.txt.
+                           Requires --direction dev-to-prod|prod-to-dev.
 
   prod-to-dev [--dry-run] [--yes] [--skip-db] [--skip-files]
               [--skip-build] [--skip-migrate] [--no-auto-recover]
@@ -97,16 +99,18 @@ case "$CMD" in
                 exec "${SCRIPT_DIR}/sync_navigation_media_to_prod.sh" \
                     "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
                 ;;
+            public-assets)
+                exec "${SCRIPT_DIR}/sync_public_assets.sh" \
+                    "${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}"
+                ;;
             "")
                 echo "[deploy] ERROR: sync-runtime requires --type <type>" >&2
-                echo "  Available types: navigation" >&2
-                echo "  Future types (planned): questionnaire-media, public-assets" >&2
+                echo "  Available types: navigation, public-assets" >&2
                 exit 1
                 ;;
             *)
                 echo "[deploy] ERROR: Unknown sync-runtime type: '${SYNC_TYPE}'" >&2
-                echo "  Available types: navigation" >&2
-                echo "  Future types (planned): questionnaire-media, public-assets" >&2
+                echo "  Available types: navigation, public-assets" >&2
                 exit 1
                 ;;
         esac

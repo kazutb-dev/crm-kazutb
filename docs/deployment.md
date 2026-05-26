@@ -1,232 +1,300 @@
-# KazUTB CRM Deployment Runbook
+# Deployment Toolkit (PROD + DEV)
 
-## 1. Golden rules
+## 1. Архитектура окружений
 
-- Все release/backup/runtime sync операции выполняются только через единый CLI: `./scripts/deploy/deploy.sh`.
-- Запрещено запускать destructive DB команды в production workflow:
-  - `migrate:fresh`, `migrate:refresh`, `migrate:reset`, `migrate:rollback`
-  - `db:wipe`, `db:seed`, `migrate --seed`
-- Никаких real release / real prod-to-dev без отдельного явного подтверждения оператора.
-- Dry-run режим обязан быть non-mutating.
-- Никогда не коммитить `.env`, `backups/`, SQL/TAR dumps, `vendor/`, `node_modules/`, `storage/`, `public/build/`, `skills/`.
-- Если обнаружен dirty state в PROD/DEV перед критической операцией, сначала разбор и подтверждение.
+- PROD: /var/www/laravel-react
+- DEV: /var/www/laravel-react-dev
+- GitHub: https://github.com/kazutb-dev/crm-kazutb.git
+- PROD branch: main
+- DEV branch: dev
+- PROD DB = source of truth для реальных данных пользователей.
+- DEV обновляется из PROD для актуальной разработки и проверки.
 
-## 2. Environments
+## 2. Основные правила
 
-- PROD:
-  - path: `/var/www/laravel-react`
-  - branch: `main`
-  - URL: `https://crm.kaztbu.edu.kz`
-  - DB: `laravel_react`
-- DEV:
-  - path: `/var/www/laravel-react-dev`
-  - branch: `dev`
-  - URL: `https://dev-crm.kaztbu.edu.kz`
-  - DB: `laravel_react_dev`
+- Релиз в PROD только через GitHub flow: dev -> main, затем pull на PROD.
+- Никакого rsync-деплоя между серверами.
+- DEV database никогда не копируется поверх PROD database.
+- PROD database копируется в DEV только через PROD backup dump и DEV credentials.
+- Перед любым deploy в PROD обязательно:
+  - backup PROD
+  - git checkpoint/tag
+- Seeders для PROD только idempotent:
+  - updateOrCreate
+  - firstOrCreate
+  - upsert
+- Нельзя делать destructive операции без backup и явного подтверждения.
+- Нельзя коммитить .env, backups, sql/tar dumps, vendor, node_modules, skills.
+- На PROD не запускать тесты в deploy-скриптах.
 
-## 3. Main CLI: deploy.sh
+### Инварианты после инцидента DEV sync/deploy
 
-Единая точка входа:
+- Любой state-changing script обязан проходить через checkpoint + backup + post-check.
+- Никаких push в удаленный branch до успешного завершения всех post-check.
+- Dry-run режим должен быть строго non-mutating (без reset/push/db restore/tar extract).
+- Любая ошибка sync/release должна оставлять понятную recovery-инструкцию (checkpoint branch/tag + backup path).
+- Удаления protected-path блокируются по умолчанию (нужен явный override).
+- В PROD/DEV запрещены reset/seed/fresh/wipe команды в deploy toolchain.
+
+## 3. Ежедневная работа
+
+### Если правили PROD напрямую
+
+1. Зафиксировать изменения и backup:
+   - ./scripts/deploy/pre_deploy_prod_checkpoint.sh
+2. Проверить checkpoint tag и backup dir в выводе.
+
+### Если работаем в DEV
+
+1. Вести изменения только в branch dev.
+2. Проверять безопасность:
+   - ./scripts/deploy/deploy.sh safety
+   - _или напрямую:_ ./scripts/deploy/check_deploy_safety.sh
+3. Перед deploy в PROD запускать dry-run:
+   - ./scripts/deploy/deploy.sh release --dry-run
+   - _или напрямую:_ ./scripts/deploy/dev_to_prod_release.sh --dry-run
+
+### Если нужно освежить DEV из PROD
+
+1. Запустить:
+   - ./scripts/deploy/deploy.sh prod-to-dev
+   - _или напрямую:_ ./scripts/deploy/prod_to_dev_sync.sh
+2. Скрипт создаёт backup DEV перед перезаписью и backup PROD перед синком.
+3. DEV .env сохраняется и восстанавливается обратно.
+4. Код DEV приводится к origin/main и пушится в origin/dev.
+
+## 4. Команды
+
+### deploy.sh — унифицированный точка входа (рекомендован)
+
+Все команды доступны через единый скрипт `./scripts/deploy/deploy.sh <command>`.
 
 ```bash
-./scripts/deploy/deploy.sh help
-./scripts/deploy/deploy.sh safety
-./scripts/deploy/deploy.sh release --dry-run
-./scripts/deploy/deploy.sh release
-./scripts/deploy/deploy.sh sync-runtime --type navigation --dry-run
-./scripts/deploy/deploy.sh sync-runtime --type navigation
-./scripts/deploy/deploy.sh backup-prod --dry-run
-./scripts/deploy/deploy.sh backup-prod
-./scripts/deploy/deploy.sh prod-to-dev --dry-run
-./scripts/deploy/deploy.sh prod-to-dev
-./scripts/deploy/deploy.sh rollback --tag TAG --dry-run
-./scripts/deploy/deploy.sh rollback --tag TAG
+./scripts/deploy/deploy.sh help           # показать справку
+./scripts/deploy/deploy.sh safety         # 24+ pre-deploy проверок
+./scripts/deploy/deploy.sh release [--dry-run] [--yes] [--no-migrate] [--skip-build]
+./scripts/deploy/deploy.sh sync-runtime --type navigation [--dry-run] [--yes]
+./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod [--dry-run] [--yes]
+./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev [--dry-run] [--yes]
+./scripts/deploy/deploy.sh prod-to-dev [--dry-run] [--yes] [--skip-db] ...
+./scripts/deploy/deploy.sh rollback --tag TAG [--dry-run] [--yes]
+./scripts/deploy/deploy.sh backup-prod [--dry-run]
 ./scripts/deploy/deploy.sh ssl-check
 ```
 
-Поведение CLI:
+Прямые вызовы скриптов также работают (см. ниже) — `deploy.sh` оборачивает их без изменений.
 
-- unknown command -> non-zero exit + help hint
-- `sync-runtime` без `--type` -> non-zero + список поддерживаемых/планируемых типов
-- `rollback` без `--tag` -> non-zero + подсказка по тегам
+### Ensure DEV branch
 
-## 4. Daily DEV work
+- ./scripts/deploy/ensure_dev_branch.sh
+- dry-run: ./scripts/deploy/ensure_dev_branch.sh --dry-run
 
-Базовый цикл:
+### Backup PROD checkpoint
 
-1. Работаем в DEV (`dev` branch).
-2. Перед подготовкой релиза:
-   - `./scripts/deploy/deploy.sh safety`
-   - `./scripts/deploy/deploy.sh release --dry-run`
-3. Если нужен runtime sync навигации:
-   - `./scripts/deploy/deploy.sh sync-runtime --type navigation --dry-run`
+- ./scripts/deploy/pre_deploy_prod_checkpoint.sh
+- dry-run: ./scripts/deploy/pre_deploy_prod_checkpoint.sh --dry-run
 
-## 5. DEV -> PROD release
+### Refresh DEV from PROD
 
-Рекомендуемый поток:
+- ./scripts/deploy/prod_to_dev_sync.sh
+- dry-run: ./scripts/deploy/prod_to_dev_sync.sh --dry-run
+- non-interactive checkpoint (если PROD dirty): ./scripts/deploy/prod_to_dev_sync.sh --yes
+- без DB restore: ./scripts/deploy/prod_to_dev_sync.sh --skip-db
+- без file restore: ./scripts/deploy/prod_to_dev_sync.sh --skip-files
+- без build: ./scripts/deploy/prod_to_dev_sync.sh --skip-build
+- без migrate: ./scripts/deploy/prod_to_dev_sync.sh --skip-migrate
+- не выполнять auto-recover при ошибке: ./scripts/deploy/prod_to_dev_sync.sh --no-auto-recover
+- автоматически исправить отсутствующий APP_KEY в DEV: ./scripts/deploy/prod_to_dev_sync.sh --fix-dev-app-key
+- legacy wrapper: ./scripts/deploy/refresh_dev_from_prod.sh
 
-1. `./scripts/deploy/deploy.sh safety`
-2. `./scripts/deploy/deploy.sh release --dry-run`
-3. `./scripts/deploy/deploy.sh release`
+### Deploy DEV to PROD
 
-Гарантии release flow:
+- ./scripts/deploy/dev_to_prod_release.sh
+- dry-run: ./scripts/deploy/dev_to_prod_release.sh --dry-run
+- non-interactive yes: ./scripts/deploy/dev_to_prod_release.sh --yes
+- no migrate: ./scripts/deploy/dev_to_prod_release.sh --no-migrate
+- skip build: ./scripts/deploy/dev_to_prod_release.sh --skip-build
+- explicit override for protected-path deletion (only with manual approval): ./scripts/deploy/dev_to_prod_release.sh --force-protected-delete
+- legacy wrapper: ./scripts/deploy/deploy_dev_to_prod.sh
 
-- `release --dry-run` не выполняет backup/tag/merge/build/migrate/push
-- реальный release требует clean PROD working tree
-- перед merge выполняется pre-deploy checkpoint (backup + tag)
-- push `origin main` выполняется только после успешного build/migrate/health
-- при ошибке до push локальный `main` откатывается на старый HEAD
-- при ошибке после push auto rollback не делается, печатается ручная rollback команда
+### Rollback PROD code to tag
 
-## 6. Runtime data sync: navigation media/data
+- ./scripts/deploy/rollback_prod_to_tag.sh pre-deploy-YYYYMMDD-HHMMSS --yes
+- dry-run: ./scripts/deploy/rollback_prod_to_tag.sh pre-deploy-YYYYMMDD-HHMMSS --dry-run
 
-Команда:
+### Safety check
 
-```bash
-./scripts/deploy/deploy.sh sync-runtime --type navigation
-```
+- ./scripts/deploy/check_deploy_safety.sh
 
-Логика:
+### Navigation Media/Data Sync (targeted)
 
-- проверка дубликатов `room,title` в DEV и PROD (`COUNT(*) > 1` -> stop)
-- сравнение только `map_image_path` и `map_polyline`
-- если diff нет:
-  - `No navigation map differences found.`
-  - `Nothing to sync.`
-  - exit 0
-- если diff есть:
-  - печать таблицы diff
-  - печать количества строк
-  - предпросмотр файлов `storage/app/public/nav`, которые будут копироваться
-  - подтверждение `YES` для real run
-  - backup `navigation_routes` в `backups/nav_fix_*`
-  - update только `map_image_path`, `map_polyline`
-  - rsync только nav-папки
-  - `storage:link || true`, права, `optimize:clear`
-  - verify HTTPS 200 для map image paths
+- ./scripts/deploy/deploy.sh sync-runtime --type navigation
+- dry-run: ./scripts/deploy/deploy.sh sync-runtime --type navigation --dry-run
+- non-interactive: ./scripts/deploy/deploy.sh sync-runtime --type navigation --yes
+- _или напрямую:_ ./scripts/deploy/sync_navigation_media_to_prod.sh
 
-## 7. PROD hotfix workflow
+Purpose:
 
-Если был ручной hotfix на PROD:
+- DEV->PROD release deploys code only.
+- It must not copy DEV database into PROD.
+- If navigation routes require map media/polylines, sync only navigation_routes.map_image_path, navigation_routes.map_polyline, and storage/app/public/nav/*.
 
-1. Зафиксировать checkpoint/backup.
-2. Привести изменения в Git (`main`) без force push.
-3. Синхронизировать изменения обратно в `dev` через нормальный merge flow.
+Safety rules for this procedure:
 
-## 8. PROD -> DEV sync (rare emergency workflow)
+- Always backup PROD navigation_routes before update.
+- Never run full PROD<-DEV DB import for this scenario.
+- Never run prod_to_dev_sync for fixing PROD navigation media.
+- Only targeted update/copy of navigation fields and nav media is allowed.
 
-Команда:
+### Runtime Public Assets Sync (targeted, bidirectional)
 
-```bash
-./scripts/deploy/deploy.sh prod-to-dev
-```
+- required files are defined in `scripts/deploy/runtime_public_assets_manifest.txt`
+- DEV -> PROD:
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod --dry-run`
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod --yes`
+- PROD -> DEV:
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev --dry-run`
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev --yes`
 
-Важно:
+Safety behavior:
 
-- использовать редко, не как обычный deploy путь
-- `--dry-run` строго non-mutating
-- real run делает checkpoint branch/tag в DEV до изменений
-- DEV `.env` сохраняется и восстанавливается
-- перед overwrite делается backup DEV DB/files/.env
-- `origin/dev` push только после успешного завершения
-- при ошибке локальный auto-recover к checkpoint (если не задан `--no-auto-recover`)
+- `check_deploy_safety.sh` now validates that required runtime assets exist in both envs.
+- Missing file in PROD/DEV is a FAIL.
+- Hash mismatch is a WARN with explicit sync command recommendation.
 
-## 9. Backup policy
+## 9. Post-Incident Hardening Toolkit
 
-Политика для `backup-prod`:
+Новые/обновленные скрипты:
 
-- backup создаётся сначала в `.incomplete`:
-  - `backups/prod_backup_YYYYMMDD_HHMMSS_full_snapshot.incomplete`
-- валидации до finalize:
-  - `gzip -t database_*.sql.gz`
-  - `tar -tzf project_data_*.tar.gz`
-  - наличие `env_*.backup`, `manifest_*.txt`, `SHA256SUMS`
-- только после успешной валидации:
-  - rename `.incomplete` -> final
-  - cleanup old completed snapshots
-- retention:
-  - keep latest `1` completed full snapshot (default)
-- stale `.incomplete`:
-  - cleanup для backup старше 24 часов
-- runtime backups:
-  - keep latest `3` per prefix (`nav_fix_*`, `nginx_ssl_fix_*`)
-  - cleanup best-effort
-  - Permission denied не валит backup/release
-- root-owned runtime backups:
-  - печатается warning + manual cleanup recommendation
-  - автоматический `sudo rm -rf` не выполняется
+- /var/www/laravel-react/scripts/deploy/deploy.sh _(NEW — унифицированный точка входа)_
+- /var/www/laravel-react/scripts/deploy/lib_deploy_common.sh _(+check_node_version)_
+- /var/www/laravel-react/scripts/deploy/check_deploy_safety.sh _(+Node warn, +backup validity)_
+- /var/www/laravel-react/scripts/deploy/prod_to_dev_sync.sh
+- /var/www/laravel-react/scripts/deploy/dev_to_prod_release.sh
+- /var/www/laravel-react/scripts/deploy/sync_public_assets.sh _(NEW — runtime public assets sync DEV↔PROD)_
+- /var/www/laravel-react/scripts/deploy/runtime_public_assets_manifest.txt _(NEW — required runtime assets list)_
+- /var/www/laravel-react/scripts/backup_prod.sh _(BACKUP_KEEP_COUNT=1, .incomplete pattern)_
 
-## 10. Rollback
+### Backup retention policy (hardened)
 
-Code rollback:
+- **BACKUP_KEEP_COUNT=1** по умолчанию (было 2). Хранится только 1 завершённый full_snapshot.
+- **`.incomplete` паттерн**: backup пишется в `prod_backup_TIMESTAMP_full_snapshot.incomplete`
+  и переименовывается в финальный путь только после успешной валидации gzip/tar.
+- `.incomplete` каталоги старше 24 часов удаляются при следующем запуске cleanup.
+- Runtime backups (`nav_fix_*`, `nginx_ssl_fix_*`) хранятся по **RUNTIME_BACKUP_KEEP_COUNT=3**.
+- `cleanup_only_*` каталоги (артефакты CLEANUP_ONLY-режима) удаляются полностью при cleanup.
+- `pre_seeder_backup_*`, `db_backup_*`, `laravel_react_*`, loose `*.sql.gz`/`*.tar.gz` — keep 1 each.
 
-```bash
-./scripts/deploy/deploy.sh rollback --tag TAG --dry-run
-./scripts/deploy/deploy.sh rollback --tag TAG
-```
+Что теперь обязательно проверяется автоматически:
 
-Примечания:
+- protected deletions (scripts/deploy/config/docs/package manifests)
+- dangerous migration patterns в up()
+- APP_KEY + .env readability через www-data association
+- storage/bootstrap writeability
+- HTTP anti-500 checks для PROD/DEV endpoints
+- ssl_guard_check.sh pass
+- forbidden deploy commands (seed/reset/fresh/wipe/test) в deploy-скриптах
 
-- rollback в этом workflow касается кода
-- DB restore вручную и только после отдельной оценки риска
-- автоматический DB rollback не выполняется
+Минимальный safe validation после изменения toolkit:
 
-## 11. Troubleshooting
+- chmod +x scripts/deploy/*.sh
+- bash -n scripts/deploy/*.sh
+- ./scripts/deploy/check_deploy_safety.sh || true
+- ./scripts/deploy/prod_to_dev_sync.sh --dry-run || true
+- ./scripts/deploy/dev_to_prod_release.sh --dry-run || true
+- ./scripts/deploy/ssl_guard_check.sh || true
 
-### DEV dirty
+## 10. Navigation media/data after DEV->PROD release
 
-- Проверить `git status --short`.
-- Зафиксировать/отложить локальные изменения до deploy операций.
+Incident lesson:
 
-### Node v18 warning
+- Code release and runtime navigation data are separate concerns.
+- Missing map_image_path/map_polyline or missing files in storage/app/public/nav can break route preview on PROD even when frontend build is correct.
 
-- Safety может дать WARN для Node `< 20.19`.
-- Это warning, не hard fail.
+Safe remediation flow:
 
-### Backup permission denied
+1. Compare DEV/PROD navigation_routes for target rooms.
+2. Backup PROD navigation_routes.
+3. Update only map_image_path + map_polyline in PROD from DEV.
+4. Copy only storage/app/public/nav from DEV to PROD.
+5. Clear caches and validate HTTPS image URLs return 200.
 
-- Обычно связано с root-owned runtime backup dirs (например, `nginx_ssl_fix_*`).
-- Новое поведение: warning + continue (best-effort cleanup).
+Do not do:
 
-### Navigation image missing
+- Full DEV DB import to PROD.
+- Full sync scripts for this case.
 
-- Запустить `sync-runtime --type navigation --dry-run`.
-- Проверить diff map fields и rsync preview.
-- После real sync проверить HTTP 200 для map images.
+## 5. Что делать при ошибке deploy
 
-### MissingAppKeyException / .env permissions
+1. Остановить дальнейшие изменения.
+2. Посмотреть deploy report в storage/app/deploy_reports.
+3. Выполнить rollback к pre-deploy tag:
+   - ./scripts/deploy/rollback_prod_to_tag.sh <tag> --yes
+4. Проверить приложение:
+   - php artisan about
+   - tail -n 200 storage/logs/laravel.log
 
-- Убедиться, что `APP_KEY` существует в `.env`.
-- Проверить owner/group/perms и доступность для `www-data`.
+## 6. Что делать при ошибке данных
 
-## 12. Standard command cheat sheet
+1. Не выполнять автоматический db rollback без анализа.
+2. Использовать backup из /var/www/laravel-react/backups.
+3. Восстановление данных проводить вручную из database_*.sql.gz в безопасном окне.
+4. Зафиксировать инцидент и причину в отдельном отчёте.
+5. rollback_prod_to_tag.sh откатывает только код, не откатывает базу автоматически.
 
-```bash
-# Safety baseline
-./scripts/deploy/deploy.sh safety
+## 7. Что нельзя делать никогда
 
-# Release planning
-./scripts/deploy/deploy.sh release --dry-run
+- Копировать DEV DB в PROD.
+- Запускать migrate:fresh, db:wipe в PROD.
+- Делать git clean -fd на PROD.
+- Коммитить .env и backup-артефакты в git.
+- Пропускать pre-deploy backup/checkpoint перед deploy.
 
-# Real release (only after explicit approval)
-./scripts/deploy/deploy.sh release
+## 8. Антиповтор SSL-инцидента (обязательно)
 
-# Navigation runtime sync
-./scripts/deploy/deploy.sh sync-runtime --type navigation --dry-run
-./scripts/deploy/deploy.sh sync-runtime --type navigation
+Проблема, которая уже была: сертификат в файле правильный, но runtime nginx отдаёт старый сертификат из памяти.
 
-# PROD backup
-./scripts/deploy/deploy.sh backup-prod --dry-run
-./scripts/deploy/deploy.sh backup-prod
+### Быстрая ручная проверка
 
-# Emergency DEV refresh from PROD
-./scripts/deploy/deploy.sh prod-to-dev --dry-run
-./scripts/deploy/deploy.sh prod-to-dev
+- Проверить сертификат в файле:
+   - openssl x509 -in /var/www/laravel-react/ssl/fullchain.pem -noout -subject -issuer -fingerprint -sha256
+- Проверить live сертификат:
+   - echo | openssl s_client -connect crm.kaztbu.edu.kz:443 -servername crm.kaztbu.edu.kz 2>/dev/null | openssl x509 -noout -subject -issuer -fingerprint -sha256
+   - echo | openssl s_client -connect dev-crm.kaztbu.edu.kz:443 -servername dev-crm.kaztbu.edu.kz 2>/dev/null | openssl x509 -noout -subject -issuer -fingerprint -sha256
 
-# Rollback
-./scripts/deploy/deploy.sh rollback --tag TAG --dry-run
-./scripts/deploy/deploy.sh rollback --tag TAG
+Если fingerprint не совпадает, выполнить:
 
-# SSL guard check
-./scripts/deploy/deploy.sh ssl-check
-```
+- sudo systemctl reload nginx
+
+### Автоматическая защита
+
+Добавлены скрипты:
+
+- /var/www/laravel-react/scripts/deploy/ssl_guard_check.sh
+- /var/www/laravel-react/scripts/deploy/ssl_guard_install.sh
+
+Что делает ssl_guard_check.sh:
+
+- проверяет соответствие cert/key
+- проверяет срок действия сертификата
+- сравнивает fingerprint файла и live endpoint (local/public) для crm/dev
+- при флаге --reload-on-mismatch делает systemctl reload nginx и повторно проверяет
+
+Установка периодической проверки (каждые 10 минут):
+
+- sudo /var/www/laravel-react/scripts/deploy/ssl_guard_install.sh
+
+После установки:
+
+- systemctl status ssl-guard.timer
+- journalctl -u ssl-guard.service -n 100 --no-pager
+
+### Регламент после замены сертификатов
+
+1. Заменить /var/www/laravel-react/ssl/fullchain.pem и /var/www/laravel-react/ssl/private.key
+2. Выполнить:
+    - sudo systemctl reload nginx
+3. Проверить:
+    - curl -I https://crm.kaztbu.edu.kz/
+    - curl -I https://dev-crm.kaztbu.edu.kz/
+4. Если не совпадает fingerprint/live — запустить ssl_guard_check.sh и исправить до green-состояния.
