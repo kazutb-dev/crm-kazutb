@@ -3,7 +3,7 @@
 **Initialized:** 2026-05-26  
 **Project Code:** CRM-KAZUTB  
 **Current Phase:** 1 — Baseline Safety Enforcement  
-**Workflow Stage:** new-project complete
+**Workflow Stage:** phase-1 planned
 
 ## Project Reference
 
@@ -35,4 +35,13 @@ See: `.planning/PROJECT.md` (updated 2026-05-26)
 
 ## Routing
 
-Next command: `/gsd-plan-phase 1`
+Next command: `/gsd-execute-phase 1`
+
+## Planning Progress
+
+- Phase 1 planning completed with verification passed.
+- Plan artifacts:
+  - `.planning/phases/phase-001-baseline-safety-enforcement/phase-001-CONTEXT.md`
+  - `.planning/phases/phase-001-baseline-safety-enforcement/phase-001-RESEARCH.md`
+  - `.planning/phases/phase-001-baseline-safety-enforcement/phase-001-VALIDATION.md`
+  - `.planning/phases/phase-001-baseline-safety-enforcement/phase-001-01-PLAN.md`

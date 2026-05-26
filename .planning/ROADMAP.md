@@ -23,6 +23,16 @@
 - Operators can see migration preflight output before release execution.
 - Team runbook references only dev-repo deploy entrypoint.
 
+### Plan Waves
+
+- **Wave 1:** `phase-001-01-PLAN.md`
+
+### Cross-cutting Constraints
+
+- Production git tree must remain clean before release.
+- Deploy mutations must be initiated from `/var/www/laravel-react-dev` through `scripts/deploy/deploy.sh`.
+- Migration preflight visibility is mandatory before release execution.
+
 ---
 
 ## Phase 2: Migration Control & Critical Operation Guardrails
