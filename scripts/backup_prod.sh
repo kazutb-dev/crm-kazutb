@@ -210,7 +210,7 @@ validate_completed_backup_dir() {
 
     gzip -t "${db_file}" >/dev/null 2>&1 || return 1
     tar -tzf "${data_file}" >/dev/null 2>&1 || return 1
-    sha256sum -c "${sha_file}" >/dev/null 2>&1 || return 1
+    (cd "${backup_dir}" && sha256sum -c "SHA256SUMS" >/dev/null 2>&1) || return 1
 
     return 0
 }
@@ -345,7 +345,11 @@ write_manifest_and_sha() {
     } > "${MANIFEST_FILE}"
 
     # Exclude manifest from SHA file list to avoid self-referential mismatch.
-    find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'manifest_*.txt' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
+    # Generate relative paths so checksum file remains valid after .incomplete -> final rename.
+    (
+        cd "${BACKUP_DIR}"
+        find . -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'manifest_*.txt' -printf '%P\0' | xargs -0 sha256sum > "SHA256SUMS"
+    )
 
     {
         echo
@@ -589,7 +593,10 @@ cleanup_old_backups
     echo "misc_files_removed=${MISC_FILES_REMOVED}"
 } >> "${MANIFEST_FILE}"
 
-find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
+    (
+        cd "${BACKUP_DIR}"
+        find . -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'manifest_*.txt' -printf '%P\0' | xargs -0 sha256sum > "SHA256SUMS"
+    )
 
 LATEST_VALID_BACKUP="$(find_latest_valid_full_backup || true)"
 [[ -n "${LATEST_VALID_BACKUP}" ]] || err "No valid completed full snapshot found after backup and cleanup"
