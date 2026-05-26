@@ -41,6 +41,17 @@ require_path() {
     [[ "$current_path" == "$expected_path" ]] || fail "Wrong path: $current_path (expected $expected_path)"
 }
 
+require_release_routed_via_deploy() {
+    local expected_dev_root="${1:-$DEV_ROOT_DEFAULT}"
+    if [[ "${DEPLOY_ROUTED_BY_ENTRYPOINT:-0}" != "1" ]]; then
+        fail "Direct execution blocked. Run release from ${expected_dev_root}: ./scripts/deploy/deploy.sh release --dry-run"
+    fi
+
+    if [[ "${DEPLOY_ENTRYPOINT_ROOT:-}" != "$expected_dev_root" ]]; then
+        fail "Release routing context invalid. Re-run from ${expected_dev_root}: ./scripts/deploy/deploy.sh release --dry-run"
+    fi
+}
+
 require_branch() {
     local expected="$1"
     local branch

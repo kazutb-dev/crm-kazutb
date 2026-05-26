@@ -159,7 +159,12 @@ run_locked_script() {
     info "Lock acquired: $LOCK_FILE"
 
     set +e
-    DEPLOY_LOCK_HELD=1 DEPLOY_LOCK_OPERATION="$op" "$script" "$@"
+    DEPLOY_LOCK_HELD=1 \
+    DEPLOY_LOCK_OPERATION="$op" \
+    DEPLOY_ROUTED_BY_ENTRYPOINT=1 \
+    DEPLOY_ENTRYPOINT_ROOT="$DEV_ROOT" \
+    DEPLOY_ENTRYPOINT_COMMAND="$op" \
+    "$script" "$@"
     rc=$?
     set -e
 
@@ -172,6 +177,20 @@ run_locked_script() {
 
     release_lock
     return "$rc"
+}
+
+require_dev_checkout_for_mutation() {
+    local cmd="$1"
+    local current_root
+    local expected_root
+    current_root="$(pwd -P)"
+    expected_root="$(cd "$DEV_ROOT" 2>/dev/null && pwd -P || echo "$DEV_ROOT")"
+
+    if [[ "$current_root" != "$expected_root" ]]; then
+        err "Command '$cmd' must be initiated from ${DEV_ROOT}."
+        err "Re-run from ${DEV_ROOT}: ./scripts/deploy/deploy.sh $cmd ..."
+        return 1
+    fi
 }
 
 show_history() {
@@ -356,6 +375,12 @@ EOF
 dispatch() {
     local cmd="${1:-help}"
     shift 2>/dev/null || true
+
+    case "$cmd" in
+        release|backup-prod|sync-runtime|prod-to-dev|rollback)
+            require_dev_checkout_for_mutation "$cmd" || return 1
+            ;;
+    esac
 
     case "$cmd" in
         safety)

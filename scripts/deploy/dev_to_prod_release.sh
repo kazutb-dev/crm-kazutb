@@ -5,12 +5,14 @@ LOG_PREFIX="[release]"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib_deploy_common.sh"
 
-begin_operation_lock "dev-to-prod-release"
-trap 'end_operation_lock' EXIT
-
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 CHECKPOINT_SCRIPT="${PROD_ROOT}/scripts/deploy/pre_deploy_prod_checkpoint.sh"
+
+require_release_routed_via_deploy "$DEV_ROOT"
+
+begin_operation_lock "dev-to-prod-release"
+trap 'end_operation_lock' EXIT
 
 DRY_RUN=0
 ASSUME_YES=0
