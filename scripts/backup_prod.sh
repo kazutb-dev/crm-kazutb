@@ -188,9 +188,12 @@ remove_file_best_effort() {
 
 validate_completed_backup_dir() {
     local backup_dir="$1"
+    local allow_incomplete="${2:-0}"
 
     [[ -d "${backup_dir}" ]] || return 1
-    [[ "${backup_dir}" != *.incomplete ]] || return 1
+    if [[ "${allow_incomplete}" != "1" ]]; then
+        [[ "${backup_dir}" != *.incomplete ]] || return 1
+    fi
 
     local db_file data_file env_file manifest_file sha_file
     db_file="$(find "${backup_dir}" -maxdepth 1 -type f -name 'database_*.sql.gz' | head -n1 || true)"
@@ -207,6 +210,7 @@ validate_completed_backup_dir() {
 
     gzip -t "${db_file}" >/dev/null 2>&1 || return 1
     tar -tzf "${data_file}" >/dev/null 2>&1 || return 1
+    sha256sum -c "${sha_file}" >/dev/null 2>&1 || return 1
 
     return 0
 }
@@ -340,7 +344,8 @@ write_manifest_and_sha() {
         fi
     } > "${MANIFEST_FILE}"
 
-    find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
+    # Exclude manifest from SHA file list to avoid self-referential mismatch.
+    find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'manifest_*.txt' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
 
     {
         echo
@@ -419,6 +424,15 @@ DB_USERNAME="$(get_env_value "DB_USERNAME" "${ENV_FILE}")"
 DB_PASSWORD="$(get_env_value "DB_PASSWORD" "${ENV_FILE}")"
 DB_CONNECTION="${DB_CONNECTION:-mysql}"
 
+if command -v pigz >/dev/null 2>&1; then
+    GZIP_CMD=(pigz -1 -c)
+    TAR_COMPRESS_PROGRAM="pigz -1"
+    log "Using pigz for faster compression."
+else
+    GZIP_CMD=(gzip -1 -c)
+    TAR_COMPRESS_PROGRAM="gzip -1"
+fi
+
 mkdir -p "${BACKUP_DIR}"
 [[ -d "${BACKUP_DIR}" ]] || err "Failed to create backup dir: ${BACKUP_DIR}"
 
@@ -463,9 +477,10 @@ if [[ "${DB_CONNECTION}" == "sqlite" ]]; then
     [[ -f "${SQLITE_PATH}" ]] || err "SQLite DB file not found: ${SQLITE_PATH}"
 
     SQLITE_COPY="${BACKUP_DIR}/database_${TIMESTAMP}.sqlite"
-    cp "${SQLITE_PATH}" "${SQLITE_COPY}"
-    gzip -f "${SQLITE_COPY}"
     DB_BACKUP_FILE="${SQLITE_COPY}.gz"
+    cp "${SQLITE_PATH}" "${SQLITE_COPY}"
+    "${GZIP_CMD[@]}" < "${SQLITE_COPY}" > "${DB_BACKUP_FILE}"
+    rm -f "${SQLITE_COPY}"
 else
     [[ -n "${DB_DATABASE}" ]] || err "DB_DATABASE is empty"
     [[ -n "${DB_HOST}" ]] || err "DB_HOST is empty"
@@ -485,7 +500,7 @@ else
         -P"${DB_PORT}" \
         -u"${DB_USERNAME}" \
         "${DB_DATABASE}" \
-        | gzip -c > "${DB_BACKUP_FILE}"
+        | "${GZIP_CMD[@]}" > "${DB_BACKUP_FILE}"
 fi
 
 [[ -f "${DB_BACKUP_FILE}" && -s "${DB_BACKUP_FILE}" ]] || err "Database backup missing or empty: ${DB_BACKUP_FILE}"
@@ -504,7 +519,7 @@ done
 [[ "${#PROJECT_DATA_ITEMS[@]}" -gt 0 ]] || err "No project data items found to archive"
 
 set +e
-tar -czf "${PROJECT_DATA_ARCHIVE_FILE}" \
+tar --use-compress-program="${TAR_COMPRESS_PROGRAM}" -cf "${PROJECT_DATA_ARCHIVE_FILE}" \
     -C "${PROJECT_ROOT}" \
     --warning=no-file-changed \
     --ignore-failed-read \
@@ -531,7 +546,7 @@ tar -tzf "${PROJECT_DATA_ARCHIVE_FILE}" >/dev/null || err "Project data archive 
 
 write_manifest_and_sha 0 0
 
-validate_completed_backup_dir "${BACKUP_DIR}" || err "Backup validation failed before finalization. Inspect ${BACKUP_DIR}"
+validate_completed_backup_dir "${BACKUP_DIR}" 1 || err "Backup validation failed before finalization. Inspect ${BACKUP_DIR}"
 
 log "Backup files validated. Renaming .incomplete -> final..."
 mv "${BACKUP_DIR}" "${BACKUP_DIR_FINAL}"
