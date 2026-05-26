@@ -7,6 +7,7 @@ Purpose: protect production stability by enforcing one release path and strict p
 ## Non-Negotiable Rules
 
 - Use only `./scripts/deploy/deploy.sh` for all deployment operations.
+- Production release must be initiated from `/var/www/laravel-react-dev` only.
 - Manual direct deploy commands are forbidden for routine operations.
 - No release without explicit operator approval.
 - Rollback is code-only by default; database restore is a separate manual incident action.
@@ -15,8 +16,12 @@ Purpose: protect production stability by enforcing one release path and strict p
 
 - `./scripts/deploy/deploy.sh safety` must pass with no FAIL checks.
 - `./scripts/deploy/deploy.sh release --dry-run` must be reviewed by operator.
+- Dry-run output must include `Migration Preflight` with:
+  - `pending migration` (whether unapplied migrations are detected)
+  - `rollback-feasibility` (LOW/MEDIUM/HIGH advisory signal for origin/main..origin/dev)
 - Latest backup must exist and be valid.
 - PROD working tree must be clean.
+- If PROD tree is dirty, release must fail immediately with `DIRTY PROD BLOCKER` before any migration execution path.
 - Lock status must be clear (`./scripts/deploy/deploy.sh lock-status`).
 
 ## Release Flow (Production)
@@ -31,6 +36,7 @@ Purpose: protect production stability by enforcing one release path and strict p
 ## Forbidden During Release Window
 
 - Running legacy scripts directly for state-changing operations.
+- Running `./scripts/deploy/dev_to_prod_release.sh` directly.
 - Mixing deployment with ad-hoc manual file edits on PROD.
 - Running destructive DB commands without incident process.
 

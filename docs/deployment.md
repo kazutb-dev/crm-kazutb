@@ -20,6 +20,7 @@
 ## 2. Основные правила
 
 - Релиз в PROD только через GitHub flow: dev -> main, затем pull на PROD.
+- Инициировать release разрешено только из `/var/www/laravel-react-dev` через `./scripts/deploy/deploy.sh release`.
 - Никакого rsync-деплоя между серверами.
 - DEV database никогда не копируется поверх PROD database.
 - PROD database копируется в DEV только через PROD backup dump и DEV credentials.
@@ -60,7 +61,8 @@
    - _или напрямую:_ ./scripts/deploy/check_deploy_safety.sh
 3. Перед deploy в PROD запускать dry-run:
    - ./scripts/deploy/deploy.sh release --dry-run
-   - _или напрямую:_ ./scripts/deploy/dev_to_prod_release.sh --dry-run
+   - вывод должен содержать блок `Migration Preflight` с полями `pending migration` и `rollback-feasibility`
+   - если PROD dirty, release останавливается с `DIRTY PROD BLOCKER` до любых migrate-операций
 
 ### Если нужно освежить DEV из PROD
 
@@ -90,7 +92,7 @@
 ./scripts/deploy/deploy.sh ssl-check
 ```
 
-Прямые вызовы скриптов также работают (см. ниже) — `deploy.sh` оборачивает их без изменений.
+Для production release прямые вызовы `dev_to_prod_release.sh` запрещены: используйте только `deploy.sh release`.
 
 ### Ensure DEV branch
 
@@ -115,15 +117,15 @@
 - автоматически исправить отсутствующий APP_KEY в DEV: ./scripts/deploy/prod_to_dev_sync.sh --fix-dev-app-key
 - legacy wrapper: ./scripts/deploy/refresh_dev_from_prod.sh
 
-### Deploy DEV to PROD
+### Deploy DEV to PROD (authoritative path)
 
-- ./scripts/deploy/dev_to_prod_release.sh
-- dry-run: ./scripts/deploy/dev_to_prod_release.sh --dry-run
-- non-interactive yes: ./scripts/deploy/dev_to_prod_release.sh --yes
-- no migrate: ./scripts/deploy/dev_to_prod_release.sh --no-migrate
-- skip build: ./scripts/deploy/dev_to_prod_release.sh --skip-build
-- explicit override for protected-path deletion (only with manual approval): ./scripts/deploy/dev_to_prod_release.sh --force-protected-delete
-- legacy wrapper: ./scripts/deploy/deploy_dev_to_prod.sh
+- запускать только из `/var/www/laravel-react-dev`
+- ./scripts/deploy/deploy.sh release
+- dry-run: ./scripts/deploy/deploy.sh release --dry-run --yes
+- no migrate: ./scripts/deploy/deploy.sh release --no-migrate
+- skip build: ./scripts/deploy/deploy.sh release --skip-build
+- explicit override for protected-path deletion (only with manual approval): ./scripts/deploy/deploy.sh release --force-protected-delete
+- direct `./scripts/deploy/dev_to_prod_release.sh ...` — **prohibited**
 
 ### Rollback PROD code to tag
 
