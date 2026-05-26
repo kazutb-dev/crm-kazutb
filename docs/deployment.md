@@ -1,5 +1,12 @@
 # Deployment Toolkit (PROD + DEV)
 
+## Platform Console (new)
+
+- Primary operational guide for the redesigned interactive deployment platform:
+   ./docs/deployment-platform.md
+- Main interactive entrypoint:
+   ./scripts/deploy/deploy.sh
+
 ## 1. Архитектура окружений
 
 - PROD: /var/www/laravel-react
@@ -30,7 +37,8 @@
 ### Инварианты после инцидента DEV sync/deploy
 
 - Любой state-changing script обязан проходить через checkpoint + backup + post-check.
-- Никаких push в удаленный branch до успешного завершения всех post-check.
+- Для release используется push-first модель: origin/main может обновиться до завершения локальных post-check.
+- При release-failure после push source-of-truth = origin/main, оператор действует по recovery playbook (freeze -> diagnose -> approved rollback).
 - Dry-run режим должен быть строго non-mutating (без reset/push/db restore/tar extract).
 - Любая ошибка sync/release должна оставлять понятную recovery-инструкцию (checkpoint branch/tag + backup path).
 - Удаления protected-path блокируются по умолчанию (нужен явный override).

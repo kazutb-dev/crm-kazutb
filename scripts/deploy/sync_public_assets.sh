@@ -5,6 +5,9 @@ LOG_PREFIX="[sync-public-assets]"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib_deploy_common.sh"
 
+begin_operation_lock "sync-public-assets"
+trap 'end_operation_lock' EXIT
+
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 MANIFEST_FILE="${SCRIPT_DIR}/runtime_public_assets_manifest.txt"
@@ -103,6 +106,14 @@ fi
 
 SYNCED_COUNT=0
 UNCHANGED_COUNT=0
+BACKUP_COUNT=0
+TIMESTAMP="$(current_ts)"
+JOURNAL_DIR="${PROD_ROOT}/storage/app/deploy_reports"
+JOURNAL_FILE="${JOURNAL_DIR}/runtime_sync_public_assets_${TIMESTAMP}.json"
+
+if [[ "$DRY_RUN" != "1" ]]; then
+    mkdir -p "$JOURNAL_DIR"
+fi
 
 for rel_path in "${ASSETS[@]}"; do
     src="$SOURCE_ROOT/$rel_path"
@@ -120,6 +131,14 @@ for rel_path in "${ASSETS[@]}"; do
         log "DRY-RUN: rsync -a '$src' '$dst'"
         log "DRY-RUN: source hash=${src_hash} target-before=${dst_hash_before:-<missing>} path=${rel_path}"
         continue
+    fi
+
+    if [[ -f "$dst" && -n "$dst_hash_before" && "$dst_hash_before" != "$src_hash" ]]; then
+        backup_root="${TARGET_ROOT}/backups/runtime_public_assets_${TIMESTAMP}"
+        mkdir -p "$(dirname "$backup_root/$rel_path")"
+        cp -a "$dst" "$backup_root/$rel_path"
+        (( BACKUP_COUNT++ )) || true
+        log "Backup created for overwritten file: $rel_path"
     fi
 
     mkdir -p "$(dirname "$dst")"
@@ -143,3 +162,19 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 log "Sync complete: synced=${SYNCED_COUNT}, unchanged=${UNCHANGED_COUNT}, total=${#ASSETS[@]}"
+
+cat > "$JOURNAL_FILE" <<EOF
+{
+    "timestamp": "$(date -Iseconds)",
+    "sync_type": "public-assets",
+    "direction": "${DIRECTION}",
+    "source_root": "${SOURCE_ROOT}",
+    "target_root": "${TARGET_ROOT}",
+    "synced": ${SYNCED_COUNT},
+    "unchanged": ${UNCHANGED_COUNT},
+    "backup_count": ${BACKUP_COUNT},
+    "total": ${#ASSETS[@]}
+}
+EOF
+
+log "Journal: $JOURNAL_FILE"

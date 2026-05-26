@@ -5,6 +5,9 @@ LOG_PREFIX="[prod->dev]"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib_deploy_common.sh"
 
+begin_operation_lock "prod-to-dev-sync"
+trap 'end_operation_lock' EXIT
+
 PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
@@ -17,6 +20,7 @@ SKIP_BUILD=0
 SKIP_MIGRATE=0
 NO_AUTO_RECOVER=0
 FIX_DEV_APP_KEY=0
+RISK_SCORE=0
 
 for arg in "$@"; do
     case "$arg" in
@@ -111,6 +115,23 @@ trap on_error ERR
 require_paths
 check_branch_state
 checkpoint_prod_if_dirty
+
+if [[ "$SKIP_DB" == "0" ]]; then
+    RISK_SCORE=$((RISK_SCORE + 5))
+fi
+if [[ "$SKIP_FILES" == "0" ]]; then
+    RISK_SCORE=$((RISK_SCORE + 4))
+fi
+if [[ "$SKIP_BUILD" == "0" ]]; then
+    RISK_SCORE=$((RISK_SCORE + 1))
+fi
+
+if [[ "$DRY_RUN" != "1" && "$ASSUME_YES" != "1" ]]; then
+    echo "[prod->dev] RISK SCORE: ${RISK_SCORE}/10"
+    echo "[prod->dev] This operation can destructively overwrite DEV code/database/runtime files."
+    read -r -p "Type REFRESH-DEV-DESTRUCTIVE to continue: " typed
+    [[ "$typed" == "REFRESH-DEV-DESTRUCTIVE" ]] || fail "Canceled by operator"
+fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
     log "DRY-RUN: would create DEV checkpoint branch/tag and push both"
@@ -280,3 +301,25 @@ log "PROD->DEV sync completed successfully"
 log "PROD backup used: ${PROD_BACKUP_DIR}"
 log "DEV backup created: ${DEV_BACKUP_DIR}"
 log "DEV checkpoint branch/tag: ${CHECKPOINT_BRANCH} / ${CHECKPOINT_TAG}"
+
+if [[ "$DRY_RUN" != "1" ]]; then
+        report_dir="${PROD_ROOT}/storage/app/deploy_reports"
+        mkdir -p "$report_dir"
+        report_file="${report_dir}/prod_to_dev_sync_${TIMESTAMP}.json"
+        cat > "$report_file" <<EOF
+{
+    "timestamp": "$(date -Iseconds)",
+    "operation": "prod-to-dev",
+    "risk_score": ${RISK_SCORE},
+    "prod_backup_dir": "${PROD_BACKUP_DIR}",
+    "dev_backup_dir": "${DEV_BACKUP_DIR}",
+    "checkpoint_branch": "${CHECKPOINT_BRANCH}",
+    "checkpoint_tag": "${CHECKPOINT_TAG}",
+    "skip_db": ${SKIP_DB},
+    "skip_files": ${SKIP_FILES},
+    "skip_build": ${SKIP_BUILD},
+    "skip_migrate": ${SKIP_MIGRATE}
+}
+EOF
+        log "Journal: ${report_file}"
+fi

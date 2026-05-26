@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+LOG_PREFIX="[rollback]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib_deploy_common.sh"
+
+begin_operation_lock "rollback-prod-to-tag"
+trap 'end_operation_lock' EXIT
+
 PROJECT_ROOT="/var/www/laravel-react"
 BACKUP_SCRIPT="${PROJECT_ROOT}/scripts/backup_prod.sh"
 DRY_RUN=0
 ASSUME_YES=0
+DB_RESTORE_REFERENCE=""
 
 usage() {
     cat <<'EOF'
@@ -25,6 +33,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --yes) ASSUME_YES=1 ;;
+        --db-restore-reference=*) DB_RESTORE_REFERENCE="${arg#*=}" ;;
         -h|--help) usage; exit 0 ;;
         *) echo "[rollback] ERROR: Unknown argument: $arg" >&2; exit 1 ;;
     esac
@@ -58,8 +67,11 @@ git rev-parse "$TARGET_TAG" >/dev/null 2>&1 || { echo "[rollback] ERROR: Tag not
 
 if [[ "$ASSUME_YES" != "1" && "$DRY_RUN" != "1" ]]; then
     log "Rollback will reset PROD code to tag: $TARGET_TAG"
+    log "Rollback type: CODE + BUILD + CACHE only"
+    log "Database rollback is NOT automatic and must be done manually from backup if required"
+    read -r -p "Type ROLLBACK-CODE-ONLY to continue: " typed
+    [[ "$typed" == "ROLLBACK-CODE-ONLY" ]] || { echo "[rollback] ERROR: canceled" >&2; exit 1; }
     log "Use --yes to confirm non-interactively."
-    exit 1
 fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
@@ -92,16 +104,38 @@ run_cmd "sudo systemctl reload nginx || true"
 
 report_dir="${PROJECT_ROOT}/storage/app/deploy_reports"
 report_file="${report_dir}/rollback_$(date +%Y%m%d_%H%M%S).txt"
+report_json_file="${report_dir}/rollback_$(date +%Y%m%d_%H%M%S).json"
 run_cmd "mkdir -p '$report_dir'"
 
 if [[ "$DRY_RUN" != "1" ]]; then
+    migrate_state="unknown"
+    if php artisan migrate:status >/dev/null 2>&1; then
+        migrate_state="ok"
+    else
+        migrate_state="check-required"
+    fi
+
     {
         echo "timestamp=$(date -Iseconds)"
         echo "tag_restored=${TARGET_TAG}"
         echo "emergency_backup_dir=${emergency_backup_dir}"
         echo "db_rollback=manual_only"
+        echo "db_restore_reference=${DB_RESTORE_REFERENCE:-none}"
+        echo "migration_state_after_rollback=${migrate_state}"
         echo "note=Database rollback is intentionally NOT automatic to avoid losing post-deploy user data."
     } > "$report_file"
+
+    cat > "$report_json_file" <<EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "tag_restored": "${TARGET_TAG}",
+  "emergency_backup_dir": "${emergency_backup_dir}",
+  "rollback_mode": "code-only",
+  "db_restore_reference": "${DB_RESTORE_REFERENCE:-none}",
+  "db_rollback": "manual_only",
+  "migration_state_after_rollback": "${migrate_state}"
+}
+EOF
 fi
 
 echo "Rollback flow completed."
@@ -110,4 +144,5 @@ echo "Emergency backup: $emergency_backup_dir"
 echo "DB rollback: manual only (from backup if required)."
 if [[ "$DRY_RUN" != "1" ]]; then
     echo "Report: $report_file"
+    echo "Report JSON: $report_json_file"
 fi

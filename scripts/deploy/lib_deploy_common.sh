@@ -4,6 +4,14 @@ set -Eeuo pipefail
 LOG_PREFIX="${LOG_PREFIX:-[deploy]}"
 PROD_ROOT_DEFAULT="/var/www/laravel-react"
 DEV_ROOT_DEFAULT="/var/www/laravel-react-dev"
+DEPLOY_LOCK_FILE_DEFAULT="/var/lock/kazutb-deploy.lock"
+
+if [[ ! -w "$(dirname "$DEPLOY_LOCK_FILE_DEFAULT")" ]]; then
+    DEPLOY_LOCK_FILE_DEFAULT="/tmp/kazutb-deploy.lock"
+fi
+
+SCRIPT_LOCK_FILE="${DEPLOY_LOCK_FILE:-$DEPLOY_LOCK_FILE_DEFAULT}"
+SCRIPT_LOCK_META_FILE="${SCRIPT_LOCK_FILE}.meta"
 
 log() {
     echo "${LOG_PREFIX} $*"
@@ -284,4 +292,44 @@ Recovery instructions:
 - backup_dir: $backup_dir
 - local restore command: git checkout dev && git reset --hard ${checkpoint_branch}
 EOF
+}
+
+begin_operation_lock() {
+    local op_name="$1"
+
+    if [[ "${DEPLOY_LOCK_HELD:-0}" == "1" ]]; then
+        log "Lock already held by router operation: ${DEPLOY_LOCK_OPERATION:-unknown}"
+        return 0
+    fi
+
+    touch "$SCRIPT_LOCK_FILE"
+    exec {SCRIPT_OPERATION_LOCK_FD}>"$SCRIPT_LOCK_FILE"
+    if ! flock -n "$SCRIPT_OPERATION_LOCK_FD"; then
+        fail "Another deployment operation is active. lock_file=${SCRIPT_LOCK_FILE}"
+    fi
+
+    cat > "$SCRIPT_LOCK_META_FILE" <<EOF
+operation=${op_name}
+owner=$(whoami)
+pid=$$
+host=$(hostname)
+started_at=$(date -Iseconds)
+cwd=$(pwd)
+source=direct-script
+EOF
+
+    export SCRIPT_OPERATION_LOCK_OWNED=1
+}
+
+end_operation_lock() {
+    if [[ "${DEPLOY_LOCK_HELD:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ "${SCRIPT_OPERATION_LOCK_OWNED:-0}" == "1" ]]; then
+        rm -f "$SCRIPT_LOCK_META_FILE" || true
+        flock -u "$SCRIPT_OPERATION_LOCK_FD" || true
+        eval "exec ${SCRIPT_OPERATION_LOCK_FD}>&-" || true
+        unset SCRIPT_OPERATION_LOCK_OWNED
+    fi
 }
