@@ -329,7 +329,7 @@ export default function Index() {
             <Head title="Навигация по кампусу" />
 
             <main className="relative min-h-screen overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
-                <div className="pointer-events-none absolute inset-0 bg-[url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-45 blur-[2px] scale-[1.03]" />
+                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/main.png')] bg-cover bg-center opacity-45 blur-[2px] scale-[1.03]" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/86 to-[#18b8b3]/28" />
                 <div className="pointer-events-none absolute inset-0 bg-black/15 backdrop-blur-[2px]" />
 
