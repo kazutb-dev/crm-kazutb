@@ -446,7 +446,7 @@ export default function Welcome({ canLogin }) {
             </Head>
 
             <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
-                <div className="pointer-events-none absolute inset-0 bg-[url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-55 blur-[2px] scale-[1.03]" />
+                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/main.png')] bg-cover bg-center opacity-55 blur-[2px] scale-[1.03]" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/82 to-[#18b8b3]/26" />
                 <div className="pointer-events-none absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
 
