@@ -541,6 +541,23 @@ else
     err "tar failed with exit code ${tar_exit}. See ${TAR_WARNING_LOG}"
 fi
 
+# Rarely, tar may report success but the archive file is missing/empty (e.g. interrupted or writer race).
+# Retry once with classic -czf as a safe fallback before failing hard.
+if [[ ! -f "${PROJECT_DATA_ARCHIVE_FILE}" || ! -s "${PROJECT_DATA_ARCHIVE_FILE}" ]]; then
+    warn "Primary archive output missing/empty, retrying with fallback tar -czf."
+    tar -czf "${PROJECT_DATA_ARCHIVE_FILE}" \
+        -C "${PROJECT_ROOT}" \
+        --warning=no-file-changed \
+        --ignore-failed-read \
+        --exclude='.git' \
+        --exclude='backups' \
+        --exclude='node_modules' \
+        --exclude='vendor' \
+        --exclude='.env' \
+        --exclude='.DS_Store' \
+        "${PROJECT_DATA_ITEMS[@]}" >> "${TAR_WARNING_LOG}" 2>&1 || err "Fallback tar failed. See ${TAR_WARNING_LOG}"
+fi
+
 [[ -f "${PROJECT_DATA_ARCHIVE_FILE}" && -s "${PROJECT_DATA_ARCHIVE_FILE}" ]] || err "Project data archive missing or empty: ${PROJECT_DATA_ARCHIVE_FILE}"
 tar -tzf "${PROJECT_DATA_ARCHIVE_FILE}" >/dev/null || err "Project data archive corrupted: ${PROJECT_DATA_ARCHIVE_FILE}"
 
