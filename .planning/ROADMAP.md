@@ -7,6 +7,7 @@
 ## Phase 1: Baseline Safety Enforcement
 
 **Goal:** Make release preconditions explicit and non-negotiable for migration-safe production operations.
+**Status:** Complete (verified via phase-001-UAT.md)
 
 **Requirements covered:**
 - MIGR-01
@@ -104,4 +105,4 @@ When Phases 1–4 are complete, CRM KazUTB release operations should be migratio
 
 ## Next Action
 
-Run: `/gsd-plan-phase 1`
+Run: `/gsd-plan-phase 2`
