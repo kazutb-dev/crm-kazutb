@@ -74,6 +74,8 @@
 ./scripts/deploy/deploy.sh safety         # 24+ pre-deploy проверок
 ./scripts/deploy/deploy.sh release [--dry-run] [--yes] [--no-migrate] [--skip-build]
 ./scripts/deploy/deploy.sh sync-runtime --type navigation [--dry-run] [--yes]
+./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod [--dry-run] [--yes]
+./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev [--dry-run] [--yes]
 ./scripts/deploy/deploy.sh prod-to-dev [--dry-run] [--yes] [--skip-db] ...
 ./scripts/deploy/deploy.sh rollback --tag TAG [--dry-run] [--yes]
 ./scripts/deploy/deploy.sh backup-prod [--dry-run]
@@ -144,6 +146,22 @@ Safety rules for this procedure:
 - Never run prod_to_dev_sync for fixing PROD navigation media.
 - Only targeted update/copy of navigation fields and nav media is allowed.
 
+### Runtime Public Assets Sync (targeted, bidirectional)
+
+- required files are defined in `scripts/deploy/runtime_public_assets_manifest.txt`
+- DEV -> PROD:
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod --dry-run`
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction dev-to-prod --yes`
+- PROD -> DEV:
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev --dry-run`
+  - `./scripts/deploy/deploy.sh sync-runtime --type public-assets --direction prod-to-dev --yes`
+
+Safety behavior:
+
+- `check_deploy_safety.sh` now validates that required runtime assets exist in both envs.
+- Missing file in PROD/DEV is a FAIL.
+- Hash mismatch is a WARN with explicit sync command recommendation.
+
 ## 9. Post-Incident Hardening Toolkit
 
 Новые/обновленные скрипты:
@@ -153,6 +171,8 @@ Safety rules for this procedure:
 - /var/www/laravel-react/scripts/deploy/check_deploy_safety.sh _(+Node warn, +backup validity)_
 - /var/www/laravel-react/scripts/deploy/prod_to_dev_sync.sh
 - /var/www/laravel-react/scripts/deploy/dev_to_prod_release.sh
+- /var/www/laravel-react/scripts/deploy/sync_public_assets.sh _(NEW — runtime public assets sync DEV↔PROD)_
+- /var/www/laravel-react/scripts/deploy/runtime_public_assets_manifest.txt _(NEW — required runtime assets list)_
 - /var/www/laravel-react/scripts/backup_prod.sh _(BACKUP_KEEP_COUNT=1, .incomplete pattern)_
 
 ### Backup retention policy (hardened)

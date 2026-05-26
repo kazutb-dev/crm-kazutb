@@ -1,0 +1,4 @@
+# Required runtime public assets shared between DEV and PROD.
+# One relative path per line, rooted at repository root.
+
+public/assets/images/main.png
