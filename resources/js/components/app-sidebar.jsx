@@ -902,7 +902,7 @@ export function AppSidebar() {
                 <SidebarMenu className="gap-1">
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Главная">
-                            <a href="http://10.0.1.47/">
+                            <a href={route('dashboard')}>
                                 <Home />
                                 <span>Главная</span>
                             </a>

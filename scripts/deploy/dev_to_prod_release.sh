@@ -9,11 +9,17 @@ PROD_ROOT="/var/www/laravel-react"
 DEV_ROOT="/var/www/laravel-react-dev"
 CHECKPOINT_SCRIPT="${PROD_ROOT}/scripts/deploy/pre_deploy_prod_checkpoint.sh"
 
+require_release_routed_via_deploy "$DEV_ROOT"
+
+begin_operation_lock "dev-to-prod-release"
+trap 'end_operation_lock' EXIT
+
 DRY_RUN=0
 ASSUME_YES=0
 NO_MIGRATE=0
 SKIP_BUILD=0
 FORCE_PROTECTED_DELETE=0
+RELEASE_FAILPOINT="${RELEASE_FAILPOINT:-}"
 
 for arg in "$@"; do
     case "$arg" in
@@ -32,6 +38,13 @@ USAGE
         *) fail "Unknown argument: $arg" ;;
     esac
 done
+
+run_failpoint_if_requested() {
+    local stage="$1"
+    if [[ -n "$RELEASE_FAILPOINT" && "$RELEASE_FAILPOINT" == "$stage" ]]; then
+        fail "Simulated failpoint reached: ${stage}"
+    fi
+}
 
 run_cmd() {
     if [[ "$DRY_RUN" == "1" ]]; then
@@ -80,12 +93,17 @@ require_branch_dev() { [[ "$(git -C "$DEV_ROOT" branch --show-current)" == "dev"
 require_branch_main
 require_branch_dev
 
-require_clean_git_or_checkpoint "$PROD_ROOT" fail
 ensure_no_sensitive_tracked "$PROD_ROOT"
 ensure_no_sensitive_tracked "$DEV_ROOT"
 
 git -C "$PROD_ROOT" fetch origin --quiet
 git -C "$DEV_ROOT" fetch origin --quiet
+
+print_migration_preflight "$PROD_ROOT" origin/main origin/dev
+
+if [[ -n "$(git -C "$PROD_ROOT" status --short || true)" ]]; then
+    fail "DIRTY PROD BLOCKER: ${PROD_ROOT} has uncommitted changes. Release and migration halted before execution."
+fi
 
 protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev)"
 if [[ -n "$protected_deletes" && "$FORCE_PROTECTED_DELETE" != "1" ]]; then
@@ -157,8 +175,12 @@ if [[ "$DRY_RUN" == "1" ]]; then
 fi
 
 TIMESTAMP="$(current_ts)"
+RELEASE_ID="rel_${TIMESTAMP}"
 PROD_OLD_HEAD="$(git -C "$PROD_ROOT" rev-parse HEAD)"
 ROLLBACK_NEEDED=0
+PUSHED_TO_ORIGIN=0
+TMP_RELEASE_DIR=""
+MERGED_HEAD=""
 
 on_error() {
     local ec=$?
@@ -167,14 +189,38 @@ on_error() {
         warn "Rolling back local PROD git state to $PROD_OLD_HEAD"
         git -C "$PROD_ROOT" reset --hard "$PROD_OLD_HEAD" || true
     fi
+    if [[ "$PUSHED_TO_ORIGIN" == "1" ]]; then
+        warn "origin/main already updated by release ${RELEASE_ID}."
+        warn "SOURCE OF TRUTH: origin/main (current release commit)"
+        warn "RECOVERY PLAYBOOK:"
+        warn "  1) Freeze new releases and runtime sync operations"
+        warn "  2) Diagnose local failure on PROD host and re-run deploy steps"
+        warn "  3) If rollback approved, execute: git -C ${PROD_ROOT} push --force-with-lease origin ${PROD_OLD_HEAD}:main"
+        warn "  4) Then run: ./scripts/deploy/rollback_prod_to_tag.sh <approved-tag> --yes"
+    fi
+    if [[ -n "$TMP_RELEASE_DIR" && -d "$TMP_RELEASE_DIR" ]]; then
+        rm -rf "$TMP_RELEASE_DIR" || true
+    fi
     exit "$ec"
 }
 trap on_error ERR
 
-# Merge dev into local main but do not push yet.
+# Phase 1: Build release commit in isolated workspace and push first.
+TMP_RELEASE_DIR="$(mktemp -d /tmp/kazutb-release-${TIMESTAMP}-XXXXXX)"
+git clone --quiet "$PROD_ROOT" "$TMP_RELEASE_DIR/repo"
+git -C "$TMP_RELEASE_DIR/repo" remote set-url origin "$(git -C "$PROD_ROOT" remote get-url origin)"
+git -C "$TMP_RELEASE_DIR/repo" fetch origin --quiet
+git -C "$TMP_RELEASE_DIR/repo" checkout -B main origin/main
+git -C "$TMP_RELEASE_DIR/repo" merge --no-ff origin/dev -m "release(${RELEASE_ID}): merge dev into main"
+MERGED_HEAD="$(git -C "$TMP_RELEASE_DIR/repo" rev-parse HEAD)"
+git -C "$TMP_RELEASE_DIR/repo" push origin HEAD:main
+PUSHED_TO_ORIGIN=1
+run_failpoint_if_requested "after-push"
+
+# Phase 2: Move live PROD checkout to the exact pushed release commit.
 git -C "$PROD_ROOT" checkout main
 git -C "$PROD_ROOT" fetch origin --quiet
-git -C "$PROD_ROOT" merge --no-ff origin/dev -m "release: merge dev into main"
+git -C "$PROD_ROOT" reset --hard "$MERGED_HEAD"
 ROLLBACK_NEEDED=1
 
 (cd "$PROD_ROOT" && composer install --no-dev --optimize-autoloader)
@@ -188,6 +234,7 @@ fi
 if [[ "$NO_MIGRATE" != "1" ]]; then
     (cd "$PROD_ROOT" && php artisan migrate --force)
 fi
+run_failpoint_if_requested "after-migrate"
 
 (cd "$PROD_ROOT" && php artisan optimize:clear)
 (cd "$PROD_ROOT" && php artisan config:cache)
@@ -204,21 +251,28 @@ fi
 
 prod_http_code="$(curl -s -o /dev/null -w '%{http_code}' https://crm.kaztbu.edu.kz/)"
 [[ "$prod_http_code" != "500" ]] || fail "PROD health check failed: / returned 500"
+run_failpoint_if_requested "after-health"
 
-# Push only after all checks are green.
-git -C "$PROD_ROOT" push origin main
 ROLLBACK_NEEDED=0
+if [[ -n "$TMP_RELEASE_DIR" && -d "$TMP_RELEASE_DIR" ]]; then
+    rm -rf "$TMP_RELEASE_DIR"
+    TMP_RELEASE_DIR=""
+fi
 
 report_dir="${PROD_ROOT}/storage/app/deploy_reports"
 mkdir -p "$report_dir"
 report_file="${report_dir}/deploy_${TIMESTAMP}.txt"
+report_json_file="${report_dir}/deploy_${TIMESTAMP}.json"
 checkpoint_tag="$(git -C "$PROD_ROOT" tag --list 'pre-deploy-*' --sort=-creatordate | head -n1)"
 backup_dir="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
 
 {
     echo "timestamp=$(date -Iseconds)"
+    echo "release_id=${RELEASE_ID}"
     echo "prod_old_head=${PROD_OLD_HEAD}"
     echo "prod_new_head=$(git -C "$PROD_ROOT" rev-parse HEAD)"
+    echo "release_commit=${MERGED_HEAD}"
+    echo "origin_push_first=true"
     echo "dev_head=$(git -C "$DEV_ROOT" rev-parse origin/dev)"
     echo "files_created=$(echo "$create_list" | tr '\n' ';')"
     echo "files_modified=$(echo "$modify_list" | tr '\n' ';')"
@@ -233,5 +287,23 @@ backup_dir="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/
     echo "rollback_command=./scripts/deploy/rollback_prod_to_tag.sh ${checkpoint_tag} --yes"
 } > "$report_file"
 
+cat > "$report_json_file" <<EOF
+{
+    "timestamp": "$(date -Iseconds)",
+    "release_id": "${RELEASE_ID}",
+    "prod_old_head": "${PROD_OLD_HEAD}",
+    "prod_new_head": "$(git -C "$PROD_ROOT" rev-parse HEAD)",
+    "release_commit": "${MERGED_HEAD}",
+    "origin_push_first": true,
+    "dev_head": "$(git -C "$DEV_ROOT" rev-parse origin/dev)",
+    "checkpoint_tag": "${checkpoint_tag}",
+    "backup_dir": "${backup_dir}",
+    "build_status": "$( [[ "$SKIP_BUILD" == "1" ]] && echo skipped || echo done )",
+    "migrate_status": "$( [[ "$NO_MIGRATE" == "1" ]] && echo skipped || echo done )",
+    "health_http_status": "${prod_http_code}"
+}
+EOF
+
 log "Release finished"
 log "Report: $report_file"
+log "Report JSON: $report_json_file"

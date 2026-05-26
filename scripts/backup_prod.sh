@@ -10,11 +10,14 @@ CLEANUP_ONLY="${BACKUP_CLEANUP_ONLY:-0}"
 BACKUP_KEEP_COUNT="${BACKUP_KEEP_COUNT:-1}"
 RUNTIME_BACKUP_KEEP_COUNT="${RUNTIME_BACKUP_KEEP_COUNT:-3}"
 INCOMPLETE_TTL_HOURS="${INCOMPLETE_TTL_HOURS:-24}"
+BACKUP_SPACE_FACTOR="${BACKUP_SPACE_FACTOR:-130}"
+BACKUP_OFFSITE_HOOK="${BACKUP_OFFSITE_HOOK:-}"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP_DIR_FINAL="${BACKUP_ROOT}/prod_backup_${TIMESTAMP}_full_snapshot"
 BACKUP_DIR="${BACKUP_DIR_FINAL}.incomplete"
 MANIFEST_FILE="${BACKUP_DIR}/manifest_${TIMESTAMP}.txt"
+METADATA_JSON_FILE="${BACKUP_DIR}/metadata_${TIMESTAMP}.json"
 
 DB_BACKUP_FILE=""
 PROJECT_DATA_ARCHIVE_FILE=""
@@ -46,6 +49,8 @@ Env:
   BACKUP_KEEP_COUNT=1               # keep latest completed full snapshots
   RUNTIME_BACKUP_KEEP_COUNT=3       # keep latest runtime backup dirs per prefix
   INCOMPLETE_TTL_HOURS=24           # remove stale .incomplete older than this
+    BACKUP_SPACE_FACTOR=130           # projected size safety factor in %
+    BACKUP_OFFSITE_HOOK=/path/hook.sh # optional executable hook: hook <backup_dir>
 EOF
 }
 
@@ -101,6 +106,21 @@ assert_safe_backup_root() {
     [[ "${BACKUP_ROOT}" == "${EXPECTED_BACKUP_ROOT}" ]] || err "Unexpected BACKUP_ROOT: ${BACKUP_ROOT}"
     [[ -d "${PROJECT_ROOT}" ]] || err "Project root not found: ${PROJECT_ROOT}"
     [[ -d "${BACKUP_ROOT}" ]] || mkdir -p "${BACKUP_ROOT}"
+}
+
+check_projected_disk_space() {
+    local available_kb projected_kb base_bytes
+    available_kb="$(df -Pk "${PROJECT_ROOT}" | awk 'NR==2 {print $4}')"
+
+    base_bytes="$(du -sb "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/public" "${PROJECT_ROOT}/database" "${PROJECT_ROOT}/app" "${PROJECT_ROOT}/routes" "${PROJECT_ROOT}/config" "${PROJECT_ROOT}/scripts" "${PROJECT_ROOT}/docs" 2>/dev/null | awk '{s+=$1} END {print s+0}')"
+    projected_kb="$(( (base_bytes / 1024) * BACKUP_SPACE_FACTOR / 100 ))"
+    [[ "${projected_kb}" -gt 0 ]] || projected_kb=1024
+
+    if [[ "${available_kb}" -lt "${projected_kb}" ]]; then
+        err "Projected disk check failed: available_kb=${available_kb}, projected_kb=${projected_kb}, factor=${BACKUP_SPACE_FACTOR}%"
+    fi
+
+    log "Projected disk check passed: available_kb=${available_kb}, projected_kb=${projected_kb}, factor=${BACKUP_SPACE_FACTOR}%"
 }
 
 is_direct_child_of_backup_root() {
@@ -397,6 +417,7 @@ done
 [[ "${INCOMPLETE_TTL_HOURS}" =~ ^[1-9][0-9]*$ ]] || err "INCOMPLETE_TTL_HOURS must be a positive integer"
 
 assert_safe_backup_root
+check_projected_disk_space
 
 if [[ "${CLEANUP_ONLY}" == "1" ]]; then
     log "Cleanup-only mode started (dry_run=${DRY_RUN})."
@@ -567,6 +588,20 @@ tar -tzf "${PROJECT_DATA_ARCHIVE_FILE}" >/dev/null || err "Project data archive 
 
 write_manifest_and_sha 0 0
 
+cat > "${METADATA_JSON_FILE}" <<EOF
+{
+    "timestamp": "$(date -Iseconds)",
+    "backup_dir": "${BACKUP_DIR}",
+    "project_root": "${PROJECT_ROOT}",
+    "db_connection": "${DB_CONNECTION}",
+    "db_database": "${DB_DATABASE}",
+    "dry_run": false,
+    "backup_keep_count": ${BACKUP_KEEP_COUNT},
+    "runtime_backup_keep_count": ${RUNTIME_BACKUP_KEEP_COUNT},
+    "warnings": ${#WARNINGS[@]}
+}
+EOF
+
 validate_completed_backup_dir "${BACKUP_DIR}" 1 || err "Backup validation failed before finalization. Inspect ${BACKUP_DIR}"
 
 log "Backup files validated. Renaming .incomplete -> final..."
@@ -612,6 +647,7 @@ echo " database_path=${DB_BACKUP_FILE}"
 echo " project_data_path=${PROJECT_DATA_ARCHIVE_FILE}"
 echo " env_backup_path=${ENV_BACKUP_FILE}"
 echo " manifest_path=${MANIFEST_FILE}"
+echo " metadata_path=${BACKUP_DIR}/$(basename "${METADATA_JSON_FILE}")"
 echo " sha256_path=${BACKUP_DIR}/SHA256SUMS"
 echo " total_size=${TOTAL_SIZE}"
 echo " full_snapshots_removed=${FULL_SNAPSHOTS_REMOVED}"
@@ -626,5 +662,17 @@ if [[ "${RUNTIME_WARNING_COUNT}" -gt 0 ]]; then
 fi
 if [[ "${#WARNINGS[@]}" -gt 0 ]]; then
     echo " warnings_count=${#WARNINGS[@]}"
+fi
+
+if [[ -n "${BACKUP_OFFSITE_HOOK}" ]]; then
+    if [[ -x "${BACKUP_OFFSITE_HOOK}" ]]; then
+        if "${BACKUP_OFFSITE_HOOK}" "${BACKUP_DIR}"; then
+            echo " offsite_hook=success (${BACKUP_OFFSITE_HOOK})"
+        else
+            echo " offsite_hook=failed (${BACKUP_OFFSITE_HOOK})"
+        fi
+    else
+        echo " offsite_hook=not_executable (${BACKUP_OFFSITE_HOOK})"
+    fi
 fi
 echo "============================================================"

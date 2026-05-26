@@ -4,6 +4,14 @@ set -Eeuo pipefail
 LOG_PREFIX="${LOG_PREFIX:-[deploy]}"
 PROD_ROOT_DEFAULT="/var/www/laravel-react"
 DEV_ROOT_DEFAULT="/var/www/laravel-react-dev"
+DEPLOY_LOCK_FILE_DEFAULT="/var/lock/kazutb-deploy.lock"
+
+if [[ ! -w "$(dirname "$DEPLOY_LOCK_FILE_DEFAULT")" ]]; then
+    DEPLOY_LOCK_FILE_DEFAULT="/tmp/kazutb-deploy.lock"
+fi
+
+SCRIPT_LOCK_FILE="${DEPLOY_LOCK_FILE:-$DEPLOY_LOCK_FILE_DEFAULT}"
+SCRIPT_LOCK_META_FILE="${SCRIPT_LOCK_FILE}.meta"
 
 log() {
     echo "${LOG_PREFIX} $*"
@@ -31,6 +39,17 @@ require_path() {
     local current_path
     current_path="$(pwd)"
     [[ "$current_path" == "$expected_path" ]] || fail "Wrong path: $current_path (expected $expected_path)"
+}
+
+require_release_routed_via_deploy() {
+    local expected_dev_root="${1:-$DEV_ROOT_DEFAULT}"
+    if [[ "${DEPLOY_ROUTED_BY_ENTRYPOINT:-0}" != "1" ]]; then
+        fail "Direct execution blocked. Run release from ${expected_dev_root}: ./scripts/deploy/deploy.sh release --dry-run"
+    fi
+
+    if [[ "${DEPLOY_ENTRYPOINT_ROOT:-}" != "$expected_dev_root" ]]; then
+        fail "Release routing context invalid. Re-run from ${expected_dev_root}: ./scripts/deploy/deploy.sh release --dry-run"
+    fi
 }
 
 require_branch() {
@@ -248,6 +267,60 @@ detect_changed_seeders() {
     git -C "$repo_root" diff --name-only "$base_ref..$head_ref" -- 'database/seeders/*.php' 2>/dev/null || true
 }
 
+_migration_pending_signal() {
+    local project_root="$1"
+    local status_output
+    status_output="$(cd "$project_root" && php artisan migrate:status 2>/dev/null || true)"
+    if grep -Eq '\|\s+N\s+\|' <<< "$status_output"; then
+        echo "YES"
+    elif grep -Eq '\|\s+Y\s+\|' <<< "$status_output"; then
+        echo "NO"
+    else
+        echo "UNKNOWN"
+    fi
+}
+
+_rollback_feasibility_signal() {
+    local repo_root="$1"
+    local base_ref="$2"
+    local head_ref="$3"
+    local migration_changes dangerous_changes
+
+    migration_changes="$(git -C "$repo_root" diff --name-only "$base_ref..$head_ref" -- 'database/migrations/*.php' 2>/dev/null || true)"
+    dangerous_changes="$(detect_dangerous_migrations "$repo_root" "$base_ref" "$head_ref" || true)"
+
+    if [[ -n "$dangerous_changes" ]]; then
+        echo "HIGH (dangerous migration pattern detected)"
+    elif [[ -n "$migration_changes" ]]; then
+        echo "MEDIUM (new migrations require rollback planning)"
+    else
+        echo "LOW (no migration file changes in release diff)"
+    fi
+}
+
+print_migration_preflight() {
+    local project_root="$1"
+    local base_ref="${2:-origin/main}"
+    local head_ref="${3:-origin/dev}"
+    local pending_signal rollback_signal migration_changes
+
+    pending_signal="$(_migration_pending_signal "$project_root")"
+    rollback_signal="$(_rollback_feasibility_signal "$project_root" "$base_ref" "$head_ref")"
+    migration_changes="$(git -C "$project_root" diff --name-only "$base_ref..$head_ref" -- 'database/migrations/*.php' 2>/dev/null || true)"
+
+    echo ""
+    echo "=== Migration Preflight ==="
+    echo "pending migration: ${pending_signal}"
+    echo "rollback-feasibility: ${rollback_signal}"
+    if [[ -n "$migration_changes" ]]; then
+        echo "migration files in ${base_ref}..${head_ref}:"
+        echo "$migration_changes"
+    else
+        echo "migration files in ${base_ref}..${head_ref}: <none>"
+    fi
+    echo "==========================="
+}
+
 check_node_version() {
     local required_major="${1:-20}"
     local required_minor="${2:-19}"
@@ -331,4 +404,44 @@ Recovery instructions:
 - backup_dir: $backup_dir
 - local restore command: git checkout dev && git reset --hard ${checkpoint_branch}
 EOF
+}
+
+begin_operation_lock() {
+    local op_name="$1"
+
+    if [[ "${DEPLOY_LOCK_HELD:-0}" == "1" ]]; then
+        log "Lock already held by router operation: ${DEPLOY_LOCK_OPERATION:-unknown}"
+        return 0
+    fi
+
+    touch "$SCRIPT_LOCK_FILE"
+    exec {SCRIPT_OPERATION_LOCK_FD}>"$SCRIPT_LOCK_FILE"
+    if ! flock -n "$SCRIPT_OPERATION_LOCK_FD"; then
+        fail "Another deployment operation is active. lock_file=${SCRIPT_LOCK_FILE}"
+    fi
+
+    cat > "$SCRIPT_LOCK_META_FILE" <<EOF
+operation=${op_name}
+owner=$(whoami)
+pid=$$
+host=$(hostname)
+started_at=$(date -Iseconds)
+cwd=$(pwd)
+source=direct-script
+EOF
+
+    export SCRIPT_OPERATION_LOCK_OWNED=1
+}
+
+end_operation_lock() {
+    if [[ "${DEPLOY_LOCK_HELD:-0}" == "1" ]]; then
+        return 0
+    fi
+
+    if [[ "${SCRIPT_OPERATION_LOCK_OWNED:-0}" == "1" ]]; then
+        rm -f "$SCRIPT_LOCK_META_FILE" || true
+        flock -u "$SCRIPT_OPERATION_LOCK_FD" || true
+        eval "exec ${SCRIPT_OPERATION_LOCK_FD}>&-" || true
+        unset SCRIPT_OPERATION_LOCK_OWNED
+    fi
 }

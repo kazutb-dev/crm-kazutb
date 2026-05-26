@@ -1,0 +1,54 @@
+{
+  "mode": "yolo",
+  "granularity": "balanced",
+  "parallelization": true,
+  "commit_docs": true,
+  "model_profile": "balanced",
+  "workflow": {
+    "research": false,
+    "plan_check": true,
+    "verifier": true,
+    "nyquist_validation": true,
+    "auto_advance": false,
+    "research_before_questions": false
+  },
+  "planning": {
+    "primary_repo": "/var/www/laravel-react-dev",
+    "production_repo": "/var/www/laravel-react",
+    "commit_docs": true
+  },
+  "deployment": {
+    "entrypoint": "scripts/deploy/deploy.sh",
+    "critical_rules": [
+      "Run deploy flow from /var/www/laravel-react-dev",
+      "Production git tree must be clean before release"
+    ]
+  },
+  "ship": {
+    "pr_body_sections": [
+      {
+        "heading": "User Stories & Acceptance Criteria",
+        "enabled": true,
+        "source": "REQUIREMENTS.md ## v1 Requirements",
+        "fallback": "- Acceptance criteria are covered by linked requirements and verification."
+      },
+      {
+        "heading": "Risks & Dependencies",
+        "enabled": true,
+        "source": "PLAN.md ## Risks || PLAN.md ## Dependencies",
+        "fallback": "- No known high-risk rollout dependencies."
+      },
+      {
+        "heading": "Success Metrics & Release Criteria",
+        "enabled": true,
+        "source": "REQUIREMENTS.md ## Definition of Done || VERIFICATION.md ## Release Criteria",
+        "fallback": "- Release when required checks pass and production tree is clean."
+      },
+      {
+        "heading": "Stakeholder Review & Approval",
+        "enabled": true,
+        "template": "- Product owner approval pending for {phase_name}."
+      }
+    ]
+  }
+}

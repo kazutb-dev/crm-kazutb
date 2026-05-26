@@ -120,6 +120,8 @@ else
     warn_item "Could not fetch origin for one of repositories"
 fi
 
+print_migration_preflight "$PROD_ROOT" origin/main origin/dev
+
 if ensure_no_sensitive_tracked "$PROD_ROOT" >/dev/null 2>&1; then
     pass "No sensitive tracked files in PROD"
 else
