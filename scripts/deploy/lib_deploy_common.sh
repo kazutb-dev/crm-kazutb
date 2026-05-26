@@ -267,6 +267,60 @@ detect_changed_seeders() {
     git -C "$repo_root" diff --name-only "$base_ref..$head_ref" -- 'database/seeders/*.php' 2>/dev/null || true
 }
 
+_migration_pending_signal() {
+    local project_root="$1"
+    local status_output
+    status_output="$(cd "$project_root" && php artisan migrate:status 2>/dev/null || true)"
+    if grep -Eq '\|\s+N\s+\|' <<< "$status_output"; then
+        echo "YES"
+    elif grep -Eq '\|\s+Y\s+\|' <<< "$status_output"; then
+        echo "NO"
+    else
+        echo "UNKNOWN"
+    fi
+}
+
+_rollback_feasibility_signal() {
+    local repo_root="$1"
+    local base_ref="$2"
+    local head_ref="$3"
+    local migration_changes dangerous_changes
+
+    migration_changes="$(git -C "$repo_root" diff --name-only "$base_ref..$head_ref" -- 'database/migrations/*.php' 2>/dev/null || true)"
+    dangerous_changes="$(detect_dangerous_migrations "$repo_root" "$base_ref" "$head_ref" || true)"
+
+    if [[ -n "$dangerous_changes" ]]; then
+        echo "HIGH (dangerous migration pattern detected)"
+    elif [[ -n "$migration_changes" ]]; then
+        echo "MEDIUM (new migrations require rollback planning)"
+    else
+        echo "LOW (no migration file changes in release diff)"
+    fi
+}
+
+print_migration_preflight() {
+    local project_root="$1"
+    local base_ref="${2:-origin/main}"
+    local head_ref="${3:-origin/dev}"
+    local pending_signal rollback_signal migration_changes
+
+    pending_signal="$(_migration_pending_signal "$project_root")"
+    rollback_signal="$(_rollback_feasibility_signal "$project_root" "$base_ref" "$head_ref")"
+    migration_changes="$(git -C "$project_root" diff --name-only "$base_ref..$head_ref" -- 'database/migrations/*.php' 2>/dev/null || true)"
+
+    echo ""
+    echo "=== Migration Preflight ==="
+    echo "pending migration: ${pending_signal}"
+    echo "rollback-feasibility: ${rollback_signal}"
+    if [[ -n "$migration_changes" ]]; then
+        echo "migration files in ${base_ref}..${head_ref}:"
+        echo "$migration_changes"
+    else
+        echo "migration files in ${base_ref}..${head_ref}: <none>"
+    fi
+    echo "==========================="
+}
+
 check_node_version() {
     local required_major="${1:-20}"
     local required_minor="${2:-19}"

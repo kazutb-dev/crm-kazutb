@@ -93,12 +93,17 @@ require_branch_dev() { [[ "$(git -C "$DEV_ROOT" branch --show-current)" == "dev"
 require_branch_main
 require_branch_dev
 
-require_clean_git_or_checkpoint "$PROD_ROOT" fail
 ensure_no_sensitive_tracked "$PROD_ROOT"
 ensure_no_sensitive_tracked "$DEV_ROOT"
 
 git -C "$PROD_ROOT" fetch origin --quiet
 git -C "$DEV_ROOT" fetch origin --quiet
+
+print_migration_preflight "$PROD_ROOT" origin/main origin/dev
+
+if [[ -n "$(git -C "$PROD_ROOT" status --short || true)" ]]; then
+    fail "DIRTY PROD BLOCKER: ${PROD_ROOT} has uncommitted changes. Release and migration halted before execution."
+fi
 
 protected_deletes="$(detect_protected_deletions "$PROD_ROOT" origin/main origin/dev)"
 if [[ -n "$protected_deletes" && "$FORCE_PROTECTED_DELETE" != "1" ]]; then
