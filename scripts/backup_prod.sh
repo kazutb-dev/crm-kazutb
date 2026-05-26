@@ -293,7 +293,8 @@ write_manifest() {
         fi
     } > "${MANIFEST_FILE}"
 
-    find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
+    # Exclude manifest from SHA file list to avoid self-referential mismatch.
+    find "${BACKUP_DIR}" -maxdepth 1 -type f ! -name 'SHA256SUMS' ! -name 'manifest_*.txt' -print0 | xargs -0 sha256sum > "${BACKUP_DIR}/SHA256SUMS"
 
     {
         echo
@@ -363,6 +364,15 @@ DB_USERNAME="$(get_env_value "DB_USERNAME" "${ENV_FILE}")"
 DB_PASSWORD="$(get_env_value "DB_PASSWORD" "${ENV_FILE}")"
 DB_CONNECTION="${DB_CONNECTION:-mysql}"
 
+if command -v pigz >/dev/null 2>&1; then
+    GZIP_CMD=(pigz -1 -c)
+    TAR_COMPRESS_PROGRAM="pigz -1"
+    log "Using pigz for faster compression."
+else
+    GZIP_CMD=(gzip -1 -c)
+    TAR_COMPRESS_PROGRAM="gzip -1"
+fi
+
 mkdir -p "${BACKUP_DIR}"
 [[ -d "${BACKUP_DIR}" ]] || err "Failed to create backup dir: ${BACKUP_DIR}"
 
@@ -407,9 +417,10 @@ if [[ "${DB_CONNECTION}" == "sqlite" ]]; then
     [[ -f "${sqlite_path}" ]] || err "SQLite database file not found: ${sqlite_path}"
 
     sqlite_copy="${BACKUP_DIR}/database_${TIMESTAMP}.sqlite"
-    cp "${sqlite_path}" "${sqlite_copy}"
-    gzip -f "${sqlite_copy}"
     DB_BACKUP_FILE="${sqlite_copy}.gz"
+    cp "${sqlite_path}" "${sqlite_copy}"
+    "${GZIP_CMD[@]}" < "${sqlite_copy}" > "${DB_BACKUP_FILE}"
+    rm -f "${sqlite_copy}"
 else
     [[ -n "${DB_DATABASE}" ]] || err "DB_DATABASE is empty"
     [[ -n "${DB_HOST}" ]] || err "DB_HOST is empty"
@@ -430,7 +441,7 @@ else
         -P"${DB_PORT}" \
         -u"${DB_USERNAME}" \
         "${DB_DATABASE}" \
-        | gzip -c > "${DB_BACKUP_FILE}"
+        | "${GZIP_CMD[@]}" > "${DB_BACKUP_FILE}"
 fi
 
 [[ -f "${DB_BACKUP_FILE}" ]] || err "Database backup file missing: ${DB_BACKUP_FILE}"
@@ -450,7 +461,7 @@ done
 [[ "${#PROJECT_DATA_ITEMS[@]}" -gt 0 ]] || err "No project data items found to archive"
 
 set +e
-tar -czf "${PROJECT_DATA_ARCHIVE_FILE}" \
+tar --use-compress-program="${TAR_COMPRESS_PROGRAM}" -cf "${PROJECT_DATA_ARCHIVE_FILE}" \
     -C "${PROJECT_ROOT}" \
     --warning=no-file-changed \
     --ignore-failed-read \
