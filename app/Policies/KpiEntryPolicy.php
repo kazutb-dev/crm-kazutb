@@ -91,17 +91,17 @@ class KpiEntryPolicy
 
         if ($this->isTeacher($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         if ($this->isDepartmentHead($user) || $this->isDean($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         if ($this->isStructuralDivisionUser($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         return false;
@@ -147,17 +147,17 @@ class KpiEntryPolicy
 
         if ($this->isTeacher($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         if ($this->isDepartmentHead($user) || $this->isDean($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         if ($this->isStructuralDivisionUser($user)) {
             return (int) $entry->user_id === (int) $user->id
-                && $this->isEntryInAccessiblePeriod($entry);
+                && ($this->isEntryInAccessiblePeriod($entry) || $this->canEditInClosedPeriod($entry));
         }
 
         return false;
@@ -392,6 +392,14 @@ class KpiEntryPolicy
         $entry->loadMissing('period');
 
         return $entry->period?->isCurrentlyOpen() === true;
+    }
+
+    private function canEditInClosedPeriod(KpiEntry $entry): bool
+    {
+        return in_array($entry->status, [
+            KpiEntry::STATUS_RETURNED,
+            KpiEntry::STATUS_REJECTED,
+        ], true);
     }
 
     private function userDepartmentId(User $user): ?int

@@ -102,8 +102,7 @@ class KpiEntryController extends Controller
         private readonly KpiEntryService $entryService,
         private readonly KpiEntryFileService $fileService,
         private readonly KpiPeriodService $periodService,
-    ) {
-    }
+    ) {}
 
     public function myForm(Request $request): Response|JsonResponse
     {
@@ -214,7 +213,7 @@ class KpiEntryController extends Controller
                         ]
                         : null,
                     'structural_units' => $indicator->structuralUnits
-                        ->map(fn (KpiStructuralUnit $unit): array => [
+                        ->map(fn(KpiStructuralUnit $unit): array => [
                             'id' => (int) $unit->id,
                             'name' => (string) $unit->name,
                         ])
@@ -230,7 +229,7 @@ class KpiEntryController extends Controller
                 'indicator.checkerStructuralUnit:id,code,name',
                 'indicator.structuralUnits:id,code,name',
                 'files:id,kpi_entry_id,file_name,file_path,file_disk,file_type,file_size,uploaded_by',
-                'statusLogs' => fn ($q) => $q->orderBy('created_at', 'asc'),
+                'statusLogs' => fn($q) => $q->orderBy('created_at', 'asc'),
                 'statusLogs.actor:id,name,display_name',
                 'statusLogs.actor.kpiStructuralUnits:id,code,name',
                 'structuralConfirmations:id,kpi_record_id,structural_unit_id,confirmed_by,status,comment,confirmed_at',
@@ -239,10 +238,10 @@ class KpiEntryController extends Controller
             ])
             ->forUser($user->id)
             ->forEntityType($entityType)
-            ->when($period?->id !== null, fn (Builder $query) => $query->where('kpi_period_id', $period->id))
-            ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
-            ->when($module !== '', fn (Builder $query) => $query->whereHas('indicator', fn (Builder $query) => $query->where('section', $module)))
-            ->when($groupCode !== '', fn (Builder $query) => $query->whereHas('indicator', fn (Builder $query) => $query->where('code', 'like', $groupCode . '.%')))
+            ->when($period?->id !== null, fn(Builder $query) => $query->where('kpi_period_id', $period->id))
+            ->when($status !== '', fn(Builder $query) => $query->where('status', $status))
+            ->when($module !== '', fn(Builder $query) => $query->whereHas('indicator', fn(Builder $query) => $query->where('section', $module)))
+            ->when($groupCode !== '', fn(Builder $query) => $query->whereHas('indicator', fn(Builder $query) => $query->where('code', 'like', $groupCode . '.%')))
             ->latest('id');
 
         $entries = $entriesQuery
@@ -250,7 +249,7 @@ class KpiEntryController extends Controller
             ->withQueryString();
 
         $entries->getCollection()->transform(function (KpiEntry $entry): KpiEntry {
-            $entry->history = $entry->statusLogs->map(fn ($log) => [
+            $entry->history = $entry->statusLogs->map(fn($log) => [
                 'id' => $log->id,
                 'action' => $log->action,
                 'from_status' => $log->from_status,
@@ -273,8 +272,8 @@ class KpiEntryController extends Controller
                 : collect();
 
             $confirmationsByUnit = $rawConfirmations
-                ->filter(fn ($item) => $item?->structural_unit_id !== null)
-                ->keyBy(fn ($item) => (int) $item->structural_unit_id);
+                ->filter(fn($item) => $item?->structural_unit_id !== null)
+                ->keyBy(fn($item) => (int) $item->structural_unit_id);
 
             $resolvedConfirmations = $expectedUnits->map(function ($unit) use ($confirmationsByUnit): array {
                 $unitId = (int) ($unit->id ?? 0);
@@ -295,7 +294,7 @@ class KpiEntryController extends Controller
             })->values();
 
             $extraConfirmations = $rawConfirmations
-                ->filter(fn ($item) => !$resolvedConfirmations->contains(fn ($row) => (int) $row['structural_unit_id'] === (int) $item->structural_unit_id))
+                ->filter(fn($item) => !$resolvedConfirmations->contains(fn($row) => (int) $row['structural_unit_id'] === (int) $item->structural_unit_id))
                 ->map(function ($item): array {
                     $unit = $item->structuralUnit;
                     $name = trim((string) ($unit?->code ?? '')) && trim((string) ($unit?->name ?? ''))
@@ -319,10 +318,10 @@ class KpiEntryController extends Controller
 
             // Fallback for historical entries: some old rejects were logged in status history
             // without creating/updating a structural confirmation row.
-            $hasRejectedInMatrix = $matrix->contains(fn ($row) => ($row['status'] ?? null) === 'rejected');
+            $hasRejectedInMatrix = $matrix->contains(fn($row) => ($row['status'] ?? null) === 'rejected');
             if ($entry->status === KpiEntry::STATUS_REJECTED && !$hasRejectedInMatrix) {
                 $rejectLog = $entry->statusLogs
-                    ->filter(fn ($log) => $log->action === KpiStatusLog::ACTION_REJECT)
+                    ->filter(fn($log) => $log->action === KpiStatusLog::ACTION_REJECT)
                     ->sortByDesc('created_at')
                     ->first();
 
@@ -330,16 +329,16 @@ class KpiEntryController extends Controller
                     $expectedUnitIds = $expectedUnits
                         ->pluck('id')
                         ->filter()
-                        ->map(fn ($id) => (int) $id)
+                        ->map(fn($id) => (int) $id)
                         ->values();
 
                     $candidateIds = collect();
 
                     $actorUnitIds = $rejectLog->actor?->kpiStructuralUnits
                         ? $rejectLog->actor->kpiStructuralUnits
-                            ->pluck('id')
-                            ->filter()
-                            ->map(fn ($id) => (int) $id)
+                        ->pluck('id')
+                        ->filter()
+                        ->map(fn($id) => (int) $id)
                         : collect();
 
                     if ($actorUnitIds->isNotEmpty()) {
@@ -369,11 +368,11 @@ class KpiEntryController extends Controller
                     if ($candidateIds->isNotEmpty()) {
                         foreach ($candidateIds as $candidateId) {
                             $index = $matrix->search(
-                                fn ($row) => (int) ($row['structural_unit_id'] ?? 0) === (int) $candidateId,
+                                fn($row) => (int) ($row['structural_unit_id'] ?? 0) === (int) $candidateId,
                                 true
                             );
 
-                            $unit = $expectedUnits->first(fn ($item) => (int) ($item->id ?? 0) === (int) $candidateId);
+                            $unit = $expectedUnits->first(fn($item) => (int) ($item->id ?? 0) === (int) $candidateId);
                             $resolvedName = trim((string) ($unit?->code ?? '')) && trim((string) ($unit?->name ?? ''))
                                 ? trim((string) $unit->code) . ' — ' . trim((string) $unit->name)
                                 : (trim((string) ($unit?->name ?? '')) ?: trim((string) ($unit?->code ?? '')) ?: 'Структурное подразделение');
@@ -407,21 +406,21 @@ class KpiEntryController extends Controller
         $summaryQuery = KpiEntry::query()
             ->forUser($user->id)
             ->forEntityType($entityType)
-            ->when($period?->id !== null, fn (Builder $query) => $query->where('kpi_period_id', $period->id));
+            ->when($period?->id !== null, fn(Builder $query) => $query->where('kpi_period_id', $period->id));
 
         // KPI result for current period
         $result = $period
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_USER)
-                ->where('user_id', $user->id)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'approved_entries_count'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_USER)
+            ->where('user_id', $user->id)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'approved_entries_count'])
             : null;
 
         $modules = $indicators
             ->pluck('section')
             ->unique()
-            ->map(fn ($section): array => [
+            ->map(fn($section): array => [
                 'value' => $section,
                 'label' => $this->teacherModuleLabel((string) $section),
             ])
@@ -433,25 +432,26 @@ class KpiEntryController extends Controller
             $groupCodesByModule[$section] = $indicators
                 ->where('section', $section)
                 ->pluck('group_code')
-                ->filter()
-                ->unique()
-                ->sort()
+                ->map(fn($code): string => trim((string) $code))
+                ->filter(fn(string $code): bool => $code !== '')
+                ->uniqueStrict()
+                ->sort(fn(string $left, string $right): int => strnatcasecmp($left, $right))
                 ->values()
-                ->map(fn ($code): array => [
+                ->map(fn($code): array => [
                     'value' => $code,
                     'label' => $code . ' — ' . $this->resolveGroupLabel($entityType, (string) $code),
                 ])
                 ->all();
         }
-    $totalPointsQuery = KpiEntry::query()
-        ->from('kpi_entries')
-        ->leftJoin('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
-        ->where('kpi_entries.user_id', $user->id)
-        ->where('kpi_entries.entity_type', $entityType)
-        ->when($period?->id !== null, fn (Builder $query) => $query->where('kpi_entries.kpi_period_id', $period->id));
+        $totalPointsQuery = KpiEntry::query()
+            ->from('kpi_entries')
+            ->leftJoin('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
+            ->where('kpi_entries.user_id', $user->id)
+            ->where('kpi_entries.entity_type', $entityType)
+            ->when($period?->id !== null, fn(Builder $query) => $query->where('kpi_entries.kpi_period_id', $period->id));
 
-    $totalPoints = (float) ($totalPointsQuery
-        ->selectRaw("
+        $totalPoints = (float) ($totalPointsQuery
+            ->selectRaw("
             ROUND(SUM(
                 CASE
                     WHEN kpi_entries.manual_points IS NOT NULL THEN kpi_entries.manual_points
@@ -462,7 +462,7 @@ class KpiEntryController extends Controller
                 END
             ), 2) as total_points
         ")
-        ->value('total_points') ?? 0);
+            ->value('total_points') ?? 0);
         $totalEntries = (int) ((clone $summaryQuery)->count());
         $approvedEntries = (int) ((clone $summaryQuery)->where('status', KpiEntry::STATUS_APPROVED)->count());
         $rejectedEntries = (int) ((clone $summaryQuery)->where('status', KpiEntry::STATUS_REJECTED)->count());
@@ -630,8 +630,8 @@ class KpiEntryController extends Controller
         ]);
 
         $externalLinks = collect($data['external_source_urls'] ?? [])
-            ->map(static fn ($url) => trim((string) $url))
-            ->filter(static fn ($url) => $url !== '')
+            ->map(static fn($url) => trim((string) $url))
+            ->filter(static fn($url) => $url !== '')
             ->values()
             ->take(10);
 
@@ -694,6 +694,11 @@ class KpiEntryController extends Controller
         if (!$period) {
             return $this->errorResponse($request, 'Нет активного KPI-сезона для выбранного учебного года.');
         }
+
+        $data['calculation_details'] = $this->normalizeRuleDrivenCalculationDetails(
+            $indicator,
+            $data['calculation_details'] ?? null,
+        );
 
         $this->assertIndicatorValueRules($indicator, $data['value'] ?? null, 'value');
         $this->assertRuleDrivenFields($indicator, $data['calculation_details'] ?? null, 'value');
@@ -835,8 +840,8 @@ class KpiEntryController extends Controller
         ]);
 
         $externalLinks = collect($data['external_source_urls'] ?? [])
-            ->map(static fn ($url) => trim((string) $url))
-            ->filter(static fn ($url) => $url !== '')
+            ->map(static fn($url) => trim((string) $url))
+            ->filter(static fn($url) => $url !== '')
             ->values()
             ->take(10)
             ->all();
@@ -878,6 +883,11 @@ class KpiEntryController extends Controller
         $entry->loadMissing('indicator:id,base_points,unit');
 
         $stage = (string) ($data['stage'] ?? KpiPeriod::STAGE_FACT);
+
+        $data['calculation_details'] = $this->normalizeRuleDrivenCalculationDetails(
+            $entry->indicator,
+            $data['calculation_details'] ?? null,
+        );
 
         $this->assertIndicatorValueRules(
             $entry->indicator,
@@ -1104,8 +1114,8 @@ class KpiEntryController extends Controller
         $query = KpiEntry::query()
             ->where('status', KpiEntry::STATUS_APPROVED)
             ->where('entity_type', $entityType)
-            ->when($academicYearId > 0, fn (Builder $q) => $q->where('academic_year_id', $academicYearId))
-            ->when($periodId > 0, fn (Builder $q) => $q->where('kpi_period_id', $periodId))
+            ->when($academicYearId > 0, fn(Builder $q) => $q->where('academic_year_id', $academicYearId))
+            ->when($periodId > 0, fn(Builder $q) => $q->where('kpi_period_id', $periodId))
             ->select('user_id', 'faculty_id', 'department_id', 'academic_year_id', 'kpi_period_id')
             ->selectRaw('COUNT(*) as approved_count')
             ->selectRaw('ROUND(SUM(COALESCE(manual_points, calculated_points, 0)), 2) as total_points')
@@ -1118,7 +1128,7 @@ class KpiEntryController extends Controller
 
         $users = User::query()
             ->whereIn('id', $userIds)
-            ->when($search !== '', fn (Builder $q) => $q->where(function (Builder $inner) use ($search): void {
+            ->when($search !== '', fn(Builder $q) => $q->where(function (Builder $inner) use ($search): void {
                 $inner->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('ad_department', 'like', "%{$search}%");
@@ -1137,8 +1147,8 @@ class KpiEntryController extends Controller
         $faculties = Faculty::query()->whereIn('id', $facultyIds)->get(['id', 'name'])->keyBy('id');
 
         $employees = $rows
-            ->filter(fn ($row) => $users->has($row->user_id))
-            ->map(fn ($row) => [
+            ->filter(fn($row) => $users->has($row->user_id))
+            ->map(fn($row) => [
                 'user_id' => $row->user_id,
                 'name' => $users[$row->user_id]->name,
                 'email' => $users[$row->user_id]->email,
@@ -1159,7 +1169,7 @@ class KpiEntryController extends Controller
 
         $academicYears = AcademicYear::query()->orderByDesc('start_year')->get(['id', 'name']);
         $periods = KpiPeriod::query()
-            ->when($academicYearId > 0, fn (Builder $q) => $q->where('academic_year_id', $academicYearId))
+            ->when($academicYearId > 0, fn(Builder $q) => $q->where('academic_year_id', $academicYearId))
             ->orderByDesc('start_date')
             ->get(['id', 'name', 'stage', 'status', 'academic_year_id']);
 
@@ -1420,7 +1430,7 @@ class KpiEntryController extends Controller
         $indicatorIds = collect($entries)
             ->pluck('indicator_id')
             ->filter()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->values();
 
@@ -1495,7 +1505,11 @@ class KpiEntryController extends Controller
         if (in_array($ruleKind, ['podium', 'improvement', 'roleSplit', 'quartile', 'optionRate'], true)) {
             $selectionPoints = $this->parseNumericValue($details['selection_points'] ?? null);
 
-            if ($selectionPoints === null || $selectionPoints <= 0) {
+            $isMissingSelection = $selectionPoints === null;
+            $requiresPositiveSelection = in_array($ruleKind, ['podium', 'roleSplit', 'quartile'], true);
+            $isInvalidPositiveSelection = $requiresPositiveSelection && $selectionPoints !== null && $selectionPoints <= 0;
+
+            if ($isMissingSelection || $isInvalidPositiveSelection) {
                 throw ValidationException::withMessages([
                     $field => 'Для выбранного индикатора нужно заполнить все поля расчета по правилу.',
                 ]);
@@ -1530,7 +1544,11 @@ class KpiEntryController extends Controller
         }
 
         $selectionPoints = $this->parseNumericValue($details['selection_points'] ?? null);
-        if ($selectionPoints === null || $selectionPoints <= 0) {
+        if ($selectionPoints === null) {
+            return null;
+        }
+
+        if (in_array($ruleKind, ['podium', 'roleSplit', 'quartile'], true) && $selectionPoints <= 0) {
             return null;
         }
 
@@ -1616,6 +1634,41 @@ class KpiEntryController extends Controller
         return (float) $normalized;
     }
 
+    /**
+     * Normalize rule payload to avoid sign inversions from stale frontend bundles.
+     *
+     * @param mixed $details
+     * @return array<string, mixed>|null
+     */
+    private function normalizeRuleDrivenCalculationDetails(?KpiIndicator $indicator, $details): ?array
+    {
+        if (!is_array($details)) {
+            return null;
+        }
+
+        $ruleKind = $this->detectIndicatorRuleKind($indicator);
+        if ($ruleKind !== 'improvement') {
+            return !empty($details) ? $details : null;
+        }
+
+        $selectionPoints = $this->parseNumericValue($details['selection_points'] ?? null);
+        $selectionLabel = mb_strtolower(trim((string) ($details['selection_label'] ?? '')));
+
+        if ($selectionPoints !== null) {
+            if ($selectionLabel !== '' && str_contains($selectionLabel, 'ухудш') && $selectionPoints > 0) {
+                $selectionPoints = -1 * abs($selectionPoints);
+            }
+
+            if ($selectionLabel !== '' && str_contains($selectionLabel, 'улучш') && $selectionPoints < 0) {
+                $selectionPoints = abs($selectionPoints);
+            }
+
+            $details['selection_points'] = $selectionPoints;
+        }
+
+        return !empty($details) ? $details : null;
+    }
+
     private function isPositiveWholeNumber($value): bool
     {
         $parsed = $this->parseNumericValue($value);
@@ -1665,9 +1718,9 @@ class KpiEntryController extends Controller
 
             return $query->where(function (Builder $q) use ($departmentId): void {
                 $q->where('department_id', $departmentId ?? 0)
-                  ->orWhere(function (Builder $inner): void {
-                      $inner->whereNull('faculty_id')->whereNull('department_id');
-                  });
+                    ->orWhere(function (Builder $inner): void {
+                        $inner->whereNull('faculty_id')->whereNull('department_id');
+                    });
             });
         }
 
@@ -1676,9 +1729,9 @@ class KpiEntryController extends Controller
 
             return $query->where(function (Builder $q) use ($facultyId): void {
                 $q->where('faculty_id', $facultyId ?? 0)
-                  ->orWhere(function (Builder $inner): void {
-                      $inner->whereNull('faculty_id')->whereNull('department_id');
-                  });
+                    ->orWhere(function (Builder $inner): void {
+                        $inner->whereNull('faculty_id')->whereNull('department_id');
+                    });
             });
         }
 
@@ -1806,8 +1859,8 @@ class KpiEntryController extends Controller
         $entries = $entriesQuery
             ->when(
                 $sort === 'oldest',
-                fn (Builder $query) => $query->orderBy('created_at')->orderBy('id'),
-                fn (Builder $query) => $query->orderByDesc('created_at')->orderByDesc('id')
+                fn(Builder $query) => $query->orderBy('created_at')->orderBy('id'),
+                fn(Builder $query) => $query->orderByDesc('created_at')->orderByDesc('id')
             )
             ->paginate(15)
             ->withQueryString();
@@ -1835,7 +1888,7 @@ class KpiEntryController extends Controller
             ->values();
 
         $periods = KpiPeriod::query()
-            ->when($academicYearId > 0, fn (Builder $query) => $query->where('academic_year_id', $academicYearId))
+            ->when($academicYearId > 0, fn(Builder $query) => $query->where('academic_year_id', $academicYearId))
             ->orderByDesc('start_date')
             ->get(['id', 'name', 'stage', 'status', 'academic_year_id']);
 
@@ -1846,17 +1899,22 @@ class KpiEntryController extends Controller
         $unlinkedCount = $isHodOrDean
             ? $this->applyQueueFilters(
                 (clone $baseQuery)->whereNull('faculty_id')->whereNull('department_id'),
-                $academicYearId, $periodId, $status, 0, 0, $userId,
+                $academicYearId,
+                $periodId,
+                $status,
+                0,
+                0,
+                $userId,
             )->count()
             : 0;
 
         $faculties = Faculty::query()
-            ->when($userFacultyId !== null, fn (Builder $query) => $query->whereKey($userFacultyId))
+            ->when($userFacultyId !== null, fn(Builder $query) => $query->whereKey($userFacultyId))
             ->orderBy('name')
             ->get(['id', 'name']);
 
         $departments = Department::query()
-            ->when($userDepartmentId !== null, fn (Builder $query) => $query->whereKey($userDepartmentId))
+            ->when($userDepartmentId !== null, fn(Builder $query) => $query->whereKey($userDepartmentId))
             ->orderBy('name')
             ->get(['id', 'name']);
 
@@ -1937,7 +1995,7 @@ class KpiEntryController extends Controller
                 } else {
                     $structuralScope = [
                         'type' => 'info',
-                        'label' => 'Подразделение сотрудника: '.($user->ad_division ?: 'не назначено').'.',
+                        'label' => 'Подразделение сотрудника: ' . ($user->ad_division ?: 'не назначено') . '.',
                         'actor_division_ids' => $actorStructuralUnitIds,
                     ];
                 }
@@ -2182,7 +2240,7 @@ class KpiEntryController extends Controller
                 continue;
             }
 
-            $match = $units->first(fn (KpiStructuralUnit $unit): bool => mb_strtolower(trim((string) $unit->code)) === mb_strtolower($code));
+            $match = $units->first(fn(KpiStructuralUnit $unit): bool => mb_strtolower(trim((string) $unit->code)) === mb_strtolower($code));
             if ($match) {
                 return collect([(int) $match->id]);
             }
@@ -2197,7 +2255,7 @@ class KpiEntryController extends Controller
                     || ($name !== '' && str_contains($normalized, $name));
             })
             ->pluck('id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->unique()
             ->values();
 
@@ -2220,7 +2278,7 @@ class KpiEntryController extends Controller
 
         $unitMap = KpiStructuralUnit::query()
             ->get(['id', 'code', 'name'])
-            ->keyBy(fn (KpiStructuralUnit $unit): string => mb_strtolower(trim((string) $unit->code)));
+            ->keyBy(fn(KpiStructuralUnit $unit): string => mb_strtolower(trim((string) $unit->code)));
 
         $aliases = [
             'омоиам' => 'ОМОиАМ',
@@ -2336,7 +2394,7 @@ class KpiEntryController extends Controller
                 'manual_points' => $entry?->manual_points,
                 'comment' => $entry?->comment,
                 'status' => $entry?->status ?? KpiEntry::STATUS_DRAFT,
-                'files' => $entry?->files?->map(fn ($file) => [
+                'files' => $entry?->files?->map(fn($file) => [
                     'id' => $file->id,
                     'file_name' => $file->file_name,
                     'file_url' => $file->file_url,
@@ -2400,6 +2458,7 @@ class KpiEntryController extends Controller
             ],
             KpiIndicator::ENTITY_TYPE_DEPARTMENT_HEAD => [
                 '1.1'  => 'Аккредитация образовательных программ',
+                '1.10' => 'Доля дипломных работ/проектов по заказу предприятий',
                 '1.2'  => 'Участие в национальных и международных рейтингах',
                 '1.3'  => 'Гостевые лекции ППС из вузов-партнёров',
                 '1.4'  => 'Академическая мобильность обучающихся',

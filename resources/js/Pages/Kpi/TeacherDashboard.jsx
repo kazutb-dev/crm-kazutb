@@ -262,6 +262,54 @@ function parseOptionRules(rawRules) {
     return options;
 }
 
+function parseImprovementRates(rawRules) {
+    const defaults = {
+        upToTen: 0.5,
+        overTen: 1,
+        worsen: -2,
+    };
+
+    const rates = { ...defaults };
+    const parts = String(rawRules ?? '')
+        .replace(/\s+/g, ' ')
+        .split(/\s*[;/]\s*/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    parts.forEach((part) => {
+        const normalized = part.toLowerCase().replace(/−/g, '-').trim();
+        if (!normalized) {
+            return;
+        }
+
+        const pointsMatch = normalized.match(/[-+]?\d+(?:[.,]\d+)?/);
+        if (!pointsMatch) {
+            return;
+        }
+
+        const points = parseNumber(pointsMatch[0], NaN);
+        if (!Number.isFinite(points)) {
+            return;
+        }
+
+        if (normalized.includes('ухудш')) {
+            rates.worsen = points;
+            return;
+        }
+
+        if (normalized.includes('более 10')) {
+            rates.overTen = points;
+            return;
+        }
+
+        if (normalized.includes('до 10')) {
+            rates.upToTen = points;
+        }
+    });
+
+    return rates;
+}
+
 function detectRuleSpec(indicator) {
     const rawRules = String(indicator?.scoring_rules ?? '').trim();
     const lowerRules = rawRules.toLowerCase();
@@ -288,9 +336,10 @@ function detectRuleSpec(indicator) {
     }
 
     if (lowerRules.includes('улучш') && lowerRules.includes('ухудш')) {
-        const upToTen = extractNumberNear(lowerRules, 'до 10', 0.5);
-        const overTen = extractNumberNear(lowerRules, 'более 10', 1);
-        const worsen = extractNumberNear(lowerRules, 'ухудш', -2);
+        const rates = parseImprovementRates(rawRules);
+        const upToTen = rates.upToTen;
+        const overTen = rates.overTen;
+        const worsen = rates.worsen;
 
         return {
             kind: 'improvement',
@@ -1139,6 +1188,10 @@ export default function TeacherDashboard({
     }, [createOpen, createForm.errors]);
 
     useEffect(() => {
+        if (editingEntryId) {
+            return;
+        }
+
         if (!activeSeason?.academic_year_id) {
             return;
         }
@@ -1147,7 +1200,7 @@ export default function TeacherDashboard({
         if (createForm.data.academic_year_id !== activeSeasonId) {
             createForm.setData('academic_year_id', activeSeasonId);
         }
-    }, [activeSeason?.academic_year_id]);
+    }, [activeSeason?.academic_year_id, editingEntryId]);
 
     const hasActiveSeason = activeSeasons.length > 0;
 
@@ -1378,6 +1431,11 @@ export default function TeacherDashboard({
     };
 
     const openEditEntry = (entry) => {
+        const entryAcademicYearId = entry.academic_year_id
+            ?? entry.academicYear?.id
+            ?? entry.academic_year?.id
+            ?? null;
+
         const existingExternalLinks = Array.isArray(entry.calculation_details?.external_source_urls)
             ? entry.calculation_details.external_source_urls
                 .map((url) => String(url ?? '').trim())
@@ -1393,7 +1451,7 @@ export default function TeacherDashboard({
 
         createForm.setData((prev) => ({
             ...prev,
-            academic_year_id: activeSeason?.academic_year_id ? String(activeSeason.academic_year_id) : prev.academic_year_id,
+            academic_year_id: entryAcademicYearId ? String(entryAcademicYearId) : prev.academic_year_id,
             stage: 'fact',
             module: entry.indicator?.section ?? prev.module,
             group_code: matchedIndicator?.group_code ?? '',
@@ -1562,7 +1620,7 @@ export default function TeacherDashboard({
                                         {activeSeason?.label ?? academicYear?.name ?? 'Нет активного сезона'}
                                     </div>
                                     <input type="hidden" value={createForm.data.academic_year_id} readOnly />
-                                    {!hasActiveSeason && (
+                                    {!hasActiveSeason && !editingEntryId && (
                                         <p className="text-xs text-amber-600">
                                             Нет активных KPI-сезонов. Обратитесь к администратору.
                                         </p>
@@ -2055,14 +2113,14 @@ export default function TeacherDashboard({
                                     type="button"
                                     variant="outline"
                                     onClick={(event) => submitCreate(event, 'draft')}
-                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
+                                    disabled={createForm.processing || (!editingEntryId && !hasActiveSeason) || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     Сохранить как черновик
                                 </Button>
                                 <Button
                                     type="button"
                                     onClick={(event) => submitCreate(event, 'submit')}
-                                    disabled={createForm.processing || !hasActiveSeason || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
+                                    disabled={createForm.processing || (!editingEntryId && !hasActiveSeason) || !createForm.data.academic_year_id || isTotalFileSizeExceeded}
                                 >
                                     <Send className="h-4 w-4" />
                                     Отправить на проверку

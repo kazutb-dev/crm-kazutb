@@ -502,8 +502,8 @@ class KpiSummaryController extends Controller
             ];
         }
 
-        // Top teachers ranking (from kpi_results)
-        $topTeachers = $this->allTeachersRanking($period, limit: 50);
+        // Top teachers ranking
+        $topTeachers = $this->allTeachersRanking($period);
 
         // HOD and Dean rankings
         $topHods = $this->allHodsRanking($period);
@@ -846,7 +846,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(function ($r) {
+                $resultRows = $results->map(function ($r) {
                     $npu = $this->hodNpuThreshold($r->department_code);
                     $k1234 = (float) $r->k1_score + (float) $r->k2_score + (float) $r->k3_score + (float) $r->k4_score;
 
@@ -868,7 +868,25 @@ class KpiSummaryController extends Controller
                         'approved_entries' => (int) $r->approved_entries_count,
                         'source' => 'result',
                     ];
-                })->values()->all();
+                })->values();
+
+                $resultUserIds = $results
+                    ->pluck('user_id')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all();
+
+                $missingUserIds = array_values(array_diff($hodUserIds->all(), $resultUserIds));
+                if (! empty($missingUserIds)) {
+                    $liveRows = $this->liveEntityAggregation(KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD, $period, $missingUserIds);
+                    $resultRows = $resultRows->concat($liveRows);
+                }
+
+                return $resultRows
+                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->values()
+                    ->all();
             }
         }
 
@@ -926,7 +944,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(function ($r) {
+                $resultRows = $results->map(function ($r) {
                     $k1234 = (float) $r->k1_score + (float) $r->k2_score + (float) $r->k3_score + (float) $r->k4_score;
 
                     return [
@@ -947,7 +965,25 @@ class KpiSummaryController extends Controller
                         'approved_entries' => (int) $r->approved_entries_count,
                         'source' => 'result',
                     ];
-                })->values()->all();
+                })->values();
+
+                $resultUserIds = $results
+                    ->pluck('user_id')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all();
+
+                $missingUserIds = array_values(array_diff($deanUserIds->all(), $resultUserIds));
+                if (! empty($missingUserIds)) {
+                    $liveRows = $this->liveEntityAggregation(KpiEntry::ENTITY_TYPE_DEAN, $period, $missingUserIds);
+                    $resultRows = $resultRows->concat($liveRows);
+                }
+
+                return $resultRows
+                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->values()
+                    ->all();
             }
         }
 
@@ -1031,12 +1067,28 @@ class KpiSummaryController extends Controller
      *
      * @return array<int, array<string, mixed>>
      */
-    private function allTeachersRanking(?KpiPeriod $period, int $limit = 50, ?string $statusFilter = null): array
+    private function allTeachersRanking(?KpiPeriod $period, int $limit = 10000, ?string $statusFilter = null): array
     {
+        $teacherUserIds = KpiEntry::query()
+            ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
+            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
+            ->when(! $statusFilter, fn ($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
+            ->distinct()
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        if ($teacherUserIds->isEmpty()) {
+            return [];
+        }
+
         if ($period && ! $statusFilter) {
             $results = KpiResult::query()
                 ->where('kpi_period_id', $period->id)
                 ->where('result_type', KpiResult::RESULT_TYPE_USER)
+                ->whereIn('kpi_results.user_id', $teacherUserIds)
                 ->join('users', 'users.id', '=', 'kpi_results.user_id')
                 ->leftJoin('departments', 'departments.id', '=', 'kpi_results.department_id')
                 ->leftJoin('faculties', 'faculties.id', '=', 'kpi_results.faculty_id')
@@ -1064,7 +1116,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(fn ($r) => [
+                $resultRows = $results->map(fn ($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
                     'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
@@ -1089,7 +1141,34 @@ class KpiSummaryController extends Controller
                     'k6' => (float) $r->k6_score,
                     'approved_entries' => (int) $r->approved_entries_count,
                     'source' => 'result',
-                ])->values()->all();
+                ])->values();
+
+                $resultUserIds = $results
+                    ->pluck('user_id')
+                    ->filter()
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all();
+
+                $missingUserIds = array_values(array_diff($teacherUserIds->all(), $resultUserIds));
+                if (! empty($missingUserIds)) {
+                    $liveRows = $this->liveTeachersAggregation(
+                        deptId: null,
+                        facultyId: null,
+                        period: $period,
+                        statusFilter: $statusFilter,
+                        limit: max(count($missingUserIds), $limit),
+                        onlyUserIds: $missingUserIds,
+                    );
+
+                    $resultRows = $resultRows->concat($liveRows);
+                }
+
+                return $resultRows
+                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->take($limit)
+                    ->values()
+                    ->all();
             }
         }
 
@@ -1098,7 +1177,8 @@ class KpiSummaryController extends Controller
             facultyId: null,
             period: $period,
             statusFilter: $statusFilter,
-            limit: $limit
+            limit: $limit,
+            onlyUserIds: $teacherUserIds->all(),
         );
     }
 
@@ -1215,7 +1295,8 @@ class KpiSummaryController extends Controller
         ?KpiPeriod $period,
         ?int $excludeUserId = null,
         ?string $statusFilter = null,
-        int $limit = 100
+        int $limit = 100,
+        ?array $onlyUserIds = null
     ): array {
         $entries = KpiEntry::query()
             ->with('indicator')
@@ -1225,6 +1306,7 @@ class KpiSummaryController extends Controller
             ->when($excludeUserId, fn ($q) => $q->where('user_id', '!=', $excludeUserId))
             ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
             ->when(! $statusFilter, fn ($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
+            ->when($onlyUserIds !== null, fn ($q) => $q->whereIn('user_id', $onlyUserIds))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
             ->get();
 
