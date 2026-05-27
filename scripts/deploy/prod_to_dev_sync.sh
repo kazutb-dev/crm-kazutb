@@ -174,7 +174,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
     log "DRY-RUN: would run PROD backup script and verify db/project_data artifacts"
     PROD_BACKUP_DIR="${PROD_ROOT}/backups/prod_backup_DRYRUN_full_snapshot"
 else
-    BACKUP_KEEP_COUNT=2 "$BACKUP_SCRIPT"
+    BACKUP_KEEP_COUNT=1 "$BACKUP_SCRIPT"
     PROD_BACKUP_DIR="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot | head -n1)"
     [[ -n "$PROD_BACKUP_DIR" ]] || fail "Unable to locate PROD backup dir"
     ls -1 "$PROD_BACKUP_DIR"/database_*.sql.gz >/dev/null
@@ -250,6 +250,8 @@ if [[ "$SKIP_FILES" == "0" ]]; then
                 [[ -e "$TMP_EXTRACT_DIR/public/$p" ]] && cp -a "$TMP_EXTRACT_DIR/public/$p" "$DEV_ROOT/public/" || true
             done
         fi
+
+        rm -rf "$TMP_EXTRACT_DIR"
 
         chgrp -R www-data "$DEV_ROOT/storage" "$DEV_ROOT/bootstrap/cache" || true
         chmod -R ug+rwX "$DEV_ROOT/storage" "$DEV_ROOT/bootstrap/cache" || true

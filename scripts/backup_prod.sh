@@ -393,7 +393,7 @@ cleanup_old_backups() {
     cleanup_stale_incomplete_backups "${INCOMPLETE_TTL_HOURS}" "${BACKUP_DIR}"
     cleanup_runtime_backups_by_prefix "nav_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
     cleanup_runtime_backups_by_prefix "nginx_ssl_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
-    cleanup_runtime_backups_by_prefix "dev_before_prod_sync_" 2
+    cleanup_runtime_backups_by_prefix "dev_before_prod_sync_" 1
     cleanup_misc_loose_files
 }
 
@@ -425,7 +425,7 @@ if [[ "${CLEANUP_ONLY}" == "1" ]]; then
     cleanup_stale_incomplete_backups "${INCOMPLETE_TTL_HOURS}" ""
     cleanup_runtime_backups_by_prefix "nav_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
     cleanup_runtime_backups_by_prefix "nginx_ssl_fix_" "${RUNTIME_BACKUP_KEEP_COUNT}"
-    cleanup_runtime_backups_by_prefix "dev_before_prod_sync_" 2
+    cleanup_runtime_backups_by_prefix "dev_before_prod_sync_" 1
     cleanup_misc_loose_files
 
     echo "[backup_prod] Cleanup-only summary:"
