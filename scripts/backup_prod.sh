@@ -8,7 +8,7 @@ EXPECTED_BACKUP_ROOT="/var/www/laravel-react/backups"
 DRY_RUN="${BACKUP_DRY_RUN:-0}"
 CLEANUP_ONLY="${BACKUP_CLEANUP_ONLY:-0}"
 BACKUP_KEEP_COUNT="${BACKUP_KEEP_COUNT:-1}"
-RUNTIME_BACKUP_KEEP_COUNT="${RUNTIME_BACKUP_KEEP_COUNT:-3}"
+RUNTIME_BACKUP_KEEP_COUNT="${RUNTIME_BACKUP_KEEP_COUNT:-1}"
 INCOMPLETE_TTL_HOURS="${INCOMPLETE_TTL_HOURS:-24}"
 BACKUP_SPACE_FACTOR="${BACKUP_SPACE_FACTOR:-130}"
 BACKUP_OFFSITE_HOOK="${BACKUP_OFFSITE_HOOK:-}"
@@ -47,7 +47,7 @@ Usage:
 
 Env:
   BACKUP_KEEP_COUNT=1               # keep latest completed full snapshots
-  RUNTIME_BACKUP_KEEP_COUNT=3       # keep latest runtime backup dirs per prefix
+  RUNTIME_BACKUP_KEEP_COUNT=1       # keep latest runtime backup dirs per prefix
   INCOMPLETE_TTL_HOURS=24           # remove stale .incomplete older than this
     BACKUP_SPACE_FACTOR=130           # projected size safety factor in %
     BACKUP_OFFSITE_HOOK=/path/hook.sh # optional executable hook: hook <backup_dir>

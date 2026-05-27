@@ -304,6 +304,23 @@ log "PROD backup used: ${PROD_BACKUP_DIR}"
 log "DEV backup created: ${DEV_BACKUP_DIR}"
 log "DEV checkpoint branch/tag: ${CHECKPOINT_BRANCH} / ${CHECKPOINT_TAG}"
 
+# Prune old DEV safety snapshots — keep only the 1 most recent.
+# These are temporary rollback points, not archival storage.
+if [[ "$DRY_RUN" != "1" ]]; then
+    _kept_dev=0
+    while IFS= read -r _old_dir; do
+        [[ -n "$_old_dir" && -d "$_old_dir" ]] || continue
+        if (( _kept_dev < 1 )); then
+            (( _kept_dev++ )) || true
+            continue
+        fi
+        log "Pruning old DEV backup: $_old_dir"
+        rm -rf "$_old_dir"
+    done < <(find "${DEV_ROOT}/backups" -mindepth 1 -maxdepth 1 \
+        -type d -name 'dev_before_prod_sync_*' -printf '%T@ %p\n' \
+        | sort -nr | awk '{print $2}')
+fi
+
 if [[ "$DRY_RUN" != "1" ]]; then
         report_dir="${PROD_ROOT}/storage/app/deploy_reports"
         mkdir -p "$report_dir"
