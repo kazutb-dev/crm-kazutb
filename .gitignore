@@ -72,3 +72,6 @@ skills/
 # (e.g. .env.local, .env.staging, .env.ci)
 .env.*
 !.env.example
+
+# GSD Agent Planning (dev-only, never in PROD)
+.planning/
