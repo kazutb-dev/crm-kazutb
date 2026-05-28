@@ -248,6 +248,8 @@ class KpiEntryService
                 $entry->submitted_at = $now;
                 $entry->save();
 
+                $this->resetStructuralConfirmations($entry);
+
                 $this->logStatusChange(
                     $entry,
                     $fromStatus,
@@ -643,6 +645,33 @@ class KpiEntryService
             throw new KpiEntryFileRequiredException(
                 "Для записи #{$entry->id} требуется подтверждающий файл перед review/approve."
             );
+        }
+    }
+
+    private function resetStructuralConfirmations(KpiEntry $entry): void
+    {
+        $confirmations = $entry->structuralConfirmations()->get();
+
+        if ($confirmations->isEmpty()) {
+            return;
+        }
+
+        foreach ($confirmations as $confirmation) {
+            if (
+                $confirmation->status === 'pending'
+                && $confirmation->confirmed_by === null
+                && $confirmation->comment === null
+                && $confirmation->confirmed_at === null
+            ) {
+                continue;
+            }
+
+            $confirmation->update([
+                'status' => 'pending',
+                'confirmed_by' => null,
+                'comment' => null,
+                'confirmed_at' => null,
+            ]);
         }
     }
 
