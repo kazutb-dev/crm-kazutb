@@ -174,8 +174,8 @@ _detect_protected_path() {
     [[ "$path" == scripts/backup_prod.sh ]] && return 0
     [[ "$path" == scripts/deploy/* ]] && return 0
     [[ "$path" == scripts/git-hooks/* ]] && return 0
-    [[ "$path" == docs/deployment.md ]] && return 0
-    [[ "$path" == docs/backup.md ]] && return 0
+    [[ "$path" == docs/deployment/deployment.md ]] && return 0
+    [[ "$path" == docs/operations/backup.md ]] && return 0
     [[ "$path" == .gitignore ]] && return 0
     [[ "$path" == composer.json ]] && return 0
     [[ "$path" == composer.lock ]] && return 0
