@@ -117,18 +117,16 @@ class KpiEntryPolicy
             return false;
         }
 
-        if (!$this->isEntryInAccessiblePeriod($entry)) {
-            return false;
-        }
-
         if ($this->isAdmin($user)) {
             return true;
         }
 
-        if ($this->isTeacher($user)
+        if (
+            $this->isTeacher($user)
             || $this->isDepartmentHead($user)
             || $this->isDean($user)
-            || $this->isStructuralDivisionUser($user)) {
+            || $this->isStructuralDivisionUser($user)
+        ) {
             return (int) $entry->user_id === (int) $user->id;
         }
 
