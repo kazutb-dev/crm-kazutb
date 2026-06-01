@@ -69,8 +69,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Студенты" />
 
-            <div className="py-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div className="admin-page-wrap">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Студенты</h1>
                         <p className="mt-2 text-gray-600 dark:text-gray-400">
@@ -250,7 +249,6 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
         </AuthenticatedLayout>
         <ConfirmDialog

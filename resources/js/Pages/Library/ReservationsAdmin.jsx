@@ -121,7 +121,7 @@ export default function ReservationsAdmin() {
         <AuthenticatedLayout>
             <Head title="Брони книг" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Управление бронями книг</CardTitle>

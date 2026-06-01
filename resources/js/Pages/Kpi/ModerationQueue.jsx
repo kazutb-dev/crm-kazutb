@@ -464,7 +464,7 @@ export default function ModerationQueue({
         <AuthenticatedLayout>
             <Head title={pageTitle} />
 
-            <div className="space-y-4 p-4 sm:p-5 lg:p-6">
+            <div className="admin-page-wrap">
                 {showTabs && (
                     <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
                         <button

@@ -503,7 +503,7 @@ export default function CalendarMy({ events = [], meetingNotifications = [], slo
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Мой Календарь" />
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="admin-page-wrap">
                 {!!flash?.warning && (
                     <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
                         {flash.warning}

@@ -37,7 +37,7 @@ export default function CalendarEmployees({ employees = [] }) {
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Сотрудники" />
-            <div className="p-4 sm:p-6 space-y-5">
+            <div className="admin-page-wrap">
                 <Card className="border-border/70">
                     <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
                         <div>

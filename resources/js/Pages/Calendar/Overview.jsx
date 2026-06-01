@@ -99,7 +99,7 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Обзор" />
 
-            <div className="p-4 sm:p-6 space-y-5">
+            <div className="admin-page-wrap">
 
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

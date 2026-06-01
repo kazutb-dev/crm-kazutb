@@ -23,7 +23,7 @@ export default function DivisionTables({ divisions = [] }) {
         <AuthenticatedLayout>
             <Head title="Таблицы структурных подразделений" />
 
-            <div className="mx-auto max-w-7xl space-y-6 py-6">
+            <div className="admin-page-wrap">
                 <div>
                     <h1 className="text-3xl font-bold">Таблицы структурных подразделений KPI</h1>
                     <p className="text-sm text-muted-foreground">Просмотр привязанных индикаторов по каждому структурному подразделению.</p>

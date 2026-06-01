@@ -400,7 +400,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
         <AuthenticatedLayout>
             <Head title="HR / Dashboard" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
+            <div className="admin-page-wrap">
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                     <select
                         value={division}

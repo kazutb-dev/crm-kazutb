@@ -171,7 +171,7 @@ export default function StructuralDivisionDashboard({
         >
             <Head title="KPI — Структурные подразделения" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
 
                 {/* Header card */}
                 <Card className="border-0 bg-gradient-to-r from-indigo-50 via-white to-sky-50 shadow-sm">

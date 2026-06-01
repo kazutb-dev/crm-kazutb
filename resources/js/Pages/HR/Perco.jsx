@@ -130,7 +130,7 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
         >
             <Head title="HR / Сотрудники" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 {/* Filters */}
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Division filter */}

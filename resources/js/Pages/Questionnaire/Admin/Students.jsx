@@ -179,7 +179,7 @@ export default function Students() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Студенты" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>

@@ -38,7 +38,7 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Аналитика" />
-            <div className="p-4 sm:p-6 space-y-5">
+            <div className="admin-page-wrap">
 
                 {/* Mode indicator for admin */}
                 {isAdmin && (

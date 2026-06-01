@@ -138,7 +138,7 @@ export default function CalendarSettings({
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Настройки" />
-            <div className="w-full max-w-none space-y-5 p-4 sm:p-6 xl:p-8">
+            <div className="admin-page-wrap">
 
                 {!!flash?.error && <div className="rounded-md border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">{flash.error}</div>}
                 {!!flash?.warning && <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">{flash.warning}</div>}

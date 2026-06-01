@@ -182,7 +182,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
         <AuthenticatedLayout>
             <Head title="Журнал аудита" />
 
-            <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-6">
+            <div className="admin-page-wrap">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>

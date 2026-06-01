@@ -172,7 +172,7 @@ export default function CertificateVerify({ valid, status, message, certificate 
     return (
         <>
             <Head title={certificate?.certificate_number ? `Проверка ${certificate.certificate_number}` : 'Проверка сертификата'} />
-            <div className="mx-auto min-h-screen max-w-6xl space-y-4 bg-slate-50 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Проверка сертификата</CardTitle>

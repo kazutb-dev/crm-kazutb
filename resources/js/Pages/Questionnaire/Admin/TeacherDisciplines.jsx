@@ -717,7 +717,7 @@ export default function TeacherDisciplines() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Преподаватели" />
 
-            <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="space-y-4 pt-6">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

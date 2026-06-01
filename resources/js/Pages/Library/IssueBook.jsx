@@ -175,7 +175,7 @@ export default function IssueBook({ recentLoans = [] }) {
         <AuthenticatedLayout>
             <Head title="Выдать книгу" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Выдать книгу</CardTitle>

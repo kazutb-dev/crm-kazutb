@@ -439,7 +439,7 @@ export default function GroupDetails({ groupId }) {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Детали группы" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-[#132844] via-[#1b3a60] to-[#245279] text-white shadow-lg">
                     <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
                     <div className="pointer-events-none absolute -bottom-24 left-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />

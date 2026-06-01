@@ -165,7 +165,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
         <AuthenticatedLayout>
             <Head title="KPI / Настройка НПУ" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-1 w-fit">
                     {Object.entries(PAGE_TABS).map(([key, label]) => {
                         const isActive = activeTab === key;

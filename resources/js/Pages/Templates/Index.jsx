@@ -591,7 +591,7 @@ export default function TemplatesIndex({ templates = [] }) {
         >
             <Head title="Шаблоны сертификатов" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Новый шаблон</CardTitle>

@@ -158,7 +158,7 @@ export default function PercoEarly({ staff, divisions = [], filters = {}, summar
         >
             <Head title="HR / Ушедшие раньше" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <div className="flex flex-wrap items-center gap-3">
                     <select
                         value={division}

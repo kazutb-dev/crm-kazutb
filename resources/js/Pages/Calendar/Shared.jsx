@@ -17,7 +17,7 @@ export default function SharedCalendar({ managedCalendars = [], selectedOwnerId 
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Совместное управление" />
-            <div className="p-4 sm:p-6 space-y-5 max-w-2xl">
+            <div className="admin-page-wrap">
 
                 {managedCalendars.length === 0 ? (
                     <Card>

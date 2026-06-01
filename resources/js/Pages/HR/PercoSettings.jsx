@@ -226,7 +226,7 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
         <AuthenticatedLayout>
             <Head title="HR / Настройки Perco" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base">

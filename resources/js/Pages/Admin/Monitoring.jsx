@@ -137,7 +137,7 @@ export default function Monitoring({
         <AuthenticatedLayout>
             <Head title="Мониторинг" />
 
-            <div className="max-w-[1600px] mx-auto px-6 py-8 space-y-6">
+            <div className="admin-page-wrap">
                 {/* ── Header ────────────────────────────────────────────── */}
                 <div className="flex items-start justify-between gap-4">
                     <div>

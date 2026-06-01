@@ -107,7 +107,7 @@ export default function StructuralUnitShow() {
         <AuthenticatedLayout>
             <Head title={`Структура ${formatStructuralUnitLabel(unit)}`} />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h1 className="text-3xl font-bold">{formatStructuralUnitLabel(unit)}</h1>

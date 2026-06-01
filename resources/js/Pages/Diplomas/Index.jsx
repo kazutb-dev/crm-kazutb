@@ -371,7 +371,7 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
         >
             <Head title="Дипломные работы" />
 
-            <div className="p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Реестр дипломных работ</CardTitle>

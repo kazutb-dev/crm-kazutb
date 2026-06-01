@@ -291,7 +291,7 @@ export default function Specialities() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Специальности" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex items-center justify-between pt-6">
                         <div>
