@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +40,7 @@ export default function Index({
 }) {
     const items = faculties ?? [];
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false);
@@ -96,11 +98,11 @@ export default function Index({
     }, [departmentOptions, staffForm.data.faculty_id]);
 
     const handleDelete = (faculty) => {
-        if (!window.confirm(`Удалить факультет "${faculty.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('faculties.destroy', faculty.id));
+        setConfirmState({
+            open: true,
+            description: `Удалить факультет "${faculty.name}"?`,
+            onConfirm: () => router.delete(route('faculties.destroy', faculty.id)),
+        });
     };
 
     const openEditDialog = (faculty) => {
@@ -183,12 +185,12 @@ export default function Index({
     };
 
     const handleDeleteDepartment = (department) => {
-        if (!window.confirm(`Удалить кафедру "${department.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('departments.destroy', department.id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: `Удалить кафедру "${department.name}"?`,
+            onConfirm: () => router.delete(route('departments.destroy', department.id), {
+                preserveScroll: true,
+            }),
         });
     };
 
@@ -772,5 +774,14 @@ export default function Index({
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

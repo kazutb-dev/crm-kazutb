@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +66,7 @@ function getSpecialityDepartment(group) {
 }
 
 export default function Groups() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [groups, setGroups] = useState([]);
     const [courses, setCourses] = useState([]);
     const [specialities, setSpecialities] = useState([]);
@@ -230,23 +232,24 @@ export default function Groups() {
     };
 
     const remove = async (groupId) => {
-        if (!window.confirm('Удалить группу?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/groups/${groupId}`);
-            if (editingId === groupId) {
-                resetForm();
-            }
-            setSuccess('Группа удалена.');
-            await loadGroups();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления группы.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить группу?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/groups/${groupId}`);
+                    if (editingId === groupId) {
+                        resetForm();
+                    }
+                    setSuccess('Группа удалена.');
+                    await loadGroups();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления группы.');
+                }
+            },
+        });
     };
 
     const toggleSpeciality = (id) => {
@@ -664,6 +667,15 @@ export default function Groups() {
                 </SheetContent>
             </Sheet>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
 

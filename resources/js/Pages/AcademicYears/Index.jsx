@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { useState } from 'react';
 export default function Index({ academicYears }) {
     const items = academicYears?.data ?? [];
     const links = academicYears?.links ?? [];
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
 
     const form = useForm({
@@ -40,11 +42,11 @@ export default function Index({ academicYears }) {
     };
 
     const handleDelete = (item) => {
-        if (!window.confirm(`Удалить учебный год ${item.name}?`)) {
-            return;
-        }
-
-        router.delete(route('academic-years.destroy', item.id));
+        setConfirmState({
+            open: true,
+            description: `Удалить учебный год ${item.name}?`,
+            onConfirm: () => router.delete(route('academic-years.destroy', item.id)),
+        });
     };
 
     return (
@@ -195,5 +197,14 @@ export default function Index({ academicYears }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

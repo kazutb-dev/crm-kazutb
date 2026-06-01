@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ const emptyForm = {
 
 export default function SurveyStudents({ students = [], groups = [] }) {
     const { flash } = usePage().props;
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editingStudent, setEditingStudent] = useState(null);
 
     const form = useForm(emptyForm);
@@ -56,12 +58,10 @@ export default function SurveyStudents({ students = [], groups = [] }) {
     };
 
     const destroyStudent = (student) => {
-        if (!window.confirm(`Удалить студента "${student.full_name}"?`)) {
-            return;
-        }
-
-        router.delete(route('admin.surveys.students.destroy', student.id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: `Удалить студента "${student.full_name}"?`,
+            onConfirm: () => router.delete(route('admin.surveys.students.destroy', student.id), { preserveScroll: true }),
         });
     };
 
@@ -253,5 +253,14 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                 </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

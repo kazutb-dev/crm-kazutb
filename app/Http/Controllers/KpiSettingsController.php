@@ -19,9 +19,7 @@ use Inertia\Response;
 
 class KpiSettingsController extends Controller
 {
-    public function __construct(private readonly KpiNpuSettingsService $settingsService)
-    {
-    }
+    public function __construct(private readonly KpiNpuSettingsService $settingsService) {}
 
     public function index(Request $request): Response
     {
@@ -98,7 +96,7 @@ class KpiSettingsController extends Controller
         $staffOptions = User::query()
             ->orderBy('name')
             ->get(['id', 'name', 'display_name', 'email', 'ad_department', 'ad_title'])
-            ->map(fn (User $staff): array => [
+            ->map(fn(User $staff): array => [
                 'id' => $staff->id,
                 'name' => $staff->display_name ?: $staff->name,
                 'email' => $staff->email,
@@ -188,7 +186,7 @@ class KpiSettingsController extends Controller
         $teacherRules = collect($validated['teacher']['rules'] ?? [])
             ->map(function (array $rule): array {
                 $keywords = collect(explode(',', (string) ($rule['keywords_text'] ?? '')))
-                    ->map(fn (string $keyword): string => trim($keyword))
+                    ->map(fn(string $keyword): string => trim($keyword))
                     ->filter()
                     ->values()
                     ->all();
@@ -202,7 +200,7 @@ class KpiSettingsController extends Controller
             ->all();
 
         $specialDepartmentCodes = collect(preg_split('/[,\n]+/', (string) ($validated['hod']['special_department_codes_text'] ?? '')) ?: [])
-            ->map(fn (string $code): string => trim($code))
+            ->map(fn(string $code): string => trim($code))
             ->filter()
             ->values()
             ->all();
@@ -305,9 +303,9 @@ class KpiSettingsController extends Controller
                 [
                     'user_id' => $targetUserId,
                     'permission' => $permission,
-                    'division_id' => null,
                 ],
                 [
+                    'division_id' => null,
                     'granted_by' => $grantedBy,
                     'granted_at' => now(),
                     'is_active' => true,
@@ -321,7 +319,6 @@ class KpiSettingsController extends Controller
         KpiAccessGrant::query()
             ->where('user_id', $targetUserId)
             ->whereIn('permission', KpiAccessGrant::ALL_PERMISSIONS)
-            ->whereNull('division_id')
             ->update(['is_active' => false]);
     }
 

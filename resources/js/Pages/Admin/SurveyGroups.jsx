@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ const emptyBindForm = {
 
 export default function SurveyGroups({ groups = [], students = [] }) {
     const { flash } = usePage().props;
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editorOpen, setEditorOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState(null);
 
@@ -134,12 +136,10 @@ export default function SurveyGroups({ groups = [], students = [] }) {
     };
 
     const destroyGroup = (group) => {
-        if (!window.confirm(`Удалить группу "${group.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('admin.surveys.groups.destroy', group.id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: `Удалить группу "${group.name}"?`,
+            onConfirm: () => router.delete(route('admin.surveys.groups.destroy', group.id), { preserveScroll: true }),
         });
     };
 
@@ -322,5 +322,14 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                 </Dialog>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

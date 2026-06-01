@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,7 @@ export default function AdminRoutes({ navigationRoutes }) {
     const links = navigationRoutes?.links ?? [];
     const flash = usePage().props.flash ?? {};
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editingId, setEditingId] = useState(null);
     const form = useForm(emptyForm);
 
@@ -338,12 +340,10 @@ export default function AdminRoutes({ navigationRoutes }) {
     };
 
     const removeItem = (id) => {
-        if (!window.confirm('Удалить маршрут?')) {
-            return;
-        }
-
-        router.delete(route('nav.routes.destroy', id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: 'Удалить маршрут?',
+            onConfirm: () => router.delete(route('nav.routes.destroy', id), { preserveScroll: true }),
         });
     };
 
@@ -905,5 +905,14 @@ export default function AdminRoutes({ navigationRoutes }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

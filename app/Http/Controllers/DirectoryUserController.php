@@ -61,7 +61,7 @@ class DirectoryUserController extends Controller
             ->orderBy('name')
             ->limit(300)
             ->get()
-            ->filter(fn (User $user): bool => $user->resolvedRoleSlug() !== 'student')
+            ->filter(fn(User $user): bool => $user->resolvedRoleSlug() !== 'student')
             ->take(100)
             ->values()
             ->map(function (User $user): array {
@@ -246,7 +246,7 @@ class DirectoryUserController extends Controller
         if ($directoryType === 'staff') {
             $directoryUsers = array_values(array_filter(
                 $directoryUsers,
-                fn (array $entry): bool => ! $adService->isStudentEntry($entry)
+                fn(array $entry): bool => ! $adService->isStudentEntry($entry)
             ));
         }
 
@@ -266,7 +266,7 @@ class DirectoryUserController extends Controller
         if ($directoryType === 'students') {
             $directoryUsers = array_values(array_filter(
                 $directoryUsers,
-                fn (array $entry): bool => $adService->isStudentEntry($entry)
+                fn(array $entry): bool => $adService->isStudentEntry($entry)
             ));
         }
 
@@ -287,7 +287,7 @@ class DirectoryUserController extends Controller
                 ->where('is_active', true)
                 ->pluck('division_id')
                 ->filter()
-                ->map(fn ($divisionId) => (int) $divisionId)
+                ->map(fn($divisionId) => (int) $divisionId)
                 ->unique()
                 ->values()
                 ->all();
@@ -296,16 +296,16 @@ class DirectoryUserController extends Controller
         }
 
         $localByGuid = $localCandidates
-            ->filter(fn (User $user): bool => trim((string) $user->ad_guid) !== '')
-            ->keyBy(fn (User $user): string => Str::lower(trim((string) $user->ad_guid)));
+            ->filter(fn(User $user): bool => trim((string) $user->ad_guid) !== '')
+            ->keyBy(fn(User $user): string => Str::lower(trim((string) $user->ad_guid)));
 
         $localByLogin = $localCandidates
-            ->filter(fn (User $user): bool => trim((string) $user->ad_login) !== '')
-            ->keyBy(fn (User $user): string => Str::lower(trim((string) $user->ad_login)));
+            ->filter(fn(User $user): bool => trim((string) $user->ad_login) !== '')
+            ->keyBy(fn(User $user): string => Str::lower(trim((string) $user->ad_login)));
 
         $localByEmail = $localCandidates
-            ->filter(fn (User $user): bool => trim((string) $user->email) !== '')
-            ->keyBy(fn (User $user): string => Str::lower(trim((string) $user->email)));
+            ->filter(fn(User $user): bool => trim((string) $user->email) !== '')
+            ->keyBy(fn(User $user): string => Str::lower(trim((string) $user->email)));
 
         $matchedLocalIds = [];
         $combinedRows = collect();
@@ -337,15 +337,15 @@ class DirectoryUserController extends Controller
         }
 
         $unmatchedLocalRows = $localCandidates
-            ->filter(fn (User $user): bool => ! isset($matchedLocalIds[$user->id]))
-            ->map(fn (User $user): array => $this->mapLocalOnlyRow($user, $structuralAccessByUser));
+            ->filter(fn(User $user): bool => ! isset($matchedLocalIds[$user->id]))
+            ->map(fn(User $user): array => $this->mapLocalOnlyRow($user, $structuralAccessByUser));
 
         $allRows = $combinedRows->merge($unmatchedLocalRows)->values();
         $directoryTotals = $adService->countDirectoryUsersByCategory();
 
         if ($directoryType === 'staff') {
             $allRows = $allRows
-                ->filter(fn (array $row): bool => ! $this->isStudentTitleOrEntry($row))
+                ->filter(fn(array $row): bool => ! $this->isStudentTitleOrEntry($row))
                 ->values();
 
             $serviceAccountCount = $allRows->filter(function (array $row): bool {
@@ -356,8 +356,8 @@ class DirectoryUserController extends Controller
 
             $staffCount = max(0, (int) ($directoryTotals['staff'] ?? $allRows->count()) - $serviceAccountCount);
             $studentCount = (int) ($directoryTotals['students'] ?? 0);
-            $hodCount = $allRows->filter(fn (array $u): bool => (($u['role'] ?? '') === 'hod'))->count();
-            $deanCount = $allRows->filter(fn (array $u): bool => (($u['role'] ?? '') === 'dean'))->count();
+            $hodCount = $allRows->filter(fn(array $u): bool => (($u['role'] ?? '') === 'hod'))->count();
+            $deanCount = $allRows->filter(fn(array $u): bool => (($u['role'] ?? '') === 'dean'))->count();
             $teacherCount = $allRows->filter(function (array $u): bool {
                 $role = $u['role'] ?? null;
 
@@ -421,7 +421,7 @@ class DirectoryUserController extends Controller
                 ->with('division:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'division_id'])
-                ->map(fn (Position $position): array => [
+                ->map(fn(Position $position): array => [
                     'id' => $position->id,
                     'name' => $position->name,
                     'division_name' => $position->division?->name,
@@ -753,7 +753,7 @@ class DirectoryUserController extends Controller
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
             'role' => ['nullable', 'string', 'required_without:role_id'],
             'structural_access' => ['nullable', 'boolean'],
-            'structural_division_id' => ['nullable', 'integer', 'exists:divisions,id', Rule::requiredIf(fn () => $request->boolean('structural_access'))],
+            'structural_division_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id', Rule::requiredIf(fn() => $request->boolean('structural_access'))],
         ]);
 
         $selectedRole = $data['role'] ?? null;
@@ -783,7 +783,7 @@ class DirectoryUserController extends Controller
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
             'role' => ['nullable', 'string', 'required_without:role_id'],
             'structural_access' => ['nullable', 'boolean'],
-            'structural_division_id' => ['nullable', 'integer', 'exists:divisions,id', Rule::requiredIf(fn () => $request->boolean('structural_access'))],
+            'structural_division_id' => ['nullable', 'integer', 'exists:kpi_structural_units,id', Rule::requiredIf(fn() => $request->boolean('structural_access'))],
             'login' => ['nullable', 'string', 'max:255', 'required_without:email'],
             'email' => ['nullable', 'email', 'max:255', 'required_without:login'],
             'display_name' => ['nullable', 'string', 'max:190'],
@@ -1090,7 +1090,7 @@ class DirectoryUserController extends Controller
     private function applyRoleScope(Builder $query, array $slugs): void
     {
         $normalized = collect($slugs)
-            ->map(fn ($slug) => Str::lower(trim((string) $slug)))
+            ->map(fn($slug) => Str::lower(trim((string) $slug)))
             ->filter()
             ->values()
             ->all();
@@ -1130,15 +1130,15 @@ class DirectoryUserController extends Controller
 
         $displayDivisions = $localUser
             ? $localUser->kpiStructuralUnits
-                ->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)
-                ->values()
-                ->all()
+            ->map(fn(KpiStructuralUnit $division): string => $division->code ?: $division->name)
+            ->values()
+            ->all()
             : [];
 
         $displayDepartment = $localUser?->department?->name ?? $localUser?->ad_department ?? null;
         if ($localUser instanceof User && $roleSlug === 'structural' && $localUser->kpiStructuralUnits->isNotEmpty()) {
             $displayDepartment = $localUser->kpiStructuralUnits
-                ->map(fn (KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
+                ->map(fn(KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
                 ->values()
                 ->implode(', ');
         }
@@ -1165,14 +1165,14 @@ class DirectoryUserController extends Controller
             'ad_department' => $localUser?->ad_department ?? ($directoryUser['department'] ?? null),
             'ad_division' => $localUser?->ad_division ?? ($directoryUser['division'] ?? null),
             'divisions' => $localUser
-                ? $localUser->kpiStructuralUnits->map(fn (KpiStructuralUnit $division): array => [
+                ? $localUser->kpiStructuralUnits->map(fn(KpiStructuralUnit $division): array => [
                     'id' => $division->id,
                     'name' => $division->name,
                     'code' => $division->code,
                 ])->values()->all()
                 : [],
             'structural_access_division_ids' => $structuralAccessDivisionIds,
-            'has_structural_access' => $structuralAccessDivisionIds !== [],
+            'has_structural_access' => $structuralAccessDivisionIds !== [] || ($localUser?->kpiStructuralUnits->isNotEmpty() ?? false),
             'last_login_at' => $localUser?->last_login_at?->toIso8601String(),
             'last_login_exact' => $localUser?->last_login_at?->toIso8601String(),
             'last_login_human' => $this->formatLastLoginLabel($localUser?->last_login_at?->toIso8601String()),
@@ -1200,14 +1200,14 @@ class DirectoryUserController extends Controller
         $hasKpiAdminAccess = $this->hasKpiAdminAccess($user);
 
         $displayDivisions = $user->kpiStructuralUnits
-            ->map(fn (KpiStructuralUnit $division): string => $division->code ?: $division->name)
+            ->map(fn(KpiStructuralUnit $division): string => $division->code ?: $division->name)
             ->values()
             ->all();
 
         $displayDepartment = $user->department?->name ?? $user->ad_department ?? null;
         if ($roleSlug === 'structural' && $user->kpiStructuralUnits->isNotEmpty()) {
             $displayDepartment = $user->kpiStructuralUnits
-                ->map(fn (KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
+                ->map(fn(KpiStructuralUnit $division): string => $this->formatStructuralDivisionLabel($division))
                 ->values()
                 ->implode(', ');
         }
@@ -1232,13 +1232,13 @@ class DirectoryUserController extends Controller
             'faculty_name' => $user->faculty?->name ?? $user->department?->faculty?->name,
             'ad_department' => $user->ad_department,
             'ad_division' => $user->ad_division,
-            'divisions' => $user->kpiStructuralUnits->map(fn (KpiStructuralUnit $division): array => [
+            'divisions' => $user->kpiStructuralUnits->map(fn(KpiStructuralUnit $division): array => [
                 'id' => $division->id,
                 'name' => $division->name,
                 'code' => $division->code,
             ])->values()->all(),
             'structural_access_division_ids' => $structuralAccessDivisionIds,
-            'has_structural_access' => $structuralAccessDivisionIds !== [],
+            'has_structural_access' => $structuralAccessDivisionIds !== [] || $user->kpiStructuralUnits->isNotEmpty(),
             'last_login_at' => $user->last_login_at?->toIso8601String(),
             'last_login_exact' => $user->last_login_at?->toIso8601String(),
             'last_login_human' => $this->formatLastLoginLabel($user->last_login_at?->toIso8601String()),
@@ -1505,21 +1505,21 @@ class DirectoryUserController extends Controller
 
         if ($user->relationLoaded('kpiAccessGrants')) {
             return $user->kpiAccessGrants
-                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
+                ->contains(fn(KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
         }
 
         return $user->kpiStructuralUnits()->exists()
             || $user->kpiAccessGrants()
-                ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
-                ->where('is_active', true)
-                ->exists();
+            ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+            ->where('is_active', true)
+            ->exists();
     }
 
     private function hasKpiAdminAccess(User $user): bool
     {
         if ($user->relationLoaded('kpiAccessGrants')) {
             return $user->kpiAccessGrants
-                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_KPI_ADMIN && (bool) $grant->is_active);
+                ->contains(fn(KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_KPI_ADMIN && (bool) $grant->is_active);
         }
 
         return $user->kpiAccessGrants()
@@ -1555,17 +1555,28 @@ class DirectoryUserController extends Controller
         }
 
         $aliases = [
-            'омоиам', 'международного образования', 'академической мобильности',
-            'ориа', 'рейтингов и аккредитации',
-            'умифк', 'маркетинга и формирование контингента',
-            'уоп', 'образовательных программ',
-            'унивс', 'науки и внешних связей',
-            'цк', 'центр компетенции',
+            'омоиам',
+            'международного образования',
+            'академической мобильности',
+            'ориа',
+            'рейтингов и аккредитации',
+            'умифк',
+            'маркетинга и формирование контингента',
+            'уоп',
+            'образовательных программ',
+            'унивс',
+            'науки и внешних связей',
+            'цк',
+            'центр компетенции',
             'центр карьеры',
-            'оуп', 'управления персоналом',
-            'ор', 'офис регистратора',
-            'уокиа', 'обеспечения качества и аккредитации',
-            'виср', 'воспитательная и социальная работа',
+            'оуп',
+            'управления персоналом',
+            'ор',
+            'офис регистратора',
+            'уокиа',
+            'обеспечения качества и аккредитации',
+            'виср',
+            'воспитательная и социальная работа',
             'эндаумент',
         ];
 
@@ -1760,9 +1771,9 @@ class DirectoryUserController extends Controller
                 [
                     'user_id' => $user->id,
                     'permission' => $permission,
-                    'division_id' => null,
                 ],
                 [
+                    'division_id' => null,
                     'granted_by' => $grantedBy,
                     'granted_at' => now(),
                     'is_active' => true,
@@ -1799,21 +1810,24 @@ class DirectoryUserController extends Controller
         return $id ? (int) $id : null;
     }
 
-    private function syncStructuralAccessGrant(User $user, int $divisionId, int $grantedBy): void
+    private function syncStructuralAccessGrant(User $user, int $structuralUnitId, int $grantedBy): void
     {
-        KpiAccessGrant::query()
-            ->where('user_id', $user->id)
-            ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
-            ->where('division_id', '!=', $divisionId)
-            ->update(['is_active' => false]);
+        // Attach user to the KPI structural unit via pivot table (kpi_structural_unit_user)
+        $unit = KpiStructuralUnit::find($structuralUnitId);
+        if ($unit) {
+            $unit->users()->syncWithoutDetaching([$user->id]);
+        }
 
+        // Grant structural_queue permission.
+        // division_id is left null because kpi_structural_units.id != divisions.id
+        // (different tables — division_id FK references the divisions table, not kpi_structural_units).
         KpiAccessGrant::query()->updateOrCreate(
             [
                 'user_id' => $user->id,
                 'permission' => KpiAccessGrant::PERM_STRUCTURAL_QUEUE,
-                'division_id' => $divisionId,
             ],
             [
+                'division_id' => null,
                 'granted_by' => $grantedBy,
                 'granted_at' => now(),
                 'is_active' => true,

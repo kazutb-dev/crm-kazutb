@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ function formatAttachedUnits(user) {
 
 export default function StructuralUnitShow() {
     const { unit, unassignedStaffOptions = [], assignedElsewhereStaffOptions = [], availableRecords = [] } = usePage().props;
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [employeeSearch, setEmployeeSearch] = useState('');
 
     const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase();
@@ -86,13 +88,10 @@ export default function StructuralUnitShow() {
     };
 
     const removeRecord = (record) => {
-        const confirmed = window.confirm('Отвязать эту запись от структурного подразделения?');
-        if (!confirmed) {
-            return;
-        }
-
-        router.delete(route('kpi.structural-units.records.detach', [unit.id, record.id]), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: 'Отвязать эту запись от структурного подразделения?',
+            onConfirm: () => router.delete(route('kpi.structural-units.records.detach', [unit.id, record.id]), { preserveScroll: true }),
         });
     };
 
@@ -329,5 +328,14 @@ export default function StructuralUnitShow() {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

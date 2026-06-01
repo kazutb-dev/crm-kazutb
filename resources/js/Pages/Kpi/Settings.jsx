@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ function RuleRow({ rule, index, onChange, onRemove }) {
 }
 
 export default function KpiSettings({ npuSettings = {}, periods, academicYears = [], filters = {}, statusOptions = ['draft', 'active', 'closed'], permissions = {}, indicators, indicatorFilters = {}, indicatorOptions = {}, indicatorPermissions = {}, accessGrants = [], accessOptions = {}, accessPermissions = {}, activeTab: initialTab = 'indicators' }) {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [activeTab, setActiveTab] = useState(PAGE_TABS[initialTab] ? initialTab : 'indicators');
     const staffOptions = accessOptions.staff ?? [];
     const canManageFullAccess = Boolean(accessPermissions.canManageFullAccess);
@@ -134,12 +136,10 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
     };
 
     const revokeAccess = (grantId) => {
-        if (!window.confirm('Отозвать KPI-админ доступ у сотрудника?')) {
-            return;
-        }
-
-        accessForm.delete(route('kpi.settings.accesses.destroy', grantId), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: 'Отозвать KPI-админ доступ у сотрудника?',
+            onConfirm: () => accessForm.delete(route('kpi.settings.accesses.destroy', grantId), { preserveScroll: true }),
         });
     };
 
@@ -453,5 +453,14 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                 )}
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

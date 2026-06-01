@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1052,6 +1053,7 @@ export default function TeacherDashboard({
     };
     const userLevelLabel = userLevelLabels[permissions.userLevel] ?? 'Преподаватель';
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [uploadingEntryId, setUploadingEntryId] = useState(null);
     const [createFilesList, setCreateFilesList] = useState([]);
@@ -1486,15 +1488,15 @@ export default function TeacherDashboard({
             return;
         }
 
-        if (!window.confirm('Удалить файл из записи?')) {
-            return;
-        }
-
-        router.delete(route('kpi.entries.files.destroy', { entry: editingEntryId, file: fileId }), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setEditingEntryFiles((current) => current.filter((file) => file.id !== fileId));
-            },
+        setConfirmState({
+            open: true,
+            description: 'Удалить файл из записи?',
+            onConfirm: () => router.delete(route('kpi.entries.files.destroy', { entry: editingEntryId, file: fileId }), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingEntryFiles((current) => current.filter((file) => file.id !== fileId));
+                },
+            }),
         });
     };
 
@@ -1505,12 +1507,12 @@ export default function TeacherDashboard({
     };
 
     const deleteEntry = (entry) => {
-        if (!window.confirm(`Удалить запись ${entry.indicator?.code ?? ''}?`)) {
-            return;
-        }
-
-        router.delete(route('kpi.my-entries.destroy', entry.id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: `Удалить запись ${entry.indicator?.code ?? ''}?`,
+            onConfirm: () => router.delete(route('kpi.my-entries.destroy', entry.id), {
+                preserveScroll: true,
+            }),
         });
     };
 
@@ -2402,5 +2404,14 @@ export default function TeacherDashboard({
                 )}
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

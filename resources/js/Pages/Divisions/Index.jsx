@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ export default function Index({ divisions, faculties = [] }) {
     const items = divisions?.data ?? [];
     const links = divisions?.links ?? [];
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [editingDivision, setEditingDivision] = useState(null);
@@ -39,11 +41,11 @@ export default function Index({ divisions, faculties = [] }) {
     });
 
     const handleDelete = (division) => {
-        if (!window.confirm(`Удалить департамент "${division.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('divisions.destroy', division.id));
+        setConfirmState({
+            open: true,
+            description: `Удалить департамент "`${division.name}"?`,
+            onConfirm: () => router.delete(route('divisions.destroy', division.id)),
+        });
     };
 
     const openEditDialog = (division) => {
@@ -392,5 +394,14 @@ export default function Index({ divisions, faculties = [] }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

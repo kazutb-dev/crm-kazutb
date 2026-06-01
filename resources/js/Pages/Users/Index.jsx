@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
@@ -319,6 +320,7 @@ export default function Index({
         structural_division_id: '',
     });
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editingUser, setEditingUser] = useState(null);
     const [positionDialogOpen, setPositionDialogOpen] = useState(false);
     const [roleDialogUser, setRoleDialogUser] = useState(null);
@@ -476,12 +478,7 @@ export default function Index({
         setRoleConfirmOpen(false);
     };
 
-    const createLocalUserFromAd = async (row) => {
-        const confirmed = window.confirm('Создать локальную запись для этого пользователя?');
-        if (!confirmed) {
-            return null;
-        }
-
+    const doCreateLocalUserFromAd = async (row, onSuccess) => {
         try {
             const response = await axios.post('/users/create-from-ad', {
                 ad_login: row.login,
@@ -489,50 +486,45 @@ export default function Index({
                 email: row.email,
                 name: row.display_name || row.name,
             }, {
-                headers: {
-                    Accept: 'application/json',
-                },
+                headers: { Accept: 'application/json' },
             });
 
             const userId = response?.data?.user_id;
             if (!userId) {
                 toast.error('Сервер не вернул ID нового пользователя.');
-                return null;
+                return;
             }
 
-            return {
-                ...row,
-                local_user_id: userId,
-                can_edit: true,
-            };
-        } catch (error) {
+            onSuccess({ ...row, local_user_id: userId, can_edit: true });
+        } catch {
             toast.error('Не удалось создать локальную запись пользователя.');
-            return null;
         }
     };
 
-    const handleEditClick = async (user) => {
+    const createLocalUserFromAd = (row, onSuccess) => {
+        setConfirmState({
+            open: true,
+            description: 'Создать локальную запись для этого пользователя?',
+            onConfirm: () => doCreateLocalUserFromAd(row, onSuccess),
+        });
+    };
+
+    const handleEditClick = (user) => {
         if (user.local_user_id) {
             openPositionDialog(user);
             return;
         }
 
-        const normalized = await createLocalUserFromAd(user);
-        if (normalized) {
-            openPositionDialog(normalized);
-        }
+        createLocalUserFromAd(user, openPositionDialog);
     };
 
-    const handleRoleClick = async (user) => {
+    const handleRoleClick = (user) => {
         if (user.local_user_id) {
             openRoleDialog(user);
             return;
         }
 
-        const normalized = await createLocalUserFromAd(user);
-        if (normalized) {
-            openRoleDialog(normalized);
-        }
+        createLocalUserFromAd(user, openRoleDialog);
     };
 
     const submitRoleChange = () => {
@@ -1236,5 +1228,16 @@ export default function Index({
                 </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+            confirmLabel="Создать"
+            destructive={false}
+        />
     );
 }

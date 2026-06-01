@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import PublicLayout from '@/Layouts/PublicLayout';
 import {
     AlertCircle,
     ArrowRight,
@@ -325,7 +326,7 @@ function buildSmoothPath(points) {
     return pathParts.join(' ');
 }
 
-export default function Welcome({ canLogin }) {
+function Welcome({ canLogin }) {
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('Учебный процесс');
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
@@ -445,10 +446,7 @@ export default function Welcome({ canLogin }) {
                 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
             </Head>
 
-            <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
-                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/main.png')] bg-cover bg-center opacity-55 blur-[2px] scale-[1.03]" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/82 to-[#18b8b3]/26" />
-                <div className="pointer-events-none absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+            <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-3 font-['Manrope'] sm:p-4 lg:p-6">
 
                 <section className="animate-fade-slide-up relative z-10 w-full max-w-[1180px] overflow-hidden rounded-2xl bg-[#0f243f]/55 px-4 py-10 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-6 lg:px-10 lg:py-14">
                     {/* logo */}
@@ -779,3 +777,6 @@ export default function Welcome({ canLogin }) {
         </>
     );
 }
+
+Welcome.layout = page => <PublicLayout>{page}</PublicLayout>;
+export default Welcome;

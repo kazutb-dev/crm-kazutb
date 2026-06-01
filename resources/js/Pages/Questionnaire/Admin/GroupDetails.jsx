@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +33,7 @@ const getGroupDepartment = (group) => {
 export default function GroupDetails({ groupId }) {
     const academicYearOptions = getAcademicYearOptions();
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [groups, setGroups] = useState([]);
     const [students, setStudents] = useState([]);
     const [studentUsers, setStudentUsers] = useState([]);
@@ -348,37 +350,39 @@ export default function GroupDetails({ groupId }) {
     };
 
     const removeAssignment = async (id) => {
-        if (!window.confirm('Удалить назначение дисциплины для этой группы?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/group-disciplines/${id}`);
-            setSuccess('Назначение удалено.');
-            await load();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Не удалось удалить назначение.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить назначение дисциплины для этой группы?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/group-disciplines/${id}`);
+                    setSuccess('Назначение удалено.');
+                    await load();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Не удалось удалить назначение.');
+                }
+            },
+        });
     };
 
     const removeStudentBinding = async (studentId) => {
-        if (!window.confirm('Отвязать студента от этой группы?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/students/${studentId}`);
-            setSuccess('Студент отвязан от группы.');
-            await load();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Не удалось отвязать студента от группы.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Отвязать студента от этой группы?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/students/${studentId}`);
+                    setSuccess('Студент отвязан от группы.');
+                    await load();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Не удалось отвязать студента от группы.');
+                }
+            },
+        });
     };
 
     const submitStudentBinding = async (event) => {
@@ -779,6 +783,15 @@ export default function GroupDetails({ groupId }) {
                 </Dialog>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
 

@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ export default function Index({ announcements }) {
     const items = announcements?.data ?? [];
     const links = announcements?.links ?? [];
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [editingAnnouncement, setEditingAnnouncement] = useState(null);
@@ -43,11 +45,11 @@ export default function Index({ announcements }) {
     });
 
     const handleDelete = (announcement) => {
-        if (!window.confirm(`Удалить объявление "${announcement.title}"?`)) {
-            return;
-        }
-
-        router.delete(route('announcements.destroy', announcement.id));
+        setConfirmState({
+            open: true,
+            description: `Удалить объявление "`${announcement.title}"?`,
+            onConfirm: () => router.delete(route('announcements.destroy', announcement.id)),
+        });
     };
 
     const openEditDialog = (announcement) => {
@@ -439,5 +441,14 @@ export default function Index({ announcements }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
