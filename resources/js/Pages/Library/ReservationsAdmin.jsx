@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,7 +111,7 @@ export default function ReservationsAdmin() {
 
             await loadReservations();
         } catch (submitError) {
-            window.alert(submitError.message || 'Не удалось обновить статус брони.');
+            toast.error(submitError.message || 'Не удалось обновить статус брони.');
         } finally {
             setIsSubmittingId(null);
         }

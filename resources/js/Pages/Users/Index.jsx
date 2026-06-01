@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -460,14 +461,15 @@ export default function Index({
 
     const openRoleDialog = (user) => {
         setRoleDialogUser(user);
-        const structuralAccessDivisionIds = Array.isArray(user?.structural_access_division_ids)
-            ? user.structural_access_division_ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
+        // Use kpi_structural_unit IDs from `divisions` array (populated from kpi_structural_unit_user pivot)
+        const structuralUnitIds = Array.isArray(user?.divisions)
+            ? user.divisions.map((d) => d.id).filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
             : [];
 
         roleForm.setData({
             role: resolveRoleSlug(user) || 'teacher',
-            structural_access: structuralAccessDivisionIds.length > 0,
-            structural_division_id: structuralAccessDivisionIds[0] ? String(structuralAccessDivisionIds[0]) : '',
+            structural_access: structuralUnitIds.length > 0,
+            structural_division_id: structuralUnitIds[0] ? String(structuralUnitIds[0]) : '',
         });
         roleForm.clearErrors();
         setRoleDialogOpen(true);
@@ -494,7 +496,7 @@ export default function Index({
 
             const userId = response?.data?.user_id;
             if (!userId) {
-                window.alert('Сервер не вернул ID нового пользователя.');
+                toast.error('Сервер не вернул ID нового пользователя.');
                 return null;
             }
 
@@ -504,7 +506,7 @@ export default function Index({
                 can_edit: true,
             };
         } catch (error) {
-            window.alert('Не удалось создать локальную запись пользователя.');
+            toast.error('Не удалось создать локальную запись пользователя.');
             return null;
         }
     };
@@ -536,13 +538,8 @@ export default function Index({
     const submitRoleChange = () => {
         if (!roleDialogUser) return;
 
-        router.patch(
+        roleForm.patch(
             route('users.role.update', roleDialogUser.local_user_id),
-            {
-                role: roleForm.data.role,
-                structural_access: roleForm.data.structural_access,
-                structural_division_id: roleForm.data.structural_division_id || null,
-            },
             {
                 preserveScroll: true,
                 onSuccess: () => {

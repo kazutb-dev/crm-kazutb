@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -215,12 +216,12 @@ export default function Index({
         }
 
         if (role === 'dean' && !facultyId) {
-            window.alert('Для роли декана нужно выбрать факультет.');
+            toast.error('Для роли декана нужно выбрать факультет.');
             return;
         }
 
         if (role === 'hod' && !departmentId) {
-            window.alert('Для роли заведующего кафедрой нужно выбрать кафедру.');
+            toast.error('Для роли заведующего кафедрой нужно выбрать кафедру.');
             return;
         }
 
