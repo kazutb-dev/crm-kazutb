@@ -50,7 +50,7 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
         <AuthenticatedLayout>
             <Head title="HR / История проходов за день" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <div className="flex items-center gap-3">
                     <Button size="sm" variant="outline" onClick={goBack}>
                         <ArrowLeft className="mr-1 h-4 w-4" />

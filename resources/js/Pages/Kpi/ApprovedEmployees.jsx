@@ -45,7 +45,7 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
         <AuthenticatedLayout>
             <Head title="KPI — Прошедшие полную проверку" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 {/* Заголовок */}
                 <Card className="border-0 bg-gradient-to-r from-emerald-50 via-white to-teal-50 shadow-sm">
                     <CardHeader>

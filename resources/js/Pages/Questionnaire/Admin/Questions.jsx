@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +37,7 @@ const emptyOptionForm = {
 };
 
 export default function Questions() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [surveys, setSurveys] = useState([]);
     const [groups, setGroups] = useState([]);
     const [questions, setQuestions] = useState([]);
@@ -161,23 +163,24 @@ export default function Questions() {
     };
 
     const removeSurvey = async (surveyId) => {
-        if (!window.confirm('Удалить опрос? Все вопросы и ответы по нему тоже будут удалены.')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/surveys/${surveyId}`);
-            if (String(selectedSurveyId) === String(surveyId)) {
-                setSelectedSurveyId('');
-            }
-            setSuccess('Опрос удален.');
-            await loadAll();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления опроса.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить опрос? Все вопросы и ответы по нему тоже будут удалены.',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/surveys/${surveyId}`);
+                    if (String(selectedSurveyId) === String(surveyId)) {
+                        setSelectedSurveyId('');
+                    }
+                    setSuccess('Опрос удален.');
+                    await loadAll();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления опроса.');
+                }
+            },
+        });
     };
 
     useEffect(() => {
@@ -256,25 +259,26 @@ export default function Questions() {
     };
 
     const removeQuestion = async (questionId) => {
-        if (!window.confirm('Удалить вопрос?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/questions/${questionId}`);
-            if (selectedQuestionId && String(selectedQuestionId) === String(questionId)) {
-                setSelectedQuestionId('');
-                setOptions([]);
-                setOptionForm(emptyOptionForm);
-            }
-            setSuccess('Вопрос удален.');
-            await loadAll();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления вопроса.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить вопрос?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/questions/${questionId}`);
+                    if (selectedQuestionId && String(selectedQuestionId) === String(questionId)) {
+                        setSelectedQuestionId('');
+                        setOptions([]);
+                        setOptionForm(emptyOptionForm);
+                    }
+                    setSuccess('Вопрос удален.');
+                    await loadAll();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления вопроса.');
+                }
+            },
+        });
     };
 
     const startEditOption = (option) => {
@@ -288,20 +292,21 @@ export default function Questions() {
     };
 
     const removeOption = async (optionId) => {
-        if (!window.confirm('Удалить опцию?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/options/${optionId}`);
-            setSuccess('Опция удалена.');
-            await loadOptions(optionForm.question_id || selectedQuestionId);
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления опции.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить опцию?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/options/${optionId}`);
+                    setSuccess('Опция удалена.');
+                    await loadOptions(optionForm.question_id || selectedQuestionId);
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления опции.');
+                }
+            },
+        });
     };
 
     const questionTypeStats = {
@@ -315,7 +320,7 @@ export default function Questions() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Опросы, вопросы и опции" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -636,6 +641,15 @@ export default function Questions() {
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
 

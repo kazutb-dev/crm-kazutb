@@ -224,7 +224,7 @@ export default function CalendarConferences({ conferences = [], employees = [] }
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Конференции" />
-            <div className="w-full max-w-none space-y-5 p-4 sm:p-6 xl:p-8">
+            <div className="admin-page-wrap">
                 {!!flash?.error && <div className="whitespace-pre-line rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950/30 dark:text-red-200">{flash.error}</div>}
                 {!!flash?.warning && <div className="whitespace-pre-line rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">{flash.warning}</div>}
                 {!!flash?.success && <div className="whitespace-pre-line rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">{flash.success}</div>}

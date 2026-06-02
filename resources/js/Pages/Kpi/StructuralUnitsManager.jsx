@@ -82,7 +82,7 @@ export default function StructuralUnitsManager() {
         <AuthenticatedLayout>
             <Head title="Управление структурами" />
 
-            <div className="space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold">Структурные подразделения</h1>

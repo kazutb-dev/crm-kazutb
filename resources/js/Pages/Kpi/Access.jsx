@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ function formatDate(value) {
 
 /** Строка в выпадающем списке сотрудника при поиске */
 function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms, grantedDivisions, structuralDivisions, onGrant, onGrantAll }) {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [selectedPerm, setSelectedPerm] = useState(permissions_list[0] ?? '');
     const [selectedDivision, setSelectedDivision] = useState('');
     const isStructural = selectedPerm === 'structural_queue';
@@ -189,8 +191,11 @@ export default function Access({ grants = [], users = [], search = '', permissio
     };
 
     const deleteGrant = (grant) => {
-        if (!window.confirm(`Отозвать доступ "${permission_labels[grant.permission] ?? grant.permission}" у ${grant.user?.name ?? '—'}?`)) return;
-        router.delete(route('kpi.access.destroy', grant.id), { preserveScroll: true });
+        setConfirmState({
+            open: true,
+            description: `Отозвать доступ "${permission_labels[grant.permission] ?? grant.permission}" у ${grant.user?.name ?? '—'}?`,
+            onConfirm: () => router.delete(route('kpi.access.destroy', grant.id), { preserveScroll: true }),
+        });
     };
 
     return (
@@ -363,5 +368,14 @@ export default function Access({ grants = [], users = [], search = '', permissio
                 </Card>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

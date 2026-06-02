@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +65,7 @@ function exportCsv(rows) {
 export default function TeacherDisciplines() {
     const academicYearOptions = getAcademicYearOptions();
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [items, setItems] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [disciplines, setDisciplines] = useState([]);
@@ -393,23 +395,24 @@ export default function TeacherDisciplines() {
     };
 
     const remove = async (id) => {
-        if (!window.confirm('Удалить привязку преподавателя?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/teacher-disciplines/${id}`);
-            if (editingId === id) {
-                resetForm();
-            }
-            setSuccess('Привязка преподавателя удалена.');
-            await load();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления привязки преподавателя.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить привязку преподавателя?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/teacher-disciplines/${id}`);
+                    if (editingId === id) {
+                        resetForm();
+                    }
+                    setSuccess('Привязка преподавателя удалена.');
+                    await load();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления привязки преподавателя.');
+                }
+            },
+        });
     };
 
     const toggleSelectAll = () => {
@@ -714,7 +717,7 @@ export default function TeacherDisciplines() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Преподаватели" />
 
-            <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="space-y-4 pt-6">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1084,6 +1087,15 @@ export default function TeacherDisciplines() {
                 </Sheet>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
 

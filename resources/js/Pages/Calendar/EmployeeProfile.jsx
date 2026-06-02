@@ -424,7 +424,7 @@ export default function CalendarEmployeeProfile({ employee, events = [], year, m
     return (
         <AuthenticatedLayout>
             <Head title={`Календарь — ${employee?.name ?? 'Сотрудник'}`} />
-            <div className="p-4 sm:p-6 space-y-4 max-w-5xl mx-auto">
+            <div className="admin-page-wrap">
                 {!!flash?.warning && (
                     <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
                         {flash.warning}

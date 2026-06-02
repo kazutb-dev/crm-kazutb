@@ -290,8 +290,11 @@ export default function ModerationQueue({
     const total = entries?.total ?? items.length;
     const roleSlug = auth?.roleSlug;
     const canModerate = permissions?.canModerate ?? false;
-    const isAdminViewer = roleSlug === 'admin' || roleSlug === 'superadmin';
+    const isAdminViewer = roleSlug === 'admin'
+        || roleSlug === 'superadmin'
+        || Boolean(permissions?.canAdminModerate);
     const isStructuralMode = mode === 'structural';
+    const hasGlobalStructuralModerationAccess = isStructuralMode && isAdminViewer;
     const showBindingColumn = isAdminViewer || isStructuralMode;
     const hasUnrestrictedStructuralAccess = structuralScope?.type === 'unrestricted';
     const [quickSearch, setQuickSearch] = useState('');
@@ -464,7 +467,7 @@ export default function ModerationQueue({
         <AuthenticatedLayout>
             <Head title={pageTitle} />
 
-            <div className="space-y-4 p-4 sm:p-5 lg:p-6">
+            <div className="admin-page-wrap">
                 {showTabs && (
                     <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
                         <button
@@ -713,6 +716,19 @@ export default function ModerationQueue({
                                                                 (() => {
                                                                     // For structural mode with multiple SPs, show per-SP buttons
                                                                     if (mode === 'structural') {
+                                                                        if (hasGlobalStructuralModerationAccess) {
+                                                                            return (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                                >
+                                                                                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                                                                                    <span className="min-w-0 text-left">Утвердить</span>
+                                                                                </Button>
+                                                                            );
+                                                                        }
+
                                                                         const confirmations = resolveEntryStructuralConfirmations(entry);
 
                                                                         if (confirmations.length === 0) {
@@ -778,6 +794,24 @@ export default function ModerationQueue({
                                                             {showRejectAction(entry) && (
                                                                 (() => {
                                                                     if (mode === 'structural') {
+                                                                        if (hasGlobalStructuralModerationAccess) {
+                                                                            return (
+                                                                                <Button
+                                                                                    size="sm"
+                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    variant="destructive"
+                                                                                    onClick={() => submitAction(
+                                                                                        'kpi.entries.reject',
+                                                                                        entry.id,
+                                                                                        'Причина отклонения',
+                                                                                    )}
+                                                                                >
+                                                                                    <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                                                                                    <span className="min-w-0 text-left">Отклонить</span>
+                                                                                </Button>
+                                                                            );
+                                                                        }
+
                                                                         const confirmations = resolveEntryStructuralConfirmations(entry);
                                                                         // Пока запись на финальном утверждении, ответственный СП может
                                                                         // отклонить свою строку независимо от прошлого статуса (pending/

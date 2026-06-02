@@ -1,6 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import PublicLayout from '@/Layouts/PublicLayout';
 
-export default function Login({ status, canResetPassword }) {
+function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -25,10 +26,7 @@ export default function Login({ status, canResetPassword }) {
                 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
             </Head>
 
-            <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0b1a2e] p-4 font-['Manrope'] sm:p-6" style={{ fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif' }}>
-                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/main.png')] bg-cover bg-center opacity-55 blur-[2px] scale-[1.03]" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/82 to-[#18b8b3]/26" />
-                <div className="pointer-events-none absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+            <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4 font-['Manrope'] sm:p-6" style={{ fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif' }}>
 
                 <section className="animate-fade-slide-up relative z-10 w-full max-w-md rounded-2xl bg-[#0f243f]/70 p-6 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:p-8">
                     <div className="mb-6 text-center">
@@ -141,3 +139,6 @@ export default function Login({ status, canResetPassword }) {
         </>
     );
 }
+
+Login.layout = page => <PublicLayout>{page}</PublicLayout>;
+export default Login;

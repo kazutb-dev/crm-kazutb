@@ -1377,7 +1377,7 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
     return (
         <AuthenticatedLayout>
             <Head title="Smart Calendar — Календарь" />
-            <div className="p-4 sm:p-6 space-y-5">
+            <div className="admin-page-wrap">
                 {!!flash?.error && <div className="whitespace-pre-line rounded-md border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">{flash.error}</div>}
                 {!!flash?.warning && <div className="whitespace-pre-line rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">{flash.warning}</div>}
                 {!!flash?.success && <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">{flash.success}</div>}

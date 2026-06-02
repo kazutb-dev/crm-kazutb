@@ -119,7 +119,7 @@ export default function Dashboard() {
         <AuthenticatedLayout>
             <Head title="Library Dashboard" />
 
-            <div className="p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Library Dashboard</CardTitle>

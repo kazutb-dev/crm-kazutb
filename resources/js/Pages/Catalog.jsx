@@ -1,10 +1,16 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ExternalLink, Sparkles, Wrench } from 'lucide-react';
-import SiteHeader from '@/Components/SiteHeader';
+import { ArrowLeft, Bot, BookOpenText, ExternalLink } from 'lucide-react';
+import PublicLayout from '@/Layouts/PublicLayout';
 import { useTranslation } from 'react-i18next';
-import '../../css/welcome.css';
 
-export default function Catalog() {
+const headingFont = { fontFamily: '"Literata", ui-serif, Georgia, Times, serif' };
+
+const serviceIcons = {
+    'AI-tutor': Bot,
+    'AI-Student': Bot,
+};
+
+function Catalog() {
     const { t } = useTranslation();
 
     const extraServices = [
@@ -20,76 +26,90 @@ export default function Catalog() {
         },
         {
             title: t('library'),
-            href: 'http://10.0.1.8/',
+            href: import.meta.env.VITE_LIBRARY_URL ?? '#',
             desc: t('library_desc'),
         },
     ];
 
     return (
         <>
-            <Head title="Дополнительные сервисы" />
+            <Head title="Каталог сервисов">
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+                <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
+            </Head>
 
-            <div className="welcome-root page">
-                <div className="brand-blob" aria-hidden="true" />
-                <div className="container">
-                    <SiteHeader />
+            <main
+                className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4 font-['Manrope'] sm:p-6 lg:p-10"
+                style={{ fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif' }}
+            >
 
-                    <section className="hero" style={{ minHeight: 'calc(100vh - 220px)' }}>
-                        <div className="left">
-                            <div className="kicker">
-                                <Sparkles size={14} />
-                                {t('additional_services')}
-                            </div>
-                            <h1 className="title">
-                                {t('catalog_title').split(' ')[0]}
-                                <span className="accent"> {t('catalog_title').substring(t('catalog_title').indexOf(' ') + 1)}</span>
-                            </h1>
-                            <p className="subtitle">
-                                {t('catalog_first_added')}
+                <section className="animate-fade-slide-up relative z-10 w-full max-w-4xl rounded-2xl bg-[#0f243f]/70 px-6 py-10 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-8 lg:px-12 lg:py-14">
+
+                    {/* header */}
+                    <div className="mb-10 flex items-start justify-between gap-4">
+                        <div>
+                            <p className="mb-2 inline-flex items-center gap-1.5 border border-[#FBBD48]/45 bg-[#FBBD48]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#FBBD48]">
+                                Цифровые сервисы КазУТБ
                             </p>
-                            <div className="cta-row">
-                                <Link className="btn btn-ghost" href="/">
-                                    <ArrowLeft size={16} />
-                                    {t('to_main')}
-                                </Link>
-                            </div>
+                            <h1 style={headingFont} className="mt-3 text-3xl font-extrabold leading-tight tracking-[-0.03em] sm:text-4xl">
+                                Каталог сервисов
+                            </h1>
+                            <p className="mt-3 max-w-lg text-sm leading-7 text-white/70">
+                                Внешние платформы и системы, доступные для сотрудников и студентов университета.
+                            </p>
                         </div>
 
-                        <div className="right">
-                            <div className="tiles-wrap" style={{ display: 'grid', gap: '14px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Wrench size={20} />
-                                    <b>{t('catalog_draft')}</b>
-                                </div>
-                                <div className="tiles">
-                                    {extraServices.map((service) => (
-                                        <a
-                                            key={service.title}
-                                            href={service.href}
-                                            className="tile"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                        >
-                                            <div className="icon">
-                                                <ExternalLink strokeWidth={2} />
-                                            </div>
-                                            <b>{service.title}</b>
-                                            <small>{service.desc}</small>
-                                        </a>
-                                    ))}
-                                </div>
-                                <div className="subtitle" style={{ margin: 0 }}>
-                                    {t('waiting_links')}
-                                </div>
-                                <div className="hint" style={{ marginTop: '8px' }}>
-                                    <span>{t('services_added')}: {extraServices.length}</span>
-                                    <span>{t('updated')}: 2026-04-08</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
+                        <img
+                            src="/assets/images/logo.png"
+                            alt="KazUTB"
+                            className="hidden h-14 w-14 flex-shrink-0 rounded-full border-2 border-white/80 object-contain sm:block"
+                        />
+                    </div>
+
+                    {/* service cards */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {extraServices.map((service) => {
+                            const Icon = serviceIcons[service.title] ?? BookOpenText;
+                            return (
+                                <a
+                                    key={service.title}
+                                    href={service.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group flex items-start gap-4 border border-white/15 bg-white/8 p-5 transition hover:border-[#FBBD48]/50 hover:bg-white/15 hover:shadow-[inset_0_0_0_1px_rgba(251,189,72,.22)]"
+                                >
+                                    <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center border border-[#FBBD48]/30 bg-[#FBBD48]/15 text-[#FBBD48] transition group-hover:bg-[#FBBD48]/25">
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h3 style={headingFont} className="truncate text-base font-bold leading-tight text-white">
+                                            {service.title}
+                                        </h3>
+                                        <p className="mt-1 text-sm leading-relaxed text-white/55">{service.desc}</p>
+                                    </div>
+                                    <ExternalLink className="mt-1 h-3.5 w-3.5 flex-shrink-0 text-white/25 transition group-hover:text-[#FBBD48]" />
+                                </a>
+                            );
+                        })}
+                    </div>
+
+                    {/* footer row */}
+                    <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/45">
+                        <span>Сервисов в каталоге: {extraServices.length} · Обновлено: 2026-04-08</span>
+                        <Link
+                            href="/"
+                            className="inline-flex items-center gap-2 border border-white/25 bg-white/10 px-5 py-2 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            На главную
+                        </Link>
+                    </div>
+                </section>
+            </main>
         </>
     );
 }
+
+Catalog.layout = page => <PublicLayout>{page}</PublicLayout>;
+export default Catalog;

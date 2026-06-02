@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Save, Search, Trash2, UserSearch, Users } from 'lucide-react';
 
 export default function Students() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [students, setStudents] = useState([]);
     const [groups, setGroups] = useState([]);
     const [studentUsers, setStudentUsers] = useState([]);
@@ -135,23 +137,24 @@ export default function Students() {
     };
 
     const remove = async (studentId) => {
-        if (!window.confirm('Удалить привязку студента?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/students/${studentId}`);
-            if (editingId === studentId) {
-                resetForm();
-            }
-            setSuccess('Привязка студента удалена.');
-            await load();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления привязки студента.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить привязку студента?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/students/${studentId}`);
+                    if (editingId === studentId) {
+                        resetForm();
+                    }
+                    setSuccess('Привязка студента удалена.');
+                    await load();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления привязки студента.');
+                }
+            },
+        });
     };
 
     const filteredStudents = students.filter((student) => {
@@ -176,7 +179,7 @@ export default function Students() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Студенты" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -360,5 +363,14 @@ export default function Students() {
                     </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

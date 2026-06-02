@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'roleSlug' => $user?->resolvedRoleSlug(),
+                'canManageTemplates' => fn () => $this->canManageTemplates($user),
             ],
             'kpi' => [
                 'grants' => fn () => $request->user()
@@ -85,6 +86,31 @@ class HandleInertiaRequests extends Middleware
         ];
 
         return $shared;
+    }
+
+    private function canManageTemplates(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $roleSlug = $user->resolvedRoleSlug();
+
+        if (in_array($roleSlug, ['admin', 'superadmin'], true)) {
+            return true;
+        }
+
+        // Explicit email allowlist — transition until a proper permission row exists
+        $allowedEmails = array_filter(array_map(
+            'trim',
+            explode(',', config('app.templates_allowed_emails', ''))
+        ));
+
+        return in_array(
+            mb_strtolower(trim((string) $user->email)),
+            array_map('mb_strtolower', $allowedEmails),
+            true
+        );
     }
 
     private function canAccessCalendar(?User $user): bool

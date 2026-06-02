@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -14,6 +15,7 @@ const emptyForm = {
 
 export default function SurveyStudents({ students = [], groups = [] }) {
     const { flash } = usePage().props;
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editingStudent, setEditingStudent] = useState(null);
 
     const form = useForm(emptyForm);
@@ -56,12 +58,10 @@ export default function SurveyStudents({ students = [], groups = [] }) {
     };
 
     const destroyStudent = (student) => {
-        if (!window.confirm(`Удалить студента "${student.full_name}"?`)) {
-            return;
-        }
-
-        router.delete(route('admin.surveys.students.destroy', student.id), {
-            preserveScroll: true,
+        setConfirmState({
+            open: true,
+            description: `Удалить студента "${student.full_name}"?`,
+            onConfirm: () => router.delete(route('admin.surveys.students.destroy', student.id), { preserveScroll: true }),
         });
     };
 
@@ -69,8 +69,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Студенты" />
 
-            <div className="py-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div className="admin-page-wrap">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Студенты</h1>
                         <p className="mt-2 text-gray-600 dark:text-gray-400">
@@ -250,8 +249,16 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                             </div>
                         </div>
                     </div>
-                </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,6 +89,7 @@ function splitIndicatorCode(code) {
 }
 
 function IndicatorForm({ form, options, onSubmit, submitLabel }) {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [checkerSearch, setCheckerSearch] = useState('');
     const divisions = options.divisions ?? [];
     const filteredDivisions = checkerSearch.trim() === ''
@@ -389,14 +391,15 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
     };
 
     const handleDelete = (indicator) => {
-        if (!window.confirm(`Удалить KPI-индикатор "${indicator.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('kpi.indicators.destroy', indicator.id), { preserveScroll: true });
+        setConfirmState({
+            open: true,
+            description: `Удалить KPI-индикатор "${indicator.name}"?`,
+            onConfirm: () => router.delete(route('kpi.indicators.destroy', indicator.id), { preserveScroll: true }),
+        });
     };
 
     return (
+        <>
         <div className="space-y-6">
             <Dialog
                 open={editOpen}
@@ -551,5 +554,15 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                 </CardContent>
             </Card>
         </div>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
+        </>
     );
 }

@@ -72,7 +72,7 @@ export default function CertificateShow({ certificate }) {
         >
             <Head title={`Сертификат ${certificate?.certificate_number ?? ''}`} />
 
-            <div className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="print:shadow-none print:border-none">
                     <CardHeader className="print:pb-2">
                         <CardTitle>Карточка сертификата</CardTitle>

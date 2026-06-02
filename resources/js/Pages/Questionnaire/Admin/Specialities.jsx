@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,7 @@ const emptyProgramForm = {
 };
 
 export default function Specialities() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [specialities, setSpecialities] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [departments, setDepartments] = useState([]);
@@ -155,23 +157,24 @@ export default function Specialities() {
     };
 
     const remove = async (id) => {
-        if (!window.confirm('Удалить специальность?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/specialities/${id}`);
-            if (editingId === id) {
-                resetForm();
-            }
-            setSuccess('Специальность удалена.');
-            await loadData();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления специальности.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить специальность?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/specialities/${id}`);
+                    if (editingId === id) {
+                        resetForm();
+                    }
+                    setSuccess('Специальность удалена.');
+                    await loadData();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления специальности.');
+                }
+            },
+        });
     };
 
     const openSpecialityPrograms = (speciality) => {
@@ -243,23 +246,24 @@ export default function Specialities() {
     };
 
     const removeProgram = async (programId) => {
-        if (!window.confirm('Удалить образовательную программу?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/educational-programs/${programId}`);
-            if (programEditingId === programId) {
-                resetProgramForm();
-            }
-            setSuccess('Образовательная программа удалена.');
-            await loadData();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления образовательной программы.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить образовательную программу?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/educational-programs/${programId}`);
+                    if (programEditingId === programId) {
+                        resetProgramForm();
+                    }
+                    setSuccess('Образовательная программа удалена.');
+                    await loadData();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления образовательной программы.');
+                }
+            },
+        });
     };
 
     const filtered = useMemo(() => {
@@ -287,7 +291,7 @@ export default function Specialities() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Специальности" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex items-center justify-between pt-6">
                         <div>
@@ -504,5 +508,14 @@ export default function Specialities() {
                 </SheetContent>
             </Sheet>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

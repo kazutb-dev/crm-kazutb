@@ -39,7 +39,7 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
         <AuthenticatedLayout>
             <Head title={`Сотрудники: ${division.name}`} />
 
-            <div className="mx-auto max-w-6xl space-y-6 py-6">
+            <div className="admin-page-wrap">
                 {/* Навигация */}
                 <div className="flex items-center gap-2">
                     <Button

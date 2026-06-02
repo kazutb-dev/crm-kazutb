@@ -266,7 +266,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
         >
             <Head title={`KPI-запись #${entry.id}`} />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
                     <CardHeader>
                         <CardTitle className="flex items-center justify-between gap-3 text-xl">

@@ -66,7 +66,7 @@ export default function Divisions({ divisions }) {
         <AuthenticatedLayout>
             <Head title="Управление подразделениями" />
 
-            <div className="mx-auto max-w-6xl space-y-6 py-6">
+            <div className="admin-page-wrap">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold">Подразделения</h1>
                     <div className="flex items-center gap-2">

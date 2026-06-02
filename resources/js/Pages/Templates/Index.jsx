@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ function TemplateLayoutEditor({
 }) {
     const previewWidth = 980;
     const parsedLayout = useMemo(() => parseLayout(layoutJson, null), [layoutJson]);
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [pointerState, setPointerState] = useState(null);
     const [selectedKey, setSelectedKey] = useState('fio');
     const stageRef = useRef(null);
@@ -565,11 +567,11 @@ export default function TemplatesIndex({ templates = [] }) {
     };
 
     const publishVersion = (versionId) => {
-        if (!window.confirm('Опубликовать эту версию? Текущая опубликованная версия будет снята.')) {
-            return;
-        }
-
-        router.post(route('certificate-template-versions.publish', versionId), {}, { preserveScroll: true });
+        setConfirmState({
+            open: true,
+            description: 'Опубликовать эту версию? Текущая опубликованная версия будет снята.',
+            onConfirm: () => router.post(route('certificate-template-versions.publish', versionId), {}, { preserveScroll: true }),
+        });
     };
 
     return (
@@ -589,7 +591,7 @@ export default function TemplatesIndex({ templates = [] }) {
         >
             <Head title="Шаблоны сертификатов" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card>
                     <CardHeader>
                         <CardTitle>Новый шаблон</CardTitle>
@@ -946,5 +948,15 @@ export default function TemplatesIndex({ templates = [] }) {
                 )}
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            confirmLabel="Опубликовать"
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

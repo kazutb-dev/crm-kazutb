@@ -1,3 +1,5 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -318,6 +320,7 @@ export default function Index({
         structural_division_id: '',
     });
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [editingUser, setEditingUser] = useState(null);
     const [positionDialogOpen, setPositionDialogOpen] = useState(false);
     const [roleDialogUser, setRoleDialogUser] = useState(null);
@@ -460,26 +463,22 @@ export default function Index({
 
     const openRoleDialog = (user) => {
         setRoleDialogUser(user);
-        const structuralAccessDivisionIds = Array.isArray(user?.structural_access_division_ids)
-            ? user.structural_access_division_ids.filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
+        // Use kpi_structural_unit IDs from `divisions` array (populated from kpi_structural_unit_user pivot)
+        const structuralUnitIds = Array.isArray(user?.divisions)
+            ? user.divisions.map((d) => d.id).filter((id) => Number.isInteger(Number(id)) && Number(id) > 0)
             : [];
 
         roleForm.setData({
             role: resolveRoleSlug(user) || 'teacher',
-            structural_access: structuralAccessDivisionIds.length > 0,
-            structural_division_id: structuralAccessDivisionIds[0] ? String(structuralAccessDivisionIds[0]) : '',
+            structural_access: structuralUnitIds.length > 0,
+            structural_division_id: structuralUnitIds[0] ? String(structuralUnitIds[0]) : '',
         });
         roleForm.clearErrors();
         setRoleDialogOpen(true);
         setRoleConfirmOpen(false);
     };
 
-    const createLocalUserFromAd = async (row) => {
-        const confirmed = window.confirm('Создать локальную запись для этого пользователя?');
-        if (!confirmed) {
-            return null;
-        }
-
+    const doCreateLocalUserFromAd = async (row, onSuccess) => {
         try {
             const response = await axios.post('/users/create-from-ad', {
                 ad_login: row.login,
@@ -487,62 +486,52 @@ export default function Index({
                 email: row.email,
                 name: row.display_name || row.name,
             }, {
-                headers: {
-                    Accept: 'application/json',
-                },
+                headers: { Accept: 'application/json' },
             });
 
             const userId = response?.data?.user_id;
             if (!userId) {
-                window.alert('Сервер не вернул ID нового пользователя.');
-                return null;
+                toast.error('Сервер не вернул ID нового пользователя.');
+                return;
             }
 
-            return {
-                ...row,
-                local_user_id: userId,
-                can_edit: true,
-            };
-        } catch (error) {
-            window.alert('Не удалось создать локальную запись пользователя.');
-            return null;
+            onSuccess({ ...row, local_user_id: userId, can_edit: true });
+        } catch {
+            toast.error('Не удалось создать локальную запись пользователя.');
         }
     };
 
-    const handleEditClick = async (user) => {
+    const createLocalUserFromAd = (row, onSuccess) => {
+        setConfirmState({
+            open: true,
+            description: 'Создать локальную запись для этого пользователя?',
+            onConfirm: () => doCreateLocalUserFromAd(row, onSuccess),
+        });
+    };
+
+    const handleEditClick = (user) => {
         if (user.local_user_id) {
             openPositionDialog(user);
             return;
         }
 
-        const normalized = await createLocalUserFromAd(user);
-        if (normalized) {
-            openPositionDialog(normalized);
-        }
+        createLocalUserFromAd(user, openPositionDialog);
     };
 
-    const handleRoleClick = async (user) => {
+    const handleRoleClick = (user) => {
         if (user.local_user_id) {
             openRoleDialog(user);
             return;
         }
 
-        const normalized = await createLocalUserFromAd(user);
-        if (normalized) {
-            openRoleDialog(normalized);
-        }
+        createLocalUserFromAd(user, openRoleDialog);
     };
 
     const submitRoleChange = () => {
         if (!roleDialogUser) return;
 
-        router.patch(
+        roleForm.patch(
             route('users.role.update', roleDialogUser.local_user_id),
-            {
-                role: roleForm.data.role,
-                structural_access: roleForm.data.structural_access,
-                structural_division_id: roleForm.data.structural_division_id || null,
-            },
             {
                 preserveScroll: true,
                 onSuccess: () => {
@@ -1239,5 +1228,16 @@ export default function Index({
                 </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+            confirmLabel="Создать"
+            destructive={false}
+        />
     );
 }

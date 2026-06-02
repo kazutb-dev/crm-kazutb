@@ -123,6 +123,7 @@ export function AppSidebar() {
     const roleSlug = auth.roleSlug;
     const kpiGrants = new Set(kpi?.grants ?? []);
     const TEMP_HIDE_MAIN_MENUS = false;
+    const canManageTemplates = auth.canManageTemplates ?? false;
     const isAdminRole = ['admin', 'superadmin'].includes(roleSlug);
     const isKpiAdminGrant =
         kpiGrants.has('kpi_admin')
@@ -135,8 +136,7 @@ export function AppSidebar() {
     const isDepartmentRole = roleSlug === 'department';
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
-    const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
-    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
+    const canAccessTemplatesSection = isAdminRole || canManageTemplates;
     const canAccessPositionRequests =
         isAdminRole
         || isStructuralRole

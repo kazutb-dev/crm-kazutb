@@ -203,7 +203,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                         </div>
 
                         <a
-                            href="http://10.0.1.47/"
+                            href={import.meta.env.VITE_HOME_URL ?? '/'}
                             className="hidden h-9 items-center gap-2 rounded-lg border border-border/80 bg-white/90 px-3 text-sm font-medium text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/30 sm:inline-flex"
                         >
                             <Home className="h-4 w-4" />

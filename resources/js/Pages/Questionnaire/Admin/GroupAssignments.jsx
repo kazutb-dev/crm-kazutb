@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ const getAcademicYearOptions = () => {
 };
 
 export default function GroupAssignments() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [items, setItems] = useState([]);
     const [groups, setGroups] = useState([]);
     const [teacherDisciplines, setTeacherDisciplines] = useState([]);
@@ -111,25 +113,24 @@ export default function GroupAssignments() {
     };
 
     const remove = async (id) => {
-        if (!window.confirm('Удалить это назначение?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/group-disciplines/${id}`);
-
-            if (editingId === id) {
-                resetForm();
-            }
-
-            setSuccess('Назначение удалено.');
-            await load();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления назначения.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить это назначение?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/group-disciplines/${id}`);
+                    if (editingId === id) {
+                        resetForm();
+                    }
+                    setSuccess('Назначение удалено.');
+                    await load();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления назначения.');
+                }
+            },
+        });
     };
 
     const renderTeacherDisciplineLabel = (item) => {
@@ -165,7 +166,7 @@ export default function GroupAssignments() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Назначения" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
@@ -325,6 +326,15 @@ export default function GroupAssignments() {
                     </div>
             </div>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }
 

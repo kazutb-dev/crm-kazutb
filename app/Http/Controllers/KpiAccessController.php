@@ -78,17 +78,18 @@ class KpiAccessController extends Controller
             return back()->withErrors(['division_id' => 'Для очереди структурного подразделения необходимо выбрать подразделение.']);
         }
 
-        // For structural_queue: unique key includes division_id (one row per user+division)
-        // For other permissions: division_id is null, unique key is (user_id, permission, null)
+        // Unique key in DB is (user_id, permission), so structural division is updated on that row.
         $matchKey = [
             'user_id'     => $data['user_id'],
             'permission'  => $data['permission'],
-            'division_id' => $data['division_id'] ?? null,
         ];
 
         KpiAccessGrant::query()->updateOrCreate(
             $matchKey,
             [
+                'division_id' => $data['permission'] === KpiAccessGrant::PERM_STRUCTURAL_QUEUE
+                    ? ($data['division_id'] ?? null)
+                    : null,
                 'granted_by' => $request->user()->id,
                 'granted_at' => now(),
                 'is_active'  => true,

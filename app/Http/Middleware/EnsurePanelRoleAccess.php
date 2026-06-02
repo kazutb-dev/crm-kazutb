@@ -220,7 +220,8 @@ class EnsurePanelRoleAccess
             ->where('secretary_id', $userId)
             ->where('is_active', true)
             ->whereNull('revoked_at')
-            ->exists()) {
+            ->exists()
+        ) {
             return true;
         }
 
@@ -277,6 +278,11 @@ class EnsurePanelRoleAccess
 
     private function canAccessKpiRouteViaGrant(int $userId, string $routeName): bool
     {
+        // kpi_admin grant provides full access to all KPI routes.
+        if ($this->startsWith($routeName, 'kpi.') && $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_KPI_ADMIN)) {
+            return true;
+        }
+
         if ($this->startsWith($routeName, 'kpi.entries.approve')) {
             return $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_REVIEW_QUEUE)
                 || $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_APPROVAL_QUEUE)

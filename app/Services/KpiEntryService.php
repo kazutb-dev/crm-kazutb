@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
 
 class KpiEntryService
 
-	{
+{
 
     /**
      * Подтверждение KPI-записи от структурного подразделения (СП)
@@ -30,8 +30,7 @@ class KpiEntryService
         User $actor,
         ?string $comment = null,
         ?int $structuralUnitId = null,
-    ): KpiEntry
-    {
+    ): KpiEntry {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
             $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
@@ -69,7 +68,7 @@ class KpiEntryService
                 $structuralUnitIds = $indicator->structuralUnits
                     ->pluck('id')
                     ->filter()
-                    ->map(fn ($id) => (int) $id);
+                    ->map(fn($id) => (int) $id);
 
                 if ($structuralUnitIds->isNotEmpty()) {
                     $expectedUnitIds = $structuralUnitIds;
@@ -83,7 +82,7 @@ class KpiEntryService
                 $expectedUnitIds = $entry->structuralConfirmations()
                     ->pluck('structural_unit_id')
                     ->filter()
-                    ->map(fn ($id) => (int) $id);
+                    ->map(fn($id) => (int) $id);
             }
 
             $expectedUnitIds = $expectedUnitIds->unique()->values();
@@ -92,7 +91,7 @@ class KpiEntryService
                 ->where('status', 'approved')
                 ->pluck('structural_unit_id')
                 ->filter()
-                ->map(fn ($id) => (int) $id)
+                ->map(fn($id) => (int) $id)
                 ->unique()
                 ->values();
 
@@ -116,8 +115,7 @@ class KpiEntryService
         User $actor,
         ?string $comment = null,
         ?int $structuralUnitId = null,
-    ): KpiEntry
-    {
+    ): KpiEntry {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
             $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
@@ -153,13 +151,12 @@ class KpiEntryService
     }
     public function __construct(
         private readonly KpiCalculationService $calculationService,
-    ) {
-    }
+    ) {}
 
     private function resolveActingStructuralUnit(User $actor, ?int $structuralUnitId): ?KpiStructuralUnit
     {
         $role = $actor->resolvedRoleSlug();
-        $isAdmin = in_array($role, ['admin', 'superadmin'], true);
+        $isAdmin = in_array($role, ['admin', 'superadmin'], true) || KpiAccessGrant::userHasKpiAdmin($actor->id);
 
         if ($structuralUnitId !== null) {
             return $isAdmin
@@ -433,23 +430,29 @@ class KpiEntryService
         $role = $actor->resolvedRoleSlug();
 
         // Queue grants can delegate moderation even for teacher role.
-        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_REVIEW_QUEUE)
-            && $entry->status === KpiEntry::STATUS_SUBMITTED) {
+        if (
+            KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_REVIEW_QUEUE)
+            && $entry->status === KpiEntry::STATUS_SUBMITTED
+        ) {
             return KpiEntry::STATUS_PENDING_DEAN;
         }
 
-        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_APPROVAL_QUEUE)
-            && in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true)) {
+        if (
+            KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+            && in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true)
+        ) {
             return KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
 
-        if (KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
-            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+        if (
+            KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL
+        ) {
             return KpiEntry::STATUS_APPROVED;
         }
 
-        // Admin follows the same chain based on current entry status
-        if (in_array($role, ['admin', 'superadmin'], true)) {
+        // Admin and kpi_admin grant follow the same chain based on current entry status
+        if (in_array($role, ['admin', 'superadmin'], true) || KpiAccessGrant::userHasKpiAdmin($actor->id)) {
             if ($entry->status === KpiEntry::STATUS_SUBMITTED) {
                 return KpiEntry::STATUS_PENDING_DEAN;
             }
@@ -469,8 +472,10 @@ class KpiEntryService
             return KpiEntry::STATUS_PENDING_STRUCTURAL;
         }
 
-        if (in_array($role, ['department', 'structural'], true)
-            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+        if (
+            in_array($role, ['department', 'structural'], true)
+            && $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL
+        ) {
             return KpiEntry::STATUS_APPROVED;
         }
 
@@ -491,10 +496,12 @@ class KpiEntryService
 
             $role = $actor->resolvedRoleSlug();
 
-            if (in_array($role, ['admin', 'superadmin'], true)) {
+            if (in_array($role, ['admin', 'superadmin'], true) || KpiAccessGrant::userHasKpiAdmin($actor->id)) {
                 $validStatuses = [
-                    KpiEntry::STATUS_SUBMITTED, KpiEntry::STATUS_REVIEWED,
-                    KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL,
+                    KpiEntry::STATUS_SUBMITTED,
+                    KpiEntry::STATUS_REVIEWED,
+                    KpiEntry::STATUS_PENDING_DEAN,
+                    KpiEntry::STATUS_PENDING_STRUCTURAL,
                 ];
                 if (!in_array($lockedEntry->status, $validStatuses, true)) {
                     throw new KpiEntryStatusException('Отклонить можно только запись в промежуточном статусе.');
@@ -537,7 +544,7 @@ class KpiEntryService
         $indicatorIds = collect($entries)
             ->pluck('indicator_id')
             ->filter()
-            ->map(fn ($value) => (int) $value)
+            ->map(fn($value) => (int) $value)
             ->unique()
             ->values();
 
@@ -555,7 +562,7 @@ class KpiEntryService
             ->whereIn('indicator_id', $indicatorIds)
             ->lockForUpdate()
             ->get()
-            ->keyBy(fn (KpiEntry $entry) => $this->entryBusinessKey(
+            ->keyBy(fn(KpiEntry $entry) => $this->entryBusinessKey(
                 (string) $entry->entity_type,
                 (int) $entry->indicator_id,
                 $entry->faculty_id !== null ? (int) $entry->faculty_id : null,

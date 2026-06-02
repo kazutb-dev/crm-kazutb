@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -176,6 +177,7 @@ export default function KpiPeriodsManager({
     const links = periods?.links ?? [];
     const canManage = permissions.managePeriods ?? false;
 
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [editingPeriod, setEditingPeriod] = useState(null);
@@ -261,14 +263,15 @@ export default function KpiPeriodsManager({
     const closePeriod = (period) => router.post(route('kpi.close', period.id), {}, { preserveScroll: true });
 
     const deletePeriod = (period) => {
-        if (!window.confirm(`Удалить сезон "${period.name}"?`)) {
-            return;
-        }
-
-        router.delete(route('kpi.destroy', period.id), { preserveScroll: true });
+        setConfirmState({
+            open: true,
+            description: `Удалить сезон "${period.name}"?`,
+            onConfirm: () => router.delete(route('kpi.destroy', period.id), { preserveScroll: true }),
+        });
     };
 
     return (
+        <>
         <div className="space-y-6">
             <Dialog
                 open={editOpen}
@@ -441,5 +444,15 @@ export default function KpiPeriodsManager({
                 </CardContent>
             </Card>
         </div>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
+        </>
     );
 }

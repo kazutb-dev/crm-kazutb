@@ -123,4 +123,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Comma-separated list of emails that can manage Templates (besides admins)
+    // Replace with a proper permission when the permission system is extended.
+    'templates_allowed_emails' => env('TEMPLATES_ALLOWED_EMAILS', 'a.khastayeva@kaztbu.edu.kz'),
+
 ];

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ const emptyForm = {
 };
 
 export default function Disciplines() {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [disciplines, setDisciplines] = useState([]);
     const [form, setForm] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
@@ -86,23 +88,24 @@ export default function Disciplines() {
     };
 
     const remove = async (disciplineId) => {
-        if (!window.confirm('Удалить дисциплину?')) {
-            return;
-        }
-
-        setError('');
-        setSuccess('');
-
-        try {
-            await axios.delete(`/api/questionnaire/admin/disciplines/${disciplineId}`);
-            if (editingId === disciplineId) {
-                resetForm();
-            }
-            setSuccess('Дисциплина удалена.');
-            await loadDisciplines();
-        } catch (e) {
-            setError(e?.response?.data?.message || 'Ошибка удаления дисциплины.');
-        }
+        setConfirmState({
+            open: true,
+            description: 'Удалить дисциплину?',
+            onConfirm: async () => {
+                setError('');
+                setSuccess('');
+                try {
+                    await axios.delete(`/api/questionnaire/admin/disciplines/${disciplineId}`);
+                    if (editingId === disciplineId) {
+                        resetForm();
+                    }
+                    setSuccess('Дисциплина удалена.');
+                    await loadDisciplines();
+                } catch (e) {
+                    setError(e?.response?.data?.message || 'Ошибка удаления дисциплины.');
+                }
+            },
+        });
     };
 
     const filteredDisciplines = disciplines.filter((discipline) => {
@@ -122,7 +125,7 @@ export default function Disciplines() {
         <AuthenticatedLayout>
             <Head title="Анкетирование - Дисциплины" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex items-center justify-between pt-6">
                         <div>
@@ -237,5 +240,14 @@ export default function Disciplines() {
                 </DialogContent>
             </Dialog>
         </AuthenticatedLayout>
+        <ConfirmDialog
+            open={confirmState.open}
+            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+            description={confirmState.description}
+            onConfirm={() => {
+                confirmState.onConfirm?.();
+                setConfirmState({ open: false, description: '', onConfirm: null });
+            }}
+        />
     );
 }

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
+import PublicLayout from '@/Layouts/PublicLayout';
 import '../../../css/welcome.css';
 
 const SEARCH_HISTORY_KEY = 'nav.search.history';
@@ -148,7 +149,7 @@ function buildSmoothPath(points) {
     return pathParts.join(' ');
 }
 
-export default function Index() {
+function Index() {
     const [points, setPoints] = useState(fallbackPoints);
     const [query, setQuery] = useState('');
     const [activeTab, setActiveTab] = useState('all');
@@ -328,10 +329,7 @@ export default function Index() {
         <>
             <Head title="Навигация по кампусу" />
 
-            <main className="relative min-h-screen overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
-                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/main.png')] bg-cover bg-center opacity-45 blur-[2px] scale-[1.03]" />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/86 to-[#18b8b3]/28" />
-                <div className="pointer-events-none absolute inset-0 bg-black/15 backdrop-blur-[2px]" />
+            <main className="relative min-h-screen overflow-hidden p-3 font-['Manrope'] sm:p-4 lg:p-6">
 
                 <section className="relative z-10 mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl bg-[#0f243f]/55 px-4 py-6 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-6 lg:px-8 lg:py-8">
                     <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -717,3 +715,6 @@ export default function Index() {
         </>
     );
 }
+
+Index.layout = page => <PublicLayout>{page}</PublicLayout>;
+export default Index;

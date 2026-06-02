@@ -7,7 +7,7 @@ export default function Indicators({ indicators, filters = {}, options = {}, per
         <AuthenticatedLayout>
             <Head title="KPI-индикаторы" />
 
-            <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+            <div className="admin-page-wrap">
                 <KpiIndicatorsManager
                     indicators={indicators}
                     filters={filters}
