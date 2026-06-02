@@ -493,6 +493,14 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                             {structuralConfirmations.map((item) => {
                                                 const canAct = canActForStructuralUnit(item.structural_unit_id);
                                                 const isPending = item.status === 'pending';
+                                                // Пока запись находится на финальном утверждении
+                                                // (pending_structural), ответственный СП может заново
+                                                // утвердить или отклонить её, даже если его прошлый статус
+                                                // «застрял» на rejected/approved (например, после повторной
+                                                // отправки исполнителем). Блок уже ограничен статусом
+                                                // pending_structural, поэтому действие доступно всегда для
+                                                // ответственного СП и администратора.
+                                                const isActionable = entry.status === 'pending_structural' || isPending || isAdminViewer;
 
                                                 return (
                                                     <div key={`moderation-sp-${item.structural_unit_id}`} className="rounded-md border bg-muted/20 p-2.5">
@@ -506,7 +514,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                         <div className="grid gap-2 sm:grid-cols-2">
                                                             <Button
                                                                 type="button"
-                                                                disabled={form.processing || !permissions.canApprove || !isPending || !canAct}
+                                                                disabled={form.processing || !permissions.canApprove || !isActionable || !canAct}
                                                                 onClick={() => submitAction('kpi.entries.structural-confirm', { structural_unit_id: item.structural_unit_id })}
                                                             >
                                                                 <ShieldCheck className="h-4 w-4" />
@@ -514,7 +522,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                             </Button>
                                                             <Button
                                                                 type="button"
-                                                                disabled={form.processing || !permissions.canReject || !isPending || !canAct}
+                                                                disabled={form.processing || !permissions.canReject || !isActionable || !canAct}
                                                                 variant="destructive"
                                                                 onClick={() => submitAction('kpi.entries.structural-reject', { structural_unit_id: item.structural_unit_id })}
                                                             >

@@ -200,8 +200,15 @@ class KpiEntry extends Model
 
     public function getPointsForDisplayAttribute(): string
     {
-        if ($this->manual_points !== null) {
+        $details = is_array($this->calculation_details) ? $this->calculation_details : [];
+        $ruleKind = trim((string) ($details['rule_kind'] ?? ''));
+
+        if ($this->manual_points !== null && $ruleKind !== '') {
             return number_format((float) $this->manual_points, 2, '.', '');
+        }
+
+        if ($this->calculated_points !== null && (float) $this->calculated_points !== 0.0) {
+            return number_format((float) $this->calculated_points, 2, '.', '');
         }
 
         $value = $this->fact_value ?? $this->plan_value;
@@ -214,6 +221,10 @@ class KpiEntry extends Model
 
         if ($value !== null) {
             return number_format($basePoints * (float) $value, 2, '.', '');
+        }
+
+        if ($this->manual_points !== null) {
+            return number_format((float) $this->manual_points, 2, '.', '');
         }
 
         if ($this->calculated_points !== null) {
