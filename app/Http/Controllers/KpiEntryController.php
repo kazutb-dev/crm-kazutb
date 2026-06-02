@@ -1340,7 +1340,7 @@ class KpiEntryController extends Controller
             ],
             'moderationContext' => [
                 'role_slug' => $roleSlug,
-                'is_admin' => in_array($roleSlug, ['admin', 'superadmin'], true),
+                'is_admin' => in_array($roleSlug, ['admin', 'superadmin'], true) || KpiAccessGrant::userHasKpiAdmin((int) $request->user()?->id),
                 'actor_structural_unit_ids' => $actorStructuralUnitIds->all(),
             ],
         ]);
@@ -1706,6 +1706,7 @@ class KpiEntryController extends Controller
                 KpiAccessGrant::userHas($user->id, KpiAccessGrant::PERM_REVIEW_QUEUE)
                 || KpiAccessGrant::userHas($user->id, KpiAccessGrant::PERM_APPROVAL_QUEUE)
                 || KpiAccessGrant::userHas($user->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                || KpiAccessGrant::userHasKpiAdmin($user->id)
             ) {
                 return $query;
             }
@@ -1970,11 +1971,13 @@ class KpiEntryController extends Controller
 
         // For structural queue mode - determine what divisions/access user has
         if ($defaultStatus === KpiEntry::STATUS_PENDING_STRUCTURAL) {
-            if (in_array($roleSlug, ['admin', 'superadmin'], true)) {
+            if (in_array($roleSlug, ['admin', 'superadmin'], true) || KpiAccessGrant::userHasKpiAdmin($user->id)) {
+                $adminDivisionIds = KpiStructuralUnit::query()->pluck('id')->map(fn($id) => (int) $id)->values();
+
                 $structuralScope = [
                     'type' => 'admin',
                     'label' => 'Вы видите все записи (администратор)',
-                    'actor_division_ids' => $actorStructuralUnitIds,
+                    'actor_division_ids' => $adminDivisionIds,
                 ];
             } elseif ($roleSlug === 'structural') {
                 $divisionIds = $this->resolveStructuralUnitIds($user);
@@ -2064,6 +2067,9 @@ class KpiEntryController extends Controller
             }
         }
 
+        $canAdminModerate = in_array($roleSlug, ['admin', 'superadmin'], true)
+            || KpiAccessGrant::userHasKpiAdmin($user->id);
+
         return [
             'entries' => $entries,
             'academicYears' => $academicYears,
@@ -2091,7 +2097,8 @@ class KpiEntryController extends Controller
                 'tab' => $tab,
             ],
             'permissions' => [
-                'canModerate' => $user->resolvedRoleSlug() !== 'teacher' || $canModerateByGrant,
+                'canModerate' => $user->resolvedRoleSlug() !== 'teacher' || $canModerateByGrant || KpiAccessGrant::userHasKpiAdmin($user->id),
+                'canAdminModerate' => $canAdminModerate,
             ],
             'reviewScope' => $reviewScope,
             'structuralScope' => $structuralScope,

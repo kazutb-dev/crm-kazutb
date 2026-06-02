@@ -982,41 +982,76 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
     const allRows = rows ?? [];
 
     const facultyOptions = useMemo(() => {
-        return Array.from(new Set(
-            allRows
-                .map((row) => String(row?.faculty_name ?? '').trim())
-                .filter(Boolean),
-        )).sort((a, b) => a.localeCompare(b, 'ru'));
+        const byId = new Map();
+
+        allRows.forEach((row) => {
+            const id = row?.faculty_id;
+            const name = String(row?.faculty_name ?? '').trim();
+
+            if (id == null || id === '' || !name) {
+                return;
+            }
+
+            const key = String(id);
+            if (!byId.has(key)) {
+                byId.set(key, { id: key, name });
+            }
+        });
+
+        return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
     }, [allRows]);
 
     const departmentOptions = useMemo(() => {
         const source = facultyFilter === ''
             ? allRows
-            : allRows.filter((row) => String(row?.faculty_name ?? '').trim() === facultyFilter);
+            : allRows.filter((row) => String(row?.faculty_id ?? '') === facultyFilter);
 
-        return Array.from(new Set(
-            source
-                .map((row) => String(row?.department_name ?? '').trim())
-                .filter(Boolean),
-        )).sort((a, b) => a.localeCompare(b, 'ru'));
+        const byId = new Map();
+
+        source.forEach((row) => {
+            const id = row?.department_id;
+            const name = String(row?.department_name ?? '').trim();
+
+            if (id == null || id === '' || !name) {
+                return;
+            }
+
+            const key = String(id);
+            if (!byId.has(key)) {
+                byId.set(key, { id: key, name });
+            }
+        });
+
+        return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
     }, [allRows, facultyFilter]);
 
     const filteredRows = useMemo(() => {
         return allRows.filter((row) => {
-            const facultyName = String(row?.faculty_name ?? '').trim();
-            const departmentName = String(row?.department_name ?? '').trim();
+            const facultyId = String(row?.faculty_id ?? '');
+            const departmentId = String(row?.department_id ?? '');
 
-            if (facultyFilter !== '' && facultyName !== facultyFilter) {
+            if (facultyFilter !== '' && facultyId !== facultyFilter) {
                 return false;
             }
 
-            if (departmentFilter !== '' && departmentName !== departmentFilter) {
+            if (departmentFilter !== '' && departmentId !== departmentFilter) {
                 return false;
             }
 
             return true;
         });
     }, [allRows, facultyFilter, departmentFilter]);
+
+    const handleExportClick = () => {
+        if (!onExportExcel) {
+            return;
+        }
+
+        onExportExcel({
+            faculty_id: facultyFilter !== '' ? Number(facultyFilter) : null,
+            department_id: departmentFilter !== '' ? Number(departmentFilter) : null,
+        });
+    };
 
     const handleRowClick = (row) => {
         const params = {};
@@ -1040,7 +1075,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                         ? (
                             <button
                                 type="button"
-                                onClick={onExportExcel}
+                                onClick={handleExportClick}
                                 className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
                                 title="Экспортировать таблицу ППС в Excel"
                             >
@@ -1069,7 +1104,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                     >
                         <option value="">Все факультеты</option>
                         {facultyOptions.map((faculty) => (
-                            <option key={faculty} value={faculty}>{faculty}</option>
+                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
                         ))}
                     </select>
 
@@ -1080,7 +1115,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                     >
                         <option value="">Все кафедры</option>
                         {departmentOptions.map((department) => (
-                            <option key={department} value={department}>{department}</option>
+                            <option key={department.id} value={department.id}>{department.name}</option>
                         ))}
                     </select>
 
@@ -1914,7 +1949,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                     academicYear={academicYear}
                     period={period}
                     filters={filters}
-                    onExportExcel={() => onExportRatingExcel?.('teachers')}
+                    onExportExcel={(exportFilters) => onExportRatingExcel?.('teachers', exportFilters)}
                 />
             )}
 
@@ -2162,8 +2197,8 @@ export default function Summary({
         return query ? `${path}?${query}` : path;
     };
 
-    const handleExportRatingExcel = (report) => {
-        window.location.href = buildExportUrl('/kpi/summary/export-rating-excel', { report });
+    const handleExportRatingExcel = (report, exportFilters = {}) => {
+        window.location.href = buildExportUrl('/kpi/summary/export-rating-excel', { report, ...exportFilters });
     };
 
     const handleExportSummaryExcel = () => {
@@ -2180,6 +2215,11 @@ export default function Summary({
 
         handleExportSummaryExcel();
     };
+
+    const showHeaderExcelButton = !(
+        normalizedRole === 'admin'
+        && (adminTab === 'teachers' || adminTab === 'deans' || adminTab === 'hods')
+    );
 
     return (
         <AuthenticatedLayout>
@@ -2204,15 +2244,17 @@ export default function Summary({
                     {/* right: filters + period label */}
                     <div className="flex flex-col items-end gap-2">
                         <FilterBar filters={filters} filterOptions={filterOptions} />
-                        <button
-                            type="button"
-                            onClick={handleExportCurrentExcel}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            title="Экспортировать открытую страницу в Excel"
-                        >
-                            <FileText className="h-3.5 w-3.5" />
-                            Excel
-                        </button>
+                        {showHeaderExcelButton && (
+                            <button
+                                type="button"
+                                onClick={handleExportCurrentExcel}
+                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
+                                title="Экспортировать открытую страницу в Excel"
+                            >
+                                <FileText className="h-3.5 w-3.5" />
+                                Excel
+                            </button>
+                        )}
                         <div className="flex items-center gap-2">
                             {period ? (
                                 <>

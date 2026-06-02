@@ -20,6 +20,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class KpiSummaryController extends Controller
 {
@@ -207,9 +215,9 @@ class KpiSummaryController extends Controller
         // Filter options
         $periods = $academicYear
             ? KpiPeriod::query()
-                ->where('academic_year_id', $academicYear->id)
-                ->orderByDesc('start_date')
-                ->get(['id', 'name', 'stage', 'status'])
+            ->where('academic_year_id', $academicYear->id)
+            ->orderByDesc('start_date')
+            ->get(['id', 'name', 'stage', 'status'])
             : collect();
 
         // Build role-specific summary
@@ -277,7 +285,7 @@ class KpiSummaryController extends Controller
                 'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->where('user_id', $user->id)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'comment']);
@@ -285,10 +293,10 @@ class KpiSummaryController extends Controller
         // Finalized result if exists
         $result = $period
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_USER)
-                ->where('user_id', $user->id)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'section_scores'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_USER)
+            ->where('user_id', $user->id)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'section_scores'])
             : null;
 
         return [
@@ -335,17 +343,17 @@ class KpiSummaryController extends Controller
                 'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->where('user_id', $user->id)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_USER)
-                ->where('user_id', $user->id)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_USER)
+            ->where('user_id', $user->id)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score'])
             : null;
 
         $ownResultFormatted = null;
@@ -362,10 +370,10 @@ class KpiSummaryController extends Controller
         // Department result
         $deptResult = ($period && $department)
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_DEPARTMENT)
-                ->where('department_id', $department->id)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'approved_entries_count'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_DEPARTMENT)
+            ->where('department_id', $department->id)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'approved_entries_count'])
             : null;
 
         return [
@@ -405,26 +413,26 @@ class KpiSummaryController extends Controller
                 'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->where('user_id', $user->id)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_DEAN, KpiEntry::ENTITY_TYPE_TEACHER])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->get(['id', 'indicator_id', 'plan_value', 'fact_value', 'calculated_points', 'manual_points', 'calculation_details', 'status', 'entity_type', 'comment']);
 
         $ownResult = $period
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_USER)
-                ->where('user_id', $user->id)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_USER)
+            ->where('user_id', $user->id)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score'])
             : null;
 
         // Faculty result
         $facultyResult = ($period && $faculty)
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_FACULTY)
-                ->where('faculty_id', $faculty->id)
-                ->first(['rank_score', 'approved_entries_count'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_FACULTY)
+            ->where('faculty_id', $faculty->id)
+            ->first(['rank_score', 'approved_entries_count'])
             : null;
 
         // Departments in faculty — from KpiEntry grouping
@@ -467,7 +475,7 @@ class KpiSummaryController extends Controller
     {
         // Status counters (exclude drafts from display totals)
         $statusCounts = KpiEntry::query()
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
@@ -479,17 +487,17 @@ class KpiSummaryController extends Controller
         foreach ($faculties as $faculty) {
             $entryStats = KpiEntry::query()
                 ->where('faculty_id', $faculty->id)
-                ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+                ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
                 ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
                 ->selectRaw('COUNT(DISTINCT user_id) as user_count, COUNT(*) as total_entries, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved', [KpiEntry::STATUS_APPROVED])
                 ->first();
 
             $facultyResult = $period
                 ? KpiResult::query()
-                    ->where('kpi_period_id', $period->id)
-                    ->where('result_type', KpiResult::RESULT_TYPE_FACULTY)
-                    ->where('faculty_id', $faculty->id)
-                    ->value('rank_score')
+                ->where('kpi_period_id', $period->id)
+                ->where('result_type', KpiResult::RESULT_TYPE_FACULTY)
+                ->where('faculty_id', $faculty->id)
+                ->value('rank_score')
                 : null;
 
             $facultySummaries[] = [
@@ -514,7 +522,7 @@ class KpiSummaryController extends Controller
 
         // Section stats — entries/points per KPI section
         $sectionStats = KpiEntry::query()
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->join('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
             ->selectRaw(
@@ -523,7 +531,7 @@ class KpiSummaryController extends Controller
             )
             ->groupBy('kpi_indicators.section')
             ->get()
-            ->mapWithKeys(fn ($r) => [$r->section => [
+            ->mapWithKeys(fn($r) => [$r->section => [
                 'total' => (int) $r->total,
                 'approved' => (int) $r->approved,
                 'total_points' => (float) $r->total_points,
@@ -579,8 +587,8 @@ class KpiSummaryController extends Controller
         foreach ($faculties as $faculty) {
             $stats = KpiEntry::query()
                 ->where('faculty_id', $faculty->id)
-                ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
-                ->when(!empty($indicatorIds), fn ($q) => $q->whereIn('indicator_id', $indicatorIds))
+                ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
+                ->when(!empty($indicatorIds), fn($q) => $q->whereIn('indicator_id', $indicatorIds))
                 ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
                 ->selectRaw('COUNT(DISTINCT user_id) as user_count, COUNT(*) as total_entries, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending', [KpiEntry::STATUS_APPROVED, KpiEntry::STATUS_PENDING_STRUCTURAL])
                 ->first();
@@ -597,8 +605,8 @@ class KpiSummaryController extends Controller
 
         // Teachers pending structural approval (for this user's divisions)
         $pendingTeachers = KpiEntry::query()
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
-            ->when(!empty($indicatorIds), fn ($q) => $q->whereIn('indicator_id', $indicatorIds))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
+            ->when(!empty($indicatorIds), fn($q) => $q->whereIn('indicator_id', $indicatorIds))
             ->where('status', KpiEntry::STATUS_PENDING_STRUCTURAL)
             ->join('users', 'users.id', '=', 'kpi_entries.user_id')
             ->join('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
@@ -617,7 +625,7 @@ class KpiSummaryController extends Controller
             ->orderByDesc('kpi_entries.created_at')
             ->limit(100)
             ->get()
-            ->map(fn ($e) => [
+            ->map(fn($e) => [
                 'id' => $e->user_id,
                 'name' => $e->display_name ?? $e->name ?? '—',
                 'title' => $this->resolveUserTitle($e->position_title, $e->ad_title),
@@ -630,7 +638,7 @@ class KpiSummaryController extends Controller
 
         return [
             'scope' => 'structural',
-            'divisions' => $user->kpiStructuralUnits->map(fn (KpiStructuralUnit $d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])->values()->all(),
+            'divisions' => $user->kpiStructuralUnits->map(fn(KpiStructuralUnit $d) => ['id' => $d->id, 'name' => $d->name, 'code' => $d->code])->values()->all(),
             'faculties' => $summaries,
             'pending_teachers' => $pendingTeachers,
         ];
@@ -658,7 +666,7 @@ class KpiSummaryController extends Controller
                 ->where('kpi_period_id', $period->id)
                 ->where('result_type', KpiResult::RESULT_TYPE_USER)
                 ->where('kpi_results.department_id', $deptId)
-                ->when($excludeUserId, fn ($q) => $q->where('user_id', '!=', $excludeUserId))
+                ->when($excludeUserId, fn($q) => $q->where('user_id', '!=', $excludeUserId))
                 ->join('users', 'users.id', '=', 'kpi_results.user_id')
                 ->leftJoin('faculties', 'faculties.id', '=', 'kpi_results.faculty_id')
                 ->select([
@@ -681,7 +689,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(fn ($r) => [
+                return $results->map(fn($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
                     'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
@@ -759,7 +767,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(fn ($r) => [
+                return $results->map(fn($r) => [
                     'id' => $r->user_id,
                     'name' => $r->display_name ?? $r->name ?? '—',
                     'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
@@ -804,7 +812,7 @@ class KpiSummaryController extends Controller
     {
         $hodUserIds = KpiEntry::query()
             ->where('entity_type', KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->distinct()
             ->pluck('user_id')
@@ -873,7 +881,7 @@ class KpiSummaryController extends Controller
                 $resultUserIds = $results
                     ->pluck('user_id')
                     ->filter()
-                    ->map(fn ($id) => (int) $id)
+                    ->map(fn($id) => (int) $id)
                     ->values()
                     ->all();
 
@@ -884,7 +892,7 @@ class KpiSummaryController extends Controller
                 }
 
                 return $resultRows
-                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->sortByDesc(fn(array $row) => (float) ($row['rank_score'] ?? 0))
                     ->values()
                     ->all();
             }
@@ -903,7 +911,7 @@ class KpiSummaryController extends Controller
     {
         $deanUserIds = KpiEntry::query()
             ->where('entity_type', KpiEntry::ENTITY_TYPE_DEAN)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->distinct()
             ->pluck('user_id')
@@ -970,7 +978,7 @@ class KpiSummaryController extends Controller
                 $resultUserIds = $results
                     ->pluck('user_id')
                     ->filter()
-                    ->map(fn ($id) => (int) $id)
+                    ->map(fn($id) => (int) $id)
                     ->values()
                     ->all();
 
@@ -981,7 +989,7 @@ class KpiSummaryController extends Controller
                 }
 
                 return $resultRows
-                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->sortByDesc(fn(array $row) => (float) ($row['rank_score'] ?? 0))
                     ->values()
                     ->all();
             }
@@ -1001,7 +1009,7 @@ class KpiSummaryController extends Controller
     {
         $rows = KpiEntry::query()
             ->where('entity_type', $entityType)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('user_id', $userIds)
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id, COUNT(*) as total_entries, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved, COALESCE(SUM(manual_points), 0) + COALESCE(SUM(calculated_points), 0) as total_points', [KpiEntry::STATUS_APPROVED])
@@ -1071,13 +1079,13 @@ class KpiSummaryController extends Controller
     {
         $teacherUserIds = KpiEntry::query()
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
-            ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
-            ->when(! $statusFilter, fn ($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
+            ->when($statusFilter, fn($q) => $q->where('status', $statusFilter))
+            ->when(! $statusFilter, fn($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
             ->distinct()
             ->pluck('user_id')
             ->filter()
-            ->map(fn ($id) => (int) $id)
+            ->map(fn($id) => (int) $id)
             ->values();
 
         if ($teacherUserIds->isEmpty()) {
@@ -1116,8 +1124,10 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                $resultRows = $results->map(fn ($r) => [
+                $resultRows = $results->map(fn($r) => [
                     'id' => $r->user_id,
+                    'faculty_id' => $r->faculty_id ? (int) $r->faculty_id : null,
+                    'department_id' => $r->department_id ? (int) $r->department_id : null,
                     'name' => $r->display_name ?? $r->name ?? '—',
                     'title' => $this->resolveUserTitle($r->position_title, $r->ad_title),
                     'department_name' => $r->department_name,
@@ -1146,7 +1156,7 @@ class KpiSummaryController extends Controller
                 $resultUserIds = $results
                     ->pluck('user_id')
                     ->filter()
-                    ->map(fn ($id) => (int) $id)
+                    ->map(fn($id) => (int) $id)
                     ->values()
                     ->all();
 
@@ -1165,7 +1175,7 @@ class KpiSummaryController extends Controller
                 }
 
                 return $resultRows
-                    ->sortByDesc(fn (array $row) => (float) ($row['rank_score'] ?? 0))
+                    ->sortByDesc(fn(array $row) => (float) ($row['rank_score'] ?? 0))
                     ->take($limit)
                     ->values()
                     ->all();
@@ -1196,7 +1206,7 @@ class KpiSummaryController extends Controller
         // Aggregate from entries
         $rows = KpiEntry::query()
             ->where('faculty_id', $facultyId)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereNotNull('department_id')
             ->whereIn('entity_type', [KpiEntry::ENTITY_TYPE_TEACHER, KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD])
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
@@ -1218,7 +1228,7 @@ class KpiSummaryController extends Controller
                 ->toArray();
         }
 
-        return $rows->map(fn ($row) => [
+        return $rows->map(fn($row) => [
             'id' => $row->department_id,
             'name' => $deptNames[$row->department_id] ?? 'Кафедра #' . $row->department_id,
             'teacher_count' => (int) $row->teacher_count,
@@ -1252,7 +1262,7 @@ class KpiSummaryController extends Controller
                 ->get();
 
             if ($results->isNotEmpty()) {
-                return $results->map(fn ($r) => [
+                return $results->map(fn($r) => [
                     'id' => $r->department_id,
                     'name' => $r->department_name,
                     'faculty_name' => $r->faculty_name,
@@ -1265,7 +1275,7 @@ class KpiSummaryController extends Controller
 
         // Fallback
         $rows = KpiEntry::query()
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereNotNull('department_id')
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->selectRaw('department_id, COUNT(DISTINCT user_id) as user_count, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved', [KpiEntry::STATUS_APPROVED])
@@ -1275,7 +1285,7 @@ class KpiSummaryController extends Controller
         $deptIds = $rows->pluck('department_id')->filter()->values();
         $deptNames = Department::query()->whereIn('id', $deptIds)->pluck('name', 'id');
 
-        return $rows->map(fn ($r) => [
+        return $rows->map(fn($r) => [
             'id' => $r->department_id,
             'name' => $deptNames[$r->department_id] ?? 'Кафедра #' . $r->department_id,
             'faculty_name' => null,
@@ -1300,13 +1310,13 @@ class KpiSummaryController extends Controller
     ): array {
         $entries = KpiEntry::query()
             ->with('indicator')
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
-            ->when($deptId, fn ($q) => $q->where('department_id', $deptId))
-            ->when($facultyId, fn ($q) => $q->where('faculty_id', $facultyId))
-            ->when($excludeUserId, fn ($q) => $q->where('user_id', '!=', $excludeUserId))
-            ->when($statusFilter, fn ($q) => $q->where('status', $statusFilter))
-            ->when(! $statusFilter, fn ($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
-            ->when($onlyUserIds !== null, fn ($q) => $q->whereIn('user_id', $onlyUserIds))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
+            ->when($deptId, fn($q) => $q->where('department_id', $deptId))
+            ->when($facultyId, fn($q) => $q->where('faculty_id', $facultyId))
+            ->when($excludeUserId, fn($q) => $q->where('user_id', '!=', $excludeUserId))
+            ->when($statusFilter, fn($q) => $q->where('status', $statusFilter))
+            ->when(! $statusFilter, fn($q) => $q->whereNotIn('status', [KpiEntry::STATUS_DRAFT]))
+            ->when($onlyUserIds !== null, fn($q) => $q->whereIn('user_id', $onlyUserIds))
             ->where('entity_type', KpiEntry::ENTITY_TYPE_TEACHER)
             ->get();
 
@@ -1391,6 +1401,8 @@ class KpiSummaryController extends Controller
 
             $result[] = [
                 'id' => $userId,
+                'faculty_id' => $aggregate['faculty_id'] ? (int) $aggregate['faculty_id'] : null,
+                'department_id' => $aggregate['department_id'] ? (int) $aggregate['department_id'] : null,
                 'name' => ($user?->display_name ?? $user?->name) ?? '—',
                 'title' => $title,
                 'department_name' => $aggregate['department_id'] ? ($deptNames[$aggregate['department_id']] ?? null) : null,
@@ -1409,7 +1421,7 @@ class KpiSummaryController extends Controller
             ];
         }
 
-        usort($result, fn ($a, $b) => ($b['approved_entries'] <=> $a['approved_entries']) ?: ($b['rank_score'] <=> $a['rank_score']));
+        usort($result, fn($a, $b) => ($b['approved_entries'] <=> $a['approved_entries']) ?: ($b['rank_score'] <=> $a['rank_score']));
 
         return array_slice($result, 0, $limit);
     }
@@ -1587,7 +1599,7 @@ class KpiSummaryController extends Controller
     private function buildStructuralConfirmationsPayload(KpiEntry $entry): array
     {
         $expectedUnits = collect($entry->indicator?->structuralUnits ?? [])
-            ->map(fn ($unit) => [
+            ->map(fn($unit) => [
                 'id' => (int) $unit->id,
                 'code' => $unit->code,
                 'name' => $unit->name,
@@ -1620,7 +1632,7 @@ class KpiSummaryController extends Controller
         })->values();
 
         foreach ($entry->structuralConfirmations as $confirmation) {
-            if ($rows->contains(fn (array $row) => (int) $row['structural_unit_id'] === (int) $confirmation->structural_unit_id)) {
+            if ($rows->contains(fn(array $row) => (int) $row['structural_unit_id'] === (int) $confirmation->structural_unit_id)) {
                 continue;
             }
 
@@ -1701,7 +1713,13 @@ class KpiSummaryController extends Controller
         /** @var User $viewer */
         $viewer = $request->user();
 
-        if ($viewer->resolvedRoleSlug() === 'teacher' && (int) $viewer->id !== (int) $userId) {
+        // Keep self-only behavior for plain teachers, but allow KPI admins
+        // who may have teacher base role and elevated access via grants.
+        if (
+            $viewer->resolvedRoleSlug() === 'teacher'
+            && ! KpiAccessGrant::userHasKpiAdmin($viewer->id)
+            && (int) $viewer->id !== (int) $userId
+        ) {
             abort(403);
         }
 
@@ -1746,7 +1764,7 @@ class KpiSummaryController extends Controller
                 'structuralConfirmations.confirmer:id,name,display_name',
             ])
             ->where('user_id', $userId)
-            ->when($period, fn ($q) => $q->where('kpi_period_id', $period->id))
+            ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('entity_type', array_values(array_unique($entryEntityTypes)))
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
             ->orderBy('created_at')
@@ -1755,10 +1773,10 @@ class KpiSummaryController extends Controller
         // Finalized result
         $result = $period
             ? KpiResult::query()
-                ->where('kpi_period_id', $period->id)
-                ->where('result_type', KpiResult::RESULT_TYPE_USER)
-                ->where('user_id', $userId)
-                ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'section_scores', 'approved_entries_count'])
+            ->where('kpi_period_id', $period->id)
+            ->where('result_type', KpiResult::RESULT_TYPE_USER)
+            ->where('user_id', $userId)
+            ->first(['rank_score', 'k1_score', 'k2_score', 'k3_score', 'k4_score', 'k5_score', 'k6_score', 'section_scores', 'approved_entries_count'])
             : null;
 
         // Формируем result с учетом НПУ, как в teacherSummary
@@ -1780,13 +1798,13 @@ class KpiSummaryController extends Controller
                 ...$this->buildSummaryEntryPayload($entry),
                 'submitted_at' => $entry->submitted_at?->toIso8601String(),
                 'approved_at' => $entry->approved_at?->toIso8601String(),
-                'files' => $entry->files->map(fn ($file) => [
+                'files' => $entry->files->map(fn($file) => [
                     'id' => $file->id,
                     'file_name' => $file->file_name,
                     'file_size' => $file->file_size,
                     'file_url' => $file->file_url,
                 ])->values()->all(),
-                'history' => $entry->statusLogs->map(fn ($log) => [
+                'history' => $entry->statusLogs->map(fn($log) => [
                     'id' => $log->id,
                     'action' => $log->action,
                     'from_status' => $log->from_status,
@@ -1803,7 +1821,7 @@ class KpiSummaryController extends Controller
         $submitted = $entries->where('status', KpiEntry::STATUS_SUBMITTED)->count();
         $pending = $entries->whereIn('status', [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_PENDING_STRUCTURAL, KpiEntry::STATUS_REVIEWED])->count();
         $rejected = $entries->where('status', KpiEntry::STATUS_REJECTED)->count();
-        $totalPoints = $entries->sum(fn ($e) => $this->resolveEntryDisplayPoints($e));
+        $totalPoints = $entries->sum(fn($e) => $this->resolveEntryDisplayPoints($e));
 
         $filterOptions = [
             'academicYears' => $academicYears,
@@ -2142,6 +2160,9 @@ class KpiSummaryController extends Controller
 
         $summary = $this->adminSummary($period);
 
+        $facultyId = $request->integer('faculty_id');
+        $departmentId = $request->integer('department_id');
+
         $reportMeta = [
             'teachers' => [
                 'title' => 'Результаты профессионального рейтинга ППС',
@@ -2166,97 +2187,650 @@ class KpiSummaryController extends Controller
             default => $summary['top_teachers'] ?? [],
         };
 
-        $filename = $reportMeta['filename'] . now()->format('Ymd_His') . '.xls';
-
-        return response()->streamDownload(function () use ($report, $reportMeta, $rows, $academicYear, $period): void {
-            $esc = static fn ($value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-            $widths = match ($report) {
-                'deans' => [50, 260, 260, 90, 110, 80, 80, 80, 80],
-                'hods' => [50, 220, 240, 260, 90, 110, 80, 80, 80, 80],
-                default => [50, 240, 220, 240, 220, 90, 80, 80, 80, 80, 80, 110],
-            };
-
-            echo "<html><head><meta charset=\"UTF-8\"></head><body style=\"font-family:Calibri,Arial,sans-serif;font-size:11pt;background:transparent;color:#000;\">";
-
-            // Keep metadata outside the bordered table so Excel does not render a huge shaded merged block.
-            echo '<div style="margin-bottom:10px;line-height:1.5;background:transparent;">';
-            echo '<div style="font-weight:700;">' . $esc($reportMeta['title']) . '</div>';
-            echo '<div><strong>Учебный год:</strong> ' . $esc(data_get($academicYear, 'name', 'не указан')) . '</div>';
-            echo '<div><strong>Период:</strong> ' . $esc(data_get($period, 'name', 'не указан')) . '</div>';
-            echo '<div><strong>Сформировано:</strong> ' . $esc(now()->format('d.m.Y H:i')) . '</div>';
-            echo '</div>';
-
-            echo "<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\" style=\"border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;background:transparent;\">";
-
-            echo '<colgroup>';
-            foreach ($widths as $width) {
-                echo '<col style="width:' . (int) $width . 'px">';
-            }
-            echo '</colgroup>';
-
-            echo '<tr>';
-            foreach ($reportMeta['headers'] as $header) {
-                echo '<th style="background:transparent;font-weight:bold;text-align:center;">' . $esc($header) . '</th>';
-            }
-            echo '</tr>';
-
-            foreach ($rows as $index => $row) {
-                if ($report === 'teachers') {
-                    $cells = [
-                        $index + 1,
-                        data_get($row, 'name', '—'),
-                        data_get($row, 'faculty_name', '—'),
-                        data_get($row, 'department_name', '—'),
-                        data_get($row, 'title', '—'),
-                        number_format((float) data_get($row, 'rate', data_get($row, 'npu_threshold', 0)), 2, '.', ''),
-                        number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k5', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
-                    ];
-                } elseif ($report === 'deans') {
-                    $cells = [
-                        $index + 1,
-                        data_get($row, 'faculty_name', '—'),
-                        data_get($row, 'name', '—'),
-                        number_format((float) data_get($row, 'npu_threshold', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
-                    ];
-                } else {
-                    $cells = [
-                        $index + 1,
-                        data_get($row, 'faculty_name', '—'),
-                        data_get($row, 'department_name', '—'),
-                        data_get($row, 'name', '—'),
-                        number_format((float) data_get($row, 'npu_threshold', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'rank_score', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k1', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k2', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k3', 0), 2, '.', ''),
-                        number_format((float) data_get($row, 'k4', 0), 2, '.', ''),
-                    ];
-                }
-
-                echo '<tr>';
-                foreach ($cells as $cellIndex => $cell) {
-                    $isNumeric = $cellIndex === 0 || is_numeric($cell);
-                    $align = $isNumeric ? 'right' : 'left';
-                    echo '<td style="text-align:' . $align . ';">' . $esc($cell) . '</td>';
-                }
-                echo '</tr>';
+        if ($report === 'teachers') {
+            if ($facultyId > 0) {
+                $rows = array_values(array_filter($rows, fn(array $row): bool => (int) ($row['faculty_id'] ?? 0) === $facultyId));
             }
 
-            echo '</table></body></html>';
+            if ($departmentId > 0) {
+                $rows = array_values(array_filter($rows, fn(array $row): bool => (int) ($row['department_id'] ?? 0) === $departmentId));
+            }
+        }
+
+        $filename = $reportMeta['filename'] . now()->format('Ymd_His') . '.xlsx';
+
+        return response()->streamDownload(function () use ($report, $reportMeta, $rows, $summary, $academicYear, $period): void {
+            if ($report === 'teachers') {
+                $spreadsheet = $this->buildTeachersRatingSpreadsheet(
+                    $rows,
+                    $summary,
+                    data_get($reportMeta, 'title', 'Результаты профессионального рейтинга ППС'),
+                    data_get($academicYear, 'name'),
+                    data_get($period, 'name')
+                );
+            } else {
+                $spreadsheet = $this->buildManagementRatingSpreadsheet(
+                    $report,
+                    $rows,
+                    data_get($reportMeta, 'title', ''),
+                    data_get($academicYear, 'name'),
+                    data_get($period, 'name')
+                );
+            }
+
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            $spreadsheet->disconnectWorksheets();
         }, $filename, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @param array<string, mixed> $summary
+     */
+    private function buildTeachersRatingSpreadsheet(array $rows, array $summary, string $title, ?string $academicYearName, ?string $periodName): Spreadsheet
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('ППС');
+
+        $this->writeTeachersSheet($sheet, $rows, $title, $academicYearName, $periodName);
+
+        $facultySheet = new Worksheet($spreadsheet, 'Факультеты');
+        $spreadsheet->addSheet($facultySheet);
+        $this->writeFacultySummarySheet($facultySheet, $rows, $periodName, $academicYearName);
+
+        $deptSheet = new Worksheet($spreadsheet, 'Кафедры');
+        $spreadsheet->addSheet($deptSheet);
+        $this->writeDepartmentSummarySheet($deptSheet, $rows, $periodName, $academicYearName);
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        return $spreadsheet;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function writeTeachersSheet(Worksheet $sheet, array $rows, string $title, ?string $academicYearName, ?string $periodName): void
+    {
+        $rows = $this->sortTeachersForExport($rows);
+        $rows = $this->applyDenseRanking($rows, 'rank_score');
+
+        $sheet->setShowGridlines(true);
+        $this->attachUniversityLogo($sheet, 'A1');
+
+        $sheet->setCellValue('A2', 'РЕЗУЛЬТАТЫ ПРОФЕССИОНАЛЬНОГО РЕЙТИНГА ППС');
+        $sheet->mergeCells('A2:L2');
+        $sheet->setCellValue('A3', 'АО «КАЗУТБ ИМЕНИ К. КУЛАЖАНОВА»');
+        $sheet->mergeCells('A3:L3');
+        $sheet->setCellValue('A4', 'R = (K1 + K2 + K3 + K4 + K5) - НПУ');
+        $sheet->mergeCells('A4:L4');
+
+        $sheet->setCellValue('A5', 'Учебный год: ' . ($academicYearName ?: 'не указан'));
+        $sheet->mergeCells('A5:F5');
+        $sheet->setCellValue('G5', 'Период: ' . ($periodName ?: 'не указан'));
+        $sheet->mergeCells('G5:L5');
+        $sheet->setCellValue('A6', 'Дата формирования: ' . now()->format('d.m.Y H:i'));
+        $sheet->mergeCells('A6:L6');
+
+        $sheet->fromArray([
+            'Место',
+            'ФИО',
+            'Факультет',
+            'Кафедра',
+            'Должность',
+            'K1 (УМР)',
+            'K2 (НИР)',
+            'K3 (СВР)',
+            'K4 (УПК)',
+            'K5 (Опрос)',
+            'НПУ',
+            'Рейтинг (R)',
+        ], null, 'A8');
+
+        $this->styleTitleBlock($sheet, 'A2:L6');
+        $this->styleHeaderRow($sheet, 'A8:L8');
+
+        $currentRow = 9;
+        $teacherRowIndex = 0;
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $facultyKey = (string) ($row['faculty_id'] ?? ('f:' . ($row['faculty_name'] ?? 'Без факультета')));
+            $facultyName = (string) ($row['faculty_name'] ?? 'Без факультета');
+
+            if (! isset($grouped[$facultyKey])) {
+                $grouped[$facultyKey] = [
+                    'name' => $facultyName,
+                    'rows' => [],
+                    'departments' => [],
+                ];
+            }
+
+            $departmentKey = (string) ($row['department_id'] ?? ('d:' . ($row['department_name'] ?? 'Без кафедры')));
+            $departmentName = (string) ($row['department_name'] ?? 'Без кафедры');
+
+            if (! isset($grouped[$facultyKey]['departments'][$departmentKey])) {
+                $grouped[$facultyKey]['departments'][$departmentKey] = [
+                    'name' => $departmentName,
+                    'rows' => [],
+                ];
+            }
+
+            $grouped[$facultyKey]['rows'][] = $row;
+            $grouped[$facultyKey]['departments'][$departmentKey]['rows'][] = $row;
+        }
+
+        foreach ($grouped as $faculty) {
+            $sheet->setCellValue('A' . $currentRow, 'Факультет: ' . $faculty['name']);
+            $sheet->mergeCells("A{$currentRow}:L{$currentRow}");
+            $sheet->getStyle("A{$currentRow}:L{$currentRow}")->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E78']],
+            ]);
+            $currentRow++;
+
+            foreach ($faculty['departments'] as $department) {
+                $sheet->setCellValue('A' . $currentRow, 'Кафедра: ' . $department['name']);
+                $sheet->mergeCells("A{$currentRow}:L{$currentRow}");
+                $sheet->getStyle("A{$currentRow}:L{$currentRow}")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => '132844']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCE6F1']],
+                ]);
+                $currentRow++;
+
+                $deptRs = [];
+
+                foreach ($department['rows'] as $teacher) {
+                    $sheet->setCellValue("A{$currentRow}", (int) ($teacher['rank_position'] ?? 0));
+                    $sheet->setCellValue("B{$currentRow}", (string) ($teacher['name'] ?? '—'));
+                    $sheet->setCellValue("C{$currentRow}", (string) ($teacher['faculty_name'] ?? '—'));
+                    $sheet->setCellValue("D{$currentRow}", (string) ($teacher['department_name'] ?? '—'));
+                    $sheet->setCellValue("E{$currentRow}", (string) ($teacher['title'] ?? '—'));
+                    $sheet->setCellValue("F{$currentRow}", (float) ($teacher['k1'] ?? 0));
+                    $sheet->setCellValue("G{$currentRow}", (float) ($teacher['k2'] ?? 0));
+                    $sheet->setCellValue("H{$currentRow}", (float) ($teacher['k3'] ?? 0));
+                    $sheet->setCellValue("I{$currentRow}", (float) ($teacher['k4'] ?? 0));
+                    $sheet->setCellValue("J{$currentRow}", (float) ($teacher['k5'] ?? 0));
+                    $sheet->setCellValue("K{$currentRow}", (float) data_get($teacher, 'rate', data_get($teacher, 'npu_threshold', 0)));
+                    $sheet->setCellValue("L{$currentRow}", (float) ($teacher['rank_score'] ?? 0));
+
+                    if ($teacherRowIndex % 2 === 1) {
+                        $sheet->getStyle("A{$currentRow}:L{$currentRow}")
+                            ->getFill()
+                            ->setFillType(Fill::FILL_SOLID)
+                            ->getStartColor()
+                            ->setRGB('F8FBFF');
+                    }
+
+                    $sheet->getStyle("F{$currentRow}:L{$currentRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+                    $deptRs[] = (float) ($teacher['rank_score'] ?? 0);
+
+                    $currentRow++;
+                    $teacherRowIndex++;
+                }
+
+                $deptCount = count($department['rows']);
+                $deptAvg = $deptCount > 0 ? array_sum($deptRs) / $deptCount : 0;
+                $deptMax = $deptCount > 0 ? max($deptRs) : 0;
+                $deptMin = $deptCount > 0 ? min($deptRs) : 0;
+
+                $sheet->setCellValue("B{$currentRow}", 'ИТОГО ПО КАФЕДРЕ');
+                $sheet->setCellValue("G{$currentRow}", $deptCount);
+                $sheet->setCellValue("H{$currentRow}", $deptAvg);
+                $sheet->setCellValue("I{$currentRow}", $deptMax);
+                $sheet->setCellValue("J{$currentRow}", $deptMin);
+                $sheet->getStyle("A{$currentRow}:L{$currentRow}")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => '132844']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EAF3FF']],
+                ]);
+                $sheet->getStyle("H{$currentRow}:J{$currentRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+                $currentRow++;
+            }
+
+            $facultyRows = $faculty['rows'];
+            $facultyRs = array_map(fn(array $item): float => (float) ($item['rank_score'] ?? 0), $facultyRows);
+            $facultyCount = count($facultyRows);
+            $facultyAvg = $facultyCount > 0 ? array_sum($facultyRs) / $facultyCount : 0;
+            $facultyMax = $facultyCount > 0 ? max($facultyRs) : 0;
+            $facultyMin = $facultyCount > 0 ? min($facultyRs) : 0;
+
+            $sheet->setCellValue("B{$currentRow}", 'ИТОГО ПО ФАКУЛЬТЕТУ');
+            $sheet->setCellValue("G{$currentRow}", $facultyCount);
+            $sheet->setCellValue("H{$currentRow}", $facultyAvg);
+            $sheet->setCellValue("I{$currentRow}", $facultyMax);
+            $sheet->setCellValue("J{$currentRow}", $facultyMin);
+            $sheet->getStyle("A{$currentRow}:L{$currentRow}")->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '305496']],
+            ]);
+            $sheet->getStyle("H{$currentRow}:J{$currentRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+            $currentRow++;
+        }
+
+        $lastRow = max($currentRow - 1, 8);
+        $sheet->getStyle("A8:L{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A8:E{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("F8:L{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->setAutoFilter("A8:L8");
+        $sheet->freezePane('A9');
+
+        foreach (range('A', 'L') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function writeFacultySummarySheet(Worksheet $sheet, array $rows, ?string $periodName, ?string $academicYearName): void
+    {
+        $sheet->setCellValue('A1', 'СВОДКА ПО ФАКУЛЬТЕТАМ');
+        $sheet->mergeCells('A1:G1');
+        $sheet->setCellValue('A2', 'Учебный год: ' . ($academicYearName ?: 'не указан') . ' | Период: ' . ($periodName ?: 'не указан'));
+        $sheet->mergeCells('A2:G2');
+
+        $sheet->fromArray(['Место', 'Факультет', 'Количество ППС', 'Средний R', 'Утверждено', 'На проверке', 'На утверждении'], null, 'A4');
+        $this->styleHeaderRow($sheet, 'A4:G4');
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $facultyId = (int) ($row['faculty_id'] ?? 0);
+            $facultyName = (string) ($row['faculty_name'] ?? 'Без факультета');
+            $key = $facultyId > 0 ? (string) $facultyId : ('name:' . $facultyName);
+
+            if (! isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'faculty_id' => $facultyId,
+                    'faculty_name' => $facultyName,
+                    'rows' => [],
+                ];
+            }
+
+            $grouped[$key]['rows'][] = $row;
+        }
+
+        $facultyIds = array_values(array_unique(array_filter(array_map(fn(array $f): int => (int) ($f['faculty_id'] ?? 0), array_values($grouped)))));
+        $statusRows = KpiEntry::query()
+            ->when($facultyIds !== [], fn($q) => $q->whereIn('faculty_id', $facultyIds))
+            ->selectRaw(
+                'faculty_id,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved,
+                 SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as on_check,
+                 SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as on_approval',
+                [
+                    KpiEntry::STATUS_APPROVED,
+                    KpiEntry::STATUS_SUBMITTED,
+                    KpiEntry::STATUS_REVIEWED,
+                    KpiEntry::STATUS_PENDING_DEAN,
+                    KpiEntry::STATUS_PENDING_STRUCTURAL,
+                ]
+            )
+            ->groupBy('faculty_id')
+            ->get()
+            ->keyBy('faculty_id');
+
+        $items = array_map(function (array $faculty) use ($statusRows): array {
+            $scores = array_map(fn(array $item): float => (float) ($item['rank_score'] ?? 0), $faculty['rows']);
+            $count = count($faculty['rows']);
+            $status = $statusRows->get($faculty['faculty_id']);
+
+            return [
+                'faculty_name' => $faculty['faculty_name'],
+                'count' => $count,
+                'avg_r' => $count > 0 ? array_sum($scores) / $count : 0,
+                'approved' => (int) ($status->approved ?? 0),
+                'on_check' => (int) ($status->on_check ?? 0),
+                'on_approval' => (int) ($status->on_approval ?? 0),
+            ];
+        }, array_values($grouped));
+
+        usort($items, fn(array $a, array $b): int => ($b['avg_r'] <=> $a['avg_r']) ?: strcmp($a['faculty_name'], $b['faculty_name']));
+
+        $items = $this->applyDenseRanking($items, 'avg_r');
+
+        $rowNum = 5;
+        foreach ($items as $idx => $item) {
+            $sheet->setCellValue("A{$rowNum}", (int) ($item['rank_position'] ?? ($idx + 1)));
+            $sheet->setCellValue("B{$rowNum}", $item['faculty_name']);
+            $sheet->setCellValue("C{$rowNum}", (int) $item['count']);
+            $sheet->setCellValue("D{$rowNum}", (float) $item['avg_r']);
+            $sheet->setCellValue("E{$rowNum}", (int) $item['approved']);
+            $sheet->setCellValue("F{$rowNum}", (int) $item['on_check']);
+            $sheet->setCellValue("G{$rowNum}", (int) $item['on_approval']);
+
+            if ($idx % 2 === 1) {
+                $sheet->getStyle("A{$rowNum}:G{$rowNum}")
+                    ->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('F8FBFF');
+            }
+            $rowNum++;
+        }
+
+        $lastRow = max($rowNum - 1, 4);
+        $sheet->getStyle("A4:G{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("D5:D{$lastRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+        $sheet->setAutoFilter('A4:G4');
+        $sheet->freezePane('A5');
+
+        foreach (range('A', 'G') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function writeDepartmentSummarySheet(Worksheet $sheet, array $rows, ?string $periodName, ?string $academicYearName): void
+    {
+        $sheet->setCellValue('A1', 'СВОДКА ПО КАФЕДРАМ');
+        $sheet->mergeCells('A1:K1');
+        $sheet->setCellValue('A2', 'Учебный год: ' . ($academicYearName ?: 'не указан') . ' | Период: ' . ($periodName ?: 'не указан'));
+        $sheet->mergeCells('A2:K2');
+
+        $sheet->fromArray([
+            'Место',
+            'Факультет',
+            'Кафедра',
+            'Количество ППС',
+            'Средний R',
+            'Средний K1',
+            'Средний K2',
+            'Средний K3',
+            'Средний K4',
+            'Средний K5',
+            'Средний НПУ',
+        ], null, 'A4');
+        $this->styleHeaderRow($sheet, 'A4:K4');
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $facultyName = (string) ($row['faculty_name'] ?? 'Без факультета');
+            $departmentName = (string) ($row['department_name'] ?? 'Без кафедры');
+            $departmentId = (int) ($row['department_id'] ?? 0);
+            $key = $departmentId > 0 ? (string) $departmentId : ($facultyName . '::' . $departmentName);
+
+            if (! isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'faculty_name' => $facultyName,
+                    'department_name' => $departmentName,
+                    'rows' => [],
+                ];
+            }
+
+            $grouped[$key]['rows'][] = $row;
+        }
+
+        $items = array_map(function (array $group): array {
+            $count = count($group['rows']);
+            $sum = [
+                'r' => 0.0,
+                'k1' => 0.0,
+                'k2' => 0.0,
+                'k3' => 0.0,
+                'k4' => 0.0,
+                'k5' => 0.0,
+                'npu' => 0.0,
+            ];
+
+            foreach ($group['rows'] as $row) {
+                $sum['r'] += (float) ($row['rank_score'] ?? 0);
+                $sum['k1'] += (float) ($row['k1'] ?? 0);
+                $sum['k2'] += (float) ($row['k2'] ?? 0);
+                $sum['k3'] += (float) ($row['k3'] ?? 0);
+                $sum['k4'] += (float) ($row['k4'] ?? 0);
+                $sum['k5'] += (float) ($row['k5'] ?? 0);
+                $sum['npu'] += (float) data_get($row, 'rate', data_get($row, 'npu_threshold', 0));
+            }
+
+            return [
+                'faculty_name' => $group['faculty_name'],
+                'department_name' => $group['department_name'],
+                'count' => $count,
+                'avg_r' => $count > 0 ? $sum['r'] / $count : 0,
+                'avg_k1' => $count > 0 ? $sum['k1'] / $count : 0,
+                'avg_k2' => $count > 0 ? $sum['k2'] / $count : 0,
+                'avg_k3' => $count > 0 ? $sum['k3'] / $count : 0,
+                'avg_k4' => $count > 0 ? $sum['k4'] / $count : 0,
+                'avg_k5' => $count > 0 ? $sum['k5'] / $count : 0,
+                'avg_npu' => $count > 0 ? $sum['npu'] / $count : 0,
+            ];
+        }, array_values($grouped));
+
+        usort($items, fn(array $a, array $b): int => ($b['avg_r'] <=> $a['avg_r']) ?: strcmp($a['department_name'], $b['department_name']));
+        $items = $this->applyDenseRanking($items, 'avg_r');
+
+        $rowNum = 5;
+        foreach ($items as $idx => $item) {
+            $sheet->setCellValue("A{$rowNum}", (int) ($item['rank_position'] ?? ($idx + 1)));
+            $sheet->setCellValue("B{$rowNum}", $item['faculty_name']);
+            $sheet->setCellValue("C{$rowNum}", $item['department_name']);
+            $sheet->setCellValue("D{$rowNum}", (int) $item['count']);
+            $sheet->setCellValue("E{$rowNum}", (float) $item['avg_r']);
+            $sheet->setCellValue("F{$rowNum}", (float) $item['avg_k1']);
+            $sheet->setCellValue("G{$rowNum}", (float) $item['avg_k2']);
+            $sheet->setCellValue("H{$rowNum}", (float) $item['avg_k3']);
+            $sheet->setCellValue("I{$rowNum}", (float) $item['avg_k4']);
+            $sheet->setCellValue("J{$rowNum}", (float) $item['avg_k5']);
+            $sheet->setCellValue("K{$rowNum}", (float) $item['avg_npu']);
+
+            if ($idx % 2 === 1) {
+                $sheet->getStyle("A{$rowNum}:K{$rowNum}")
+                    ->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('F8FBFF');
+            }
+
+            $rowNum++;
+        }
+
+        $lastRow = max($rowNum - 1, 4);
+        $sheet->getStyle("A4:K{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("E5:K{$lastRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+        $sheet->setAutoFilter('A4:K4');
+        $sheet->freezePane('A5');
+
+        foreach (range('A', 'K') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function buildManagementRatingSpreadsheet(string $report, array $rows, string $title, ?string $academicYearName, ?string $periodName): Spreadsheet
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle($report === 'deans' ? 'Деканы' : 'Завкафедры');
+
+        $sheet->setCellValue('A1', mb_strtoupper($title));
+        $lastColumn = $report === 'deans' ? 'I' : 'J';
+        $sheet->mergeCells("A1:{$lastColumn}1");
+        $sheet->setCellValue('A2', 'Учебный год: ' . ($academicYearName ?: 'не указан') . ' | Период: ' . ($periodName ?: 'не указан'));
+        $sheet->mergeCells("A2:{$lastColumn}2");
+        $sheet->setCellValue('A3', 'Дата формирования: ' . now()->format('d.m.Y H:i'));
+        $sheet->mergeCells("A3:{$lastColumn}3");
+        $sheet->setCellValue('A4', 'R = (K1 + K2 + K3 + K4) - НПУ');
+        $sheet->mergeCells("A4:{$lastColumn}4");
+
+        $headers = $report === 'deans'
+            ? ['№', 'Факультет', 'ФИО декана', 'НПУ', 'Рейтинг', 'УМР', 'НИР', 'СВР', 'УПК']
+            : ['№', 'Факультет', 'Кафедра', 'ФИО зав.каф.', 'НПУ', 'Рейтинг', 'УМР', 'НИР', 'СВР', 'УПК'];
+
+        $sheet->fromArray($headers, null, 'A6');
+        $this->styleTitleBlock($sheet, "A1:{$lastColumn}4");
+        $this->styleHeaderRow($sheet, "A6:{$lastColumn}6");
+
+        $rowNum = 7;
+        $rows = $this->applyDenseRanking($this->sortTeachersForExport($rows), 'rank_score');
+
+        foreach ($rows as $index => $row) {
+            if ($report === 'deans') {
+                $sheet->fromArray([
+                    (int) ($row['rank_position'] ?? ($index + 1)),
+                    (string) data_get($row, 'faculty_name', '—'),
+                    (string) data_get($row, 'name', '—'),
+                    (float) data_get($row, 'npu_threshold', 0),
+                    (float) data_get($row, 'rank_score', 0),
+                    (float) data_get($row, 'k1', 0),
+                    (float) data_get($row, 'k2', 0),
+                    (float) data_get($row, 'k3', 0),
+                    (float) data_get($row, 'k4', 0),
+                ], null, "A{$rowNum}");
+            } else {
+                $sheet->fromArray([
+                    (int) ($row['rank_position'] ?? ($index + 1)),
+                    (string) data_get($row, 'faculty_name', '—'),
+                    (string) data_get($row, 'department_name', '—'),
+                    (string) data_get($row, 'name', '—'),
+                    (float) data_get($row, 'npu_threshold', 0),
+                    (float) data_get($row, 'rank_score', 0),
+                    (float) data_get($row, 'k1', 0),
+                    (float) data_get($row, 'k2', 0),
+                    (float) data_get($row, 'k3', 0),
+                    (float) data_get($row, 'k4', 0),
+                ], null, "A{$rowNum}");
+            }
+
+            if ($index % 2 === 1) {
+                $sheet->getStyle("A{$rowNum}:{$lastColumn}{$rowNum}")
+                    ->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('F8FBFF');
+            }
+
+            $rowNum++;
+        }
+
+        $summaryRow = $rowNum;
+        $sheet->setCellValue("A{$summaryRow}", 'ИТОГО');
+        $sheet->mergeCells("A{$summaryRow}:B{$summaryRow}");
+        $sheet->setCellValue("C{$summaryRow}", 'Количество');
+        $sheet->setCellValue("D{$summaryRow}", count($rows));
+        $sheet->setCellValue("E{$summaryRow}", 'Средний R');
+        $avgR = count($rows) > 0 ? array_sum(array_map(fn(array $item): float => (float) ($item['rank_score'] ?? 0), $rows)) / count($rows) : 0;
+        $sheet->setCellValue("F{$summaryRow}", $avgR);
+        $sheet->getStyle("A{$summaryRow}:{$lastColumn}{$summaryRow}")->applyFromArray([
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'EAF3FF']],
+        ]);
+
+        $lastDataRow = max($summaryRow, 6);
+        $sheet->getStyle("A6:{$lastColumn}{$lastDataRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $numericStart = $report === 'deans' ? 'D' : 'E';
+        $sheet->getStyle("{$numericStart}7:{$lastColumn}{$lastDataRow}")->getNumberFormat()->setFormatCode('# ##0,00');
+        $sheet->setAutoFilter("A6:{$lastColumn}6");
+        $sheet->freezePane('A7');
+
+        for ($i = 1; $i <= Coordinate::columnIndexFromString($lastColumn); $i++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setAutoSize(true);
+        }
+
+        return $spreadsheet;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortTeachersForExport(array $rows): array
+    {
+        usort($rows, function (array $a, array $b): int {
+            $rankCmp = ((float) ($b['rank_score'] ?? 0)) <=> ((float) ($a['rank_score'] ?? 0));
+            if ($rankCmp !== 0) {
+                return $rankCmp;
+            }
+
+            return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+        });
+
+        return $rows;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function applyDenseRanking(array $rows, string $scoreKey): array
+    {
+        $lastScore = null;
+        $lastRank = 0;
+
+        foreach ($rows as $index => $row) {
+            $currentScore = (float) ($row[$scoreKey] ?? 0);
+
+            if ($lastScore === null || abs($currentScore - $lastScore) > 0.000001) {
+                $lastRank = $index + 1;
+                $lastScore = $currentScore;
+            }
+
+            $rows[$index]['rank_position'] = $lastRank;
+        }
+
+        return $rows;
+    }
+
+    private function styleTitleBlock(Worksheet $sheet, string $range): void
+    {
+        $sheet->getStyle($range)->applyFromArray([
+            'font' => [
+                'name' => 'Calibri',
+                'bold' => true,
+                'color' => ['rgb' => '132844'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+        ]);
+    }
+
+    private function styleHeaderRow(Worksheet $sheet, string $range): void
+    {
+        $sheet->getStyle($range)->applyFromArray([
+            'font' => [
+                'name' => 'Calibri',
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '132844'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+    }
+
+    private function attachUniversityLogo(Worksheet $sheet, string $cell): void
+    {
+        $logoPath = public_path('assets/images/logo.png');
+        if (! is_file($logoPath)) {
+            return;
+        }
+
+        try {
+            $drawing = new Drawing();
+            $drawing->setName('KazUTB');
+            $drawing->setDescription('KazUTB Logo');
+            $drawing->setPath($logoPath);
+            $drawing->setCoordinates($cell);
+            $drawing->setHeight(52);
+            $drawing->setWorksheet($sheet);
+        } catch (\Throwable) {
+            // Fallback: keep report generation resilient when image processing extensions are unavailable.
+        }
     }
 
     private function exportHodSummary($handle, array $summary): void

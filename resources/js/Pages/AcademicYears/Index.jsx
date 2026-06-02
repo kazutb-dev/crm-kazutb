@@ -50,6 +50,7 @@ export default function Index({ academicYears }) {
     };
 
     return (
+        <>
         <AuthenticatedLayout
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -197,14 +198,15 @@ export default function Index({ academicYears }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
-        <ConfirmDialog
-            open={confirmState.open}
-            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
-            description={confirmState.description}
-            onConfirm={() => {
-                confirmState.onConfirm?.();
-                setConfirmState({ open: false, description: '', onConfirm: null });
-            }}
-        />
+            <ConfirmDialog
+                open={confirmState.open}
+                onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+                description={confirmState.description}
+                onConfirm={() => {
+                    confirmState.onConfirm?.();
+                    setConfirmState({ open: false, description: '', onConfirm: null });
+                }}
+            />
+        </>
     );
 }
