@@ -464,7 +464,7 @@ function resolveManualPoints(indicator, formData, ruleSpec) {
             return quantity * optionPoints;
         }
         default:
-            return quantity * parseNumber(indicator?.base_points, 0);
+            return null;
     }
 }
 

@@ -377,6 +377,13 @@ class KpiEntryService
             }
             $lockedEntry->save();
 
+            // При переходе на финальное утверждение СП нормализуем подтверждения:
+            // прошлые отклонения/подтверждения сбрасываются в pending, чтобы СП мог
+            // заново утвердить или отклонить запись (исправление «застрявшего» статуса СП).
+            if ($nextStatus === KpiEntry::STATUS_PENDING_STRUCTURAL) {
+                $this->resetStructuralConfirmations($lockedEntry);
+            }
+
             if ($nextStatus === KpiEntry::STATUS_APPROVED) {
                 $this->calculationService->calculateForUser(
                     (int) $lockedEntry->user_id,

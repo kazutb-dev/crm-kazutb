@@ -1465,7 +1465,10 @@ class KpiSummaryController extends Controller
 
     private function resolveEntryDisplayPoints(KpiEntry $entry): float
     {
-        if ($entry->manual_points !== null) {
+        $details = is_array($entry->calculation_details) ? $entry->calculation_details : [];
+        $ruleKind = trim((string) ($details['rule_kind'] ?? ''));
+
+        if ($entry->manual_points !== null && $ruleKind !== '') {
             return round((float) $entry->manual_points, 2);
         }
 
@@ -1482,6 +1485,10 @@ class KpiSummaryController extends Controller
 
         if ($value !== null && $basePoints !== null && $basePoints > 0) {
             return round($value * $basePoints, 2);
+        }
+
+        if ($entry->manual_points !== null) {
+            return round((float) $entry->manual_points, 2);
         }
 
         return round((float) ($entry->calculated_points ?? 0), 2);

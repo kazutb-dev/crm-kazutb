@@ -454,9 +454,13 @@ class KpiEntryController extends Controller
             ->selectRaw("
             ROUND(SUM(
                 CASE
-                    WHEN kpi_entries.manual_points IS NOT NULL THEN kpi_entries.manual_points
+                    WHEN kpi_entries.manual_points IS NOT NULL
+                        AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(kpi_entries.calculation_details, '$.rule_kind')), '') <> ''
+                        THEN kpi_entries.manual_points
+                    WHEN kpi_entries.calculated_points IS NOT NULL AND kpi_entries.calculated_points <> 0 THEN kpi_entries.calculated_points
                     WHEN kpi_entries.fact_value IS NOT NULL THEN COALESCE(kpi_indicators.base_points, 0) * kpi_entries.fact_value
                     WHEN kpi_entries.plan_value IS NOT NULL THEN COALESCE(kpi_indicators.base_points, 0) * kpi_entries.plan_value
+                    WHEN kpi_entries.manual_points IS NOT NULL THEN kpi_entries.manual_points
                     WHEN kpi_entries.calculated_points IS NOT NULL THEN kpi_entries.calculated_points
                     ELSE 0
                 END
@@ -731,7 +735,7 @@ class KpiEntryController extends Controller
                     $entry->fact_value = $data['value'];
                 }
 
-                $entry->manual_points = $resolvedManualPoints ?? ($data['manual_points'] ?? null);
+                $entry->manual_points = $resolvedManualPoints;
                 if ($entry->manual_points !== null) {
                     $entry->calculated_points = '0.00';
                 } else {
@@ -909,7 +913,7 @@ class KpiEntryController extends Controller
             $entry->fact_value = $data['value'];
         }
 
-        $entry->manual_points = $resolvedManualPoints ?? ($data['manual_points'] ?? null);
+        $entry->manual_points = $resolvedManualPoints;
         if ($entry->manual_points !== null) {
             $entry->calculated_points = '0.00';
         } else {

@@ -731,6 +731,10 @@ export default function ModerationQueue({
                                                                         return confirmations.map((item) => {
                                                                             const canAct = canActForStructuralUnit(item.structural_unit_id);
                                                                             const isPending = item.status === 'pending';
+                                                                            // Пока запись на финальном утверждении (pending_structural),
+                                                                            // ответственный СП может заново утвердить её, даже если его
+                                                                            // статус «застрял» (rejected/approved) после повторной отправки.
+                                                                            const isActionable = entry.status === 'pending_structural' || isPending || isAdminViewer;
 
                                                                             return (
                                                                                 <Button
@@ -738,7 +742,7 @@ export default function ModerationQueue({
                                                                                     size="sm"
                                                                                     className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                                     variant={isPending ? 'default' : (item.status === 'approved' ? 'secondary' : 'destructive')}
-                                                                                    disabled={!isPending || !canAct}
+                                                                                    disabled={!isActionable || !canAct}
                                                                                     onClick={() => submitAction(
                                                                                         'kpi.entries.structural-confirm',
                                                                                         entry.id,
@@ -775,7 +779,12 @@ export default function ModerationQueue({
                                                                 (() => {
                                                                     if (mode === 'structural') {
                                                                         const confirmations = resolveEntryStructuralConfirmations(entry);
-                                                                        const rejectTarget = confirmations.find((item) => item.status === 'pending' && canActForStructuralUnit(item.structural_unit_id));
+                                                                        // Пока запись на финальном утверждении, ответственный СП может
+                                                                        // отклонить свою строку независимо от прошлого статуса (pending/
+                                                                        // approved/rejected). Иначе ограничиваемся только ожидающими.
+                                                                        const rejectTarget = entry.status === 'pending_structural'
+                                                                            ? confirmations.find((item) => canActForStructuralUnit(item.structural_unit_id))
+                                                                            : confirmations.find((item) => item.status === 'pending' && canActForStructuralUnit(item.structural_unit_id));
 
                                                                         return (
                                                                             <Button
