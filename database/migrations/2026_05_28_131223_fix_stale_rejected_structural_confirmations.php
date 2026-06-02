@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("
+        DB::update("
             UPDATE kpi_structural_confirmations ksc
             INNER JOIN kpi_entries ke ON ke.id = ksc.kpi_record_id
             SET
