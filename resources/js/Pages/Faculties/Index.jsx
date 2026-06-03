@@ -773,15 +773,15 @@ export default function Index({
                     </CardContent>
                 </Card>
             </div>
+            <ConfirmDialog
+                open={confirmState.open}
+                onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+                description={confirmState.description}
+                onConfirm={() => {
+                    confirmState.onConfirm?.();
+                    setConfirmState({ open: false, description: '', onConfirm: null });
+                }}
+            />
         </AuthenticatedLayout>
-        <ConfirmDialog
-            open={confirmState.open}
-            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
-            description={confirmState.description}
-            onConfirm={() => {
-                confirmState.onConfirm?.();
-                setConfirmState({ open: false, description: '', onConfirm: null });
-            }}
-        />
     );
 }

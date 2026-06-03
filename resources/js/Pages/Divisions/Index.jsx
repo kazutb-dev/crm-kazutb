@@ -43,7 +43,7 @@ export default function Index({ divisions, faculties = [] }) {
     const handleDelete = (division) => {
         setConfirmState({
             open: true,
-            description: `Удалить департамент "`${division.name}"?`,
+            description: `Удалить департамент "${division.name}"?`,
             onConfirm: () => router.delete(route('divisions.destroy', division.id)),
         });
     };
@@ -393,15 +393,15 @@ export default function Index({ divisions, faculties = [] }) {
                     </CardContent>
                 </Card>
             </div>
+            <ConfirmDialog
+                open={confirmState.open}
+                onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+                description={confirmState.description}
+                onConfirm={() => {
+                    confirmState.onConfirm?.();
+                    setConfirmState({ open: false, description: '', onConfirm: null });
+                }}
+            />
         </AuthenticatedLayout>
-        <ConfirmDialog
-            open={confirmState.open}
-            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
-            description={confirmState.description}
-            onConfirm={() => {
-                confirmState.onConfirm?.();
-                setConfirmState({ open: false, description: '', onConfirm: null });
-            }}
-        />
     );
 }

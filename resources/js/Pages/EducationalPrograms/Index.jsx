@@ -45,7 +45,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
     const handleDelete = (program) => {
         setConfirmState({
             open: true,
-            description: `Удалить программу "`${program.name}"?`,
+            description: `Удалить программу "${program.name}"?`,
             onConfirm: () => router.delete(route('educational-programs.destroy', program.id)),
         });
     };
@@ -440,15 +440,15 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                     </CardContent>
                 </Card>
             </div>
+            <ConfirmDialog
+                open={confirmState.open}
+                onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
+                description={confirmState.description}
+                onConfirm={() => {
+                    confirmState.onConfirm?.();
+                    setConfirmState({ open: false, description: '', onConfirm: null });
+                }}
+            />
         </AuthenticatedLayout>
-        <ConfirmDialog
-            open={confirmState.open}
-            onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
-            description={confirmState.description}
-            onConfirm={() => {
-                confirmState.onConfirm?.();
-                setConfirmState({ open: false, description: '', onConfirm: null });
-            }}
-        />
     );
 }
