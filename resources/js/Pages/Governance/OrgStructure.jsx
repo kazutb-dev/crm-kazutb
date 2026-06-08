@@ -3,19 +3,15 @@ import { FilterBar, PageHeader, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Head, router } from '@inertiajs/react';
 import {
-    AlertTriangle,
-    Building2,
-    ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronUp,
-    GitBranch,
-    Search,
-    Shield,
-    User,
+    Dialog, DialogContent, DialogDescription, DialogFooter,
+    DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Head, router, useForm } from '@inertiajs/react';
+import {
+    AlertTriangle, Building2, ChevronDown, ChevronLeft, ChevronRight,
+    ChevronUp, GitBranch, Pencil, Plus, Search, Shield, Trash2, User,
 } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 
@@ -76,7 +72,7 @@ function TreeNode({ node, level = 0, expanded, onToggle }) {
                         <TypeBadge label={node.unit_type_label} />
                         {node.code ? <Badge variant="outline">{node.code}</Badge> : null}
                         {node.metadata?.transitional_mapping ? (
-                            <Badge className="border-amber-200 bg-amber-50 text-amber-800">Transitional mapping</Badge>
+                            <Badge className="border-amber-200 bg-amber-50 text-amber-800">Переходное сопоставление</Badge>
                         ) : null}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -101,6 +97,52 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
     const [expanded, setExpanded] = useState(() => new Set(tree.map((node) => node.id)));
     const canManageFoundation = Boolean(permissions.canManageFoundation);
 
+    // ── CRUD state ─────────────────────────────────────────────────────────
+    const [createOpen, setCreateOpen] = useState(false);
+    const [editTarget, setEditTarget] = useState(null);   // OrgUnit object
+    const [deleteTarget, setDeleteTarget] = useState(null);
+
+    const blankUnitForm = { code: '', name: '', unit_type: 'department', parent_id: '', leader_name: '', is_active: true };
+
+    const createForm = useForm({ ...blankUnitForm });
+    const editForm   = useForm({ ...blankUnitForm });
+
+    const openEdit = (unit) => {
+        setEditTarget(unit);
+        editForm.setData({
+            code: unit.code ?? '',
+            name: unit.name ?? '',
+            unit_type: unit.unit_type ?? 'department',
+            parent_id: unit.parent_id ? String(unit.parent_id) : '',
+            leader_name: unit.leader_name ?? '',
+            is_active: unit.is_active ?? true,
+        });
+    };
+
+    const submitCreate = (e) => {
+        e.preventDefault();
+        createForm.post(route('governance.org-structure.store'), {
+            preserveScroll: true,
+            onSuccess: () => { createForm.reset(); setCreateOpen(false); },
+        });
+    };
+
+    const submitEdit = (e) => {
+        e.preventDefault();
+        editForm.patch(route('governance.org-structure.update', editTarget.id), {
+            preserveScroll: true,
+            onSuccess: () => { setEditTarget(null); },
+        });
+    };
+
+    const submitDelete = () => {
+        router.delete(route('governance.org-structure.destroy', deleteTarget.id), {
+            preserveScroll: true,
+            onSuccess: () => setDeleteTarget(null),
+        });
+    };
+
+    // ── Filters ────────────────────────────────────────────────────────────
     const form = {
         q: filters.q ?? '',
         unit_type: filters.unit_type ?? '',
@@ -208,13 +250,16 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                     <Card className="border-red-200 bg-red-50/40 shadow-sm">
                         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                             <div>
-                                <p className="text-sm font-semibold text-red-900">Super Admin управление оргструктурой</p>
-                                <p className="text-xs text-red-800">Создание, редактирование, удаление и override org binding выполняются через audited workflows с обязательной причиной.</p>
+                                <p className="text-sm font-semibold text-red-900">Управление оргструктурой</p>
+                                <p className="text-xs text-red-800">Создание, редактирование и удаление выполняются администратором. Все изменения логируются.</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Редактировать сотрудников</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы согласования</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.role-access'))}>Ролевой доступ</Button>
+                                <Button size="sm" onClick={() => setCreateOpen(true)}>
+                                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                    Создать единицу
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы</Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -224,7 +269,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                     <SummaryCard title="Всего орг-юнитов" value={summary.total_units} tone="blue" icon={Building2} />
                     <SummaryCard title="Корневые ветки" value={summary.root_units} tone="slate" icon={GitBranch} />
                     <SummaryCard title="Без руководителя" value={summary.without_leader} tone="amber" icon={User} />
-                    <SummaryCard title="Transitional mappings" value={summary.transitional_mappings} tone="red" icon={AlertTriangle} />
+                    <SummaryCard title="Переходные сопоставления" value={summary.transitional_mappings} tone="red" icon={AlertTriangle} />
                 </div>
 
                 {setupRequired ? (
@@ -279,8 +324,8 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                     value={form.transitional}
                                     onChange={(e) => updateFilters({ transitional: e.target.value })}
                                 >
-                                    <option value="">Mapping: все</option>
-                                    <option value="1">Только transitional</option>
+                                    <option value="">Сопоставление: все</option>
+                                    <option value="1">Только переходные</option>
                                 </select>
                                 <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
                             </div>
@@ -316,7 +361,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                     <div className="space-y-4 xl:col-span-2">
                         <Card className="admin-surface">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base">Risk / unknowns</CardTitle>
+                                <CardTitle className="text-base">Риски и пробелы</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
@@ -334,7 +379,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Transitional mapping</p>
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Переходное сопоставление</p>
                                     <div className="space-y-1">
                                         {(unknowns.transitional_mappings ?? []).slice(0, 8).map((item) => (
                                             <div key={item.id} className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-900">
@@ -348,7 +393,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                             </div>
                                         ))}
                                         {(unknowns.transitional_mappings ?? []).length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">Нет transitional mappings.</p>
+                                            <p className="text-xs text-muted-foreground">Нет переходных сопоставлений.</p>
                                         ) : null}
                                     </div>
                                 </div>
@@ -382,7 +427,8 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                     <tr>
                                         <th className="px-3 py-2 text-left font-semibold">Орг-юнит</th>
                                         <th className="px-3 py-2 text-left font-semibold">Тип</th>
-                                        <th className="px-3 py-2 text-left font-semibold">Parent ID</th>
+                                        <th className="px-3 py-2 text-left font-semibold">Родитель</th>
+                                        {canManageFoundation && <th className="px-3 py-2 text-left font-semibold">Действия</th>}
                                         <th className="px-3 py-2 text-left font-semibold">Код</th>
                                         <th className="px-3 py-2 text-left font-semibold">Руководитель</th>
                                         <th className="px-3 py-2 text-left font-semibold">Статус</th>
@@ -413,15 +459,27 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                             <td className="px-3 py-2">
                                                 <div className="flex flex-wrap gap-1">
                                                     {item.metadata?.transitional_mapping ? (
-                                                        <Badge className="border-red-200 bg-red-50 text-red-800">Transitional</Badge>
+                                                        <Badge className="border-red-200 bg-red-50 text-red-800">Переходной</Badge>
                                                     ) : (
-                                                        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">Foundation</Badge>
+                                                        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">Базовый</Badge>
                                                     )}
                                                     {!item.is_active ? (
-                                                        <Badge variant="outline">Inactive</Badge>
+                                                        <Badge variant="outline">Неактивен</Badge>
                                                     ) : null}
                                                 </div>
                                             </td>
+                                            {canManageFoundation && (
+                                                <td className="px-3 py-2">
+                                                    <div className="flex items-center gap-1">
+                                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(item)} title="Редактировать">
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700" onClick={() => setDeleteTarget(item)} title="Удалить">
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     {units.length === 0 ? (
@@ -473,6 +531,130 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                     </CardContent>
                 </Card>
             </div>
+
+            {/* ── Create Dialog ───────────────────────────────────────────── */}
+            {canManageFoundation && (
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Создать орг. единицу</DialogTitle>
+                            <DialogDescription>Заполните поля для новой организационной единицы.</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={submitCreate} className="space-y-3 py-2">
+                            <OrgUnitFormFields form={createForm} typeOptions={typeOptions} units={units} />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Отмена</Button>
+                                <Button type="submit" disabled={createForm.processing}>Создать</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* ── Edit Dialog ─────────────────────────────────────────────── */}
+            {canManageFoundation && editTarget && (
+                <Dialog open={!!editTarget} onOpenChange={(o) => { if (!o) setEditTarget(null); }}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Редактировать орг. единицу</DialogTitle>
+                            <DialogDescription>{editTarget.name}</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={submitEdit} className="space-y-3 py-2">
+                            <OrgUnitFormFields form={editForm} typeOptions={typeOptions} units={units} excludeId={editTarget.id} />
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>Отмена</Button>
+                                <Button type="submit" disabled={editForm.processing}>Сохранить</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* ── Delete Dialog ───────────────────────────────────────────── */}
+            {canManageFoundation && deleteTarget && (
+                <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Удалить орг. единицу?</DialogTitle>
+                            <DialogDescription>
+                                Единица «{deleteTarget.name}» будет удалена. Нельзя удалить единицу с дочерними подразделениями.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
+                            <Button variant="destructive" onClick={submitDelete}>Удалить</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </AuthenticatedLayout>
+    );
+}
+
+function OrgUnitFormFields({ form, typeOptions, units, excludeId }) {
+    const availableParents = (units ?? []).filter((u) => u.id !== excludeId);
+    return (
+        <>
+            <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Название *</label>
+                <input
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={form.data.name}
+                    onChange={(e) => form.setData('name', e.target.value)}
+                    required
+                />
+                {form.errors.name && <p className="mt-1 text-xs text-red-600">{form.errors.name}</p>}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Код</label>
+                    <input
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={form.data.code}
+                        onChange={(e) => form.setData('code', e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Тип</label>
+                    <select
+                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        value={form.data.unit_type}
+                        onChange={(e) => form.setData('unit_type', e.target.value)}
+                    >
+                        {typeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Родительская единица</label>
+                <select
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={form.data.parent_id}
+                    onChange={(e) => form.setData('parent_id', e.target.value)}
+                >
+                    <option value="">— Корневая единица —</option>
+                    {availableParents.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+            </div>
+            <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">Руководитель (ФИО)</label>
+                <input
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={form.data.leader_name}
+                    onChange={(e) => form.setData('leader_name', e.target.value)}
+                    placeholder="Введите ФИО руководителя"
+                />
+            </div>
+            <div className="flex items-center gap-2">
+                <input
+                    id="is_active"
+                    type="checkbox"
+                    checked={form.data.is_active}
+                    onChange={(e) => form.setData('is_active', e.target.checked)}
+                    className="h-4 w-4 rounded border-input"
+                />
+                <label htmlFor="is_active" className="text-sm text-slate-700">Активна</label>
+            </div>
+        </>
     );
 }

@@ -110,7 +110,7 @@ function RowCard({ entry }) {
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Pill tone={entry.source === 'legacy' ? 'amber' : 'green'}>{entry.source === 'legacy' ? 'Legacy' : 'Формально'}</Pill>
+                        <Pill tone={entry.source === 'legacy' ? 'amber' : 'green'}>{entry.source === 'legacy' ? 'Устаревший' : 'Формально'}</Pill>
                         <Pill tone={entry.status === 'active' ? 'green' : entry.status === 'expired' ? 'amber' : 'slate'}>{statusLabel(entry.status)}</Pill>
                         {entry.is_effective_now ? <Pill tone="blue">Действует сейчас</Pill> : <Pill tone="slate">Не действует</Pill>}
                     </div>
@@ -252,7 +252,7 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
                     <SummaryCard title="Делегирования" value={summary.delegations} tone="blue" icon={History} />
                     <SummaryCard title="Активные" value={summary.active} tone="emerald" icon={Clock} />
                     <SummaryCard title="Истекшие" value={summary.expired} tone="amber" icon={ShieldAlert} />
-                    <SummaryCard title="Legacy источники" value={summary.legacy_sources} tone="violet" icon={Users} />
+                    <SummaryCard title="Устаревшие источники" value={summary.legacy_sources} tone="violet" icon={Users} />
                 </div>
 
                 <FilterBar>

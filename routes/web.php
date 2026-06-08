@@ -122,6 +122,7 @@ Route::middleware(['auth', 'verified', 'track.last-seen'])
 Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1')->name('profile.avatar.upload');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('departments', [DepartmentController::class, 'index'])

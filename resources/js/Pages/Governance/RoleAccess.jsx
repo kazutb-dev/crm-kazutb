@@ -125,18 +125,18 @@ function formatDate(value) {
 }
 
 function resolverStatusLabel(scope) {
-    if (!scope) return 'Scope отсутствует';
+    if (!scope) return 'Область не определена';
     if (scope.status_label) return scope.status_label;
 
     switch (scope.status) {
         case 'exact':
-            return 'Scope определен точно';
+            return 'Область определена точно';
         case 'partial':
-            return 'Scope определен частично';
+            return 'Область определена частично';
         case 'missing':
-            return 'Scope отсутствует';
+            return 'Область не определена';
         default:
-            return 'Scope неизвестен';
+            return 'Область неизвестна';
     }
 }
 
@@ -305,7 +305,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.grant}
                                 onChange={(e) => updateFilters({ grant: e.target.value })}
                             >
-                                <option value="">Все grants</option>
+                                <option value="">Все права</option>
                                 {grantOptions.map((grant) => (
                                     <option key={grant.value} value={grant.value}>{grant.label}</option>
                                 ))}
@@ -361,8 +361,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.missing_binding}
                                 onChange={(e) => updateFilters({ missing_binding: e.target.value })}
                             >
-                                <option value="">Binding: все</option>
-                                <option value="1">Только missing binding</option>
+                                <option value="">Привязка: все</option>
+                                <option value="1">Без привязки</option>
                             </select>
 
                             <div className="flex gap-2">
@@ -372,7 +372,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     onChange={(e) => updateFilters({ suspicious: e.target.value })}
                                 >
                                     <option value="">Риск: все</option>
-                                    <option value="1">Только suspicious</option>
+                                    <option value="1">Только подозрительные</option>
                                 </select>
                                 <Button variant="outline" onClick={clearFilters}>Сброс</Button>
                             </div>
@@ -645,7 +645,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Resolver bridge: legacy -&gt; org unit</CardTitle>
+                                        <CardTitle className="text-sm">Сопоставление: устаревший → орг. единица</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -673,7 +673,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <ul className="space-y-1 text-xs text-slate-700">
                                                     {selectedUser.resolved_org_scope.resolved_units.slice(0, 6).map((entry, idx) => (
                                                         <li key={`${entry?.org_unit?.id ?? 'na'}-${idx}`}>
-                                                            {entry?.source_type || 'source'}: {entry?.org_unit?.name || '—'} ({entry?.mapping_type || 'mapped'})
+                                                            {entry?.source_type || 'источник'}: {entry?.org_unit?.name || '—'} ({entry?.mapping_type || 'сопоставлен'})
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -688,7 +688,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <ul className="space-y-1 text-xs text-red-700">
                                                     {selectedUser.resolved_org_scope.missing_mappings.slice(0, 6).map((entry, idx) => (
                                                         <li key={`${entry?.source_type || 'src'}-${entry?.source_id || idx}-${idx}`}>
-                                                            {entry?.source_type || 'source'} #{entry?.source_id ?? '—'}
+                                                            {entry?.source_type || 'источник'} #{entry?.source_id ?? '—'}
                                                         </li>
                                                     ))}
                                                 </ul>
