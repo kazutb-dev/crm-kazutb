@@ -14,18 +14,21 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 // Related models
+use App\Models\Delegation;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Faculty;
 use App\Models\KpiAccessGrant;
 use App\Models\KpiStructuralUnit;
+use App\Models\ScopedGrant;
+use App\Models\EmployeeProfile;
+use App\Models\StudentProfile;
+use App\Models\AcademicScopeAssignment;
 use App\Services\KpiEntryStructureHydrationService;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasApiTokens, Notifiable;
-
     /**
      * Связь: подтверждения СП, где пользователь выступает подтверждающим (confirmer)
      */
@@ -54,6 +57,10 @@ class User extends Authenticatable
         'ad_employee_type',
         'ad_title',
         'position_title',
+        'kpi_workload_rate',
+        'kpi_experience_years',
+        'kpi_individual_plan_completion_percent',
+        'kpi_participation_override',
         'office_location',
         'telegram',
         'bio',
@@ -101,6 +108,10 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'updated_profile_at' => 'datetime',
             'profile_completed_at' => 'datetime',
+            'kpi_workload_rate' => 'decimal:2',
+            'kpi_experience_years' => 'integer',
+            'kpi_individual_plan_completion_percent' => 'decimal:2',
+            'kpi_participation_override' => 'boolean',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
             'updated_profile_at' => 'datetime',
@@ -171,9 +182,39 @@ class User extends Authenticatable
         return $this->hasMany(KpiAccessGrant::class, 'user_id');
     }
 
+    public function scopedGrants(): HasMany
+    {
+        return $this->hasMany(ScopedGrant::class, 'subject_user_id');
+    }
+
+    public function delegations(): HasMany
+    {
+        return $this->hasMany(Delegation::class, 'delegate_user_id');
+    }
+
+    public function grantedDelegations(): HasMany
+    {
+        return $this->hasMany(Delegation::class, 'grantor_user_id');
+    }
+
     public function activitySnapshot(): HasOne
     {
         return $this->hasOne(UserActivitySnapshot::class, 'user_id');
+    }
+
+    public function employeeProfile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class, 'user_id');
+    }
+
+    public function studentProfile(): HasOne
+    {
+        return $this->hasOne(StudentProfile::class, 'user_id');
+    }
+
+    public function academicScopeAssignments(): HasMany
+    {
+        return $this->hasMany(AcademicScopeAssignment::class, 'user_id');
     }
 
     public function position(): BelongsTo
@@ -249,13 +290,13 @@ class User extends Authenticatable
 
         if ($this->relationLoaded('kpiAccessGrants')) {
             return $this->kpiAccessGrants
-                ->contains(fn (KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
+                ->contains(fn(KpiAccessGrant $grant): bool => $grant->permission === KpiAccessGrant::PERM_STRUCTURAL_QUEUE && (bool) $grant->is_active);
         }
 
         return $this->kpiStructuralUnits()->exists()
             || $this->kpiAccessGrants()
-                ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
-                ->where('is_active', true)
-                ->exists();
+            ->where('permission', KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+            ->where('is_active', true)
+            ->exists();
     }
 }

@@ -15,14 +15,19 @@ use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\KpiStructuralUnit;
 use App\Models\KpiStatusLog;
+use App\Models\PositionChangeRequest;
 use App\Models\User;
+use App\Services\KpiAccessEvaluatorService;
 use App\Services\KpiEntryFileService;
 use App\Services\KpiEntryService;
 use App\Services\KpiPeriodService;
+use App\Services\OrgScopeResolverService;
+use App\Services\ScopedAuthorityLedgerService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +35,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class KpiEntryController extends Controller
 {
@@ -38,7 +44,11 @@ class KpiEntryController extends Controller
      */
     public function structuralConfirm(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('structuralConfirm', $entry);
+        try {
+            $this->authorize('structuralConfirm', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -71,7 +81,11 @@ class KpiEntryController extends Controller
      */
     public function structuralReject(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('structuralReject', $entry);
+        try {
+            $this->authorize('structuralReject', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -102,6 +116,7 @@ class KpiEntryController extends Controller
         private readonly KpiEntryService $entryService,
         private readonly KpiEntryFileService $fileService,
         private readonly KpiPeriodService $periodService,
+        private readonly KpiAccessEvaluatorService $kpiAccessEvaluator,
     ) {}
 
     public function myForm(Request $request): Response|JsonResponse
@@ -111,9 +126,25 @@ class KpiEntryController extends Controller
         /** @var User $user */
         $user = $request->user();
         $stage = trim((string) $request->query('stage', KpiPeriod::STAGE_PLAN));
+        $roleSlug = $user->resolvedRoleSlug();
+        $periodScope = KpiPeriod::scopeFromRoleSlug($roleSlug);
+
         $activeFactSeason = KpiPeriod::query()
             ->active()
             ->where('stage', KpiPeriod::STAGE_FACT)
+            ->when($periodScope !== null, function (Builder $query) use ($periodScope): void {
+                $column = match ($periodScope) {
+                    KpiPeriod::ACCESS_SCOPE_TEACHER => 'is_teacher_active',
+                    KpiPeriod::ACCESS_SCOPE_HOD => 'is_hod_active',
+                    KpiPeriod::ACCESS_SCOPE_DEAN => 'is_dean_active',
+                    KpiPeriod::ACCESS_SCOPE_STRUCTURAL => 'is_structural_active',
+                    default => null,
+                };
+
+                if ($column !== null) {
+                    $query->where($column, true);
+                }
+            })
             ->orderByDesc('academic_year_id')
             ->first(['academic_year_id']);
         $academicYearId = $request->integer('academic_year_id') ?: (int) ($activeFactSeason?->academic_year_id ?? 0);
@@ -122,7 +153,6 @@ class KpiEntryController extends Controller
         $module = trim((string) $request->query('module', ''));
         $groupCode = trim((string) $request->query('group_code', ''));
 
-        $roleSlug = $user->resolvedRoleSlug();
         $entityType = match ($roleSlug) {
             'hod', 'department_head' => KpiIndicator::ENTITY_TYPE_DEPARTMENT_HEAD,
             'dean' => KpiIndicator::ENTITY_TYPE_DEAN,
@@ -136,6 +166,7 @@ class KpiEntryController extends Controller
             $period = $this->periodService->getCurrentOpenPeriod(
                 $stage,
                 $academicYearId > 0 ? $academicYearId : null,
+                $periodScope,
             );
         }
 
@@ -492,6 +523,19 @@ class KpiEntryController extends Controller
         $activeSeasons = KpiPeriod::query()
             ->active()
             ->where('stage', KpiPeriod::STAGE_FACT)
+            ->when($periodScope !== null, function (Builder $query) use ($periodScope): void {
+                $column = match ($periodScope) {
+                    KpiPeriod::ACCESS_SCOPE_TEACHER => 'is_teacher_active',
+                    KpiPeriod::ACCESS_SCOPE_HOD => 'is_hod_active',
+                    KpiPeriod::ACCESS_SCOPE_DEAN => 'is_dean_active',
+                    KpiPeriod::ACCESS_SCOPE_STRUCTURAL => 'is_structural_active',
+                    default => null,
+                };
+
+                if ($column !== null) {
+                    $query->where($column, true);
+                }
+            })
             ->with('academicYear:id,name,start_year,end_year')
             ->orderByDesc('academic_year_id')
             ->get(['id', 'academic_year_id'])
@@ -693,6 +737,7 @@ class KpiEntryController extends Controller
         $period = $this->periodService->getCurrentOpenPeriod(
             KpiPeriod::STAGE_FACT,
             (int) $data['academic_year_id'],
+            KpiPeriod::scopeFromRoleSlug($roleSlug),
         );
 
         if (!$period) {
@@ -1057,9 +1102,9 @@ class KpiEntryController extends Controller
     public function reviewQueue(Request $request): Response|JsonResponse
     {
         $this->authorize('viewAny', KpiEntry::class);
-        $this->abortIfNotQueueAccess($request->user(), KpiAccessGrant::PERM_REVIEW_QUEUE);
+        $queueAccess = $this->evaluateQueueAccess($request, KpiAccessGrant::PERM_REVIEW_QUEUE);
 
-        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_SUBMITTED);
+        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_SUBMITTED, $queueAccess);
 
         if ($request->expectsJson()) {
             return response()->json(['data' => $payload]);
@@ -1071,9 +1116,9 @@ class KpiEntryController extends Controller
     public function approvalQueue(Request $request): Response|JsonResponse
     {
         $this->authorize('viewAny', KpiEntry::class);
-        $this->abortIfNotQueueAccess($request->user(), KpiAccessGrant::PERM_APPROVAL_QUEUE);
+        $queueAccess = $this->evaluateQueueAccess($request, KpiAccessGrant::PERM_APPROVAL_QUEUE);
 
-        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_PENDING_DEAN);
+        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_PENDING_DEAN, $queueAccess);
 
         if ($request->expectsJson()) {
             return response()->json(['data' => $payload]);
@@ -1085,9 +1130,9 @@ class KpiEntryController extends Controller
     public function structuralQueue(Request $request): Response|JsonResponse
     {
         $this->authorize('viewAny', KpiEntry::class);
-        $this->abortIfNotQueueAccess($request->user(), KpiAccessGrant::PERM_STRUCTURAL_QUEUE);
+        $queueAccess = $this->evaluateQueueAccess($request, KpiAccessGrant::PERM_STRUCTURAL_QUEUE);
 
-        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_PENDING_STRUCTURAL);
+        $payload = $this->buildModerationQueuePayload($request, KpiEntry::STATUS_PENDING_STRUCTURAL, $queueAccess);
 
         if ($request->expectsJson()) {
             return response()->json(['data' => $payload]);
@@ -1198,7 +1243,11 @@ class KpiEntryController extends Controller
 
     public function approve(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('approve', $entry);
+        try {
+            $this->authorize('approve', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -1228,7 +1277,11 @@ class KpiEntryController extends Controller
 
     public function reject(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('reject', $entry);
+        try {
+            $this->authorize('reject', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -1252,7 +1305,11 @@ class KpiEntryController extends Controller
 
     public function review(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('review', $entry);
+        try {
+            $this->authorize('review', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -1276,7 +1333,11 @@ class KpiEntryController extends Controller
 
     public function returnEntry(Request $request, KpiEntry $entry): RedirectResponse|JsonResponse
     {
-        $this->authorize('return', $entry);
+        try {
+            $this->authorize('return', $entry);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse($request, $e->getMessage() ?: 'Доступ отклонен.');
+        }
 
         $data = $request->validate([
             'comment' => ['nullable', 'string'],
@@ -1305,7 +1366,7 @@ class KpiEntryController extends Controller
         $roleSlug = $request->user()?->resolvedRoleSlug();
 
         $entry->load([
-            'period:id,name,stage,status,start_date,end_date',
+            'period:id,name,stage,status,academic_year_id,start_date,end_date,is_teacher_active,is_hod_active,is_dean_active,is_structural_active',
             'academicYear:id,name,start_year,end_year',
             'user:id,name,email,faculty_id,department_id',
             'user.faculty:id,name',
@@ -1460,7 +1521,7 @@ class KpiEntryController extends Controller
     /**
      * @param mixed $value
      */
-    private function assertIndicatorValueRules(?KpiIndicator $indicator, $value, string $field): void
+    private function assertIndicatorValueRules(?KpiIndicator $indicator, mixed $value, string $field): void
     {
         if ($value === null || $value === '') {
             return;
@@ -1481,7 +1542,7 @@ class KpiEntryController extends Controller
         }
     }
 
-    private function assertRuleDrivenFields(?KpiIndicator $indicator, $details, string $field): void
+    private function assertRuleDrivenFields(?KpiIndicator $indicator, ?array $details, string $field): void
     {
         $ruleKind = $this->detectIndicatorRuleKind($indicator);
         if ($ruleKind === 'none') {
@@ -1521,7 +1582,7 @@ class KpiEntryController extends Controller
         }
     }
 
-    private function resolveRuleBasedManualPoints(?KpiIndicator $indicator, $value, $details): ?string
+    private function resolveRuleBasedManualPoints(?KpiIndicator $indicator, mixed $value, ?array $details): ?string
     {
         $ruleKind = $this->detectIndicatorRuleKind($indicator);
         if ($ruleKind === 'none') {
@@ -1624,7 +1685,7 @@ class KpiEntryController extends Controller
         return $options;
     }
 
-    private function parseNumericValue($value): ?float
+    private function parseNumericValue(mixed $value): ?float
     {
         if ($value === null || $value === '') {
             return null;
@@ -1641,10 +1702,10 @@ class KpiEntryController extends Controller
     /**
      * Normalize rule payload to avoid sign inversions from stale frontend bundles.
      *
-     * @param mixed $details
+     * @param array<string, mixed>|null $details
      * @return array<string, mixed>|null
      */
-    private function normalizeRuleDrivenCalculationDetails(?KpiIndicator $indicator, $details): ?array
+    private function normalizeRuleDrivenCalculationDetails(?KpiIndicator $indicator, ?array $details): ?array
     {
         if (!is_array($details)) {
             return null;
@@ -1673,7 +1734,7 @@ class KpiEntryController extends Controller
         return !empty($details) ? $details : null;
     }
 
-    private function isPositiveWholeNumber($value): bool
+    private function isPositiveWholeNumber(mixed $value): bool
     {
         $parsed = $this->parseNumericValue($value);
         return $parsed !== null && $parsed > 0 && $this->isWholeNumber($parsed);
@@ -1800,7 +1861,7 @@ class KpiEntryController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function buildModerationQueuePayload(Request $request, string $defaultStatus): array
+    private function buildModerationQueuePayload(Request $request, string $defaultStatus, ?array $queueAccessDecision = null): array
     {
         /** @var User $user */
         $user = $request->user();
@@ -1842,7 +1903,7 @@ class KpiEntryController extends Controller
                 'user:id,name,email,faculty_id,department_id',
                 'user.faculty:id,name',
                 'user.department:id,name',
-                'period:id,name,stage,status,academic_year_id,start_date,end_date',
+                'period:id,name,stage,status,academic_year_id,start_date,end_date,is_teacher_active,is_hod_active,is_dean_active,is_structural_active',
                 'indicator:id,code,name,section,base_points,checker_structural_unit_id',
                 'indicator.checkerStructuralUnit:id,code,name',
                 'indicator.structuralUnits:id,code,name',
@@ -2101,9 +2162,11 @@ class KpiEntryController extends Controller
                 'tab' => $tab,
             ],
             'permissions' => [
-                'canModerate' => $user->resolvedRoleSlug() !== 'teacher' || $canModerateByGrant || KpiAccessGrant::userHasKpiAdmin($user->id),
+                'canModerate' => $queueAccessDecision['allow']
+                    ?? ($user->resolvedRoleSlug() !== 'teacher' || $canModerateByGrant || KpiAccessGrant::userHasKpiAdmin($user->id)),
                 'canAdminModerate' => $canAdminModerate,
             ],
+            'queueAuthority' => $queueAccessDecision,
             'reviewScope' => $reviewScope,
             'structuralScope' => $structuralScope,
             'activeTab' => $tab,
@@ -2149,21 +2212,40 @@ class KpiEntryController extends Controller
     }
 
     /**
-     * Блокирует доступ к очереди, если:
-     * - пользователь — учитель без соответствующего гранта
-     * Пользователи с активным грантом всегда пропускаются.
+     * Transitional hybrid queue gate:
+     * - calculates governance decision (RoleEligible + PositionConfirmed + InOrgScope + AssignmentActive)
+     * - keeps legacy-compatible allow path by default
+     * - deny-by-default only for evaluated explicit deny
+     *
+     * @return array<string, mixed>
      */
-    private function abortIfNotQueueAccess(User $user, string $permission): void
+    private function evaluateQueueAccess(Request $request, string $permission): array
     {
-        // Грант разрешает вход независимо от роли
-        if (KpiAccessGrant::userHas($user->id, $permission)) {
-            return;
+        /** @var User $user */
+        $user = $request->user();
+
+        $orgScope = app(OrgScopeResolverService::class)->resolveForUser($user);
+        $authoritySnapshot = app(ScopedAuthorityLedgerService::class)->resolveForUser($user, $orgScope);
+
+        $hasPendingPositionRequest = false;
+        if (Schema::hasTable('position_change_requests')) {
+            $hasPendingPositionRequest = PositionChangeRequest::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->exists();
         }
 
-        // Учителя без гранта — запрет
-        if ($user->resolvedRoleSlug() === 'teacher') {
-            abort(403);
-        }
+        $decision = $this->kpiAccessEvaluator->evaluateQueueAccess(
+            $user,
+            $permission,
+            $orgScope,
+            $authoritySnapshot,
+            $hasPendingPositionRequest,
+        );
+
+        // Return the decision and let callers handle rendering; do not abort()
+        // here so Inertia/JSON callers can present a graceful in-app error UI.
+        return $decision;
     }
 
     private function userDepartmentId(User $user): ?int

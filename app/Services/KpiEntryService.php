@@ -32,6 +32,9 @@ class KpiEntryService
         ?int $structuralUnitId = null,
     ): KpiEntry {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
+            $entry->loadMissing('period');
+            $this->assertPeriodAllowsWorkflowTransition($entry->period, $actor, KpiPeriod::ACCESS_SCOPE_STRUCTURAL);
+
             $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
             if (!$structuralUnit) {
@@ -117,6 +120,9 @@ class KpiEntryService
         ?int $structuralUnitId = null,
     ): KpiEntry {
         return DB::transaction(function () use ($entry, $actor, $comment, $structuralUnitId): KpiEntry {
+            $entry->loadMissing('period');
+            $this->assertPeriodAllowsWorkflowTransition($entry->period, $actor, KpiPeriod::ACCESS_SCOPE_STRUCTURAL);
+
             $structuralUnit = $this->resolveActingStructuralUnit($actor, $structuralUnitId);
 
             if (!$structuralUnit) {
@@ -186,6 +192,8 @@ class KpiEntryService
             throw new KpiEntryStageException('Сохранять plan можно только в периоде со стадией plan.');
         }
 
+        $this->assertPeriodAllowsOwnEntryWork($period, $user);
+
         DB::transaction(function () use ($user, $period, $entries): void {
             $this->persistEntries($user, $period, $entries, 'plan');
         });
@@ -200,6 +208,8 @@ class KpiEntryService
             throw new KpiEntryStageException('Сохранять fact можно только в периоде со стадией fact.');
         }
 
+        $this->assertPeriodAllowsOwnEntryWork($period, $user);
+
         DB::transaction(function () use ($user, $period, $entries): void {
             $this->persistEntries($user, $period, $entries, 'fact');
         });
@@ -207,6 +217,9 @@ class KpiEntryService
 
     public function submitEntries(User $user, KpiPeriod $period, string $entityType): void
     {
+        $scope = KpiPeriod::scopeFromEntityType($entityType);
+        $this->assertPeriodAllowsWorkflowTransition($period, $user, $scope);
+
         DB::transaction(function () use ($user, $period, $entityType): void {
             $entries = KpiEntry::query()
                 ->where('kpi_period_id', $period->id)
@@ -265,6 +278,13 @@ class KpiEntryService
             /** @var KpiEntry $lockedEntry */
             $lockedEntry = KpiEntry::query()->lockForUpdate()->findOrFail($entry->id);
 
+            $lockedEntry->loadMissing('period');
+            $this->assertPeriodAllowsWorkflowTransition(
+                $lockedEntry->period,
+                $actor,
+                $this->resolveScopeForModerationAction($actor, $lockedEntry),
+            );
+
             if ($lockedEntry->isLocked() || $lockedEntry->status === KpiEntry::STATUS_APPROVED) {
                 throw new KpiEntryStatusException('Нельзя вернуть locked/approved запись.');
             }
@@ -306,6 +326,12 @@ class KpiEntryService
                 ->lockForUpdate()
                 ->findOrFail($entry->id);
 
+            $this->assertPeriodAllowsWorkflowTransition(
+                $lockedEntry->period,
+                $actor,
+                $this->resolveScopeForModerationAction($actor, $lockedEntry),
+            );
+
             if ($lockedEntry->isLocked() || $lockedEntry->status === KpiEntry::STATUS_APPROVED) {
                 throw new KpiEntryStatusException('Нельзя отправить в review locked/approved запись.');
             }
@@ -343,6 +369,12 @@ class KpiEntryService
                 ->with(['period', 'indicator'])
                 ->lockForUpdate()
                 ->findOrFail($entry->id);
+
+            $this->assertPeriodAllowsWorkflowTransition(
+                $lockedEntry->period,
+                $actor,
+                $this->resolveScopeForModerationAction($actor, $lockedEntry),
+            );
 
             if ($lockedEntry->isLocked()) {
                 throw new KpiEntryStatusException('Нельзя утвердить запись со статусом locked.');
@@ -489,6 +521,13 @@ class KpiEntryService
         return DB::transaction(function () use ($entry, $actor, $comment): KpiEntry {
             /** @var KpiEntry $lockedEntry */
             $lockedEntry = KpiEntry::query()->lockForUpdate()->findOrFail($entry->id);
+
+            $lockedEntry->loadMissing('period');
+            $this->assertPeriodAllowsWorkflowTransition(
+                $lockedEntry->period,
+                $actor,
+                $this->resolveScopeForModerationAction($actor, $lockedEntry),
+            );
 
             if ($lockedEntry->isLocked()) {
                 throw new KpiEntryStatusException('Нельзя отклонить запись со статусом locked.');
@@ -776,5 +815,70 @@ class KpiEntryService
         }
 
         return [$resolvedFacultyId, $resolvedDepartmentId];
+    }
+
+    private function assertPeriodAllowsOwnEntryWork(KpiPeriod $period, User $user): void
+    {
+        $scope = KpiPeriod::scopeFromRoleSlug($user->resolvedRoleSlug());
+        $this->assertPeriodAllowsWorkflowTransition($period, $user, $scope);
+    }
+
+    private function assertPeriodAllowsWorkflowTransition(?KpiPeriod $period, User $actor, ?string $scope): void
+    {
+        if ($period === null) {
+            throw new KpiEntryStatusException('KPI-сезон не найден для записи.');
+        }
+
+        if ($this->isAdminActor($actor)) {
+            return;
+        }
+
+        if ($period->status === KpiPeriod::STATUS_CLOSED) {
+            throw new KpiEntryStatusException('Сезон закрыт. Движение записи доступно только администратору KPI.');
+        }
+
+        if ($period->status !== KpiPeriod::STATUS_ACTIVE) {
+            throw new KpiEntryStatusException('Сезон не активен для выполнения этого действия.');
+        }
+
+        if ($scope === null) {
+            throw new KpiEntryStatusException('Для вашей роли не определен контур KPI-сезона.');
+        }
+
+        if (!$period->isScopeActive($scope)) {
+            throw new KpiEntryStatusException('Для вашей роли сезон деактивирован. Обратитесь к администратору KPI.');
+        }
+    }
+
+    private function resolveScopeForModerationAction(User $actor, KpiEntry $entry): ?string
+    {
+        if (
+            $entry->status === KpiEntry::STATUS_PENDING_STRUCTURAL
+            && KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+        ) {
+            return KpiPeriod::ACCESS_SCOPE_STRUCTURAL;
+        }
+
+        if (
+            in_array($entry->status, [KpiEntry::STATUS_PENDING_DEAN, KpiEntry::STATUS_REVIEWED], true)
+            && KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+        ) {
+            return KpiPeriod::ACCESS_SCOPE_DEAN;
+        }
+
+        if (
+            $entry->status === KpiEntry::STATUS_SUBMITTED
+            && KpiAccessGrant::userHas($actor->id, KpiAccessGrant::PERM_REVIEW_QUEUE)
+        ) {
+            return KpiPeriod::ACCESS_SCOPE_HOD;
+        }
+
+        return KpiPeriod::scopeFromRoleSlug($actor->resolvedRoleSlug());
+    }
+
+    private function isAdminActor(User $actor): bool
+    {
+        return in_array($actor->resolvedRoleSlug(), ['admin', 'superadmin'], true)
+            || KpiAccessGrant::userHasKpiAdmin($actor->id);
     }
 }

@@ -11,6 +11,7 @@ use App\Models\KpiPeriod;
 use App\Models\KpiStructuralUnit;
 use App\Models\User;
 use App\Services\BusinessActivityLogger;
+use App\Services\ElevatedAuthorityService;
 use App\Services\KpiNpuSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -157,6 +158,7 @@ class KpiSettingsController extends Controller
             ],
             'accessPermissions' => [
                 'canManageFullAccess' => $this->canManageFullAccess($user),
+                'requiresDangerousActionReason' => $this->requiresDangerousActionReason($user),
             ],
         ]);
     }
@@ -244,6 +246,7 @@ class KpiSettingsController extends Controller
         $user = $request->user();
 
         abort_unless($this->canManageFullAccess($user), 403);
+        $reason = $this->validateDangerousActionReason($request);
 
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
@@ -259,10 +262,16 @@ class KpiSettingsController extends Controller
             $targetUser,
             [
                 'granted_by' => $user->id,
+                'reason' => $reason,
             ],
             $user,
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'kpi_admin_access_granted', [
+            'target_user_id' => $targetUser->id,
+            'reason' => $reason,
+        ]);
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])
@@ -275,6 +284,7 @@ class KpiSettingsController extends Controller
         $user = $request->user();
 
         abort_unless($this->canManageFullAccess($user), 403);
+        $reason = $this->validateDangerousActionReason($request);
         abort_unless($grant->permission === KpiAccessGrant::PERM_KPI_ADMIN, 404);
 
         $this->revokeKpiAdminBundle((int) $grant->user_id);
@@ -286,10 +296,16 @@ class KpiSettingsController extends Controller
             [
                 'revoked_by' => $user->id,
                 'target_user_id' => $grant->user_id,
+                'reason' => $reason,
             ],
             $user,
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'kpi_admin_access_revoked', [
+            'target_user_id' => $grant->user_id,
+            'reason' => $reason,
+        ]);
 
         return redirect()
             ->route('kpi.settings', ['tab' => 'access'])
@@ -339,7 +355,62 @@ class KpiSettingsController extends Controller
 
     private function canManageFullAccess(User $user): bool
     {
-        return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true)
-            || KpiAccessGrant::userHasKpiAdmin($user->id);
+        if (in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true)) {
+            return true;
+        }
+
+        $authority = app(ElevatedAuthorityService::class)->resolveForUser($user);
+
+        if (($authority['source'] ?? null) !== 'scoped_authority') {
+            return false;
+        }
+
+        return (bool) ($authority['has_business'] ?? false)
+            || (bool) ($authority['has_technical'] ?? false);
+    }
+
+    private function validateDangerousActionReason(Request $request): ?string
+    {
+        $requiresReason = $request->user() !== null
+            && $this->requiresDangerousActionReason($request->user());
+
+        $rules = $requiresReason
+            ? ['required', 'string', 'min:8', 'max:500']
+            : ['nullable', 'string', 'max:500'];
+
+        $validated = $request->validate([
+            'reason' => $rules,
+        ]);
+
+        return isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+    }
+
+    private function requiresDangerousActionReason(User $user): bool
+    {
+        $authority = app(ElevatedAuthorityService::class)->resolveForUser($user);
+
+        return $user->resolvedRoleSlug() === 'superadmin'
+            || (
+                ($authority['source'] ?? null) === 'scoped_authority'
+                && (bool) ($authority['has_technical'] ?? false)
+            );
+    }
+
+    private function logSuperAdminOverride(Request $request, string $action, array $context = []): void
+    {
+        $actor = $request->user();
+
+        if (! $actor || $actor->resolvedRoleSlug() !== 'superadmin') {
+            return;
+        }
+
+        app(BusinessActivityLogger::class)->log(
+            'superadmin_override',
+            'Superadmin override: ' . $action,
+            null,
+            $context,
+            $actor,
+            $request,
+        );
     }
 }

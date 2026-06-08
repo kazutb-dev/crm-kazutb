@@ -25,10 +25,13 @@ export default function UpdateProfileInformation({
     };
 
     const canEditAcademicBindings = Boolean(profile.academic_bindings?.can_edit);
+    const identityEditable = Boolean(profile.identity_editable);
     const isStudent = profile.role_slug === 'student';
     const faculties = profile.academic_bindings?.faculties ?? [];
     const departments = profile.academic_bindings?.departments ?? [];
     const positions = profile.academic_bindings?.positions ?? [];
+    const pendingAcademicFaculty = faculties.find((faculty) => String(faculty.id) === String(profile.pending_academic_request?.faculty_id ?? ''));
+    const pendingAcademicDepartment = departments.find((department) => String(department.id) === String(profile.pending_academic_request?.department_id ?? ''));
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: profile.snapshot.name ?? '',
@@ -41,6 +44,7 @@ export default function UpdateProfileInformation({
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
             faculty_id: toSelectValue(profile.snapshot.faculty_id, toSelectValue(profile.faculty?.id)),
             department_id: toSelectValue(profile.snapshot.department_id, toSelectValue(profile.department?.id)),
+            request_comment: profile.snapshot.request_comment ?? '',
         });
 
     const availableDepartments = useMemo(() => {
@@ -69,6 +73,7 @@ export default function UpdateProfileInformation({
             profile_visibility: profile.snapshot.profile_visibility ?? 'internal',
             faculty_id: toSelectValue(profile.snapshot.faculty_id, toSelectValue(profile.faculty?.id)),
             department_id: toSelectValue(profile.snapshot.department_id, toSelectValue(profile.department?.id)),
+            request_comment: profile.snapshot.request_comment ?? '',
         });
     }, [profile, setData]);
 
@@ -168,6 +173,18 @@ export default function UpdateProfileInformation({
                                     </div>
                                 </>
                             )}
+
+                                {profile.pending_academic_request && !isStudent && (
+                                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-700">Pending academic request</div>
+                                        <div className="mt-2 text-sm text-amber-900">
+                                            {pendingAcademicFaculty?.name || 'Факультет не указан'} · {pendingAcademicDepartment?.name || 'Кафедра не указана'}
+                                        </div>
+                                        <div className="mt-1 text-xs text-amber-700">
+                                            Создано: {profile.pending_academic_request.created_at || '—'}
+                                        </div>
+                                    </div>
+                                )}
                         </div>
 
                     </div>
@@ -180,13 +197,20 @@ export default function UpdateProfileInformation({
                                 <InputLabel htmlFor="name" value="ФИО" />
                                 <TextInput
                                     id="name"
-                                    className="mt-1 block w-full"
+                                    className={`mt-1 block w-full ${identityEditable ? '' : 'cursor-not-allowed bg-gray-100'}`}
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
+                                    readOnly={!identityEditable}
+                                    tabIndex={identityEditable ? undefined : -1}
                                     required
-                                    isFocused
+                                    isFocused={identityEditable}
                                     autoComplete="name"
                                 />
+                                {!identityEditable && (
+                                    <p className="mt-1 text-xs text-gray-400">
+                                        ФИО синхронизируется из AD и не меняется через self-service.
+                                    </p>
+                                )}
                                 <InputError className="mt-2" message={errors.name} />
                             </div>
 
@@ -220,6 +244,10 @@ export default function UpdateProfileInformation({
                                 <p className="mt-1 text-xs text-gray-400">
                                     Текущая степень в профиле
                                 </p>
+
+                                <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                    Изменения степени, факультета и кафедры больше не применяются напрямую. После сохранения будет создана governance request, а effective access изменится только после approval.
+                                </div>
 
                                 {profile.has_pending_position_request && (
                                     <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -337,6 +365,21 @@ export default function UpdateProfileInformation({
                                     </div>
                                 </>
                             )}
+
+                            {!isStudent && (
+                                <div className="md:col-span-2">
+                                    <InputLabel htmlFor="request_comment" value="Комментарий к заявке" />
+                                    <textarea
+                                        id="request_comment"
+                                        rows={3}
+                                        className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                        value={data.request_comment}
+                                        onChange={(e) => setData('request_comment', e.target.value)}
+                                        placeholder="Кратко опишите причину изменения должности / привязки"
+                                    />
+                                    <InputError className="mt-2" message={errors.request_comment} />
+                                </div>
+                            )}
                         </div>
 
                         {mustVerifyEmail && !profile.email_verified_at && (
@@ -362,7 +405,7 @@ export default function UpdateProfileInformation({
                         )}
 
                         <div className="flex flex-wrap items-center gap-3">
-                            <PrimaryButton disabled={processing}>Сохранить</PrimaryButton>
+                            <PrimaryButton disabled={processing}>Сохранить и отправить на согласование</PrimaryButton>
 
                             <Transition
                                 show={recentlySuccessful}

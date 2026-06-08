@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\Division;
+use App\Models\GovernanceAccessRequest;
 use App\Models\Faculty;
 use App\Models\KpiAccessGrant;
 use App\Models\KpiStructuralUnit;
@@ -11,6 +12,8 @@ use App\Models\Position;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\BusinessActivityLogger;
+use App\Services\ElevatedAuthorityService;
+use App\Services\GovernanceAccessRequestService;
 use App\Services\ActiveDirectoryAuthenticator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -84,12 +87,18 @@ class DirectoryUserController extends Controller
         return Inertia::render('Users/AdminAccess', [
             'users' => $users,
             'search' => $search,
+            'permissions' => [
+                'canManageFoundation' => $this->canManageFoundation($request),
+                'requiresDangerousActionReason' => $request->user() !== null
+                    && $this->requiresDangerousActionReason($request->user()),
+            ],
         ]);
     }
 
     public function grantAdmin(Request $request): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
@@ -120,10 +129,17 @@ class DirectoryUserController extends Controller
             [
                 'target_user_id' => $user->id,
                 'target_user_email' => $user->email,
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'admin_granted', [
+            'target_user_id' => $user->id,
+            'target_user_email' => $user->email,
+            'reason' => $reason,
+        ]);
 
         return back()->with('success', 'Права администратора выданы.');
     }
@@ -131,6 +147,7 @@ class DirectoryUserController extends Controller
     public function revokeAdmin(Request $request): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
@@ -165,10 +182,17 @@ class DirectoryUserController extends Controller
             [
                 'target_user_id' => $user->id,
                 'target_user_email' => $user->email,
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'admin_revoked', [
+            'target_user_id' => $user->id,
+            'target_user_email' => $user->email,
+            'reason' => $reason,
+        ]);
 
         return back()->with('success', 'Права администратора сняты.');
     }
@@ -437,12 +461,18 @@ class DirectoryUserController extends Controller
             'searchRouteName' => $directoryType === 'students' ? 'users.students' : 'users.index',
             'directoryType' => $directoryType,
             'structuralDivisionOptions' => KpiStructuralUnit::query()->orderBy('name')->get(['id', 'name', 'code'])->values(),
+            'permissions' => [
+                'canManageFoundation' => $this->canManageFoundation($request),
+                'requiresDangerousActionReason' => $request->user() !== null
+                    && $this->requiresDangerousActionReason($request->user()),
+            ],
         ]);
     }
 
     public function createFromAd(Request $request): JsonResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'ad_login' => ['nullable', 'string', 'max:255'],
@@ -505,11 +535,35 @@ class DirectoryUserController extends Controller
 
         $user->forceFill(['email_verified_at' => now()])->save();
 
+        app(BusinessActivityLogger::class)->log(
+            'user_created_from_directory',
+            'Пользователь создан из справочника',
+            $user,
+            [
+                'target_user_id' => $user->id,
+                'ad_login' => $user->ad_login,
+                'email' => $user->email,
+                'reason' => $reason,
+            ],
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'user_created_from_directory', [
+            'target_user_id' => $user->id,
+            'ad_login' => $user->ad_login,
+            'email' => $user->email,
+            'reason' => $reason,
+        ]);
+
         return response()->json(['user_id' => $user->id]);
     }
 
     public function updatePosition(Request $request, User $user): RedirectResponse
     {
+        $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
+
         $data = $request->validate([
             'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
@@ -518,76 +572,20 @@ class DirectoryUserController extends Controller
             'division_ids.*' => ['integer', 'exists:kpi_structural_units,id'],
         ]);
 
-        $departmentFacultyId = ! empty($data['department_id'])
-            ? Department::query()->whereKey((int) $data['department_id'])->value('faculty_id')
-            : null;
-
-        if (! empty($data['position_id'])) {
-            $position = Position::query()
-                ->with('division:id,name')
-                ->findOrFail((int) $data['position_id']);
-
-            $normalizedTitle = Str::lower(trim((string) $position->name));
-            $isDean = Str::contains($normalizedTitle, 'декан') || Str::contains($normalizedTitle, 'dean');
-            $isDepartmentHead = Str::contains($normalizedTitle, 'заведующ')
-                || Str::contains($normalizedTitle, 'зав. кафед')
-                || Str::contains($normalizedTitle, 'head of department')
-                || Str::contains($normalizedTitle, 'department head')
-                || Str::contains($normalizedTitle, 'hod');
-
-            $user->update([
-                'position_id' => (int) $position->id,
-                'ad_title' => $position->name,
-                'ad_division' => $position->division?->name,
-                'ad_department' => $position->division?->name,
-                'department_id' => $isDepartmentHead ? ($data['department_id'] ?? null) : null,
-                'faculty_id' => $isDean
-                    ? ($data['faculty_id'] ?? null)
-                    : ($isDepartmentHead ? ($departmentFacultyId ?? ($data['faculty_id'] ?? null)) : null),
-            ]);
-        } else {
-            $roleSlug = $user->resolvedRoleSlug();
-            $isDean = $roleSlug === 'dean';
-            $isDepartmentHead = in_array($roleSlug, ['hod', 'department_head'], true);
-
-            $updates = ['position_id' => null];
-
-            if ($isDean) {
-                $updates['faculty_id'] = $data['faculty_id'] ?? null;
-            } elseif ($isDepartmentHead) {
-                $updates['department_id'] = $data['department_id'] ?? null;
-                $updates['faculty_id'] = $departmentFacultyId ?? ($data['faculty_id'] ?? null);
-            } else {
-                $updates['faculty_id'] = $data['faculty_id'] ?? null;
-                $updates['department_id'] = $data['department_id'] ?? null;
-            }
-
-            $user->update($updates);
-        }
-
-        if (array_key_exists('division_ids', $data)) {
-            $user->kpiStructuralUnits()->sync($data['division_ids'] ?? []);
-        }
-
-        app(BusinessActivityLogger::class)->log(
-            'user_position_updated',
-            'Должность и привязки пользователя обновлены',
-            $user,
-            [
-                'position_id' => $user->position_id,
-                'faculty_id' => $user->faculty_id,
-                'department_id' => $user->department_id,
-                'division_ids' => $data['division_ids'] ?? [],
-            ],
-            $request->user(),
+        return $this->submitGovernanceMutations(
             $request,
+            $user,
+            $data,
+            'directory_admin_position_update',
+            $reason,
         );
-
-        return back()->with('success', 'Должность и привязки пользователя обновлены.');
     }
 
     public function updatePositionByDirectory(Request $request): RedirectResponse
     {
+        $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
+
         $data = $request->validate([
             'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
@@ -599,10 +597,6 @@ class DirectoryUserController extends Controller
             'display_name' => ['nullable', 'string', 'max:190'],
             'employee_type' => ['nullable', 'string', 'max:120'],
         ]);
-
-        $departmentFacultyId = ! empty($data['department_id'])
-            ? Department::query()->whereKey((int) $data['department_id'])->value('faculty_id')
-            : null;
 
         $login = Str::lower(trim((string) ($data['login'] ?? '')));
         $email = Str::lower(trim((string) ($data['email'] ?? '')));
@@ -624,73 +618,40 @@ class DirectoryUserController extends Controller
             return back()->with('error', 'Пользователь не найден в системе. Сначала синхронизируйте его.');
         }
 
-        $position = ! empty($data['position_id'])
-            ? Position::query()->with('division:id,name')->findOrFail((int) $data['position_id'])
-            : null;
-
-        if ($position) {
-            $normalizedTitle = Str::lower(trim((string) $position->name));
-            $isDean = Str::contains($normalizedTitle, 'декан') || Str::contains($normalizedTitle, 'dean');
-            $isDepartmentHead = Str::contains($normalizedTitle, 'заведующ')
-                || Str::contains($normalizedTitle, 'зав. кафед')
-                || Str::contains($normalizedTitle, 'head of department')
-                || Str::contains($normalizedTitle, 'department head')
-                || Str::contains($normalizedTitle, 'hod');
-
-            $user->update([
-                'position_id' => (int) $position->id,
-                'ad_title' => $position->name,
-                'ad_division' => $position->division?->name,
-                'ad_department' => $position->division?->name,
-                'department_id' => $isDepartmentHead ? ($data['department_id'] ?? null) : null,
-                'faculty_id' => $isDean
-                    ? ($data['faculty_id'] ?? null)
-                    : ($isDepartmentHead ? ($departmentFacultyId ?? ($data['faculty_id'] ?? null)) : null),
-            ]);
-        } else {
-            $roleSlug = $user->resolvedRoleSlug();
-            $isDean = $roleSlug === 'dean';
-            $isDepartmentHead = in_array($roleSlug, ['hod', 'department_head'], true);
-
-            $updates = ['position_id' => null];
-
-            if ($isDean) {
-                $updates['faculty_id'] = $data['faculty_id'] ?? null;
-            } elseif ($isDepartmentHead) {
-                $updates['department_id'] = $data['department_id'] ?? null;
-                $updates['faculty_id'] = $departmentFacultyId ?? ($data['faculty_id'] ?? null);
-            } else {
-                $updates['faculty_id'] = $data['faculty_id'] ?? null;
-                $updates['department_id'] = $data['department_id'] ?? null;
-            }
-
-            $user->update($updates);
-        }
-
-        if (array_key_exists('division_ids', $data)) {
-            $user->kpiStructuralUnits()->sync($data['division_ids'] ?? []);
-        }
-
-        return back()->with('success', 'Должность и привязки пользователя обновлены.');
+        return $this->submitGovernanceMutations(
+            $request,
+            $user,
+            $data,
+            'directory_admin_position_lookup',
+            $reason,
+            $login !== '' ? $login : null,
+            $email !== '' ? $email : null,
+        );
     }
 
     public function updateDivisions(Request $request, User $user): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'division_ids' => ['nullable', 'array'],
             'division_ids.*' => ['integer', 'exists:kpi_structural_units,id'],
         ]);
 
-        $user->kpiStructuralUnits()->sync($data['division_ids'] ?? []);
-
-        return back()->with('success', 'Подразделения сотрудника обновлены.');
+        return $this->submitGovernanceMutations(
+            $request,
+            $user,
+            $data,
+            'directory_admin_structural_update',
+            $reason,
+        );
     }
 
     public function updateDivisionsByDirectory(Request $request): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'division_ids' => ['nullable', 'array'],
@@ -740,14 +701,21 @@ class DirectoryUserController extends Controller
             ]);
         }
 
-        $user->kpiStructuralUnits()->sync($data['division_ids'] ?? []);
-
-        return back()->with('success', 'Подразделения сотрудника обновлены.');
+        return $this->submitGovernanceMutations(
+            $request,
+            $user,
+            $data,
+            'directory_admin_structural_lookup',
+            $reason,
+            $login !== '' ? $login : null,
+            $email !== '' ? $email : null,
+        );
     }
 
     public function updateRole(Request $request, User $user): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
@@ -771,6 +739,32 @@ class DirectoryUserController extends Controller
             $divisionId = (int) ($data['structural_division_id'] ?? 0);
             $this->syncStructuralAccessGrant($user, $divisionId, (int) $request->user()->id);
         }
+
+        app(BusinessActivityLogger::class)->log(
+            'user_role_updated',
+            'Роль пользователя обновлена',
+            $user,
+            [
+                'role' => $resolved['role'] ?? null,
+                'role_id' => $resolved['role_id'] ?? null,
+                'kpi_admin_mode' => $this->isKpiAdminRoleInput($selectedRole),
+                'structural_access' => (bool) ($data['structural_access'] ?? false),
+                'structural_division_id' => $data['structural_division_id'] ?? null,
+                'reason' => $reason,
+            ],
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'user_role_updated', [
+            'target_user_id' => $user->id,
+            'role' => $resolved['role'] ?? null,
+            'role_id' => $resolved['role_id'] ?? null,
+            'kpi_admin_mode' => $this->isKpiAdminRoleInput($selectedRole),
+            'structural_access' => (bool) ($data['structural_access'] ?? false),
+            'structural_division_id' => $data['structural_division_id'] ?? null,
+            'reason' => $reason,
+        ]);
 
         return back()->with('success', 'Роль сотрудника обновлена.');
     }
@@ -778,6 +772,7 @@ class DirectoryUserController extends Controller
     public function updateRoleByDirectory(Request $request): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'role_id' => ['nullable', 'integer', 'exists:roles,id', 'required_without:role'],
@@ -845,11 +840,42 @@ class DirectoryUserController extends Controller
             $this->syncStructuralAccessGrant($user, $divisionId, (int) $request->user()->id);
         }
 
+        app(BusinessActivityLogger::class)->log(
+            'user_role_updated_by_directory',
+            'Роль пользователя обновлена через каталог',
+            $user,
+            [
+                'role' => $resolved['role'] ?? null,
+                'role_id' => $resolved['role_id'] ?? null,
+                'kpi_admin_mode' => $this->isKpiAdminRoleInput($selectedRole),
+                'structural_access' => (bool) ($data['structural_access'] ?? false),
+                'structural_division_id' => $data['structural_division_id'] ?? null,
+                'lookup_login' => $login !== '' ? $login : null,
+                'lookup_email' => $email !== '' ? $email : null,
+                'reason' => $reason,
+            ],
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'user_role_updated_by_directory', [
+            'target_user_id' => $user->id,
+            'role' => $resolved['role'] ?? null,
+            'role_id' => $resolved['role_id'] ?? null,
+            'kpi_admin_mode' => $this->isKpiAdminRoleInput($selectedRole),
+            'structural_access' => (bool) ($data['structural_access'] ?? false),
+            'structural_division_id' => $data['structural_division_id'] ?? null,
+            'reason' => $reason,
+        ]);
+
         return back()->with('success', 'Роль сотрудника обновлена.');
     }
 
     public function storeManual(Request $request): RedirectResponse
     {
+        $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
+
         $allowedRoles = ['teacher', 'student', 'department_head', 'dean', 'structural'];
 
         $data = $request->validate([
@@ -880,7 +906,7 @@ class DirectoryUserController extends Controller
             ? Hash::make($data['password'])
             : Hash::make('12345678');
 
-        User::query()->create([
+        $user = User::query()->create([
             'name' => trim((string) $data['name']),
             'display_name' => trim((string) $data['name']),
             'email' => Str::lower(trim((string) $data['email'])),
@@ -900,15 +926,25 @@ class DirectoryUserController extends Controller
         app(BusinessActivityLogger::class)->log(
             'user_created',
             'Пользователь добавлен вручную',
-            null,
+            $user,
             [
+                'target_user_id' => $user->id,
                 'directory_type' => $directoryType,
                 'role' => $roleSlug,
                 'email' => Str::lower(trim((string) $data['email'])),
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'user_created', [
+            'target_user_id' => $user->id,
+            'directory_type' => $directoryType,
+            'role' => $roleSlug,
+            'email' => Str::lower(trim((string) $data['email'])),
+            'reason' => $reason,
+        ]);
 
         return back()->with('success', 'Пользователь добавлен вручную.');
     }
@@ -916,37 +952,186 @@ class DirectoryUserController extends Controller
     public function updateBinding(Request $request, User $user): RedirectResponse
     {
         $this->abortUnlessAdminRole($request);
+        $reason = $this->validateDangerousActionReason($request);
 
         $data = $request->validate([
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'faculty_id' => ['nullable', 'integer', 'exists:faculties,id'],
         ]);
 
-        $user->update([
-            'department_id' => $data['department_id'] ?? null,
-            'faculty_id' => $data['faculty_id'] ?? null,
-        ]);
+        return $this->submitGovernanceMutations(
+            $request,
+            $user,
+            $data,
+            'directory_admin_academic_update',
+            $reason,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function submitGovernanceMutations(
+        Request $request,
+        User $user,
+        array $data,
+        string $origin,
+        ?string $reason,
+        ?string $lookupLogin = null,
+        ?string $lookupEmail = null,
+    ): RedirectResponse {
+        $service = app(GovernanceAccessRequestService::class);
+        $created = collect();
+
+        if (array_key_exists('position_id', $data)) {
+            $item = $service->submitPositionRequest(
+                $user,
+                $request->user(),
+                isset($data['position_id']) ? (int) ($data['position_id'] ?: 0) ?: null : null,
+                $reason,
+                $origin,
+            );
+
+            if ($item) {
+                $created->push($item);
+            }
+        }
+
+        if (array_key_exists('faculty_id', $data) || array_key_exists('department_id', $data)) {
+            $item = $service->submitAcademicRequest(
+                $user,
+                $request->user(),
+                array_key_exists('faculty_id', $data) ? (int) ($data['faculty_id'] ?: 0) ?: null : null,
+                array_key_exists('department_id', $data) ? (int) ($data['department_id'] ?: 0) ?: null : null,
+                $reason,
+                $origin,
+            );
+
+            if ($item) {
+                $created->push($item);
+            }
+        }
+
+        if (array_key_exists('division_ids', $data)) {
+            $item = $service->submitStructuralRequest(
+                $user,
+                $request->user(),
+                $data['division_ids'] ?? [],
+                $reason,
+                $origin,
+            );
+
+            if ($item) {
+                $created->push($item);
+            }
+        }
+
+        if ($created->isEmpty()) {
+            return back()->with('success', 'Изменения уже совпадают с effective data. Новая заявка не создана.');
+        }
 
         app(BusinessActivityLogger::class)->log(
-            'user_binding_updated',
-            'Привязка кафедры/факультета обновлена',
+            'governance_request_submitted_by_admin',
+            'Изменения сотрудника переведены в approval workflow',
             $user,
             [
-                'department_id' => $data['department_id'] ?? null,
-                'faculty_id' => $data['faculty_id'] ?? null,
+                'target_user_id' => $user->id,
+                'request_ids' => $created->pluck('id')->all(),
+                'request_types' => $created->pluck('request_type')->all(),
+                'origin' => $origin,
+                'lookup_login' => $lookupLogin,
+                'lookup_email' => $lookupEmail,
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
 
-        return back()->with('success', 'Привязка кафедры/факультета обновлена.');
+        $this->logSuperAdminOverride($request, 'governance_request_submitted_by_admin', [
+            'target_user_id' => $user->id,
+            'request_ids' => $created->pluck('id')->all(),
+            'request_types' => $created->pluck('request_type')->all(),
+            'origin' => $origin,
+            'reason' => $reason,
+        ]);
+
+        return back()->with('success', 'Изменения отправлены на согласование. Effective access не изменён до approval.');
     }
 
     private function abortUnlessAdminRole(Request $request): void
     {
         $role = $request->user()?->resolvedRoleSlug();
 
-        abort_unless(in_array($role, ['admin', 'superadmin'], true), 403);
+        abort_unless(in_array($role, ['admin', 'superadmin'], true) || $this->canManageFoundation($request), 403);
+    }
+
+    private function validateDangerousActionReason(Request $request): ?string
+    {
+        $user = $request->user();
+
+        $rules = $user !== null && $this->requiresDangerousActionReason($user)
+            ? ['required', 'string', 'min:8', 'max:500']
+            : ['nullable', 'string', 'max:500'];
+
+        $validated = $request->validate([
+            'reason' => $rules,
+        ]);
+
+        return isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+    }
+
+    private function canManageFoundation(Request $request): bool
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->resolvedRoleSlug() === 'superadmin') {
+            return true;
+        }
+
+        $authority = app(ElevatedAuthorityService::class)->resolveForUser($user);
+
+        return ($authority['source'] ?? null) === 'scoped_authority'
+            && (
+                (bool) ($authority['has_business'] ?? false)
+                || (bool) ($authority['has_technical'] ?? false)
+            );
+    }
+
+    private function requiresDangerousActionReason(User $user): bool
+    {
+        if ($user->resolvedRoleSlug() === 'superadmin') {
+            return true;
+        }
+
+        $authority = app(ElevatedAuthorityService::class)->resolveForUser($user);
+
+        return ($authority['source'] ?? null) === 'scoped_authority'
+            && (
+                (bool) ($authority['has_business'] ?? false)
+                || (bool) ($authority['has_technical'] ?? false)
+            );
+    }
+
+    private function logSuperAdminOverride(Request $request, string $action, array $context = []): void
+    {
+        $actor = $request->user();
+
+        if (! $actor || $actor->resolvedRoleSlug() !== 'superadmin') {
+            return;
+        }
+
+        app(BusinessActivityLogger::class)->log(
+            'superadmin_override',
+            'Superadmin override: ' . $action,
+            null,
+            $context,
+            $actor,
+            $request,
+        );
     }
 
     private function applyCommonFilters(Builder $query, array $filters): void

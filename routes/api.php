@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AiChatController;
+use App\Http\Controllers\Api\AccessSummaryController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\AuthController;
@@ -15,19 +16,25 @@ use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('admin/login', [AdminAuthController::class, 'login']);
-Route::post('login', [AuthController::class, 'login']);
+Route::post('admin/login', [AdminAuthController::class, 'login'])
+    ->middleware('throttle:login');
+Route::post('login', [AuthController::class, 'login'])
+    ->middleware('throttle:login');
 
 Route::get('announcements', [AnnouncementController::class, 'index']);
 Route::get('announcements/{announcement}', [AnnouncementController::class, 'show']);
 Route::get('nav/routes', [NavigationRouteController::class, 'index']);
 Route::get('nav/routes/{navigationRoute}', [NavigationRouteController::class, 'show']);
-Route::post('tickets', [TicketController::class, 'store']);
-Route::post('library/reservations', [LibraryReservationController::class, 'store']);
-Route::post('ai/chat', [AiChatController::class, 'chat']);
+Route::post('tickets', [TicketController::class, 'store'])
+    ->middleware('throttle:20,1');
+Route::post('library/reservations', [LibraryReservationController::class, 'store'])
+    ->middleware('throttle:20,1');
+Route::post('ai/chat', [AiChatController::class, 'chat'])
+    ->middleware('throttle:20,1');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('me', [AuthController::class, 'me']);
+    Route::get('me/access-summary', [AccessSummaryController::class, 'show']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('departments', [DepartmentController::class, 'index']);
 

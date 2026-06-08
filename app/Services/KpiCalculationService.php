@@ -9,12 +9,17 @@ use App\Models\KpiIndicator;
 use App\Models\KpiPeriod;
 use App\Models\KpiResult;
 use App\Models\User;
+use App\Services\KpiParticipantEligibilityService;
+use App\Services\KpiNpuSettingsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class KpiCalculationService
 {
+    private const ENTITY_TYPE_HOD = 'department_head';
+    private const ENTITY_TYPE_DEAN = 'dean';
+
     /**
      * Mapping section => coefficient for Rpps = (K1 + K2 + K3 + K4 + K5) - K6.
      * K6 is intentionally kept as an override/penalty channel because the
@@ -29,6 +34,10 @@ class KpiCalculationService
         KpiIndicator::SECTION_QUALIFICATION => 'k4',
         KpiIndicator::SECTION_SURVEY => 'k5',
     ];
+
+    private ?array $cachedNpuSettings = null;
+
+    private ?KpiParticipantEligibilityService $eligibilityService = null;
 
     /**
      * Recalculate KPI rank score for one user from approved entries only.
@@ -47,13 +56,65 @@ class KpiCalculationService
         $entityType = (string) ($options['entity_type'] ?? KpiEntry::ENTITY_TYPE_TEACHER);
 
         return DB::transaction(function () use ($resolvedUser, $resolvedPeriod, $entityType, $options): KpiResult {
+            $eligibility = $this->eligibility()->evaluateUser($resolvedUser);
+            if (! $eligibility['eligible']) {
+                return $this->storeResult([
+                    'kpi_period_id' => $resolvedPeriod->id,
+                    'academic_year_id' => $resolvedPeriod->academic_year_id,
+                    'result_type' => KpiResult::RESULT_TYPE_USER,
+                    'entity_type' => $entityType,
+                    'user_id' => $resolvedUser->id,
+                    'faculty_id' => $options['faculty_id'] ?? null,
+                    'department_id' => $options['department_id'] ?? null,
+                    'approved_entries_count' => 0,
+                    'section_scores' => [],
+                    'k1_score' => 0,
+                    'k2_score' => 0,
+                    'k3_score' => 0,
+                    'k4_score' => 0,
+                    'k5_score' => 0,
+                    'k6_score' => 0,
+                    'formula_name' => KpiResult::FORMULA_RPPS_V1,
+                    'rank_score' => 0,
+                    'metadata' => [
+                        'hard_check' => $eligibility,
+                        'calculation_context' => $options['metadata'] ?? null,
+                    ],
+                ]);
+            }
+
             $query = $this->approvedEntriesQuery($resolvedPeriod, $entityType)
                 ->where('kpi_entries.user_id', $resolvedUser->id);
 
             $sectionScores = $this->aggregateApprovedScoresBySection($query);
             $approvedEntriesCount = $this->countApprovedEntries($query);
-            $coefficientScores = $this->buildCoefficientScores($sectionScores, $options);
-            $rankScore = $this->calculateRankScore($coefficientScores);
+            $departmentCode = null;
+
+            if ($resolvedUser->department_id) {
+                $departmentCode = Department::query()
+                    ->where('id', $resolvedUser->department_id)
+                    ->value('code');
+            }
+
+            $title = trim((string) ($resolvedUser->position_title ?: $resolvedUser->ad_title));
+            $npuThreshold = (float) ($options['npu_threshold'] ?? $this->resolveEntityNpuThreshold($entityType, $title, $departmentCode));
+
+            $coefficientScores = $this->buildCoefficientScores($sectionScores, [
+                ...$options,
+                'entity_type' => $entityType,
+                'k6_score' => $npuThreshold,
+            ]);
+
+            $rankScore = $this->computeRankScoreForEntity(
+                $entityType,
+                $coefficientScores['k1'],
+                $coefficientScores['k2'],
+                $coefficientScores['k3'],
+                $coefficientScores['k4'],
+                $coefficientScores['k5'],
+                $coefficientScores['k6'],
+                $npuThreshold,
+            );
 
             return $this->storeResult([
                 'kpi_period_id' => $resolvedPeriod->id,
@@ -73,7 +134,12 @@ class KpiCalculationService
                 'k6_score' => $coefficientScores['k6'],
                 'formula_name' => KpiResult::FORMULA_RPPS_V1,
                 'rank_score' => $rankScore,
-                'metadata' => $this->buildMetadata($sectionScores, $coefficientScores, $options),
+                'metadata' => $this->buildMetadata($sectionScores, $coefficientScores, [
+                    ...$options,
+                    'entity_type' => $entityType,
+                    'npu_threshold' => $npuThreshold,
+                    'hard_check' => $eligibility,
+                ]),
             ]);
         }, 3);
     }
@@ -241,12 +307,14 @@ class KpiCalculationService
 
     private function approvedEntriesQuery(KpiPeriod $period, string $entityType): Builder
     {
-        return KpiEntry::query()
+        $query = KpiEntry::query()
             ->join('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
             ->where('kpi_entries.kpi_period_id', $period->id)
             ->where('kpi_entries.academic_year_id', $period->academic_year_id)
             ->where('kpi_entries.entity_type', $entityType)
             ->where('kpi_entries.status', KpiEntry::STATUS_APPROVED);
+
+        return $this->eligibility()->applyEligibilityJoinForEntries($query, 'kpi_entries.user_id');
     }
 
     /**
@@ -269,6 +337,13 @@ class KpiCalculationService
             $scores[$coefficient] = $this->roundScore((float) ($sectionScores[$section] ?? 0));
         }
 
+        $entityType = (string) ($options['entity_type'] ?? KpiEntry::ENTITY_TYPE_TEACHER);
+
+        if (in_array($entityType, [self::ENTITY_TYPE_HOD, self::ENTITY_TYPE_DEAN], true)) {
+            // For HOD/Dean formula K5 is not part of the ranking calculation by ToR.
+            $scores['k5'] = 0.0;
+        }
+
         $scores['k6'] = $this->roundScore((float) ($options['k6_score'] ?? $sectionScores['penalty'] ?? $sectionScores['deduction'] ?? 0));
 
         return $scores;
@@ -281,12 +356,147 @@ class KpiCalculationService
     {
         return $this->roundScore(
             $scores['k1']
-            + $scores['k2']
-            + $scores['k3']
-            + $scores['k4']
-            + $scores['k5']
-            - $scores['k6']
+                + $scores['k2']
+                + $scores['k3']
+                + $scores['k4']
+                + $scores['k5']
+                - $scores['k6']
         );
+    }
+
+    public function computeRankScoreForEntity(
+        string $entityType,
+        float $k1,
+        float $k2,
+        float $k3,
+        float $k4,
+        float $k5,
+        float $k6 = 0.0,
+        ?float $npuThreshold = null,
+    ): float {
+        $npu = $npuThreshold ?? $k6;
+        $base = $k1 + $k2 + $k3 + $k4;
+
+        if (! in_array($entityType, [self::ENTITY_TYPE_HOD, self::ENTITY_TYPE_DEAN], true)) {
+            $base += $k5;
+        }
+
+        return $this->roundScore($base - $npu);
+    }
+
+    public function resolveTeacherNpuThreshold(?string $title): int
+    {
+        $teacherSettings = $this->npuSettings()['teacher'] ?? [];
+
+        if (! $title) {
+            return (int) ($teacherSettings['default_points'] ?? 0);
+        }
+
+        $normalizedTitle = $this->normalizeTitleForMatch($title);
+
+        if ($this->isDeanTitle($normalizedTitle)) {
+            return $this->resolveDeanNpuThreshold();
+        }
+
+        if ($this->isHodTitle($normalizedTitle)) {
+            return $this->resolveHodNpuThreshold(null);
+        }
+
+        $bestPoints = null;
+        $bestScore = -1;
+
+        foreach (($teacherSettings['rules'] ?? []) as $rule) {
+            foreach (($rule['keywords'] ?? []) as $keyword) {
+                $normalizedKeyword = $this->normalizeTitleForMatch((string) $keyword);
+                if ($normalizedKeyword === '') {
+                    continue;
+                }
+
+                $score = -1;
+                $keywordLength = mb_strlen($normalizedKeyword);
+
+                if ($normalizedTitle === $normalizedKeyword) {
+                    $score = 3000 + $keywordLength;
+                } elseif (preg_match('/(^|\\s)' . preg_quote($normalizedKeyword, '/') . '(\\s|$)/u', $normalizedTitle) === 1) {
+                    $score = 2000 + $keywordLength;
+                } elseif (str_contains($normalizedTitle, $normalizedKeyword)) {
+                    $score = 1000 + $keywordLength;
+                }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestPoints = (int) ($rule['points'] ?? 0);
+                }
+            }
+        }
+
+        if ($bestPoints !== null) {
+            return $bestPoints;
+        }
+
+        return (int) ($teacherSettings['default_points'] ?? 0);
+    }
+
+    public function resolveHodNpuThreshold(?string $deptCode): int
+    {
+        $hodSettings = $this->npuSettings()['hod'] ?? [];
+        $specialDepartmentCodes = $hodSettings['special_department_codes'] ?? [];
+
+        if ($deptCode && in_array($deptCode, $specialDepartmentCodes, true)) {
+            return (int) ($hodSettings['special_points'] ?? 0);
+        }
+
+        return (int) ($hodSettings['default_points'] ?? 0);
+    }
+
+    public function resolveDeanNpuThreshold(): int
+    {
+        return (int) ($this->npuSettings()['dean']['points'] ?? 0);
+    }
+
+    public function resolveEntityNpuThreshold(string $entityType, ?string $title = null, ?string $deptCode = null): int
+    {
+        return match ($entityType) {
+            self::ENTITY_TYPE_HOD => $this->resolveHodNpuThreshold($deptCode),
+            self::ENTITY_TYPE_DEAN => $this->resolveDeanNpuThreshold(),
+            default => $this->resolveTeacherNpuThreshold($title),
+        };
+    }
+
+    private function npuSettings(): array
+    {
+        if ($this->cachedNpuSettings === null) {
+            $this->cachedNpuSettings = app(KpiNpuSettingsService::class)->get();
+        }
+
+        return $this->cachedNpuSettings;
+    }
+
+    private function normalizeTitleForMatch(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+
+        if ($value === '') {
+            return '';
+        }
+
+        $value = (string) preg_replace('/[^\\p{L}\\p{N}]+/u', ' ', $value);
+
+        return trim((string) preg_replace('/\\s+/u', ' ', $value));
+    }
+
+    private function isDeanTitle(string $normalizedTitle): bool
+    {
+        return str_contains($normalizedTitle, 'декан');
+    }
+
+    private function isHodTitle(string $normalizedTitle): bool
+    {
+        return str_contains($normalizedTitle, 'зав кафедр')
+            || str_contains($normalizedTitle, 'заведующ кафедр')
+            || str_contains($normalizedTitle, 'завкафедр')
+            || str_contains($normalizedTitle, 'зав кафедрой')
+            || str_contains($normalizedTitle, 'заведующий кафедрой');
     }
 
     private function countApprovedEntries(Builder $query): int
@@ -307,8 +517,18 @@ class KpiCalculationService
             'section_scores' => $sectionScores,
             'coefficient_scores' => $coefficientScores,
             'k6_source' => array_key_exists('k6_score', $options) ? 'override' : 'default',
+            'hard_check' => $options['hard_check'] ?? null,
             'calculation_context' => $options['metadata'] ?? null,
         ];
+    }
+
+    private function eligibility(): KpiParticipantEligibilityService
+    {
+        if ($this->eligibilityService === null) {
+            $this->eligibilityService = app(KpiParticipantEligibilityService::class);
+        }
+
+        return $this->eligibilityService;
     }
 
     private function resolvePeriod(KpiPeriod|int $period): KpiPeriod

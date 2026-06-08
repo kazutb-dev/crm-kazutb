@@ -102,6 +102,40 @@ class KpiPeriodService
             );
 
             $lockedPeriod->status = KpiPeriod::STATUS_ACTIVE;
+            $lockedPeriod->is_teacher_active = true;
+            $lockedPeriod->is_hod_active = true;
+            $lockedPeriod->is_dean_active = true;
+            $lockedPeriod->is_structural_active = true;
+            $lockedPeriod->save();
+
+            return $lockedPeriod->refresh();
+        });
+    }
+
+    public function activateScope(KpiPeriod $period, string $scope): KpiPeriod
+    {
+        return DB::transaction(function () use ($period, $scope): KpiPeriod {
+            /** @var KpiPeriod $lockedPeriod */
+            $lockedPeriod = KpiPeriod::query()->lockForUpdate()->findOrFail($period->id);
+
+            if ($lockedPeriod->status === KpiPeriod::STATUS_CLOSED) {
+                throw new KpiPeriodClosedException('Закрытый KPI-период нельзя активировать повторно.');
+            }
+
+            $this->assertDatesWithinAcademicYear(
+                (int) $lockedPeriod->academic_year_id,
+                (string) $lockedPeriod->start_date,
+                (string) $lockedPeriod->end_date,
+            );
+
+            $this->assertNoActiveConflict(
+                (int) $lockedPeriod->academic_year_id,
+                (string) $lockedPeriod->stage,
+                $lockedPeriod->id,
+            );
+
+            $this->setScopeFlag($lockedPeriod, $scope, true);
+            $lockedPeriod->status = KpiPeriod::STATUS_ACTIVE;
             $lockedPeriod->save();
 
             return $lockedPeriod->refresh();
@@ -119,6 +153,10 @@ class KpiPeriodService
             }
 
             $lockedPeriod->status = KpiPeriod::STATUS_CLOSED;
+            $lockedPeriod->is_teacher_active = false;
+            $lockedPeriod->is_hod_active = false;
+            $lockedPeriod->is_dean_active = false;
+            $lockedPeriod->is_structural_active = false;
             $lockedPeriod->save();
 
             return $lockedPeriod->refresh();
@@ -135,6 +173,10 @@ class KpiPeriodService
                 throw new KpiPeriodClosedException('Закрытый KPI-период нельзя деактивировать.');
             }
 
+            $lockedPeriod->is_teacher_active = false;
+            $lockedPeriod->is_hod_active = false;
+            $lockedPeriod->is_dean_active = false;
+            $lockedPeriod->is_structural_active = false;
             $lockedPeriod->status = KpiPeriod::STATUS_DRAFT;
             $lockedPeriod->save();
 
@@ -142,7 +184,29 @@ class KpiPeriodService
         });
     }
 
-    public function getCurrentOpenPeriod(string $stage, ?int $academicYearId = null): ?KpiPeriod
+    public function deactivateScope(KpiPeriod $period, string $scope): KpiPeriod
+    {
+        return DB::transaction(function () use ($period, $scope): KpiPeriod {
+            /** @var KpiPeriod $lockedPeriod */
+            $lockedPeriod = KpiPeriod::query()->lockForUpdate()->findOrFail($period->id);
+
+            if ($lockedPeriod->status === KpiPeriod::STATUS_CLOSED) {
+                throw new KpiPeriodClosedException('Закрытый KPI-период нельзя деактивировать.');
+            }
+
+            $this->setScopeFlag($lockedPeriod, $scope, false);
+
+            if (!$lockedPeriod->isAnyScopeActive()) {
+                $lockedPeriod->status = KpiPeriod::STATUS_DRAFT;
+            }
+
+            $lockedPeriod->save();
+
+            return $lockedPeriod->refresh();
+        });
+    }
+
+    public function getCurrentOpenPeriod(string $stage, ?int $academicYearId = null, ?string $scope = null): ?KpiPeriod
     {
         // Date range is no longer a gate — active status alone opens the period for entries.
         $query = KpiPeriod::query()
@@ -150,11 +214,31 @@ class KpiPeriodService
             ->where('status', KpiPeriod::STATUS_ACTIVE)
             ->orderByDesc('academic_year_id');
 
+        if ($scope !== null) {
+            $query->where($this->scopeColumn($scope), true);
+        }
+
         if ($academicYearId !== null) {
             $query->where('academic_year_id', $academicYearId);
         }
 
         return $query->first();
+    }
+
+    private function setScopeFlag(KpiPeriod $period, string $scope, bool $value): void
+    {
+        $period->{$this->scopeColumn($scope)} = $value;
+    }
+
+    private function scopeColumn(string $scope): string
+    {
+        return match ($scope) {
+            KpiPeriod::ACCESS_SCOPE_TEACHER => 'is_teacher_active',
+            KpiPeriod::ACCESS_SCOPE_HOD => 'is_hod_active',
+            KpiPeriod::ACCESS_SCOPE_DEAN => 'is_dean_active',
+            KpiPeriod::ACCESS_SCOPE_STRUCTURAL => 'is_structural_active',
+            default => throw new KpiPeriodConflictException('Неизвестная область активации KPI-сезона.'),
+        };
     }
 
     private function assertNoActiveConflict(int $academicYearId, string $stage, ?int $ignorePeriodId = null): void
@@ -191,9 +275,9 @@ class KpiPeriodService
             throw new KpiPeriodDateRangeException('Дата окончания KPI-периода не может быть раньше даты начала.');
         }
 
-        // Project stores academic year as numeric year bounds.
-        $yearStart = Carbon::create((int) $academicYear->start_year, 1, 1)->startOfDay();
-        $yearEnd = Carbon::create((int) $academicYear->end_year, 12, 31)->endOfDay();
+        // KPI academic year follows the July-June cycle.
+        $yearStart = Carbon::create((int) $academicYear->start_year, 7, 1)->startOfDay();
+        $yearEnd = Carbon::create((int) $academicYear->end_year, 6, 30)->endOfDay();
 
         if ($periodStart->lt($yearStart) || $periodEnd->gt($yearEnd)) {
             throw new KpiPeriodDateRangeException(
@@ -237,6 +321,25 @@ class KpiPeriodService
         $academicYearId = (int) ($data['academic_year_id'] ?? $period?->academic_year_id);
         $stage = (string) ($data['stage'] ?? $period?->stage);
 
+        $isTeacherActive = (bool) ($data['is_teacher_active'] ?? $period?->is_teacher_active ?? false);
+        $isHodActive = (bool) ($data['is_hod_active'] ?? $period?->is_hod_active ?? false);
+        $isDeanActive = (bool) ($data['is_dean_active'] ?? $period?->is_dean_active ?? false);
+        $isStructuralActive = (bool) ($data['is_structural_active'] ?? $period?->is_structural_active ?? false);
+
+        if ($status === KpiPeriod::STATUS_ACTIVE && !($isTeacherActive || $isHodActive || $isDeanActive || $isStructuralActive)) {
+            $isTeacherActive = true;
+            $isHodActive = true;
+            $isDeanActive = true;
+            $isStructuralActive = true;
+        }
+
+        if ($status !== KpiPeriod::STATUS_ACTIVE) {
+            $isTeacherActive = false;
+            $isHodActive = false;
+            $isDeanActive = false;
+            $isStructuralActive = false;
+        }
+
         $rawName = trim((string) ($data['name'] ?? $period?->name ?? ''));
         $name = $rawName !== '' ? $rawName : $this->generateSeasonName($academicYearId, $stage);
 
@@ -247,6 +350,10 @@ class KpiPeriodService
             'start_date' => (string) ($data['start_date'] ?? $period?->start_date),
             'end_date' => (string) ($data['end_date'] ?? $period?->end_date),
             'status' => (string) $status,
+            'is_teacher_active' => $isTeacherActive,
+            'is_hod_active' => $isHodActive,
+            'is_dean_active' => $isDeanActive,
+            'is_structural_active' => $isStructuralActive,
             'description' => $data['description'] ?? $period?->description,
             'created_by' => $data['created_by'] ?? $period?->created_by,
             'updated_by' => $data['updated_by'] ?? $period?->updated_by,

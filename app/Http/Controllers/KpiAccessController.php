@@ -6,6 +6,8 @@ use App\Models\Division;
 use App\Models\KpiAccessGrant;
 use App\Models\KpiIndicator;
 use App\Models\User;
+use App\Services\BusinessActivityLogger;
+use App\Services\ElevatedAuthorityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +18,7 @@ class KpiAccessController extends Controller
 {
     public function index(Request $request): Response
     {
-        $this->abortUnlessAdmin($request);
+        $this->abortUnlessCanAccessGovernance($request);
 
         $search = trim((string) $request->query('search', ''));
 
@@ -65,7 +67,8 @@ class KpiAccessController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $this->abortUnlessAdmin($request);
+        $decision = $this->abortUnlessDangerousActionAllowed($request, 'kpi_access_management');
+        $reason = $this->validateDangerousActionReason($request, (bool) ($decision['reason_required'] ?? false));
 
         $data = $request->validate([
             'user_id'     => ['required', 'integer', 'exists:users,id'],
@@ -96,12 +99,35 @@ class KpiAccessController extends Controller
             ]
         );
 
+        app(BusinessActivityLogger::class)->log(
+            'kpi_access_grant_created',
+            'Выдан KPI grant',
+            null,
+            [
+                'target_user_id' => (int) $data['user_id'],
+                'permission' => (string) $data['permission'],
+                'division_id' => $data['division_id'] ?? null,
+                'reason' => $reason,
+            ],
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'kpi_access_grant_created', [
+            'target_user_id' => (int) $data['user_id'],
+            'permission' => (string) $data['permission'],
+            'division_id' => $data['division_id'] ?? null,
+            'reason' => $reason,
+            'authority_decision' => $decision,
+        ]);
+
         return back()->with('success', 'Доступ выдан.');
     }
 
     public function update(Request $request, KpiAccessGrant $grant): RedirectResponse
     {
-        $this->abortUnlessAdmin($request);
+        $decision = $this->abortUnlessDangerousActionAllowed($request, 'kpi_access_management');
+        $reason = $this->validateDangerousActionReason($request, (bool) ($decision['reason_required'] ?? false));
 
         $data = $request->validate([
             'is_active' => ['required', 'boolean'],
@@ -109,24 +135,117 @@ class KpiAccessController extends Controller
 
         $grant->update(['is_active' => $data['is_active']]);
 
+        app(BusinessActivityLogger::class)->log(
+            'kpi_access_grant_toggled',
+            'Статус KPI grant изменен',
+            $grant,
+            [
+                'grant_id' => $grant->id,
+                'target_user_id' => $grant->user_id,
+                'permission' => $grant->permission,
+                'is_active' => (bool) $data['is_active'],
+                'reason' => $reason,
+            ],
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'kpi_access_grant_toggled', [
+            'grant_id' => $grant->id,
+            'target_user_id' => $grant->user_id,
+            'permission' => $grant->permission,
+            'is_active' => (bool) $data['is_active'],
+            'reason' => $reason,
+            'authority_decision' => $decision,
+        ]);
+
         return back()->with('success', $data['is_active'] ? 'Доступ активирован.' : 'Доступ деактивирован.');
     }
 
     public function destroy(Request $request, KpiAccessGrant $grant): RedirectResponse
     {
-        $this->abortUnlessAdmin($request);
+        $decision = $this->abortUnlessDangerousActionAllowed($request, 'kpi_access_management');
+        $reason = $this->validateDangerousActionReason($request, (bool) ($decision['reason_required'] ?? false));
+
+        $context = [
+            'grant_id' => $grant->id,
+            'target_user_id' => $grant->user_id,
+            'permission' => $grant->permission,
+            'division_id' => $grant->division_id,
+            'reason' => $reason,
+        ];
 
         $grant->delete();
+
+        app(BusinessActivityLogger::class)->log(
+            'kpi_access_grant_deleted',
+            'KPI grant удален',
+            null,
+            $context,
+            $request->user(),
+            $request,
+        );
+
+        $this->logSuperAdminOverride($request, 'kpi_access_grant_deleted', $context);
 
         return back()->with('success', 'Доступ отозван.');
     }
 
-    private function abortUnlessAdmin(Request $request): void
+    private function abortUnlessCanAccessGovernance(Request $request): void
     {
-        $role = $request->user()?->resolvedRoleSlug();
+        $user = $request->user();
+        abort_unless($user, 403);
 
-        if (!in_array($role, ['admin', 'superadmin'], true)) {
+        if (! app(ElevatedAuthorityService::class)->canAccessGovernanceSurface($user)) {
             abort(403);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function abortUnlessDangerousActionAllowed(Request $request, string $action): array
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $decision = app(ElevatedAuthorityService::class)->evaluateDangerousAction($user, $action);
+
+        if (! ($decision['allow'] ?? false)) {
+            abort(403, 'Недостаточно категориальных elevated-полномочий.');
+        }
+
+        return $decision;
+    }
+
+    private function validateDangerousActionReason(Request $request, bool $required): ?string
+    {
+        $rules = $required
+            ? ['required', 'string', 'min:8', 'max:500']
+            : ['nullable', 'string', 'max:500'];
+
+        $validated = $request->validate([
+            'reason' => $rules,
+        ]);
+
+        return isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+    }
+
+    private function logSuperAdminOverride(Request $request, string $action, array $context = []): void
+    {
+        $actor = $request->user();
+
+        if (! $actor || $actor->resolvedRoleSlug() !== 'superadmin') {
+            return;
+        }
+
+        app(BusinessActivityLogger::class)->log(
+            'superadmin_override',
+            'Superadmin override: ' . $action,
+            null,
+            $context,
+            $actor,
+            $request,
+        );
     }
 }

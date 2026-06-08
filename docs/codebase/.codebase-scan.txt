@@ -1,0 +1,667 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.editorconfig
+.env
+.env.example
+.env.testing
+.gitattributes
+.github
+.github/copilot-instructions.md
+.github/prompts
+.github/prompts/ui-ux-pro-max
+.github/prompts/ui-ux-pro-max/PROMPT.md
+.github/prompts/ui-ux-pro-max/data
+.github/prompts/ui-ux-pro-max/scripts
+.github/skills
+.github/skills/calendar-a11y-check
+.github/skills/calendar-a11y-check/SKILL.md
+.github/skills/calendar-ux-audit
+.github/skills/calendar-ux-audit/SKILL.md
+.github/skills/shadcn-tailwind-calendar-design
+.github/skills/shadcn-tailwind-calendar-design/SKILL.md
+.gitignore
+.phpunit.result.cache
+.vscode
+.vscode/extensions.json
+.vscode/settings.json
+LICENSE
+README.md
+app
+app/Console
+app/Console/Commands
+app/Console/Commands/AuditKpiEntryPoints.php
+app/Console/Commands/BackfillKpiEntryStructure.php
+app/Console/Commands/BindKpiIndicatorsDivisions.php
+app/Console/Commands/CreateStudentUsers.php
+app/Console/Commands/CreateSurveysCommand.php
+app/Console/Commands/FixKpiEntryPoints.php
+app/Console/Commands/GenerateSurveyReportCommand.php
+app/Console/Commands/ImportDiplomasFromCsv.php
+app/Console/Commands/ImportKpiIndicatorStructuralBindings.php
+app/Console/Commands/ImportPhonebookBackup.php
+app/Console/Commands/NormalizeKpiEntryValues.php
+app/Console/Commands/RefreshDashboardCache.php
+app/Console/Commands/UpdateUserPassword.php
+app/Exceptions
+app/Exceptions/Kpi
+app/Exceptions/Kpi/KpiEntryException.php
+app/Exceptions/Kpi/KpiEntryFileRequiredException.php
+app/Exceptions/Kpi/KpiEntryStageException.php
+app/Exceptions/Kpi/KpiEntryStatusException.php
+app/Exceptions/Kpi/KpiPeriodClosedException.php
+app/Exceptions/Kpi/KpiPeriodConflictException.php
+app/Exceptions/Kpi/KpiPeriodDateRangeException.php
+app/Exceptions/Kpi/KpiPeriodException.php
+app/Http
+app/Http/Controllers
+app/Http/Controllers/AcademicYearController.php
+app/Http/Controllers/AdminMonitoringController.php
+app/Http/Controllers/AdminSurveyController.php
+app/Http/Controllers/AnnouncementController.php
+app/Http/Controllers/Api
+app/Http/Controllers/AuditLogController.php
+app/Http/Controllers/Auth
+app/Http/Controllers/AuthorityLedgerController.php
+app/Http/Controllers/CalendarAnalyticsController.php
+app/Http/Controllers/CalendarConferencesController.php
+app/Http/Controllers/CalendarEmployeeProfileController.php
+app/Http/Controllers/CalendarEmployeesController.php
+app/Http/Controllers/CalendarMyController.php
+app/Http/Controllers/CalendarOverviewController.php
+app/Http/Controllers/CalendarSettingsController.php
+app/Http/Controllers/CertificateRegistryController.php
+app/Http/Controllers/CertificateTemplateController.php
+app/Http/Controllers/Controller.php
+app/Http/Controllers/DashboardController.php
+app/Http/Controllers/DepartmentController.php
+app/Http/Controllers/DiplomaController.php
+app/Http/Controllers/DirectoryUserController.php
+app/Http/Controllers/DivisionController.php
+app/Http/Controllers/EducationalProgramController.php
+app/Http/Controllers/FacultyController.php
+app/Http/Controllers/GovernanceAccessRequestController.php
+app/Http/Controllers/KpiAccessController.php
+app/Http/Controllers/KpiAnalyticsController.php
+app/Http/Controllers/KpiController.php
+app/Http/Controllers/KpiDivisionController.php
+app/Http/Controllers/KpiEntryController.php
+app/Http/Controllers/KpiIndicatorController.php
+app/Http/Controllers/KpiPeriodController.php
+app/Http/Controllers/KpiSettingsController.php
+app/Http/Controllers/KpiStructuralUnitController.php
+app/Http/Controllers/KpiSummaryController.php
+app/Http/Controllers/LibraryLoanController.php
+app/Http/Controllers/LibraryReservationAdminController.php
+app/Http/Controllers/NavigationRouteController.php
+app/Http/Controllers/OrgStructureController.php
+app/Http/Controllers/PercoController.php
+app/Http/Controllers/PhonebookDirectoryController.php
+app/Http/Controllers/PositionChangeRequestController.php
+app/Http/Controllers/PositionController.php
+app/Http/Controllers/ProfileController.php
+app/Http/Controllers/Questionnaire
+app/Http/Controllers/RoleAccessController.php
+app/Http/Controllers/SurveyAdminController.php
+app/Http/Controllers/SurveyAnalyticsController.php
+app/Http/Controllers/SurveyQuestionController.php
+app/Http/Controllers/SurveyStudentController.php
+app/Http/Controllers/TicketController.php
+app/Http/Middleware
+app/Http/Middleware/Authenticate.php
+app/Http/Middleware/EnsureCalendarLeadershipAccess.php
+app/Http/Middleware/EnsurePanelRoleAccess.php
+app/Http/Middleware/HandleInertiaRequests.php
+app/Http/Middleware/TrackLastSeen.php
+app/Http/Middleware/TrustProxies.php
+app/Http/Requests
+app/Http/Requests/Api
+app/Http/Requests/Auth
+app/Http/Requests/Kpi
+app/Http/Requests/ProfileUpdateRequest.php
+app/Listeners
+app/Listeners/LogSuccessfulLogin.php
+app/Models
+app/Models/AcademicScopeAssignment.php
+app/Models/AcademicYear.php
+app/Models/Announcement.php
+app/Models/AppSetting.php
+app/Models/AuditLog.php
+app/Models/CalendarAuditLog.php
+app/Models/CalendarAvailabilitySlot.php
+app/Models/CalendarEmployeeExclusion.php
+app/Models/CalendarEmployeeGrant.php
+app/Models/CalendarEvent.php
+app/Models/CalendarHoliday.php
+app/Models/CalendarNotificationLog.php
+app/Models/CalendarSecretaryAccess.php
+app/Models/Certificate.php
+app/Models/CertificateAuditLog.php
+app/Models/CertificateGenerationBatch.php
+app/Models/CertificateGenerationBatchItem.php
+app/Models/CertificateNumberSequence.php
+app/Models/CertificateTemplate.php
+app/Models/CertificateTemplateVersion.php
+app/Models/Delegation.php
+app/Models/Department.php
+app/Models/Diploma.php
+app/Models/Discipline.php
+app/Models/Division.php
+app/Models/EducationalProgram.php
+app/Models/EmployeeProfile.php
+app/Models/Faculty.php
+app/Models/GovernanceAccessRequest.php
+app/Models/Group.php
+app/Models/KpiAccessGrant.php
+app/Models/KpiEntry.php
+app/Models/KpiEntryFile.php
+app/Models/KpiIndicator.php
+app/Models/KpiPeriod.php
+app/Models/KpiResult.php
+app/Models/KpiStatusLog.php
+app/Models/KpiStructuralConfirmation.php
+app/Models/KpiStructuralUnit.php
+app/Models/LibraryLoan.php
+app/Models/LibraryReservation.php
+app/Models/NavigationRoute.php
+app/Models/OrgUnit.php
+app/Models/OrgUnitMapping.php
+app/Models/PhonebookDepartment.php
+app/Models/PhonebookUser.php
+app/Models/Position.php
+app/Models/PositionChangeRequest.php
+app/Models/Questionnaire
+app/Models/Questionnaire/Discipline.php
+app/Models/Questionnaire/Group.php
+app/Models/Questionnaire/GroupCourse.php
+app/Models/Questionnaire/GroupDiscipline.php
+app/Models/Questionnaire/GroupEducationalProgram.php
+app/Models/Questionnaire/GroupSpeciality.php
+app/Models/Questionnaire/Student.php
+app/Models/Questionnaire/Survey.php
+app/Models/Questionnaire/SurveyAnswer.php
+app/Models/Questionnaire/SurveyOption.php
+app/Models/Questionnaire/SurveyQuestion.php
+app/Models/Questionnaire/SurveyResponse.php
+app/Models/Questionnaire/TeacherDiscipline.php
+app/Models/Role.php
+app/Models/ScopedGrant.php
+app/Models/Student.php
+app/Models/StudentProfile.php
+app/Models/Survey.php
+app/Models/SurveyAnswer.php
+app/Models/SurveyGroup.php
+app/Models/SurveyQuestion.php
+app/Models/SurveyStudent.php
+app/Models/TelegramChatLink.php
+app/Models/Ticket.php
+app/Models/TopicCheck.php
+app/Models/TopicCheckItem.php
+app/Models/User.php
+app/Models/UserActivitySnapshot.php
+app/Observers
+app/Observers/AuditableModelObserver.php
+
+=== STACK DETECTION (manifest files) ===
+
+--- composer.json ---
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "darkaonline/l5-swagger": "^11.0",
+        "dedoc/scramble": "^0.13.23",
+        "doctrine/dbal": "^4.4",
+        "dompdf/dompdf": "^3.1",
+        "inertiajs/inertia-laravel": "^2.0",
+        "laravel/framework": "^12.0",
+        "laravel/pulse": "^1.7",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.10.1",
+        "phpoffice/phpspreadsheet": "^3.10",
+        "spatie/laravel-activitylog": "^4.12",
+        "tightenco/ziggy": "^2.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "laravel/breeze": "^2.3",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.24",
+        "laravel/sail": "^1.41",
+        "laravel/telescope": "^5.20",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^11.5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "setup": [
+            "composer install",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php artisan key:generate",
+            "@php artisan migrate --force",
+            "npm install",
+            "npm run build"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+        ],
+        "test": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ]
+
+[TRUNCATED] Showing first 80 of 98 lines.
+--- composer.lock ---
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "f2ad317793c7354f9babafb5c206dfa9",
+    "packages": [
+        {
+            "name": "brick/math",
+            "version": "0.14.8",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/brick/math.git",
+                "reference": "63422359a44b7f06cae63c3b429b59e8efcc0629"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/brick/math/zipball/63422359a44b7f06cae63c3b429b59e8efcc0629",
+                "reference": "63422359a44b7f06cae63c3b429b59e8efcc0629",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "php-coveralls/php-coveralls": "^2.2",
+                "phpstan/phpstan": "2.1.22",
+                "phpunit/phpunit": "^11.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Brick\\Math\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Arbitrary-precision arithmetic library",
+            "keywords": [
+                "Arbitrary-precision",
+                "BigInteger",
+                "BigRational",
+                "arithmetic",
+                "bigdecimal",
+                "bignum",
+                "bignumber",
+                "brick",
+                "decimal",
+                "integer",
+                "math",
+                "mathematics",
+                "rational"
+            ],
+            "support": {
+                "issues": "https://github.com/brick/math/issues",
+                "source": "https://github.com/brick/math/tree/0.14.8"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/BenMorel",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-02-10T14:33:43+00:00"
+        },
+        {
+            "name": "carbonphp/carbon-doctrine-types",
+            "version": "3.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/CarbonPHP/carbon-doctrine-types.git",
+                "reference": "18ba5ddfec8976260ead6e866180bd5d2f71aa1d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon-doctrine-types/zipball/18ba5ddfec8976260ead6e866180bd5d2f71aa1d",
+                "reference": "18ba5ddfec8976260ead6e866180bd5d2f71aa1d",
+
+[TRUNCATED] Showing first 80 of 10678 lines.
+--- package-lock.json ---
+{
+    "name": "laravel-react-dev",
+    "lockfileVersion": 3,
+    "requires": true,
+    "packages": {
+        "": {
+            "dependencies": {
+                "@emotion/react": "^11.14.0",
+                "@emotion/styled": "^11.14.1",
+                "@mui/material": "^9.0.1",
+                "@mui/x-charts": "^9.2.0",
+                "@radix-ui/react-alert-dialog": "^1.1.15",
+                "@radix-ui/react-dialog": "^1.1.15",
+                "@radix-ui/react-progress": "^1.1.8",
+                "@radix-ui/react-separator": "^1.1.8",
+                "@radix-ui/react-slot": "^1.2.4",
+                "@radix-ui/react-tooltip": "^1.2.8",
+                "class-variance-authority": "^0.7.1",
+                "clsx": "^2.1.1",
+                "i18next": "^26.0.3",
+                "i18next-browser-languagedetector": "^8.2.1",
+                "jszip": "^3.10.1",
+                "lucide-react": "^0.577.0",
+                "qrcode": "^1.5.4",
+                "qrcode.react": "^4.2.0",
+                "react-i18next": "^17.0.2",
+                "sonner": "^2.0.7",
+                "tailwind-merge": "^3.5.0",
+                "tailwindcss-animate": "^1.0.7"
+            },
+            "devDependencies": {
+                "@headlessui/react": "^2.0.0",
+                "@inertiajs/react": "^2.0.0",
+                "@tailwindcss/forms": "^0.5.3",
+                "@tailwindcss/vite": "^4.0.0",
+                "@vitejs/plugin-react": "^4.2.0",
+                "autoprefixer": "^10.4.12",
+                "axios": "^1.11.0",
+                "concurrently": "^9.0.1",
+                "laravel-vite-plugin": "^2.0.0",
+                "postcss": "^8.4.31",
+                "react": "^18.2.0",
+                "react-dom": "^18.2.0",
+                "tailwindcss": "^3.2.1",
+                "vite": "^7.0.7"
+            }
+        },
+        "node_modules/@alloc/quick-lru": {
+            "version": "5.2.0",
+            "resolved": "https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.2.0.tgz",
+            "integrity": "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==",
+            "engines": {
+                "node": ">=10"
+            },
+            "funding": {
+                "url": "https://github.com/sponsors/sindresorhus"
+            }
+        },
+        "node_modules/@babel/code-frame": {
+            "version": "7.29.0",
+            "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.0.tgz",
+            "integrity": "sha512-9NhCeYjq9+3uxgdtp20LSiJXJvN0FeCtNGpJxuMFZ1Kv3cWUNb6DOhJwUvcVCzKGR66cw4njwM6hrJLqgOwbcw==",
+            "dependencies": {
+                "@babel/helper-validator-identifier": "^7.28.5",
+                "js-tokens": "^4.0.0",
+                "picocolors": "^1.1.1"
+            },
+            "engines": {
+                "node": ">=6.9.0"
+            }
+        },
+        "node_modules/@babel/compat-data": {
+            "version": "7.29.0",
+            "resolved": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.29.0.tgz",
+            "integrity": "sha512-T1NCJqT/j9+cn8fvkt7jtwbLBfLC/1y1c7NtCeXFRgzGTsafi68MRv8yzkYSapBnFA6L3U2VSc02ciDzoAJhJg==",
+            "dev": true,
+            "engines": {
+                "node": ">=6.9.0"
+            }
+        },
+
+[TRUNCATED] Showing first 80 of 6416 lines.
+--- package.json ---
+{
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "dev:hot": "vite --host 0.0.0.0 --port 5174 --strictPort",
+        "dev:watch": "vite build --watch",
+        "dev:watch:poll": "CHOKIDAR_USEPOLLING=1 vite build --watch",
+        "dev:workflow:start": "bash ./scripts/dev-workflow.sh start",
+        "dev:workflow:stop": "bash ./scripts/dev-workflow.sh stop",
+        "dev:workflow:status": "bash ./scripts/dev-workflow.sh status",
+        "dev:workflow:logs": "bash ./scripts/dev-workflow.sh logs"
+    },
+    "devDependencies": {
+        "@headlessui/react": "^2.0.0",
+        "@inertiajs/react": "^2.0.0",
+        "@tailwindcss/forms": "^0.5.3",
+        "@tailwindcss/vite": "^4.0.0",
+        "@vitejs/plugin-react": "^4.2.0",
+        "autoprefixer": "^10.4.12",
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0.0",
+        "postcss": "^8.4.31",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "tailwindcss": "^3.2.1",
+        "vite": "^7.0.7"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@mui/material": "^9.0.1",
+        "@mui/x-charts": "^9.2.0",
+        "@radix-ui/react-alert-dialog": "^1.1.15",
+        "@radix-ui/react-dialog": "^1.1.15",
+        "@radix-ui/react-progress": "^1.1.8",
+        "@radix-ui/react-separator": "^1.1.8",
+        "@radix-ui/react-slot": "^1.2.4",
+        "@radix-ui/react-tooltip": "^1.2.8",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "i18next": "^26.0.3",
+        "i18next-browser-languagedetector": "^8.2.1",
+        "jszip": "^3.10.1",
+        "lucide-react": "^0.577.0",
+        "qrcode": "^1.5.4",
+        "qrcode.react": "^4.2.0",
+        "react-i18next": "^17.0.2",
+        "sonner": "^2.0.7",
+        "tailwind-merge": "^3.5.0",
+        "tailwindcss-animate": "^1.0.7"
+    }
+}
+
+
+=== ENTRY POINTS ===
+Found: public/index.php
+
+=== LINTING AND FORMATTING CONFIG ===
+Found: .editorconfig
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+--- .env.example ---
+APP_NAME=CRM KazUTB
+APP_ENV=local
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=
+DB_USERNAME=
+DB_PASSWORD=
+# CACHE_PREFIX=
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=log
+MAIL_SCHEME=null
+MAIL_HOST=127.0.0.1
+MAIL_PORT=2525
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+VITE_APP_NAME="${APP_NAME}"
+
+AD_ENABLED=false
+AD_HOST=dc1.kaztbu.edu.kz
+AD_PORT=636
+AD_USE_SSL=true
+AD_TIMEOUT=5
+AD_BIND_DN=api-kiosk@kaztbu.edu.kz
+AD_BIND_PASSWORD=
+AD_BASE_DN=ou=Univer,dc=kaztbu,dc=edu,dc=kz
+AD_LOGIN_FIELD=samaccountname
+AD_USER_FILTER='(&(objectClass=user)(objectCategory=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+AD_REQUIRE_CERT=true
+
+TOPIC_AI_ENABLED=false
+TOPIC_AI_ENDPOINT=https://api.openai.com/v1/chat/completions
+TOPIC_AI_MODEL=gpt-4o-mini
+TOPIC_AI_API_KEY=
+TOPIC_AI_TIMEOUT=15
+
+# Frontend env vars
+VITE_APP_NAME="${APP_NAME}"
+VITE_HOME_URL=http://10.0.1.47/
+VITE_LIBRARY_URL=http://10.0.1.8/
+# Comma-separated emails allowed to manage Templates (besides admins)
+TEMPLATES_ALLOWED_EMAILS=
+
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+None found.
+
+=== GIT RECENT COMMITS (last 20) ===
+1ed5a65 fix(build): stabilize JSX structure and production build
+dce7af4 fix(migration): make stale structural confirmation reset safety-compatible
+1ea55db Merge remote-tracking branch 'origin/main' into dev
+693e052 feat(kpi): export XLSX, kpi_admin grant access, SP actionable fix, UI cleanup
+1f1548b chore(prod): checkpoint direct production changes before deploy
+e6c0839 style: standardize admin page wrapper with admin-page-wrap class (Task C)
+3bf7262 fix(ux): replace 32 window.confirm calls with ConfirmDialog (Task F)
+7d5f054 fix(ux): replace 5 window.alert calls with Sonner toast (Task G)
+aca36cb chore: delete 8 unreferenced draft files (_new.jsx / .new.jsx)
+7047a86 fix(security): replace hardcoded IPs and email gate with env/config
+52589a6 chore(ui): checkpoint before phase3 responsive remediation
+6ca1cc0 Merge remote-tracking branch 'origin/main' into dev
+77ab64f fix(dev): sync KPI delete policy hotfix
+86e134a fix(prod): allow owner delete for KPI draft entries
+fb391a2 fix(kpi): reset stale rejected structural confirmations via data migration
+a2cd56a release(rel_20260528_073433): merge dev into main
+ac7fb1b Merge remote-tracking branch 'origin/main' into dev
+4bcb486 chore: commit текущие локальные изменения
+aa2278b fix(deploy): correct protected-path guards to new canonical locations
+a889b32 fix(deploy): update protected-path guards to canonical doc locations
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+  15 scripts/backup_prod.sh
+  12 app/Http/Controllers/KpiEntryController.php
+  11 resources/js/Pages/Kpi/TeacherDashboard.jsx
+  11 resources/js/Pages/Welcome.jsx
+  11 resources/js/components/app-sidebar.jsx
+   9 resources/js/Pages/Kpi/ModerationQueue.jsx
+   9 scripts/deploy/lib_deploy_common.sh
+   9 docs/deployment.md
+   9 routes/web.php
+   8 resources/js/Pages/Kpi/EntryShow.jsx
+   8 app/Http/Controllers/DirectoryUserController.php
+   8 resources/js/Layouts/AuthenticatedLayout.jsx
+   8 .gitignore
+   8 scripts/deploy/check_deploy_safety.sh
+   8 app/Http/Controllers/Auth/AuthenticatedSessionController.php
+   8 app/Http/Controllers/ProfileController.php
+   7 resources/js/Pages/Kpi/StructuralUnitShow.jsx
+   7 resources/js/Pages/Users/Index.jsx
+   7 app/Http/Controllers/KpiSummaryController.php
+   7 app/Http/Middleware/EnsurePanelRoleAccess.php
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 4006
+Total lines of code: 122904
+
+Files by language:
+  Other: 3363
+  PHP: 467
+  JavaScript/React: 164
+  JavaScript: 9
+  Python: 3
+
+Top 10 largest files:
+backups/dev_before_manual_prod_data_sync_20260603_080522/dev_storage_public_before_sync.tar.gz: 9826679.4KB
+backups/dev_before_prod_sync_20260526_190758/storage_public_before_sync.tar.gz: 9816720.8KB
+backups/dev_before_manual_prod_data_sync_20260603_080202/dev_storage_public_before_sync.tar.gz: 2821120.0KB
+backups/dev_before_manual_prod_data_sync_20260603_080345/dev_storage_public_before_sync.tar.gz: 2603264.0KB
+storage/app/public/kpi/entries/2509/l8y1LeJJZfIB8Qt2oiDsVew6gucfVzwfypEEdZ0s.mov: 99010.6KB
+storage/app/public/kpi/entries/2867/7l75pUrAd0FujNGZHUGHaFuUoXO4YjINjduO08ua.mov: 99010.6KB
+storage/app/public/kpi/entries/1654/6IuXsDkCW4CJCLeffvxuPPyo5zkBMv8wVgmgTxGC.pdf: 94074.7KB
+storage/app/public/kpi/entries/2564/uTox8YmB3ibegNdLAfAzV6MS8KA3eoqjURFfG7Uw.pdf: 94074.7KB
+storage/app/public/kpi/entries/2463/1LkZcEMYH3feOOZ2j44rZynWkuXKIqT7hOLrtCdR.pdf: 94074.7KB
+storage/app/public/kpi/entries/2461/58BNJUzbNmPixJsidCo3fDXrvkWIZWya0Ar4crIW.pdf: 94074.7KB
+
+=== CI/CD PIPELINES ===
+No CI/CD pipelines detected.
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===

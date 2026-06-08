@@ -68,6 +68,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
     const [activeTab, setActiveTab] = useState(PAGE_TABS[initialTab] ? initialTab : 'indicators');
     const staffOptions = accessOptions.staff ?? [];
     const canManageFullAccess = Boolean(accessPermissions.canManageFullAccess);
+    const requiresFullAccessReason = Boolean(accessPermissions.requiresDangerousActionReason);
     const [accessSearch, setAccessSearch] = useState('');
     const [accessSearchOpen, setAccessSearchOpen] = useState(false);
     const teacherRules = (npuSettings.teacher?.rules ?? []).map((rule) => ({
@@ -78,6 +79,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
 
     const accessForm = useForm({
         user_id: '',
+        reason: '',
     });
 
     const { data, setData, post, processing, recentlySuccessful, errors } = useForm({
@@ -136,14 +138,31 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
     };
 
     const revokeAccess = (grantId) => {
+        let reason = '';
+
+        if (requiresFullAccessReason) {
+            reason = window.prompt('Укажите reason для отзыва KPI-admin доступа') ?? '';
+
+            if (reason.trim().length < 8) {
+                accessForm.setError('reason', 'Reason должен быть минимум 8 символов.');
+                return;
+            }
+        }
+
+        accessForm.clearErrors('reason');
+
         setConfirmState({
             open: true,
             description: 'Отозвать KPI-админ доступ у сотрудника?',
-            onConfirm: () => accessForm.delete(route('kpi.settings.accesses.destroy', grantId), { preserveScroll: true }),
+            onConfirm: () => router.delete(route('kpi.settings.accesses.destroy', grantId), {
+                data: { reason: reason.trim() },
+                preserveScroll: true,
+            }),
         });
     };
 
     const accessSearchNormalized = accessSearch.trim().toLowerCase();
+    const accessReasonReady = !requiresFullAccessReason || accessForm.data.reason.trim().length >= 8;
     const selectedAccessUser = staffOptions.find((staff) => String(staff.id) === String(accessForm.data.user_id));
     const filteredAccessStaff = accessSearchNormalized === ''
         ? staffOptions.slice(0, 8)
@@ -326,7 +345,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                             <CardContent>
                                 {!canManageFullAccess && (
                                     <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                                        Только системные администраторы и KPI-администраторы могут назначать и отзывать полный доступ KPI.
+                                        Полный KPI-admin доступ могут выдавать только admin, superadmin и governance elevated категории business/technical.
                                     </div>
                                 )}
 
@@ -371,7 +390,20 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         {accessForm.errors.user_id && <div className="text-xs text-destructive">{accessForm.errors.user_id}</div>}
                                     </div>
 
-                                    <Button type="submit" disabled={!canManageFullAccess || accessForm.processing || !accessForm.data.user_id}>
+                                    {requiresFullAccessReason && (
+                                        <div className="min-w-[260px] flex-1 space-y-2">
+                                            <label className="text-sm font-medium">Reason</label>
+                                            <Input
+                                                disabled={!canManageFullAccess}
+                                                value={accessForm.data.reason}
+                                                onChange={(e) => accessForm.setData('reason', e.target.value)}
+                                                placeholder="Не менее 8 символов"
+                                            />
+                                            {accessForm.errors.reason && <div className="text-xs text-destructive">{accessForm.errors.reason}</div>}
+                                        </div>
+                                    )}
+
+                                    <Button type="submit" disabled={!canManageFullAccess || accessForm.processing || !accessForm.data.user_id || !accessReasonReady}>
                                         <KeyRound className="mr-2 h-4 w-4" />
                                         Назначить KPI-админом
                                     </Button>

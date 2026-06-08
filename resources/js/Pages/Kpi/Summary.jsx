@@ -974,7 +974,52 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
     );
 }
 
-function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExportExcel }) {
+function RankBandGrid({ groups = [] }) {
+    if (!groups.length) {
+        return null;
+    }
+
+    return (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {groups.map((group) => (
+                <div key={group.key} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{group.label}</p>
+                    <p className="mt-1 text-xl font-semibold text-[#132844]">{Number(group.count ?? 0)}</p>
+                    <p className="text-[11px] text-muted-foreground">сотрудников</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function PositionGroupTable({ groups = [] }) {
+    if (!groups.length) {
+        return null;
+    }
+
+    return (
+        <div className="admin-table-wrap">
+            <table className="admin-data-table min-w-[460px]">
+                <thead>
+                    <tr>
+                        <th className="ps-3">Должностная группа</th>
+                        <th className="w-24 text-right pe-3">Кол-во</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {groups.map((group) => (
+                        <tr key={group.key}>
+                            <td className="ps-3 font-medium">{group.label}</td>
+                            <td className="pe-3 text-right tabular-nums font-semibold text-[#139AA4]">{Number(group.count ?? 0)}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExportExcel, rankGroups = [], positionGroups = [] }) {
     const [facultyFilter, setFacultyFilter] = useState('');
     const [departmentFilter, setDepartmentFilter] = useState('');
     const [tableSearch, setTableSearch] = useState('');
@@ -1092,6 +1137,20 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                         note="НПУ определяется по степени (настройки НПУ)"
                     />
                 </div>
+
+                {rankGroups.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                        <RankBandGrid groups={rankGroups} />
+                    </div>
+                )}
+
+                {positionGroups.length > 0 && (
+                    <div className="mb-4 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Списки по должностям</p>
+                        <PositionGroupTable groups={positionGroups} />
+                    </div>
+                )}
 
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                     <select
@@ -1946,6 +2005,8 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
             {tab === 'teachers' && (
                 <PpsReportSection
                     rows={summary.top_teachers}
+                    rankGroups={summary.teacher_rank_groups ?? []}
+                    positionGroups={summary.teacher_position_groups ?? []}
                     academicYear={academicYear}
                     period={period}
                     filters={filters}
@@ -1981,6 +2042,12 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                             note="НПУ определяется по настройкам для зав. кафедрой"
                         />
                     </div>
+                    {(summary.hod_rank_groups?.length ?? 0) > 0 && (
+                        <div className="mb-4 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                            <RankBandGrid groups={summary.hod_rank_groups ?? []} />
+                        </div>
+                    )}
                     <div className="mb-4">
                         <Input
                             value={hodSearch}
@@ -2030,6 +2097,12 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                             note="НПУ определяется по настройкам для декана"
                         />
                     </div>
+                    {(summary.dean_rank_groups?.length ?? 0) > 0 && (
+                        <div className="mb-4 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                            <RankBandGrid groups={summary.dean_rank_groups ?? []} />
+                        </div>
+                    )}
                     <div className="mb-4">
                         <Input
                             value={deanSearch}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Position;
 use App\Models\Division;
+use App\Services\UniversityAuthorityCatalogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,6 +23,7 @@ class PositionController extends Controller
 
         return Inertia::render('Positions/Index', [
             'positions' => $positions,
+            'catalog' => app(UniversityAuthorityCatalogService::class)->auditReport(),
             'divisions' => Division::query()
                 ->orderBy('name')
                 ->get(['id', 'name']),

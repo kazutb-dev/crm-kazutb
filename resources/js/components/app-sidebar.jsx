@@ -45,10 +45,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-const SIDEBAR_GROUPS_STORAGE_KEY = 'kazutb.crm.sidebar.expanded-groups.v1';
+const SIDEBAR_GROUPS_STORAGE_KEY = 'kazutb.crm.sidebar.expanded-groups.v2';
 const SIDEBAR_GROUP_KEYS = [
     'main',
     'directories',
+    'governance',
     'kpi',
     'questionnaire',
     'hr',
@@ -56,6 +57,7 @@ const SIDEBAR_GROUP_KEYS = [
     'calendarAdmin',
     'calendarShared',
     'templates',
+    'deptRequests',
 ];
 
 const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
@@ -123,7 +125,6 @@ export function AppSidebar() {
     const roleSlug = auth.roleSlug;
     const kpiGrants = new Set(kpi?.grants ?? []);
     const TEMP_HIDE_MAIN_MENUS = false;
-    const canManageTemplates = auth.canManageTemplates ?? false;
     const isAdminRole = ['admin', 'superadmin'].includes(roleSlug);
     const isKpiAdminGrant =
         kpiGrants.has('kpi_admin')
@@ -136,7 +137,8 @@ export function AppSidebar() {
     const isDepartmentRole = roleSlug === 'department';
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
-    const canAccessTemplatesSection = isAdminRole || canManageTemplates;
+    const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
+    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
     const canAccessPositionRequests =
         isAdminRole
         || isStructuralRole
@@ -460,7 +462,7 @@ export function AppSidebar() {
 
     const hr = isAdminRole ? [
         {
-            title: 'HR Dashboard',
+            title: 'Панель HR',
             href: route('hr.dashboard'),
             icon: BarChart3,
             active: route().current('hr.dashboard'),
@@ -490,7 +492,7 @@ export function AppSidebar() {
             active: route().current('hr.perco.early'),
         },
         {
-            title: 'Отчет',
+            title: 'Отчеты',
             href: route('hr.perco.timetracking'),
             icon: Clock,
             active: route().current('hr.perco.timetracking'),
@@ -505,7 +507,7 @@ export function AppSidebar() {
 
     const library = isAdminRole ? [
         {
-            title: 'Library Dashboard',
+            title: 'Главная',
             href: route('library.dashboard'),
             icon: BookOpenText,
             active: route().current('library.dashboard'),
@@ -518,7 +520,7 @@ export function AppSidebar() {
         },
         ...(isAdminRole
             ? [{
-                title: 'Брони книг',
+                title: 'Бронирование книг',
                 href: route('library.reservations.admin'),
                 icon: Timer,
                 active: route().current('library.reservations.admin'),
@@ -631,6 +633,59 @@ export function AppSidebar() {
         },
     ];
 
+    // Department requests — visible to all authenticated users
+    const deptRequestItems = [
+        {
+            title: 'Мои заявки',
+            href: route('dept-requests.index'),
+            icon: ClipboardList,
+            active: route().current('dept-requests.index'),
+        },
+        {
+            title: 'Отделы',
+            href: route('dept-requests.departments'),
+            icon: BookOpenText,
+            active: route().current('dept-requests.departments'),
+        },
+        ...(isAdminRole ? [
+            {
+                title: 'Все заявки',
+                href: route('dept-requests.admin'),
+                icon: AlertCircle,
+                active: route().current('dept-requests.admin'),
+            },
+        ] : [
+            // Non-admin but assigned as handler
+        ]),
+    ];
+
+    const governance = isAdminRole ? [
+        {
+            title: 'Запросы доступа',
+            href: route('governance.access-requests'),
+            icon: ShieldCheck,
+            active: route().current('governance.access-requests'),
+        },
+        {
+            title: 'Оргструктура',
+            href: route('governance.org-structure'),
+            icon: Building2,
+            active: route().current('governance.org-structure'),
+        },
+        {
+            title: 'Роль-доступ',
+            href: route('governance.role-access'),
+            icon: UserCog,
+            active: route().current('governance.role-access'),
+        },
+        {
+            title: 'Журнал полномочий',
+            href: route('governance.authority-ledger'),
+            icon: History,
+            active: route().current('governance.authority-ledger'),
+        },
+    ] : [];
+
     const { state: sidebarState } = useSidebar();
     const sidebarContentRef = useRef(null);
     const groupRefs = useRef({});
@@ -644,6 +699,7 @@ export function AppSidebar() {
 
     const groupActivity = {
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && management.some((item) => item.active),
+        governance: isAdminRole && !showOnlyKpiMenus && governance.some((item) => item.active),
         kpi: kpiMenuItems.length > 0 && kpiMenuItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
@@ -651,6 +707,7 @@ export function AppSidebar() {
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
+        deptRequests: !showOnlyKpiMenus && deptRequestItems.some((item) => item.active),
     };
 
     const activeGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupActivity[key]);
@@ -742,6 +799,7 @@ export function AppSidebar() {
     const groupVisibility = {
         main: !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
+        governance: isAdminRole && !showOnlyKpiMenus,
         kpi: kpiMenuItems.length > 0,
         questionnaire: isAdminRole && !showOnlyKpiMenus,
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
@@ -749,11 +807,13 @@ export function AppSidebar() {
         library: isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus,
+        deptRequests: !showOnlyKpiMenus,
     };
 
     const groupItems = {
         main: navigation,
         directories: management,
+        governance,
         kpi: kpiMenuItems,
         questionnaire,
         calendarShared: nonAdminCalendarItems,
@@ -761,6 +821,7 @@ export function AppSidebar() {
         library,
         calendarAdmin: adminCalendarItems,
         templates: templateItems,
+        deptRequests: deptRequestItems,
     };
 
     const visibleGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupVisibility[key] && (groupItems[key]?.length ?? 0) > 0);
@@ -868,6 +929,10 @@ export function AppSidebar() {
                     renderGroup('directories', 'Справочники', management)
                 )}
 
+                {isAdminRole && !showOnlyKpiMenus && (
+                    renderGroup('governance', 'Управление доступом', governance)
+                )}
+
                 {kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
                 )}
@@ -876,9 +941,9 @@ export function AppSidebar() {
                     renderGroup('questionnaire', 'Анкетирование', questionnaire)
                 )}
 
-                {/* Smart Calendar for non-admin users with calendar access */}
+                {/* Календарь для пользователей без прав администратора */}
                 {!isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && (
-                    renderGroup('calendarShared', 'Smart Calendar', nonAdminCalendarItems)
+                    renderGroup('calendarShared', 'Календарь', nonAdminCalendarItems)
                 )}
 
                 {isAdminRole && !showOnlyKpiMenus && (
@@ -890,11 +955,15 @@ export function AppSidebar() {
                 )}
 
                 {isAdminRole && !showOnlyKpiMenus && (
-                    renderGroup('calendarAdmin', 'Smart Calendar', adminCalendarItems)
+                    renderGroup('calendarAdmin', 'Календарь', adminCalendarItems)
                 )}
 
                 {canAccessTemplatesSection && !showOnlyKpiMenus && (
                     renderGroup('templates', 'Шаблоны и сертификаты', templateItems)
+                )}
+
+                {!showOnlyKpiMenus && deptRequestItems.length > 0 && (
+                    renderGroup('deptRequests', 'Заявки', deptRequestItems)
                 )}
             </SidebarContent>
 
@@ -902,7 +971,7 @@ export function AppSidebar() {
                 <SidebarMenu className="gap-1">
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Главная">
-                            <a href={route('dashboard')}>
+                            <a href="http://10.0.1.47/">
                                 <Home />
                                 <span>Главная</span>
                             </a>

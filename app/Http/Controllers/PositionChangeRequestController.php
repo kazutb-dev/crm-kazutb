@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KpiAccessGrant;
+use App\Models\GovernanceAccessRequest;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
 use App\Services\BusinessActivityLogger;
+use App\Services\ElevatedAuthorityService;
+use App\Services\GovernanceAccessRequestService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,17 +36,18 @@ class PositionChangeRequestController extends Controller
             'requested_position_id' => ['required', 'integer', 'exists:positions,id'],
         ]);
 
-        PositionChangeRequest::create([
-            'user_id'               => $user->id,
-            'current_position'      => $user->position_title ?: $user->ad_title,
-            'requested_position_id' => $data['requested_position_id'],
-            'status'                => 'pending',
-        ]);
+        $governanceRequest = app(GovernanceAccessRequestService::class)->submitPositionRequest(
+            $user,
+            $user,
+            (int) $data['requested_position_id'],
+            null,
+            'legacy_position_request'
+        );
 
         app(BusinessActivityLogger::class)->log(
             'position_request_created',
             'Создана заявка на смену должности',
-            null,
+            $governanceRequest,
             [
                 'requested_position_id' => $data['requested_position_id'],
             ],
@@ -58,57 +61,15 @@ class PositionChangeRequestController extends Controller
     /**
      * Admin: view all requests.
      */
-    public function adminIndex(Request $request): Response
+    public function adminIndex(Request $request): RedirectResponse
     {
-        abort_unless($this->isAdmin($request), 403);
+        $user = $request->user();
+        abort_unless($user, 403);
+        abort_unless(app(ElevatedAuthorityService::class)->canAccessGovernanceSurface($user), 403);
 
-        $status = $request->query('status', 'pending');
-
-        $query = PositionChangeRequest::query()
-            ->with([
-                'user:id,name,display_name,email,ad_department',
-                'requestedPosition:id,name',
-                'reviewer:id,name,display_name',
-            ])
-            ->latest();
-
-        if (in_array($status, ['pending', 'approved', 'rejected'], true)) {
-            $query->where('status', $status);
-        }
-
-        $requests = $query->paginate(20)->withQueryString();
-
-        $requests->getCollection()->transform(fn (PositionChangeRequest $r) => [
-            'id'                  => $r->id,
-            'user'                => [
-                'id'         => $r->user?->id,
-                'name'       => $r->user?->display_name ?? $r->user?->name,
-                'email'      => $r->user?->email,
-                'department' => $r->user?->ad_department,
-            ],
-            'current_position'    => $r->current_position,
-            'requested_position'  => $r->requestedPosition?->name,
-            'requested_position_id' => $r->requested_position_id,
-            'status'              => $r->status,
-            'admin_note'          => $r->admin_note,
-            'reviewer'            => $r->reviewer?->display_name ?? $r->reviewer?->name,
-            'reviewed_at'         => $r->reviewed_at?->toDateTimeString(),
-            'created_at'          => $r->created_at?->toDateTimeString(),
-        ]);
-
-        $counts = PositionChangeRequest::query()
-            ->selectRaw('status, count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status');
-
-        return Inertia::render('PositionRequests/AdminIndex', [
-            'requests' => $requests,
-            'counts'   => [
-                'pending'  => (int) ($counts['pending'] ?? 0),
-                'approved' => (int) ($counts['approved'] ?? 0),
-                'rejected' => (int) ($counts['rejected'] ?? 0),
-            ],
-            'filters'  => ['status' => $status],
+        return redirect()->route('governance.access-requests', [
+            'request_type' => GovernanceAccessRequest::TYPE_POSITION,
+            'status' => $request->query('status', GovernanceAccessRequest::STATUS_PENDING),
         ]);
     }
 
@@ -117,7 +78,8 @@ class PositionChangeRequestController extends Controller
      */
     public function approve(Request $request, PositionChangeRequest $positionRequest): RedirectResponse
     {
-        abort_unless($this->isAdmin($request), 403);
+        $decision = $this->abortUnlessDangerousActionAllowed($request, 'position_request_decision');
+        $reason = $this->validateDangerousActionReason($request, (bool) ($decision['reason_required'] ?? false));
 
         if (! $positionRequest->isPending()) {
             return back()->withErrors(['error' => 'Заявка уже обработана.']);
@@ -150,10 +112,18 @@ class PositionChangeRequestController extends Controller
             [
                 'approved_position_id' => $position->id,
                 'admin_note' => $data['admin_note'] ?? null,
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
+
+        $this->logSuperAdminOverride($request, 'position_request_approved', [
+            'position_request_id' => $positionRequest->id,
+            'approved_position_id' => $position->id,
+            'reason' => $reason,
+            'authority_decision' => $decision,
+        ]);
 
         return back()->with('success', 'Заявка одобрена, должность обновлена.');
     }
@@ -163,7 +133,8 @@ class PositionChangeRequestController extends Controller
      */
     public function reject(Request $request, PositionChangeRequest $positionRequest): RedirectResponse
     {
-        abort_unless($this->isAdmin($request), 403);
+        $decision = $this->abortUnlessDangerousActionAllowed($request, 'position_request_decision');
+        $reason = $this->validateDangerousActionReason($request, (bool) ($decision['reason_required'] ?? false));
 
         if (! $positionRequest->isPending()) {
             return back()->withErrors(['error' => 'Заявка уже обработана.']);
@@ -186,24 +157,66 @@ class PositionChangeRequestController extends Controller
             $positionRequest,
             [
                 'admin_note' => $data['admin_note'] ?? null,
+                'reason' => $reason,
             ],
             $request->user(),
             $request,
         );
 
+        $this->logSuperAdminOverride($request, 'position_request_rejected', [
+            'position_request_id' => $positionRequest->id,
+            'reason' => $reason,
+            'authority_decision' => $decision,
+        ]);
+
         return back()->with('success', 'Заявка отклонена.');
     }
 
-    private function isAdmin(Request $request): bool
+    /**
+     * @return array<string, mixed>
+     */
+    private function abortUnlessDangerousActionAllowed(Request $request, string $action): array
     {
         $user = $request->user();
-        $role = $user?->resolvedRoleSlug();
+        abort_unless($user, 403);
 
-        if ($user && KpiAccessGrant::userHasKpiAdmin((int) $user->id)) {
-            return true;
+        $decision = app(ElevatedAuthorityService::class)->evaluateDangerousAction($user, $action);
+
+        if (! ($decision['allow'] ?? false)) {
+            abort(403, 'Недостаточно категориальных elevated-полномочий.');
         }
 
-        // Доступ: kpi-админ, структурное подразделение, декан, завкафедрой
-        return in_array($role, ['admin', 'superadmin', 'structural', 'dean', 'hod', 'department_head'], true);
+        return $decision;
+    }
+
+    private function validateDangerousActionReason(Request $request, bool $required): ?string
+    {
+        $rules = $required
+            ? ['required', 'string', 'min:8', 'max:500']
+            : ['nullable', 'string', 'max:500'];
+
+        $validated = $request->validate([
+            'reason' => $rules,
+        ]);
+
+        return isset($validated['reason']) ? trim((string) $validated['reason']) : null;
+    }
+
+    private function logSuperAdminOverride(Request $request, string $action, array $context = []): void
+    {
+        $actor = $request->user();
+
+        if (! $actor || $actor->resolvedRoleSlug() !== 'superadmin') {
+            return;
+        }
+
+        app(BusinessActivityLogger::class)->log(
+            'superadmin_override',
+            'Superadmin override: ' . $action,
+            null,
+            $context,
+            $actor,
+            $request,
+        );
     }
 }
