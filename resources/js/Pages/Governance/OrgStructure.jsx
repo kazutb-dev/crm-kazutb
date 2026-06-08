@@ -234,7 +234,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
 
             <div className="admin-page-wrap space-y-5">
                 <PageHeader
-                    eyebrow="Governance"
+                    eyebrow="Управление доступом"
                     title="Оргструктура"
                     description="Формальный организационный каталог для governance, scope и approvals."
                     actions={(

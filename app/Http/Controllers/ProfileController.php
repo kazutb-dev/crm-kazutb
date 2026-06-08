@@ -418,43 +418,43 @@ class ProfileController extends Controller
                 ->where('user_id', $user->id)
                 ->where('is_active', true)
                 ->get(['id', 'permission'])
-                ->map(fn (KpiAccessGrant $g) => ['id' => $g->id, 'permission' => $g->permission])
+                ->map(fn(KpiAccessGrant $g) => ['id' => $g->id, 'permission' => $g->permission])
                 ->values()
                 ->all(),
             'elevated_authority' => Schema::hasTable('scoped_grants')
                 ? app(ElevatedAuthorityService::class)->resolveForUser($user)
                 : null,
-            'certificates' => Schema::hasTable('certificates')
+            'certificates' => Schema::hasTable('certificates') && Schema::hasColumn('certificates', 'issued_to_user_id')
                 ? \App\Models\Certificate::query()
-                    ->where('issued_to_user_id', $user->id)
-                    ->latest('issued_at')
-                    ->limit(10)
-                    ->get(['id', 'certificate_number', 'issued_at', 'status'])
-                    ->map(fn ($c) => [
-                        'id' => $c->id,
-                        'title' => $c->certificate_number,
-                        'certificate_number' => $c->certificate_number,
-                        'issued_at' => $c->issued_at?->toDateString(),
-                        'status' => $c->status ?? 'issued',
-                    ])
-                    ->values()
-                    ->all()
+                ->where('issued_to_user_id', $user->id)
+                ->latest('issued_at')
+                ->limit(10)
+                ->get(['id', 'certificate_number', 'issued_at', 'status'])
+                ->map(fn($c) => [
+                    'id' => $c->id,
+                    'title' => $c->certificate_number,
+                    'certificate_number' => $c->certificate_number,
+                    'issued_at' => $c->issued_at?->toDateString(),
+                    'status' => $c->status ?? 'issued',
+                ])
+                ->values()
+                ->all()
                 : [],
             'recent_activity' => Schema::hasTable('activity_log')
                 ? \Spatie\Activitylog\Models\Activity::query()
-                    ->where('causer_id', $user->id)
-                    ->where('causer_type', User::class)
-                    ->latest()
-                    ->limit(8)
-                    ->get(['id', 'description', 'created_at'])
-                    ->map(fn ($a) => [
-                        'id' => $a->id,
-                        'description' => $a->description,
-                        'created_at' => $a->created_at?->toIso8601String(),
-                        'created_at_human' => $a->created_at?->diffForHumans(),
-                    ])
-                    ->values()
-                    ->all()
+                ->where('causer_id', $user->id)
+                ->where('causer_type', User::class)
+                ->latest()
+                ->limit(8)
+                ->get(['id', 'description', 'created_at'])
+                ->map(fn($a) => [
+                    'id' => $a->id,
+                    'description' => $a->description,
+                    'created_at' => $a->created_at?->toIso8601String(),
+                    'created_at_human' => $a->created_at?->diffForHumans(),
+                ])
+                ->values()
+                ->all()
                 : [],
             'ad_employee_type' => $user->ad_employee_type ?? null,
             'ad_description' => $user->ad_description ?? null,

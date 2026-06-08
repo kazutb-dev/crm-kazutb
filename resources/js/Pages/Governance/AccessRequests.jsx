@@ -53,6 +53,17 @@ function formatDate(value) {
     }).format(date);
 }
 
+function waitingLabel(createdAt) {
+    if (!createdAt) return null;
+    const diffMs = Date.now() - new Date(createdAt).getTime();
+    const hours = Math.floor(diffMs / 3_600_000);
+    if (hours < 1) return { text: 'менее часа', tone: 'text-emerald-700' };
+    if (hours < 24) return { text: `${hours} ч`, tone: 'text-slate-600' };
+    const days = Math.floor(hours / 24);
+    if (days <= 3) return { text: `${days} дн`, tone: 'text-amber-700' };
+    return { text: `${days} дн ⚠`, tone: 'text-red-700 font-semibold' };
+}
+
 function renderValueSummary(requestValue) {
     if (!requestValue) return '—';
 
@@ -153,9 +164,9 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
 
             <div className="admin-page-wrap space-y-5">
                 <PageHeader
-                    eyebrow="Governance"
+                    eyebrow="Управление доступом"
                     title="Запросы согласования"
-                    description="Очередь согласования trusted-effective профиля и org binding."
+                    description="Очередь согласования профиля и организационной привязки."
                     meta={<StatusBadge tone="warning">Ожидающие значения не дают доступ</StatusBadge>}
                 />
 
@@ -163,8 +174,8 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                     <Card className="border-red-200 bg-red-50/40 shadow-sm">
                         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                             <div>
-                                <p className="text-sm font-semibold text-red-900">Super Admin override</p>
-                                <p className="text-xs text-red-800">Approve/Reject требуют reason при dangerous action и пишутся в audit trail.</p>
+                                <p className="text-sm font-semibold text-red-900">Управление администратора</p>
+                                <p className="text-xs text-red-800">Одобрение и отклонение требуют указания причины для опасных действий. Все решения записываются в журнал аудита.</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
@@ -313,10 +324,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                     <tr>
                                         <th>Пользователь</th>
                                         <th>Тип / цепочка</th>
-                                        <th>Текущее effective</th>
+                                        <th>Текущее</th>
                                         <th>Запрошено</th>
                                         <th>Инициатор</th>
                                         <th>Статус</th>
+                                        <th>Ожидание</th>
                                         <th>Дата</th>
                                         <th className="text-right">Действия</th>
                                     </tr>
@@ -341,7 +353,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                                         {item.authority_route_label}
                                                     </Badge>
                                                 </div>
-                                                <div className="mt-1 text-xs text-muted-foreground">origin: {item.origin || '—'}</div>
+                                                {item.origin && <div className="mt-1 text-xs text-muted-foreground">Источник: {item.origin}</div>}
                                             </td>
                                             <td className="text-sm text-slate-700">{renderValueSummary(item.current_value)}</td>
                                             <td className="text-sm font-medium text-slate-900">{renderValueSummary(item.requested_value)}</td>
@@ -353,6 +365,12 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                                 <Badge variant="outline" className={STATUS_BADGES[item.status] ?? STATUS_BADGES.pending}>
                                                     {item.status_label}
                                                 </Badge>
+                                            </td>
+                                            <td>
+                                                {item.status === 'pending' && (() => {
+                                                    const w = waitingLabel(item.created_at);
+                                                    return w ? <span className={`text-xs ${w.tone}`}>{w.text}</span> : null;
+                                                })()}
                                             </td>
                                             <td className="text-sm text-muted-foreground">{formatDate(item.created_at)}</td>
                                             <td className="text-right">
@@ -402,13 +420,13 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                             <DialogHeader>
                                 <DialogTitle>{selectedRequest.request_type_label}: {selectedRequest.subject_user?.name}</DialogTitle>
                                 <DialogDescription>
-                                    Snapshot trusted-effective workflow: authorization использует только effective values.
+                                    Детали запроса согласования. Действуют только подтверждённые значения.
                                 </DialogDescription>
                             </DialogHeader>
 
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Текущее effective</CardTitle></CardHeader>
+                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Текущее значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.current_value, null, 2)}</pre>
                                     </CardContent>
@@ -422,14 +440,14 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Approved value / подтверждено</CardTitle></CardHeader>
+                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Подтверждённое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.approved_value ?? {}, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Effective value / применяется</CardTitle></CardHeader>
+                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Применяемое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.effective_value ?? {}, null, 2)}</pre>
                                     </CardContent>
@@ -439,25 +457,70 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                     <CardHeader className="pb-2"><CardTitle className="text-sm">Цепочка полномочий</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div><span className="text-muted-foreground">Маршрут:</span> {selectedRequest.authority_route_label}</div>
-                                        <div><span className="text-muted-foreground">Кандидаты approver:</span></div>
+                                        <div><span className="text-muted-foreground">Кандидаты на согласование:</span></div>
                                         <div className="flex flex-wrap gap-1">
                                             {(selectedRequest.authority_scope?.candidate_approvers ?? []).length ? selectedRequest.authority_scope.candidate_approvers.map((approver) => (
                                                 <Badge key={approver.id} variant="outline">{approver.name} ({approver.role_label})</Badge>
-                                            )) : <span className="text-xs text-muted-foreground">Нет зафиксированных candidates</span>}
+                                            )) : <span className="text-xs text-muted-foreground">Нет зафиксированных кандидатов</span>}
                                         </div>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Состояние review</CardTitle></CardHeader>
+                                    <CardHeader className="pb-2"><CardTitle className="text-sm">История и сроки</CardTitle></CardHeader>
+                                    <CardContent className="space-y-2 text-sm">
+                                        <div className="space-y-2">
+                                            <div className="flex items-start gap-2">
+                                                <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-400" />
+                                                <div>
+                                                    <span className="font-medium text-slate-800">Создан</span>
+                                                    <span className="ml-2 text-xs text-muted-foreground">{formatDate(selectedRequest.created_at)}</span>
+                                                    <div className="text-xs text-muted-foreground">{selectedRequest.requested_by_user?.name || '—'}</div>
+                                                </div>
+                                            </div>
+                                            {selectedRequest.approved_at && (
+                                                <div className="flex items-start gap-2">
+                                                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                                                    <div>
+                                                        <span className="font-medium text-emerald-800">Одобрен</span>
+                                                        <span className="ml-2 text-xs text-muted-foreground">{formatDate(selectedRequest.approved_at)}</span>
+                                                        <div className="text-xs text-muted-foreground">{selectedRequest.approver_user?.name || selectedRequest.approver?.name || '—'}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {selectedRequest.rejected_at && (
+                                                <div className="flex items-start gap-2">
+                                                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                                                    <div>
+                                                        <span className="font-medium text-red-800">Отклонён</span>
+                                                        <span className="ml-2 text-xs text-muted-foreground">{formatDate(selectedRequest.rejected_at)}</span>
+                                                        <div className="text-xs text-muted-foreground">{selectedRequest.rejection_reason || '—'}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {selectedRequest.effective_applied_at && (
+                                                <div className="flex items-start gap-2">
+                                                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                                                    <div>
+                                                        <span className="font-medium text-blue-800">Применено</span>
+                                                        <span className="ml-2 text-xs text-muted-foreground">{formatDate(selectedRequest.effective_applied_at)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Состояние рассмотрения</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div><span className="text-muted-foreground">Статус:</span> {selectedRequest.status_label}</div>
                                         <div><span className="text-muted-foreground">Инициатор:</span> {selectedRequest.requested_by_user?.name || '—'}</div>
-                                        <div><span className="text-muted-foreground">Approver:</span> {selectedRequest.approver_user?.name || '—'}</div>
+                                        <div><span className="text-muted-foreground">Рецензент:</span> {selectedRequest.approver_user?.name || selectedRequest.approver?.name || '—'}</div>
                                         <div><span className="text-muted-foreground">Комментарий заявки:</span> {selectedRequest.request_comment || '—'}</div>
-                                        <div><span className="text-muted-foreground">Комментарий review:</span> {selectedRequest.review_comment || '—'}</div>
-                                        <div><span className="text-muted-foreground">Причина отклонения:</span> {selectedRequest.rejection_reason || '—'}</div>
-                                        <div><span className="text-muted-foreground">Причина override:</span> {selectedRequest.override_reason || '—'}</div>
+                                        <div><span className="text-muted-foreground">Комментарий рецензента:</span> {selectedRequest.review_comment || '—'}</div>
+                                        {selectedRequest.rejection_reason && <div><span className="text-muted-foreground">Причина отклонения:</span> {selectedRequest.rejection_reason}</div>}
+                                        {selectedRequest.override_reason && <div><span className="text-muted-foreground">Принудительное решение:</span> {selectedRequest.override_reason}</div>}
                                     </CardContent>
                                 </Card>
                             </div>
@@ -490,7 +553,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                         className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
                                         value={reviewForm.data.review_comment}
                                         onChange={(event) => reviewForm.setData('review_comment', event.target.value)}
-                                        placeholder="Комментарий approver-а"
+                                        placeholder="Комментарий рецензента"
                                     />
                                 </div>
 

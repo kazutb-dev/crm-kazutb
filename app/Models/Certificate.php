@@ -19,6 +19,7 @@ class Certificate extends Model
         'template_id',
         'template_version_id',
         'certificate_number',
+        'issued_to_user_id',
         'recipient_full_name',
         'topic',
         'optional_json',
@@ -50,6 +51,11 @@ class Certificate extends Model
     public function templateVersion(): BelongsTo
     {
         return $this->belongsTo(CertificateTemplateVersion::class, 'template_version_id');
+    }
+
+    public function issuedToUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'issued_to_user_id');
     }
 
     public function createdBy(): BelongsTo

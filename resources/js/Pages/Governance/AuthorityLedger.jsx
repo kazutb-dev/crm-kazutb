@@ -93,10 +93,6 @@ function Pill({ children, tone = 'slate' }) {
 }
 
 function RowCard({ entry }) {
-    const actorName = entry.kind === 'delegation'
-        ? entry.delegate?.name ?? '—'
-        : entry.subject?.name ?? '—';
-
     return (
         <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3">
@@ -123,7 +119,7 @@ function RowCard({ entry }) {
                         <p className="mt-1 font-medium text-slate-900">{entry.kind === 'delegation' ? entry.delegation_type_label : entry.grant_type_label}</p>
                     </div>
                     <div>
-                        <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Scope</p>
+                        <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Область</p>
                         <p className="mt-1 font-medium text-slate-900">{entry.scope_label ?? '—'}</p>
                     </div>
                     <div>
@@ -157,6 +153,21 @@ function RowCard({ entry }) {
                         <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Причина</p>
                         <p className="mt-1 font-medium text-slate-900">{entry.reason ?? '—'}</p>
                     </div>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Кто выдал</p>
+                        <p className="mt-1 font-medium text-slate-900">{entry.grantor?.name ?? '—'}</p>
+                        {entry.starts_at && <p className="text-xs text-muted-foreground">{formatDate(entry.starts_at)}</p>}
+                    </div>
+                    {(entry.status === 'revoked' || entry.revoked_at) && (
+                        <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+                            <p className="text-xs uppercase tracking-[0.08em] text-red-600">Кто отозвал</p>
+                            <p className="mt-1 font-medium text-slate-900">{entry.revoker?.name ?? '—'}</p>
+                            {entry.revoked_at && <p className="text-xs text-muted-foreground">{formatDate(entry.revoked_at)}</p>}
+                            {entry.revocation_reason && <p className="text-xs text-slate-700">{entry.revocation_reason}</p>}
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -220,26 +231,26 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
 
             <div className="admin-page-wrap space-y-5">
                 <PageHeader
-                    eyebrow="Governance"
+                    eyebrow="Управление доступом"
                     title="Журнал полномочий"
-                    description="Журнал scoped grants, delegations и transitional legacy authority sources."
+                    description="Журнал назначенных прав, делегирований и переходных устаревших источников полномочий."
                     actions={(
                         <Button variant="outline" size="sm" onClick={() => router.visit(route('governance.role-access'))}>
                             Ролевой доступ
                         </Button>
                     )}
-                    meta={<StatusBadge tone="info">Governance authority layer</StatusBadge>}
+                    meta={<StatusBadge tone="info">Уровень управления доступом</StatusBadge>}
                 />
 
                 {canManageFoundation ? (
                     <Card className="border-red-200 bg-red-50/40 shadow-sm">
                         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                             <div>
-                                <p className="text-sm font-semibold text-red-900">Super Admin управление полномочиями</p>
-                                <p className="text-xs text-red-800">Создание, отзыв и override выполняются через audited grant workflows с обязательной причиной.</p>
+                                <p className="text-sm font-semibold text-red-900">Суперадмин-управление полномочиями</p>
+                                <p className="text-xs text-red-800">Создание, отзыв и принудительное переопределение выполняются через проверяемые процессы назначения прав с обязательной причиной.</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('kpi.settings', { tab: 'access' }))}>KPI grants</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('kpi.settings', { tab: 'access' }))}>Права KPI</Button>
                                 <Button size="sm" variant="outline" onClick={() => router.visit(route('users.admin-access'))}>Права администратора</Button>
                                 <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.role-access'))}>Ролевой доступ</Button>
                             </div>
@@ -302,7 +313,7 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
                                 onChange={(e) => updateFilters({ scope_type: e.target.value })}
                                 className="h-10 rounded-md border border-input bg-background px-3 text-sm"
                             >
-                                <option value="">Все типы scope</option>
+                                <option value="">Все типы областей</option>
                                 {(options.scope_types ?? []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
                         </div>
