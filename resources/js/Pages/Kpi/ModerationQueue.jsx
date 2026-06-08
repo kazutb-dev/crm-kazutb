@@ -294,6 +294,26 @@ export default function ModerationQueue({
         || roleSlug === 'superadmin'
         || Boolean(permissions?.canAdminModerate);
     const isStructuralMode = mode === 'structural';
+
+    const isEntryScopeActive = (entry) => {
+        if (!entry?.period || entry.period?.status !== 'active') {
+            return false;
+        }
+
+        if (mode === 'review') {
+            return Boolean(entry.period?.is_hod_active);
+        }
+
+        if (mode === 'approval') {
+            return Boolean(entry.period?.is_dean_active);
+        }
+
+        if (mode === 'structural') {
+            return Boolean(entry.period?.is_structural_active);
+        }
+
+        return true;
+    };
     const hasGlobalStructuralModerationAccess = isStructuralMode && isAdminViewer;
     const showBindingColumn = isAdminViewer || isStructuralMode;
     const hasUnrestrictedStructuralAccess = structuralScope?.type === 'unrestricted';
@@ -722,6 +742,8 @@ export default function ModerationQueue({
                                                                                     size="sm"
                                                                                     className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                                     onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                                    disabled={!isEntryScopeActive(entry) && !isAdminViewer}
+                                                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                                                                                     <span className="min-w-0 text-left">Утвердить</span>
@@ -737,6 +759,8 @@ export default function ModerationQueue({
                                                                                     size="sm"
                                                                                     className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                                     onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                                    disabled={!isEntryScopeActive(entry) && !isAdminViewer}
+                                                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                                                                                     <span className="min-w-0 text-left">Утвердить</span>
@@ -758,16 +782,16 @@ export default function ModerationQueue({
                                                                                     size="sm"
                                                                                     className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                                     variant={isPending ? 'default' : (item.status === 'approved' ? 'secondary' : 'destructive')}
-                                                                                    disabled={!isActionable || !canAct}
+                                                                                    disabled={!isActionable || !canAct || (!isEntryScopeActive(entry) && !isAdminViewer)}
                                                                                     onClick={() => submitAction(
                                                                                         'kpi.entries.structural-confirm',
                                                                                         entry.id,
                                                                                         null,
                                                                                         { structural_unit_id: item.structural_unit_id },
                                                                                     )}
-                                                                                    title={canAct
+                                                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : (canAct
                                                                                         ? `Подтвердить как ${item.name}`
-                                                                                        : `Статус другого СП: ${item.name}`}
+                                                                                        : `Статус другого СП: ${item.name}`)}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                                                                                     <span className="min-w-0 text-left">{item.shortName}</span>
@@ -782,6 +806,8 @@ export default function ModerationQueue({
                                                                             size="sm"
                                                                             className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                             onClick={() => submitAction('kpi.entries.approve', entry.id)}
+                                                                            disabled={!isEntryScopeActive(entry) && !isAdminViewer}
+                                                                            title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                                                                             <span className="min-w-0 text-left">Утвердить</span>
@@ -803,8 +829,10 @@ export default function ModerationQueue({
                                                                                     onClick={() => submitAction(
                                                                                         'kpi.entries.reject',
                                                                                         entry.id,
-                                                                                        'Причина отклонения',
+                                                                                        isEntryScopeActive(entry) || isAdminViewer ? 'Причина отклонения' : null,
                                                                                     )}
+                                                                                    disabled={!isEntryScopeActive(entry) && !isAdminViewer}
+                                                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                                                                                     <span className="min-w-0 text-left">Отклонить</span>
@@ -825,15 +853,16 @@ export default function ModerationQueue({
                                                                                 size="sm"
                                                                                 className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
                                                                                 variant="destructive"
-                                                                                disabled={!isAdminViewer && !rejectTarget}
+                                                                                disabled={(!isAdminViewer && !rejectTarget) || (!isEntryScopeActive(entry) && !isAdminViewer)}
                                                                                 onClick={() => submitAction(
                                                                                     isAdminViewer ? 'kpi.entries.reject' : 'kpi.entries.structural-reject',
                                                                                     entry.id,
-                                                                                    'Причина отклонения',
+                                                                                    isEntryScopeActive(entry) || isAdminViewer ? 'Причина отклонения' : null,
                                                                                     isAdminViewer
                                                                                         ? {}
                                                                                         : { structural_unit_id: rejectTarget?.structural_unit_id },
                                                                                 )}
+                                                                                title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                             >
                                                                                 <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                                                                                 <span className="min-w-0 text-left">Отклонить</span>
@@ -851,8 +880,10 @@ export default function ModerationQueue({
                                                                                     ? 'kpi.entries.return'
                                                                                     : 'kpi.entries.reject',
                                                                                 entry.id,
-                                                                                'Причина отклонения',
+                                                                                isEntryScopeActive(entry) || isAdminViewer ? 'Причина отклонения' : null,
                                                                             )}
+                                                                            disabled={!isEntryScopeActive(entry) && !isAdminViewer}
+                                                                            title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
                                                                             <span className="min-w-0 text-left">Отклонить</span>
@@ -864,11 +895,14 @@ export default function ModerationQueue({
                                                     </td>
                                                 </tr>
                                             ))}
+
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <Pagination links={links} />
+                                <div className="mt-4">
+                                    <Pagination links={links} />
+                                </div>
                             </div>
                         )}
                     </CardContent>

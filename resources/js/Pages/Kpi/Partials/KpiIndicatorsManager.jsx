@@ -89,7 +89,6 @@ function splitIndicatorCode(code) {
 }
 
 function IndicatorForm({ form, options, onSubmit, submitLabel }) {
-    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [checkerSearch, setCheckerSearch] = useState('');
     const divisions = options.divisions ?? [];
     const filteredDivisions = checkerSearch.trim() === ''
@@ -266,6 +265,7 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [editingIndicator, setEditingIndicator] = useState(null);
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
 
     const filterForm = useForm({
         entity_type: filters.entity_type ?? '',

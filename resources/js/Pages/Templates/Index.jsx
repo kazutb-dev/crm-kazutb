@@ -458,6 +458,7 @@ export default function TemplatesIndex({ templates = [] }) {
     const [openVersionFor, setOpenVersionFor] = useState(null);
     const [templateBackgroundPreview, setTemplateBackgroundPreview] = useState(null);
     const [versionBackgroundPreview, setVersionBackgroundPreview] = useState(null);
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
 
     useEffect(() => {
         return () => {

@@ -25,6 +25,18 @@ class KpiPeriod extends Model
     public const STATUS_ACTIVE = 'active';
     public const STATUS_CLOSED = 'closed';
 
+    public const ACCESS_SCOPE_TEACHER = 'teacher';
+    public const ACCESS_SCOPE_HOD = 'hod';
+    public const ACCESS_SCOPE_DEAN = 'dean';
+    public const ACCESS_SCOPE_STRUCTURAL = 'structural';
+
+    public const ACCESS_SCOPES = [
+        self::ACCESS_SCOPE_TEACHER,
+        self::ACCESS_SCOPE_HOD,
+        self::ACCESS_SCOPE_DEAN,
+        self::ACCESS_SCOPE_STRUCTURAL,
+    ];
+
     /**
      * @var string
      */
@@ -40,6 +52,10 @@ class KpiPeriod extends Model
         'start_date',
         'end_date',
         'status',
+        'is_teacher_active',
+        'is_hod_active',
+        'is_dean_active',
+        'is_structural_active',
         'description',
         'created_by',
         'updated_by',
@@ -54,6 +70,10 @@ class KpiPeriod extends Model
         'end_date' => 'date',
         'stage' => 'string',
         'status' => 'string',
+        'is_teacher_active' => 'boolean',
+        'is_hod_active' => 'boolean',
+        'is_dean_active' => 'boolean',
+        'is_structural_active' => 'boolean',
         'created_by' => 'integer',
         'updated_by' => 'integer',
     ];
@@ -112,5 +132,46 @@ class KpiPeriod extends Model
             $this->end_date->copy()->endOfDay(),
             true,
         );
+    }
+
+    public static function scopeFromRoleSlug(string $roleSlug): ?string
+    {
+        return match ($roleSlug) {
+            'teacher' => self::ACCESS_SCOPE_TEACHER,
+            'department_head', 'hod' => self::ACCESS_SCOPE_HOD,
+            'dean' => self::ACCESS_SCOPE_DEAN,
+            'department', 'structural' => self::ACCESS_SCOPE_STRUCTURAL,
+            default => null,
+        };
+    }
+
+    public static function scopeFromEntityType(string $entityType): ?string
+    {
+        return match ($entityType) {
+            KpiEntry::ENTITY_TYPE_TEACHER => self::ACCESS_SCOPE_TEACHER,
+            KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD => self::ACCESS_SCOPE_HOD,
+            KpiEntry::ENTITY_TYPE_DEAN => self::ACCESS_SCOPE_DEAN,
+            KpiEntry::ENTITY_TYPE_STRUCTURAL_DIVISION => self::ACCESS_SCOPE_STRUCTURAL,
+            default => null,
+        };
+    }
+
+    public function isScopeActive(string $scope): bool
+    {
+        return match ($scope) {
+            self::ACCESS_SCOPE_TEACHER => (bool) $this->is_teacher_active,
+            self::ACCESS_SCOPE_HOD => (bool) $this->is_hod_active,
+            self::ACCESS_SCOPE_DEAN => (bool) $this->is_dean_active,
+            self::ACCESS_SCOPE_STRUCTURAL => (bool) $this->is_structural_active,
+            default => false,
+        };
+    }
+
+    public function isAnyScopeActive(): bool
+    {
+        return (bool) $this->is_teacher_active
+            || (bool) $this->is_hod_active
+            || (bool) $this->is_dean_active
+            || (bool) $this->is_structural_active;
     }
 }

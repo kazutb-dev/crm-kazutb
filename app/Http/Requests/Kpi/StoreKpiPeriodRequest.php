@@ -60,8 +60,8 @@ class StoreKpiPeriodRequest extends FormRequest
             }
 
             // Academic year in this project is stored as start_year/end_year.
-            $yearStart = Carbon::create((int) $academicYear->start_year, 1, 1)->startOfDay();
-            $yearEnd = Carbon::create((int) $academicYear->end_year, 12, 31)->endOfDay();
+            $yearStart = Carbon::create((int) $academicYear->start_year, 7, 1)->startOfDay();
+            $yearEnd = Carbon::create((int) $academicYear->end_year, 6, 30)->endOfDay();
 
             $periodStart = Carbon::parse($startDate)->startOfDay();
             $periodEnd = Carbon::parse($endDate)->endOfDay();

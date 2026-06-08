@@ -1,6 +1,7 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -290,9 +291,11 @@ export default function Index({
     searchRouteName,
     directoryType = 'staff',
     structuralDivisionOptions = [],
+    permissions = {},
 }) {
     const routeName = searchRouteName ?? 'users.index';
     const tabOptions = directoryType === 'students' ? STUDENT_TAB_OPTIONS : STAFF_TAB_OPTIONS;
+    const requiresDangerousActionReason = Boolean(permissions.requiresDangerousActionReason);
 
     const filterForm = useForm({
         q: filters.q ?? '',
@@ -312,12 +315,14 @@ export default function Index({
         department_id: '',
         faculty_id: '',
         division_ids: [],
+        reason: '',
     });
 
     const roleForm = useForm({
         role: 'teacher',
         structural_access: false,
         structural_division_id: '',
+        reason: '',
     });
 
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
@@ -431,6 +436,7 @@ export default function Index({
             department_id: user.department_id ? String(user.department_id) : '',
             faculty_id: user.faculty_id ? String(user.faculty_id) : '',
             division_ids: selectedDivisionIds,
+            reason: '',
         });
         positionForm.clearErrors();
         setPositionDialogOpen(true);
@@ -450,6 +456,7 @@ export default function Index({
                 department_id: positionForm.data.department_id || null,
                 faculty_id: positionForm.data.faculty_id || null,
                 division_ids: positionForm.data.division_ids,
+                reason: positionForm.data.reason,
             },
             {
                 preserveScroll: true,
@@ -472,6 +479,7 @@ export default function Index({
             role: resolveRoleSlug(user) || 'teacher',
             structural_access: structuralUnitIds.length > 0,
             structural_division_id: structuralUnitIds[0] ? String(structuralUnitIds[0]) : '',
+            reason: '',
         });
         roleForm.clearErrors();
         setRoleDialogOpen(true);
@@ -479,12 +487,24 @@ export default function Index({
     };
 
     const doCreateLocalUserFromAd = async (row, onSuccess) => {
+        let reason = '';
+
+        if (requiresDangerousActionReason) {
+            reason = window.prompt('Укажите причину создания локальной записи') ?? '';
+
+            if (reason.trim().length < 8) {
+                toast.error('Причина должна быть минимум 8 символов.');
+                return;
+            }
+        }
+
         try {
             const response = await axios.post('/users/create-from-ad', {
                 ad_login: row.login,
                 ad_guid: row.guid,
                 email: row.email,
                 name: row.display_name || row.name,
+                reason: reason.trim(),
             }, {
                 headers: { Accept: 'application/json' },
             });
@@ -545,10 +565,10 @@ export default function Index({
 
     const renderSyncBadge = (user) => {
         return (
-            <Badge variant="outline" className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 py-0 text-[10px] font-semibold ${getSyncBadgeClass(user)}`}>
+            <StatusBadge tone={user.is_synced ? 'success' : 'default'} className="inline-flex h-6 items-center gap-1 px-2 py-0 text-[10px] font-semibold">
                 <span className={`h-1.5 w-1.5 rounded-full ${user.is_synced ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                 {user.is_synced ? 'Да' : 'Нет'}
-            </Badge>
+            </StatusBadge>
         );
     };
 
@@ -589,30 +609,18 @@ export default function Index({
     return (
         <AuthenticatedLayout
             header={(
-                <div className="mx-auto flex w-full max-w-[1540px] min-w-0 flex-col gap-2 overflow-hidden px-4 lg:px-6 xl:px-0 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">Административный реестр</p>
-                        <h2 className="mt-0.5 text-[1.68rem] font-semibold leading-none tracking-[-0.01em] text-slate-950">Пользователи</h2>
-                        <p className="mt-0.5 max-w-3xl text-[12px] leading-5 text-slate-600">
-                            Управление сотрудниками, студентами и структурой доступа
-                        </p>
-                        <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-                            {summaryLine}
-                        </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5 lg:justify-end">
-                        <span className="inline-flex h-7 items-center rounded-full border border-slate-300 bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm">
-                            Всего: {totalCount}
-                        </span>
-                        <span className="inline-flex h-7 items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 text-[11px] font-semibold text-cyan-900 shadow-sm">
-                            Видимых: {visibleCount}
-                        </span>
-                        <span className="inline-flex h-7 items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-semibold text-amber-900 shadow-sm">
-                            Без привязки: {users.filter((user) => user.is_binding_missing).length}
-                        </span>
-                    </div>
-                </div>
+                <PageHeader
+                    eyebrow="Platform"
+                    title="Пользователи"
+                    description="Управление сотрудниками, студентами и структурой доступа"
+                    meta={(
+                        <div className="flex flex-wrap gap-2">
+                            <StatusBadge tone="default">Всего: {totalCount}</StatusBadge>
+                            <StatusBadge tone="info">Видимых: {visibleCount}</StatusBadge>
+                            <StatusBadge tone="warning">Без привязки: {users.filter((user) => user.is_binding_missing).length}</StatusBadge>
+                        </div>
+                    )}
+                />
             )}
         >
             <Head title={pageTitle ?? 'Пользователи'} />
@@ -707,11 +715,23 @@ export default function Index({
                             </div>
                         )}
 
+                        {requiresDangerousActionReason && (
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Причина</label>
+                                <Input
+                                    value={positionForm.data.reason}
+                                    onChange={(e) => positionForm.setData('reason', e.target.value)}
+                                    placeholder="Минимум 8 символов для опасного действия"
+                                />
+                                {positionForm.errors.reason && <p className="text-xs text-destructive">{positionForm.errors.reason}</p>}
+                            </div>
+                        )}
+
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setPositionDialogOpen(false)}>
                                 Отмена
                             </Button>
-                            <Button type="submit" disabled={positionForm.processing}>Сохранить</Button>
+                            <Button type="submit" disabled={positionForm.processing || (requiresDangerousActionReason && positionForm.data.reason.trim().length < 8)}>Сохранить</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -790,9 +810,21 @@ export default function Index({
                                 )}
                             </div>
 
+                            {requiresDangerousActionReason && (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Причина</label>
+                                    <Input
+                                        value={roleForm.data.reason}
+                                        onChange={(e) => roleForm.setData('reason', e.target.value)}
+                                        placeholder="Минимум 8 символов для опасного действия"
+                                    />
+                                    {roleForm.errors.reason && <p className="text-xs text-destructive">{roleForm.errors.reason}</p>}
+                                </div>
+                            )}
+
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setRoleDialogOpen(false)}>Отмена</Button>
-                                <Button type="button" onClick={() => setRoleConfirmOpen(true)}>Далее</Button>
+                                <Button type="button" onClick={() => setRoleConfirmOpen(true)} disabled={requiresDangerousActionReason && roleForm.data.reason.trim().length < 8}>Далее</Button>
                             </DialogFooter>
                         </div>
                     ) : (
@@ -811,7 +843,7 @@ export default function Index({
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setRoleConfirmOpen(false)}>Назад</Button>
-                                <Button type="button" onClick={submitRoleChange} disabled={roleForm.processing}>Подтвердить</Button>
+                                <Button type="button" onClick={submitRoleChange} disabled={roleForm.processing || (requiresDangerousActionReason && roleForm.data.reason.trim().length < 8)}>Подтвердить</Button>
                             </DialogFooter>
                         </div>
                     )}
@@ -820,20 +852,18 @@ export default function Index({
 
             <div className="admin-page-wrap overflow-x-hidden px-4 lg:px-6">
                 <div className="m-0 mx-auto w-full max-w-[1540px] min-w-0 overflow-hidden">
-                    <Card className="admin-surface min-w-0 overflow-hidden rounded-2xl border-slate-300/80 bg-gradient-to-b from-white via-white to-slate-50/50 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.45)]">
-                        <CardHeader className="border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-5 sm:py-3.5">
-                            <div className="flex min-w-0 flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-950">
-                                    <Users className="h-5 w-5 text-slate-700" />
-                                    {pageTitle ?? 'Пользователи'}
-                                </CardTitle>
-                                <div className="text-[11px] font-medium text-slate-600">
-                                    {summaryLine}
-                                </div>
+                    <FilterBar className="min-w-0 overflow-hidden rounded-2xl border-slate-300/80 bg-gradient-to-b from-white via-white to-slate-50/50 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.45)]">
+                        <div className="mb-3 flex min-w-0 flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
+                            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+                                <Users className="h-5 w-5 text-slate-700" />
+                                {pageTitle ?? 'Пользователи'}
                             </div>
-                        </CardHeader>
+                            <div className="text-[11px] font-medium text-slate-600">
+                                {summaryLine}
+                            </div>
+                        </div>
 
-                        <CardContent className="min-w-0 space-y-3 p-3 sm:p-4">
+                        <div className="space-y-3">
                             <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2">
                                 {tabOptions.map((tabOption) => (
                                     <button
@@ -997,9 +1027,9 @@ export default function Index({
                                 </div>
                             )}
 
-                            <div className="rounded-2xl border border-slate-300/80 bg-white shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)]">
-                                <div className="admin-table-wrap min-w-0 overflow-x-auto border-0 shadow-none">
-                                    <table className="admin-data-table w-full min-w-0 table-fixed text-[13px] leading-[1.25] [&_td]:px-2.5 [&_td]:py-2.5 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-[0.16em] [&_tr]:border-b [&_tr]:border-slate-200/85 [&_th:nth-child(2)]:border-r-0 [&_td:nth-child(2)]:border-r-0 [&_th:nth-child(3)]:border-l-0 [&_td:nth-child(3)]:border-l-0">
+                            <DataTable className="rounded-2xl border-slate-300/80 bg-white shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)]">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-0 table-fixed text-[13px] leading-[1.25] [&_td]:px-2.5 [&_td]:py-2.5 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-[0.16em] [&_tr]:border-b [&_tr]:border-slate-200/85 [&_th:nth-child(2)]:border-r-0 [&_td:nth-child(2)]:border-r-0 [&_th:nth-child(3)]:border-l-0 [&_td:nth-child(3)]:border-l-0">
                                         <thead className="bg-slate-100/95 backdrop-blur">
                                             <tr>
                                                 <th className="w-[19%] text-slate-700">ФИО</th>
@@ -1152,7 +1182,7 @@ export default function Index({
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                            </DataTable>
 
                             <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-100/80 px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="text-xs font-medium text-slate-700">
@@ -1223,8 +1253,8 @@ export default function Index({
                                     </Button>
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </FilterBar>
                 </div>
             </div>
             <ConfirmDialog

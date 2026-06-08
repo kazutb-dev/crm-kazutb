@@ -6,6 +6,7 @@ use App\Http\Controllers\CalendarEmployeesController;
 use App\Models\CalendarEmployeeExclusion;
 use App\Models\CalendarEmployeeGrant;
 use App\Models\CalendarSecretaryAccess;
+use App\Models\PositionChangeRequest;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,6 +32,14 @@ class EnsureCalendarLeadershipAccess
             return $next($request);
         }
 
+        if (PositionChangeRequest::query()
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->exists()
+        ) {
+            abort(403, 'Доступ к календарю временно ограничен: ожидается подтверждение должности.');
+        }
+
         $title = mb_strtolower(trim((string) ($user?->ad_title ?? '')));
 
         if (CalendarEmployeeExclusion::query()->where('user_id', $userId)->exists()) {
@@ -45,7 +54,8 @@ class EnsureCalendarLeadershipAccess
             ->where('secretary_id', $userId)
             ->where('is_active', true)
             ->whereNull('revoked_at')
-            ->exists()) {
+            ->exists()
+        ) {
             return $next($request);
         }
 

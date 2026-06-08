@@ -34,6 +34,13 @@ const statusVariants = {
     closed: 'secondary',
 };
 
+const accessScopes = [
+    { key: 'teacher', label: 'ППС', field: 'is_teacher_active' },
+    { key: 'hod', label: 'Зав.каф.', field: 'is_hod_active' },
+    { key: 'dean', label: 'Декан', field: 'is_dean_active' },
+    { key: 'structural', label: 'Структурные', field: 'is_structural_active' },
+];
+
 const emptyForm = {
     academic_year_id: '',
     name: '',
@@ -260,6 +267,8 @@ export default function KpiPeriodsManager({
 
     const activatePeriod = (period) => router.post(route('kpi.activate', period.id), {}, { preserveScroll: true });
     const deactivatePeriod = (period) => router.post(route('kpi.deactivate', period.id), {}, { preserveScroll: true });
+    const activateScope = (period, scope) => router.post(route('kpi.activate-scope', { period: period.id, scope }), {}, { preserveScroll: true });
+    const deactivateScope = (period, scope) => router.post(route('kpi.deactivate-scope', { period: period.id, scope }), {}, { preserveScroll: true });
     const closePeriod = (period) => router.post(route('kpi.close', period.id), {}, { preserveScroll: true });
 
     const deletePeriod = (period) => {
@@ -370,6 +379,7 @@ export default function KpiPeriodsManager({
                                         <th className="py-3 pe-3 font-medium">Период</th>
                                         <th className="py-3 pe-3 font-medium">Учебный год</th>
                                         <th className="py-3 pe-3 font-medium">Статус</th>
+                                        <th className="py-3 pe-3 font-medium">Доступы</th>
                                         <th className="py-3 pe-3 font-medium">Даты</th>
                                         <th className="py-3 pe-3 font-medium">Описание</th>
                                         <th className="py-3 text-right font-medium">Действия</th>
@@ -385,6 +395,27 @@ export default function KpiPeriodsManager({
                                             <td className="py-4 pe-3">{period.academic_year?.name ?? '—'}</td>
                                             <td className="py-4 pe-3">
                                                 <Badge variant={statusVariants[period.status] ?? 'outline'}>{statusLabels[period.status] ?? period.status}</Badge>
+                                            </td>
+                                            <td className="py-4 pe-3">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {accessScopes.map((scope) => {
+                                                        const isActive = Boolean(period[scope.field]);
+                                                        const canToggle = canManage && period.status !== 'closed';
+
+                                                        return (
+                                                            <Button
+                                                                key={`${period.id}-${scope.key}`}
+                                                                type="button"
+                                                                size="sm"
+                                                                variant={isActive ? 'default' : 'outline'}
+                                                                disabled={!canToggle}
+                                                                onClick={() => (isActive ? deactivateScope(period, scope.key) : activateScope(period, scope.key))}
+                                                            >
+                                                                {scope.label}: {isActive ? 'ON' : 'OFF'}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </td>
                                             <td className="py-4 pe-3">
                                                 <div>{formatDate(period.start_date)}</div>

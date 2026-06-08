@@ -7,10 +7,13 @@ use App\Models\CalendarEmployeeExclusion;
 use App\Models\CalendarEmployeeGrant;
 use App\Models\CalendarSecretaryAccess;
 use App\Models\KpiAccessGrant;
+use App\Models\PositionChangeRequest;
 use App\Models\User;
+use App\Services\ElevatedAuthorityService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Inertia\Inertia;
 
 class EnsurePanelRoleAccess
 {
@@ -19,9 +22,14 @@ class EnsurePanelRoleAccess
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $role = $request->user()?->resolvedRoleSlug();
+        $user = $request->user();
+        $role = $user?->resolvedRoleSlug();
         $routeName = (string) ($request->route()?->getName() ?? '');
-        $userId = $request->user()?->id;
+        $userId = $user?->id;
+
+        if ($this->isSensitiveRoute($routeName) && ! $this->hasTrustedSensitiveAccess($user, $role, $routeName)) {
+            return $this->forbidden($request, 'Доступ отклонен: недостаточно доверенных role/scope/approval данных.');
+        }
 
         if ($userId !== null && $this->canAccessKpiRouteViaGrant($userId, $routeName)) {
             return $next($request);
@@ -35,11 +43,15 @@ class EnsurePanelRoleAccess
             return $next($request);
         }
 
-        if ($this->startsWith($routeName, 'calendar.') && $this->canAccessCalendar($request->user())) {
+        if ($this->startsWith($routeName, 'calendar.') && $this->canAccessCalendar($user)) {
             return $next($request);
         }
 
         if ($this->canAccessPositionRequestRoutes($userId, $role, $routeName)) {
+            return $next($request);
+        }
+
+        if ($this->canAccessRoleAccessOverview($userId, $role, $routeName)) {
             return $next($request);
         }
 
@@ -54,11 +66,15 @@ class EnsurePanelRoleAccess
                 return $next($request);
             }
 
-            abort(403, 'Студенту недоступна админпанель.');
+            return $this->forbidden($request, 'Студенту недоступна админпанель.');
         }
 
         // Teachers are limited to their KPI form and profile.
         if ($role === 'teacher') {
+            if ($this->startsWith($routeName, 'kpi.') && ! $this->canAccessKpiModule($user)) {
+                return $this->forbidden($request, 'Для KPI-модуля недостаточно подтвержденной authority.');
+            }
+
             $allowedTeacherRoutes = [
                 'profile.',
                 'kpi.my-form',
@@ -90,10 +106,14 @@ class EnsurePanelRoleAccess
                 return $next($request);
             }
 
-            abort(403, 'Для роли teacher доступно только меню кафедры.');
+            return $this->forbidden($request, 'Для роли teacher доступно только меню кафедры.');
         }
 
         if ($role === 'hod') {
+            if ($this->startsWith($routeName, 'kpi.') && ! $this->canAccessKpiModule($user)) {
+                return $this->forbidden($request, 'Для KPI-модуля недостаточно подтвержденной authority.');
+            }
+
             $allowedRoles = [
                 'profile.',
                 'kpi.my-form',
@@ -118,10 +138,14 @@ class EnsurePanelRoleAccess
                 }
             }
 
-            abort(403, 'Для роли hod доступны только маршруты сводки, очереди проверки и свои показатели.');
+            return $this->forbidden($request, 'Для роли hod доступны только маршруты сводки, очереди проверки и свои показатели.');
         }
 
         if ($role === 'dean') {
+            if ($this->startsWith($routeName, 'kpi.') && ! $this->canAccessKpiModule($user)) {
+                return $this->forbidden($request, 'Для KPI-модуля недостаточно подтвержденной authority.');
+            }
+
             $allowedRoles = [
                 'profile.',
                 'kpi.my-form',
@@ -145,10 +169,14 @@ class EnsurePanelRoleAccess
                 }
             }
 
-            abort(403, 'Для роли dean доступны только маршруты сводки, утверждения и свои показатели.');
+            return $this->forbidden($request, 'Для роли dean доступны только маршруты сводки, утверждения и свои показатели.');
         }
 
         if ($role === 'structural') {
+            if ($this->startsWith($routeName, 'kpi.') && ! $this->canAccessKpiModule($user)) {
+                return $this->forbidden($request, 'Для KPI-модуля недостаточно подтвержденной authority.');
+            }
+
             $allowedRoles = [
                 'profile.',
                 'kpi.summary',
@@ -168,10 +196,14 @@ class EnsurePanelRoleAccess
                 }
             }
 
-            abort(403, 'Для роли structural доступны только маршруты сводки и утверждения.');
+            return $this->forbidden($request, 'Для роли structural доступны только маршруты сводки и утверждения.');
         }
 
         if ($role === 'department') {
+            if ($this->startsWith($routeName, 'kpi.') && ! $this->canAccessKpiModule($user)) {
+                return $this->forbidden($request, 'Для KPI-модуля недостаточно подтвержденной authority.');
+            }
+
             $allowedRoles = [
                 'profile.',
                 'kpi.my-form',
@@ -189,10 +221,30 @@ class EnsurePanelRoleAccess
                 }
             }
 
-            abort(403, 'Для роли department доступно только меню Мои показатели.');
+            return $this->forbidden($request, 'Для роли department доступно только меню Мои показатели.');
         }
 
-        return $next($request);
+        if ($this->startsWith($routeName, 'profile.')) {
+            return $next($request);
+        }
+
+        return $this->forbidden($request, 'Доступ запрещен по deny-by-default guardrail.');
+    }
+
+    private function forbidden(Request $request, string $message): Response
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], 403);
+        }
+
+        // For Inertia requests return a valid Inertia response so the SPA
+        // can render a graceful in-app error page instead of showing the
+        // Inertia plain-JSON overlay.
+        if ($request->header('X-Inertia')) {
+            return Inertia::render('Errors/403', ['message' => $message])->toResponse($request)->setStatusCode(403);
+        }
+
+        abort(403, $message);
     }
 
     private function startsWith(string $value, string $prefix): bool
@@ -349,9 +401,18 @@ class EnsurePanelRoleAccess
             ->exists();
     }
 
+    private function canAccessKpiModule(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) (app(\App\Services\KpiAccessEvaluatorService::class)->evaluateModuleAccess($user)['allow'] ?? false);
+    }
+
     private function canAccessPositionRequestRoutes(?int $userId, ?string $role, string $routeName): bool
     {
-        if (! $this->startsWith($routeName, 'position-requests.')) {
+        if (! $this->startsWith($routeName, 'position-requests.') && ! $this->startsWith($routeName, 'governance.access-requests')) {
             return false;
         }
 
@@ -364,5 +425,135 @@ class EnsurePanelRoleAccess
         }
 
         return false;
+    }
+
+    private function canAccessRoleAccessOverview(?int $userId, ?string $role, string $routeName): bool
+    {
+        if (
+            ! $this->startsWith($routeName, 'governance.role-access')
+            && ! $this->startsWith($routeName, 'governance.org-structure')
+            && ! $this->startsWith($routeName, 'governance.access-requests')
+            && ! $this->startsWith($routeName, 'governance.authority-ledger')
+        ) {
+            return false;
+        }
+
+        if ($userId === null) {
+            return false;
+        }
+
+        $user = User::query()->find($userId);
+        if ($user && app(ElevatedAuthorityService::class)->canAccessGovernanceSurface($user)) {
+            return true;
+        }
+
+        return $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_KPI_ADMIN)
+            || $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_PERIODS);
+    }
+
+    private function isSensitiveRoute(string $routeName): bool
+    {
+        $sensitivePrefixes = [
+            'kpi.review-queue',
+            'kpi.approval-queue',
+            'kpi.structural-queue',
+            'kpi.entries.review',
+            'kpi.entries.approve',
+            'kpi.entries.reject',
+            'kpi.entries.return',
+            'kpi.entries.structural',
+            'position-requests.',
+            'governance.access-requests',
+            'governance.authority-ledger',
+        ];
+
+        foreach ($sensitivePrefixes as $prefix) {
+            if ($this->startsWith($routeName, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasTrustedSensitiveAccess(?User $user, ?string $role, string $routeName): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $authority = app(ElevatedAuthorityService::class);
+        if ($authority->canAccessGovernanceSurface($user)) {
+            return true;
+        }
+
+        $userId = (int) $user->id;
+
+        if ($this->hasPendingPositionRequest($userId)) {
+            return false;
+        }
+
+        if ($this->startsWith($routeName, 'position-requests.') || $this->startsWith($routeName, 'governance.access-requests')) {
+            return KpiAccessGrant::userHasKpiAdmin($userId)
+                || ($role === 'dean' && $user->faculty_id !== null)
+                || (in_array($role, ['hod', 'department_head'], true) && $user->department_id !== null)
+                || ($role === 'structural' && $this->hasStructuralScope($userId));
+        }
+
+        if ($this->startsWith($routeName, 'governance.authority-ledger')) {
+            return KpiAccessGrant::userHasKpiAdmin($userId)
+                || KpiAccessGrant::userHas($userId, KpiAccessGrant::PERM_PERIODS)
+                || ($role === 'dean' && $user->faculty_id !== null)
+                || (in_array($role, ['hod', 'department_head'], true) && $user->department_id !== null)
+                || ($role === 'structural' && $this->hasStructuralScope($userId));
+        }
+
+        if (
+            $this->startsWith($routeName, 'kpi.review-queue')
+            || $this->startsWith($routeName, 'kpi.entries.review')
+            || $this->startsWith($routeName, 'kpi.entries.return')
+        ) {
+            return $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_REVIEW_QUEUE)
+                || (in_array($role, ['hod', 'department_head'], true) && $user->department_id !== null);
+        }
+
+        if (
+            $this->startsWith($routeName, 'kpi.approval-queue')
+            || $this->startsWith($routeName, 'kpi.entries.approve')
+        ) {
+            return $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_REVIEW_QUEUE)
+                || $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_APPROVAL_QUEUE)
+                || $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                || ($role === 'dean' && $user->faculty_id !== null)
+                || (in_array($role, ['hod', 'department_head'], true) && $user->department_id !== null)
+                || ($role === 'structural' && $this->hasStructuralScope($userId));
+        }
+
+        if (
+            $this->startsWith($routeName, 'kpi.structural-queue')
+            || $this->startsWith($routeName, 'kpi.entries.reject')
+            || $this->startsWith($routeName, 'kpi.entries.structural')
+        ) {
+            return $this->hasExactKpiGrant($userId, KpiAccessGrant::PERM_STRUCTURAL_QUEUE)
+                || ($role === 'structural' && $this->hasStructuralScope($userId));
+        }
+
+        return false;
+    }
+
+    private function hasPendingPositionRequest(int $userId): bool
+    {
+        return PositionChangeRequest::query()
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->exists();
+    }
+
+    private function hasStructuralScope(int $userId): bool
+    {
+        return User::query()
+            ->whereKey($userId)
+            ->whereHas('kpiStructuralUnits')
+            ->exists();
     }
 }

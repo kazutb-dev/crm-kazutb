@@ -1,5 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -202,14 +203,21 @@ export default function Access({ grants = [], users = [], search = '', permissio
         <AuthenticatedLayout>
             <Head title="Доступ к KPI-модулям" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-4">
+                <PageHeader
+                    eyebrow="KPI"
+                    title="Доступ к KPI-модулям"
+                    description="Выдача модульного доступа сотрудникам и контроль по структурным подразделениям."
+                    meta={<StatusBadge tone="info">Module access</StatusBadge>}
+                />
 
-                {/* Поиск сотрудников — live список */}
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle>Выдать доступ</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
+                <FilterBar>
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="text-base font-semibold text-foreground">Выдать доступ</div>
+                        <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
+                    </div>
+
+                    <div className="space-y-3">
                         <p className="text-sm text-muted-foreground">
                             Найдите сотрудника по имени, email или подразделению и выдайте доступ к нужному модулю KPI.
                         </p>
@@ -272,20 +280,21 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                 )}
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </FilterBar>
 
-                {/* Таблица выданных доступов */}
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle>Выданные доступы ({grants.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                <DataTable>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
+                        <div className="text-base font-semibold text-foreground">Выданные доступы ({grants.length})</div>
+                        <StatusBadge tone="default">Access grants</StatusBadge>
+                    </div>
+
+                    <div className="p-4">
                         {grouped.length === 0 ? (
                             <div className="admin-empty-state">Нет выданных доступов.</div>
                         ) : (
-                            <div className="admin-table-wrap">
-                                <table className="admin-data-table min-w-[700px]">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-[700px]">
                                     <thead>
                                         <tr>
                                             <th>Сотрудник</th>
@@ -364,8 +373,8 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                 </table>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </DataTable>
             </div>
             <ConfirmDialog
                 open={confirmState.open}

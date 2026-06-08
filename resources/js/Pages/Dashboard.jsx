@@ -198,7 +198,7 @@ export default function Dashboard({
             header={
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-[#132844]">CRM Dashboard</h2>
+                        <h2 className="text-2xl font-semibold leading-tight text-[#132844]">Панель управления CRM</h2>
                         <p className="text-sm text-muted-foreground">Системный обзор по всем ключевым модулям</p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">

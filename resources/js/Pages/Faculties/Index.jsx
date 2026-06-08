@@ -1,6 +1,4 @@
-import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +38,6 @@ export default function Index({
 }) {
     const items = faculties ?? [];
 
-    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false);
@@ -98,11 +95,11 @@ export default function Index({
     }, [departmentOptions, staffForm.data.faculty_id]);
 
     const handleDelete = (faculty) => {
-        setConfirmState({
-            open: true,
-            description: `Удалить факультет "${faculty.name}"?`,
-            onConfirm: () => router.delete(route('faculties.destroy', faculty.id)),
-        });
+        if (!window.confirm(`Удалить факультет "${faculty.name}"?`)) {
+            return;
+        }
+
+        router.delete(route('faculties.destroy', faculty.id));
     };
 
     const openEditDialog = (faculty) => {
@@ -185,12 +182,12 @@ export default function Index({
     };
 
     const handleDeleteDepartment = (department) => {
-        setConfirmState({
-            open: true,
-            description: `Удалить кафедру "${department.name}"?`,
-            onConfirm: () => router.delete(route('departments.destroy', department.id), {
-                preserveScroll: true,
-            }),
+        if (!window.confirm(`Удалить кафедру "${department.name}"?`)) {
+            return;
+        }
+
+        router.delete(route('departments.destroy', department.id), {
+            preserveScroll: true,
         });
     };
 
@@ -218,12 +215,12 @@ export default function Index({
         }
 
         if (role === 'dean' && !facultyId) {
-            toast.error('Для роли декана нужно выбрать факультет.');
+            window.alert('Для роли декана нужно выбрать факультет.');
             return;
         }
 
         if (role === 'hod' && !departmentId) {
-            toast.error('Для роли заведующего кафедрой нужно выбрать кафедру.');
+            window.alert('Для роли заведующего кафедрой нужно выбрать кафедру.');
             return;
         }
 
@@ -773,15 +770,6 @@ export default function Index({
                     </CardContent>
                 </Card>
             </div>
-            <ConfirmDialog
-                open={confirmState.open}
-                onOpenChange={(open) => !open && setConfirmState({ open: false, description: '', onConfirm: null })}
-                description={confirmState.description}
-                onConfirm={() => {
-                    confirmState.onConfirm?.();
-                    setConfirmState({ open: false, description: '', onConfirm: null });
-                }}
-            />
         </AuthenticatedLayout>
     );
 }

@@ -308,6 +308,7 @@ function Index() {
     const svgPath = buildSmoothPath(selectedPolyline);
     const startPoint = selectedPolyline.length > 0 ? selectedPolyline[0] : null;
     const finishPoint = selectedPolyline.length > 1 ? selectedPolyline[selectedPolyline.length - 1] : null;
+    const selectedBuildingLabel = selectedItem ? extractBuilding(selectedItem) : null;
 
     const handleFind = () => {
         rememberSearch(query);
@@ -323,31 +324,31 @@ function Index() {
         setSuggestionsOpen(false);
     };
 
-    const headingFont = { fontFamily: '"Literata", ui-serif, Georgia, Times, serif' };
+    const headingFont = { fontFamily: '"Playfair Display", Georgia, "Times New Roman", serif' };
 
     return (
         <>
-            <Head title="Навигация по кампусу" />
+            <Head title="Навигация по кампусу · КазУТБ">
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+                <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
+            </Head>
 
             <main className="relative min-h-screen overflow-hidden p-3 font-['Manrope'] sm:p-4 lg:p-6">
 
                 <section className="relative z-10 mx-auto w-full max-w-[1280px] overflow-hidden rounded-2xl bg-[#0f243f]/55 px-4 py-6 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-6 lg:px-8 lg:py-8">
                     <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-[#0f243f]">
-                                <img src="/assets/images/logo.png" alt="KazUTB" className="h-8 w-8 object-contain" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#E8A020]">Навигация</p>
-                                <h1 style={headingFont} className="text-xl font-extrabold leading-tight sm:text-2xl">Поиск кабинетов и маршрутов</h1>
-                            </div>
+                        <div className="max-w-3xl">
+                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#E8A020]/75">Навигация</p>
+                            <h1 style={headingFont} className="text-xl font-extrabold leading-tight sm:text-2xl">Поиск кабинетов и маршрутов</h1>
+                            <p className="mt-1 text-sm text-white/65">Быстрый поиск кабинетов, сотрудников и отделов в едином маршрутизаторе кампуса.</p>
                         </div>
 
                         <Link
-                            className="inline-flex min-h-10 items-center justify-center border border-white/30 bg-white/10 px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/8 px-4 text-xs font-semibold text-white/80 transition hover:bg-white/14 hover:text-white"
                             href="/"
                         >
-                            На главную
+                            Главная
                         </Link>
                     </header>
 
@@ -356,15 +357,30 @@ function Index() {
                             <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[#E8A020]">Поиск</p>
                             <p className="mb-4 text-sm text-white/70">Введите номер кабинета, фамилию сотрудника или название отдела.</p>
 
+                            <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Найдено</div>
+                                    <div className="mt-1 text-2xl font-bold text-white">{filteredPoints.length}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Корпусов</div>
+                                    <div className="mt-1 text-2xl font-bold text-white">{buildings.length}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Этажей</div>
+                                    <div className="mt-1 text-2xl font-bold text-white">{floors.length}</div>
+                                </div>
+                            </div>
+
                             <div className="mb-3 flex flex-col gap-2 sm:flex-row">
                                 <div className="relative flex-1">
-                                    <div className="flex items-center gap-2 border border-white/20 bg-white/10 px-3 py-2.5">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/55">
+                                    <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.03)]">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#0f243f]/45">
                                             <circle cx="11" cy="11" r="7" />
                                             <path d="M21 21l-4.3-4.3" />
                                         </svg>
                                         <input
-                                            className="w-full bg-transparent text-sm text-white placeholder:text-white/45 focus:outline-none"
+                                            className="w-full bg-transparent text-sm text-[#0f243f] placeholder:text-[#0f243f]/55 focus:outline-none"
                                             placeholder="Например: 315 или Деканат ИТ"
                                             autoComplete="off"
                                             value={query}
@@ -384,7 +400,7 @@ function Index() {
                                     </div>
 
                                     {suggestionsOpen && suggestions.length > 0 && (
-                                        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto border border-white/20 bg-[#122a47] shadow-xl">
+                                        <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-xl border border-white/20 bg-[#122a47] shadow-xl">
                                             {suggestions.map((suggestion, index) => (
                                                 <button
                                                     key={`${suggestion.type}-${suggestion.value}-${index}`}
@@ -402,7 +418,7 @@ function Index() {
                                     )}
                                 </div>
                                 <button
-                                    className="inline-flex min-h-[42px] items-center justify-center bg-[#E8A020] px-5 text-sm font-bold text-[#0f243f] transition hover:bg-[#d08c12]"
+                                    className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-[#E8A020] px-5 text-sm font-bold text-[#0f243f] shadow-[0_10px_20px_rgba(232,160,32,.16)] transition hover:bg-[#d08c12]"
                                     type="button"
                                     onClick={handleFind}
                                 >
@@ -414,7 +430,7 @@ function Index() {
                                 {tabs.map((tab) => (
                                     <button
                                         key={tab.key}
-                                        className={`px-3 py-1.5 text-xs font-bold transition ${activeTab === tab.key ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/75 hover:bg-white/20 hover:text-white'}`}
+                                        className={`rounded-xl px-3 py-2 text-xs font-bold transition ${activeTab === tab.key ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/75 hover:bg-white/20 hover:text-white'}`}
                                         type="button"
                                         onClick={() => setActiveTab(tab.key)}
                                     >
@@ -427,7 +443,7 @@ function Index() {
                                 <select
                                     value={selectedBuilding}
                                     onChange={(event) => setSelectedBuilding(event.target.value)}
-                                    className="border border-white/20 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+                                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-xs text-white outline-none"
                                 >
                                     <option value="all" className="text-slate-900">Все корпуса</option>
                                     {buildings.map((building) => (
@@ -440,7 +456,7 @@ function Index() {
                                 <select
                                     value={selectedFloor}
                                     onChange={(event) => setSelectedFloor(event.target.value)}
-                                    className="border border-white/20 bg-white/10 px-3 py-2 text-xs text-white outline-none"
+                                    className="rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-xs text-white outline-none"
                                 >
                                     <option value="all" className="text-slate-900">Все этажи</option>
                                     {floors.map((floor) => (
@@ -453,13 +469,23 @@ function Index() {
                                 <button
                                     type="button"
                                     onClick={() => setOnlyCabinets((value) => !value)}
-                                    className={`px-3 py-2 text-xs font-bold transition ${onlyCabinets ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/80 hover:bg-white/20'}`}
+                                    className={`rounded-xl px-3 py-2.5 text-xs font-bold transition ${onlyCabinets ? 'bg-[#E8A020] text-[#0f243f]' : 'border border-white/20 bg-white/10 text-white/80 hover:bg-white/20'}`}
                                 >
                                     Только кабинеты
                                 </button>
                             </div>
 
-                            <div className="max-h-[420px] space-y-2 overflow-auto pr-1" aria-label="Результаты поиска">
+                            <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+                                <div>
+                                    <div className="text-sm font-semibold text-white">Результаты поиска</div>
+                                    <div className="text-xs text-white/52">Выберите точку слева, маршрут появится справа.</div>
+                                </div>
+                                <span className="rounded-full border border-white/14 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/78">
+                                    {filteredPoints.length} результатов
+                                </span>
+                            </div>
+
+                            <div className="max-h-[460px] space-y-2 overflow-auto pr-1" aria-label="Результаты поиска">
                                 {filteredPoints.map((item) => {
                                     const metaText = `${item.meta}${(item.kind === 'staff' || item.kind === 'cabinet') && item.room ? ` • каб. ${item.room}` : ''}`;
                                     const attachedNames = Array.isArray(item.attached_users) && item.attached_users.length > 0
@@ -468,7 +494,7 @@ function Index() {
 
                                     return (
                                         <div
-                                            className={`flex flex-col gap-3 border p-3 transition sm:flex-row sm:items-center sm:justify-between ${selectedItem?.title === item.title ? 'border-[#E8A020]/70 bg-[#E8A020]/12' : 'border-white/15 bg-white/8 hover:bg-white/12'}`}
+                                            className={`flex flex-col gap-3 rounded-xl border p-3 transition sm:flex-row sm:items-center sm:justify-between ${selectedItem?.title === item.title ? 'border-[#E8A020]/70 bg-[#E8A020]/12 shadow-[0_10px_22px_rgba(232,160,32,.1)]' : 'border-white/15 bg-white/8 hover:bg-white/12'}`}
                                             key={item.badge + item.title}
                                         >
                                             <div className="flex min-w-0 items-center gap-3">
@@ -486,7 +512,7 @@ function Index() {
                                                 </div>
                                             </div>
                                             <button
-                                                className="inline-flex w-full items-center justify-center border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/20 sm:w-auto"
+                                                className="inline-flex w-full items-center justify-center rounded-lg border border-white/25 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20 sm:w-auto"
                                                 type="button"
                                                 onClick={() => {
                                                     setSelectedItem(item);
@@ -521,6 +547,21 @@ function Index() {
                                     : 'Выберите кабинет или отдел, и мы покажем путь от киоска до двери.'}
                             </p>
 
+                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Пункт назначения</div>
+                                    <div className="mt-1 text-sm font-semibold text-white">{selectedItem ? getDestinationLabel(selectedItem) : 'Не выбран'}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Корпус</div>
+                                    <div className="mt-1 text-sm font-semibold text-white">{selectedBuildingLabel ?? 'Не выбран'}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/12 bg-[#102845]/78 px-4 py-3">
+                                    <div className="text-[11px] uppercase tracking-[0.14em] text-white/42">Этаж</div>
+                                    <div className="mt-1 text-sm font-semibold text-white">{selectedItem ? `Этаж ${selectedRouteFloor}` : 'Не выбран'}</div>
+                                </div>
+                            </div>
+
                             <div className="mt-4 min-h-[360px] rounded-xl border border-white/15 bg-[#0b1a2e]/35 p-4">
                                 {!selectedItem && (
                                     <div className="flex h-full min-h-[300px] items-center justify-center text-sm text-white/60">
@@ -534,7 +575,7 @@ function Index() {
                                             <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-2xl font-bold">1</div>
                                             <div>
                                                 <div className="text-sm font-bold text-white">Следуйте по маршруту</div>
-                                                <div className="text-xs text-white/60">Маршрут задан вручную.</div>
+                                                <div className="text-xs text-white/60">Маршрут сформирован для выбранной точки кампуса.</div>
                                             </div>
                                         </div>
 
@@ -698,11 +739,25 @@ function Index() {
                                             </div>
                                         </div>
 
-                                        <ol className="sr-only">
-                                            {routeSteps.map((step) => (
-                                                <li key={step}>{step}</li>
-                                            ))}
-                                        </ol>
+                                        <div className="mt-4 rounded-xl border border-white/12 bg-[#102845]/78 p-4">
+                                            <div className="mb-3 flex items-center justify-between gap-3">
+                                                <div className="text-sm font-semibold text-white">Пошаговый маршрут</div>
+                                                <span className="rounded-full border border-white/14 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/78">
+                                                    {routeSteps.length} шагов
+                                                </span>
+                                            </div>
+                                            <ol className="space-y-2">
+                                                {routeSteps.map((step, index) => (
+                                                    <li key={step} className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/6 px-3 py-2.5">
+                                                        <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#E8A020] text-[11px] font-bold text-[#0f243f]">
+                                                            {index + 1}
+                                                        </span>
+                                                        <span className="text-sm leading-6 text-white/78">{step}</span>
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                        </div>
+
                                     </>
                                 )}
                             </div>

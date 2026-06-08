@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\AcademicContextProvider;
 use App\Listeners\LogSuccessfulLogin;
 use App\Models\AcademicYear;
 use App\Models\Department;
@@ -17,12 +18,17 @@ use App\Models\User;
 use App\Observers\AuditableModelObserver;
 use App\Policies\KpiEntryPolicy;
 use App\Policies\KpiPeriodPolicy;
+use App\Services\AcademicScopeResolverService;
+use App\Services\KpiEntryService;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
-use App\Services\KpiEntryService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +42,8 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(\App\Services\KpiCalculationService::class)
             );
         });
+
+        $this->app->singleton(AcademicContextProvider::class, AcademicScopeResolverService::class);
     }
 
     /**
@@ -44,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->guardDestructiveConsoleCommands();
+        $this->configureRateLimiting();
 
         Gate::policy(KpiPeriod::class, KpiPeriodPolicy::class);
         Gate::policy(KpiEntry::class, KpiEntryPolicy::class);
@@ -74,6 +83,20 @@ class AppServiceProvider extends ServiceProvider
         Ticket::observe(AuditableModelObserver::class);
 
         Vite::prefetch(concurrency: 3);
+    }
+
+    private function configureRateLimiting(): void
+    {
+        RateLimiter::for('login', function (Request $request): array {
+            $identifier = Str::lower(trim((string) ($request->input('email') ?? $request->input('login') ?? '')));
+            $routeScope = $request->is('api/admin/login') ? 'admin-login' : 'api-login';
+            $clientIp = (string) $request->ip();
+
+            return [
+                Limit::perMinute(5)->by($routeScope . '|credential|' . ($identifier !== '' ? $identifier : 'blank') . '|' . $clientIp),
+                Limit::perMinute(20)->by($routeScope . '|ip|' . $clientIp),
+            ];
+        });
     }
 
     /**

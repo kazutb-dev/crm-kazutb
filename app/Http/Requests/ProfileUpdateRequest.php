@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Department;
+use App\Models\GovernanceAccessRequest;
 use App\Models\PositionChangeRequest;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
@@ -19,8 +19,6 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $canEditAcademicBindings = $this->canEditAcademicBindings();
-
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -32,20 +30,17 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'phone' => ['nullable', 'string', 'max:30'],
-            'position_title' => ['prohibited'],
-            'position_confirmed' => ['nullable', 'boolean'],
-            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
+            'position_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'position_confirmed' => ['sometimes', 'nullable', 'boolean'],
+            'position_id' => ['sometimes', 'nullable', 'integer', 'exists:positions,id'],
             'office_location' => ['nullable', 'string', 'max:255'],
             'telegram' => ['nullable', 'string', 'max:100'],
             'bio' => ['nullable', 'string', 'max:2000'],
             'avatar_url' => ['nullable', 'url', 'max:2048'],
-            'profile_visibility' => ['nullable', Rule::in(['public', 'internal', 'private'])],
-            'faculty_id' => $canEditAcademicBindings
-                ? ['nullable', 'integer', 'exists:faculties,id']
-                : ['prohibited'],
-            'department_id' => $canEditAcademicBindings
-                ? ['nullable', 'integer', 'exists:departments,id']
-                : ['prohibited'],
+            'profile_visibility' => ['sometimes', 'nullable', Rule::in(['public', 'internal', 'private'])],
+            'faculty_id' => ['sometimes', 'nullable', 'integer', 'exists:faculties,id'],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'request_comment' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -57,7 +52,13 @@ class ProfileUpdateRequest extends FormRequest
             $user = $this->user();
             $hasPendingPositionRequest = false;
 
-            if ($user instanceof User && Schema::hasTable('position_change_requests')) {
+            if ($user instanceof User && Schema::hasTable('governance_access_requests')) {
+                $hasPendingPositionRequest = GovernanceAccessRequest::query()
+                    ->where('subject_user_id', $user->id)
+                    ->where('request_type', GovernanceAccessRequest::TYPE_POSITION)
+                    ->where('status', GovernanceAccessRequest::STATUS_PENDING)
+                    ->exists();
+            } elseif ($user instanceof User && Schema::hasTable('position_change_requests')) {
                 $hasPendingPositionRequest = PositionChangeRequest::query()
                     ->where('user_id', $user->id)
                     ->where('status', 'pending')
@@ -66,47 +67,14 @@ class ProfileUpdateRequest extends FormRequest
 
             if (($positionConfirmed === false || $positionConfirmed === 'false' || $positionConfirmed === 0 || $positionConfirmed === '0')
                 && ! $hasPendingPositionRequest
-                && ($positionId === null || $positionId === '')) {
+                && ($positionId === null || $positionId === '')
+            ) {
                 $validator->errors()->add('position_id', 'Выберите должность из списка, чтобы отправить заявку.');
             }
 
-            if (! $this->canEditAcademicBindings()) {
-                return;
-            }
-
-            $facultyId = $this->input('faculty_id');
-            $departmentId = $this->input('department_id');
-
-            if ($departmentId === null || $departmentId === '') {
-                return;
-            }
-
-            $department = Department::query()->find((int) $departmentId, ['id', 'faculty_id']);
-
-            if (! $department) {
-                return;
-            }
-
-            if ($facultyId !== null && $facultyId !== '' && (int) $department->faculty_id !== (int) $facultyId) {
-                $validator->errors()->add('department_id', 'Кафедра не относится к выбранному факультету.');
+            if ($this->filled('department_id') && ! $this->filled('faculty_id')) {
+                $validator->errors()->add('faculty_id', 'Для заявки на кафедру необходимо указать факультет.');
             }
         });
-    }
-
-    private function canEditAcademicBindings(): bool
-    {
-        $user = $this->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $user->loadMissing('roleRef');
-
-        $rawRole = strtolower(trim((string) ($user->role ?? '')));
-        $relationRole = strtolower(trim((string) ($user->roleRef?->slug ?? '')));
-
-        return $user->resolvedRoleSlug() === 'teacher'
-            || ($rawRole === '' && $relationRole === '');
     }
 }

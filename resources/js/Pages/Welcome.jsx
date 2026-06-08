@@ -1,5 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
-import PublicLayout from '@/Layouts/PublicLayout';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     AlertCircle,
     ArrowRight,
@@ -19,15 +18,19 @@ import {
     Megaphone,
     ScrollText,
     Search,
-    Send,
     ShieldCheck,
     SlidersHorizontal,
     Timer,
     TrendingUp,
     Users,
+    Eye,
+    EyeOff,
+    Lock,
+    Mail,
     X,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import AiAssistant from '@/Components/AiAssistant';
 
 const categories = [
     'Учебный процесс',
@@ -283,78 +286,22 @@ const serviceCards = [
     },
 ];
 
-function normalizePolyline(polyline) {
-    if (!Array.isArray(polyline)) {
-        return [];
-    }
-
-    return polyline
-        .map((point) => ({
-            x: Number(point?.x),
-            y: Number(point?.y),
-        }))
-        .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
-        .filter((point) => point.x >= 0 && point.x <= 100 && point.y >= 0 && point.y <= 100);
-}
-
-function buildSmoothPath(points) {
-    if (!Array.isArray(points) || points.length === 0) {
-        return '';
-    }
-
-    if (points.length === 1) {
-        return `M ${points[0].x} ${points[0].y}`;
-    }
-
-    if (points.length === 2) {
-        return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
-    }
-
-    const pathParts = [`M ${points[0].x} ${points[0].y}`];
-
-    for (let index = 1; index < points.length - 1; index += 1) {
-        const current = points[index];
-        const next = points[index + 1];
-        const midX = (current.x + next.x) / 2;
-        const midY = (current.y + next.y) / 2;
-        pathParts.push(`Q ${current.x} ${current.y}, ${midX} ${midY}`);
-    }
-
-    const lastIndex = points.length - 1;
-    pathParts.push(`Q ${points[lastIndex - 1].x} ${points[lastIndex - 1].y}, ${points[lastIndex].x} ${points[lastIndex].y}`);
-
-    return pathParts.join(' ');
-}
-
-function Welcome({ canLogin }) {
+export default function Welcome({ canLogin }) {
+    const { auth } = usePage().props;
+    const isAuthenticated = Boolean(auth?.user);
     const [search, setSearch] = useState('');
     const [activeCategory, setActiveCategory] = useState('Учебный процесс');
     const [isCatalogOpen, setIsCatalogOpen] = useState(false);
     const [isCatalogClosing, setIsCatalogClosing] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [isAiOpen, setIsAiOpen] = useState(false);
-    const [aiInput, setAiInput] = useState('');
-    const [aiLoading, setAiLoading] = useState(false);
-    const aiMessagesEndRef = useRef(null);
-    const [aiMessages, setAiMessages] = useState([
-        {
-            id: 1,
-            role: 'assistant',
-            text: 'Здравствуйте! Я AI ассистент KazUTB. Подскажу нужный сервис или раздел.',
-        },
-    ]);
+    const { data: loginData, setData: setLoginData, post: postLogin, processing: loginProcessing, errors: loginErrors, reset: resetLogin } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    });
 
-    const headingFont = { fontFamily: '"Literata", ui-serif, Georgia, Times, serif' };
-    const brandMarkStyle = {
-        width: '108px',
-        height: '108px',
-        borderRadius: '50%',
-        background: '#0f243f',
-        border: '3.5px solid rgba(255,255,255,.92)',
-        boxShadow: '0 16px 48px rgba(0,0,0,.38), 0 2px 10px rgba(0,0,0,.2)',
-        position: 'relative',
-        flex: '0 0 auto',
-        transition: 'transform .36s cubic-bezier(.23,1,.32,1)',
-    };
+    const headingFont = { fontFamily: '"Playfair Display", Georgia, "Times New Roman", serif' };
 
     const filteredCards = useMemo(() => {
         const query = search.trim().toLowerCase();
@@ -381,151 +328,201 @@ function Welcome({ canLogin }) {
         }, 260);
     };
 
-    const getCsrfToken = () =>
-        decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
+    const submitLogin = (e) => {
+        e.preventDefault();
 
-    const sendAiMessage = async () => {
-        const value = aiInput.trim();
-        if (!value || aiLoading) return;
-
-        const user = { id: Date.now(), role: 'user', text: value };
-        const nextMessages = [...aiMessages, user];
-
-        setAiMessages(nextMessages);
-        setAiInput('');
-        setAiLoading(true);
-
-        try {
-            const res = await fetch('/api/ai/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-XSRF-TOKEN': getCsrfToken(),
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    messages: nextMessages.map(({ role, text }) => ({ role, text })),
-                }),
-            });
-
-            let data = {};
-            try {
-                data = await res.json();
-            } catch {
-                data = {};
-            }
-
-            const botText = data.text || data.error || 'Извините, не удалось получить ответ.';
-
-            setAiMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now(),
-                    role: 'assistant',
-                    text: botText,
-                    imageUrl: typeof data.image_url === 'string' ? data.image_url : null,
-                    routePolyline: normalizePolyline(data.route_polyline),
-                },
-            ]);
-        } catch {
-            setAiMessages((prev) => [
-                ...prev,
-                { id: Date.now(), role: 'assistant', text: 'Ошибка соединения. Попробуйте позже.' },
-            ]);
-        } finally {
-            setAiLoading(false);
-        }
+        postLogin(route('login'), {
+            onFinish: () => resetLogin('password'),
+        });
     };
 
     return (
         <>
-            <Head title="KazUTB Portal">
+            <Head title="Единый цифровой портал · КазУТБ">
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
+                <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
             </Head>
 
-            <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-3 font-['Manrope'] sm:p-4 lg:p-6">
+            <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b1a2e] p-3 font-['Manrope'] sm:p-4 lg:p-6">
+                <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/bg-poster.png')] bg-cover bg-center opacity-24 blur-[2px] scale-[1.01]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#071522]/96 via-[#0b2038]/94 to-[#07131f]/98" />
+                <div className="pointer-events-none absolute inset-0 bg-black/42" />
 
-                <section className="animate-fade-slide-up relative z-10 w-full max-w-[1180px] overflow-hidden rounded-2xl bg-[#0f243f]/55 px-4 py-10 text-white ring-1 ring-white/15 shadow-[0_28px_90px_rgba(0,0,0,.42),inset_0_0_0_1px_rgba(232,160,32,.22)] sm:px-6 lg:px-10 lg:py-14">
-                    {/* logo */}
-                    <div className="mb-14 mt-0 flex w-full flex-col items-center self-center">
-                        <div className="relative flex flex-col items-center gap-2">
-                            <div aria-label="Логотип КазУТБ" role="img" style={brandMarkStyle} className="hover:scale-105">
+                <section className="animate-fade-slide-up relative z-10 w-full max-w-[1180px] overflow-hidden rounded-2xl bg-[#0f243f]/78 px-4 py-10 text-white ring-1 ring-white/16 shadow-[0_28px_90px_rgba(0,0,0,.52),inset_0_0_0_1px_rgba(255,255,255,.04)] backdrop-blur-[100px] sm:px-6 lg:px-10 lg:py-14">
+                    <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_420px] lg:items-center">
+                        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                            <div className="w-full max-w-[680px]">
                                 <img
                                     src="/assets/images/logo.png"
-                                    alt="KazUTB logo"
-                                    className="h-full w-full rounded-full object-contain mb-4"
+                                    alt="КазУТБ"
+                                    className="mx-auto h-[88px] w-[88px] object-contain opacity-92 drop-shadow-[0_4px_20px_rgba(0,0,0,.4)] lg:mx-0"
                                 />
-                            </div>
-                            <span style={{
-                                fontFamily: 'var(--font-heading, "Literata", ui-serif, Georgia, Times, serif)',
-                                position: 'absolute',
-                                zIndex: 1,
-                                width: 'max-content',
-                                bottom: '-40px',
-                                fontSize: '18px',
-                                fontWeight: 800,
-                                color: 'rgba(255,255,255,.98)',
-                                textTransform: 'uppercase',
-                                lineHeight: 1.1,
-                                textAlign: 'center',
-                                letterSpacing: '-.006em',
-                                textShadow: '0 2px 14px rgba(0,0,0,.65), 0 4px 32px rgba(0,0,0,.35)',
-                                transition: 'opacity .42s ease, color .42s ease, text-shadow .42s ease, font-size .42s ease, letter-spacing .42s ease',
-                            }}>
-                                Казахский университет технологии и бизнеса имени К. Кулажанова
-                            </span>
-                        </div>
-                    </div>
 
-                    <div className="relative z-10 m-10 flex w-full max-w-5xl flex-col items-center text-center lg:items-start lg:text-left">
-
-                        {/* badge */}
-                        <span className="mt-7 mb-2 inline-flex items-center gap-2 border border-[#E8A020]/45 bg-[#E8A020]/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E8A020]">
-                            Цифровая экосистема университета
-                        </span>
-
-                        {/* heading */}
-                        <h1 style={headingFont} className="max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-[-0.04em] sm:text-6xl">
-                            Единая витрина <span className='text-[#E8A020]'>цифровых сервисов</span>
-                            <br />
-                            для сотрудников
-                        </h1>
-                        <p className="mt-5 max-w-2xl text-base leading-8 text-white/80 sm:text-lg">
-                            Получите доступ к цифровым услугам университета: заявки, справки, бронирования, поддержка — всё в одном месте.
-                        </p>
-
-                        {/* actions */}
-                        <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
-                            <button
-                                type="button"
-                                onClick={() => setIsCatalogOpen(true)}
-                                className="inline-flex min-h-12 items-center justify-center border border-white/30 bg-white/10 px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
-                            >
-                                Открыть каталог
-                            </button>
-                            <Link
-                                href={safeRoute('nav.index')}
-                                className="inline-flex min-h-12 items-center justify-center border border-white/30 bg-white/10 px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
-                            >
-                                Навигация
-                            </Link>
-                            <button
-                                type="button"
-                                onClick={() => setIsAiOpen(true)}
-                                className="inline-flex min-h-12 items-center justify-center bg-[#E8A020] px-8 text-sm font-bold text-[#0f243f] shadow-[0_14px_34px_rgba(232,160,32,.32)] transition hover:-translate-y-0.5 hover:bg-[#d08c12]"
-                            >
-                                AI Assistant
-                            </button>
-                            {canLogin && (
-                                <Link
-                                    href={route('login')}
-                                    className="inline-flex min-h-12 items-center justify-center border border-white/30 bg-white/10 px-8 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/20"
+                                <h1
+                                    style={{ fontFamily: '"Playfair Display", Georgia, serif' }}
+                                    className="mt-5 text-[clamp(2.15rem,4.2vw,3.3rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-white"
                                 >
-                                    Login
+                                    Казахский университет технологии и бизнеса
+                                    <br />
+                                    <span className="text-[#F5C36C]">имени К. Кулажанова</span>
+                                </h1>
+
+                                <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#F5C36C]/88 sm:text-[13px]">
+                                    Единый цифровой портал
+                                </p>
+
+                                <p className="mt-2 text-[15px] font-medium tracking-wide text-[#F5C36C]/82 sm:text-[17px]">
+                                    Цифровая экосистема университета
+                                </p>
+                            </div>
+
+                            <p className="mt-6 max-w-[620px] text-[15px] leading-7 text-white/84 sm:text-[17px]">
+                                Все сервисы, документы и внутренние процессы собраны в{' '}
+                                <span className="text-[#F5C36C]">единой цифровой системе университета</span>.
+                            </p>
+
+                            <div className="mt-8 flex flex-wrap justify-center gap-3.5 lg:justify-start">
+                                <Link
+                                    href={safeRoute('catalog.index')}
+                                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[12px] border border-[#E8A020]/35 bg-[#E8A020]/10 px-6 text-sm font-semibold text-[#F5C36C] transition hover:border-[#E8A020]/55 hover:bg-[#E8A020]/18"
+                                >
+                                    Каталог сервисов
                                 </Link>
+                                <Link
+                                    href={safeRoute('nav.index')}
+                                    className="inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-white/18 bg-white/7 px-6 text-sm font-semibold text-white/90 transition hover:border-white/28 hover:bg-white/10"
+                                >
+                                    Навигация по кампусу
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAiOpen(true)}
+                                    className="inline-flex min-h-[48px] items-center justify-center rounded-[12px] border border-[#4f6b8a] bg-[#15304d]/92 px-6 text-sm font-semibold text-white transition hover:border-[#6d89a8] hover:bg-[#1a3959]"
+                                >
+                                    AI Ассистент
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-6 rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,.04),transparent_48%),linear-gradient(180deg,rgba(13,31,54,.24),rgba(13,31,54,0))] blur-2xl" />
+
+                            {!isAuthenticated ? (
+                                <div className="relative rounded-[18px] border border-white/18 bg-[#0f2744]/94 p-5 shadow-[0_22px_58px_rgba(0,0,0,.4)] backdrop-blur-xl sm:p-6">
+                                    <div className="mb-5 flex items-start justify-between gap-4">
+                                        <div>
+                                            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#E8A020]/85">Безопасная авторизация</p>
+                                            <h2 style={headingFont} className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-white">Вход в платформу</h2>
+                                            <p className="mt-1.5 text-sm text-white/72">Единая учётная запись университета</p>
+                                        </div>
+                                        <div className="inline-flex items-center gap-2 rounded-[10px] border border-white/20 bg-white/8 px-3 py-1.5 text-xs font-medium text-white/88">
+                                            <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                                            Online
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={submitLogin} className="space-y-4">
+                                        <div>
+                                        <label htmlFor="welcome-email" className="mb-1 block text-sm font-semibold text-white/90">
+                                                Email
+                                        </label>
+                                            <div className="relative">
+                                                <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0f243f]/45" />
+                                                <input
+                                                    id="welcome-email"
+                                                    type="text"
+                                                    name="email"
+                                                    value={loginData.email}
+                                                    placeholder="Введите email"
+                                                    autoComplete="username"
+                                                    onChange={(e) => setLoginData('email', e.target.value)}
+                                                    className="w-full rounded-xl border border-white/20 bg-white/95 px-4 py-3 pl-10 text-sm text-[#0f243f] outline-none placeholder:text-[#0f243f]/55 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] focus:border-[#E8A020] focus:bg-white"
+                                                />
+                                            </div>
+                                            {loginErrors.email && <p className="mt-1 text-xs text-rose-200">{loginErrors.email}</p>}
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="welcome-password" className="mb-1 block text-sm font-semibold text-white/90">
+                                                Пароль
+                                            </label>
+                                            <div className="relative">
+                                                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0f243f]/45" />
+                                                <input
+                                                    id="welcome-password"
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    name="password"
+                                                    value={loginData.password}
+                                                    autoComplete="current-password"
+                                                    placeholder="Введите пароль"
+                                                    onChange={(e) => setLoginData('password', e.target.value)}
+                                                    className="w-full rounded-xl border border-white/20 bg-white/95 px-4 py-3 pl-10 pr-12 text-sm text-[#0f243f] outline-none placeholder:text-[#0f243f]/55 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] focus:border-[#E8A020] focus:bg-white"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword((value) => !value)}
+                                                    className="absolute inset-y-0 right-0 inline-flex items-center justify-center px-3 text-[#0f243f]/45 transition hover:text-[#0f243f]"
+                                                    aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                                                >
+                                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </button>
+                                            </div>
+                                            {loginErrors.password && <p className="mt-1 text-xs text-rose-200">{loginErrors.password}</p>}
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-white/88">
+                                                <input
+                                                    type="checkbox"
+                                                    name="remember"
+                                                    checked={loginData.remember}
+                                                    onChange={(e) => setLoginData('remember', e.target.checked)}
+                                                    className="h-4 w-4 rounded border-white/25 bg-white/10 text-[#E8A020] focus:ring-[#E8A020]"
+                                                />
+                                                Запомнить меня
+                                            </label>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={loginProcessing}
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#E8A020] px-4 py-3 text-sm font-bold text-[#0f243f] shadow-[0_14px_34px_rgba(232,160,32,.3)] transition hover:-translate-y-0.5 hover:bg-[#d08c12] disabled:cursor-not-allowed disabled:opacity-70"
+                                        >
+                                            {loginProcessing ? 'Выполняется вход...' : 'Войти в систему'}
+                                            {!loginProcessing && <ArrowRight className="h-4 w-4" />}
+                                        </button>
+                                    </form>
+                                </div>
+                            ) : (
+                                <div className="relative rounded-[18px] border border-white/18 bg-[#0f2744]/94 p-5 shadow-[0_22px_58px_rgba(0,0,0,.4)] backdrop-blur-xl sm:p-6">
+                                    <div className="mb-1 flex items-center justify-between gap-4">
+                                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#E8A020]/85">Добро пожаловать</p>
+                                        <div className="inline-flex items-center gap-2 rounded-[10px] border border-white/20 bg-white/8 px-3 py-1.5 text-xs font-medium text-white/88">
+                                            <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                                            Онлайн
+                                        </div>
+                                    </div>
+                                    <h2 style={headingFont} className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-white">Вы в системе</h2>
+                                    <p className="mt-3 text-sm leading-relaxed text-white/78">
+                                        Вы авторизованы в системе КазУТБ. Перейдите в рабочее пространство для доступа ко всем сервисам университета.
+                                    </p>
+                                    <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
+                                        <Link
+                                            href={safeRoute('dashboard')}
+                                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#E8A020] px-4 py-3 text-sm font-bold text-[#0f243f] shadow-[0_8px_24px_rgba(232,160,32,.28)] transition hover:bg-[#d08c12]"
+                                        >
+                                            Перейти в систему
+                                            <ArrowRight className="h-4 w-4" />
+                                        </Link>
+                                        <Link
+                                            href={safeRoute('profile.edit')}
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/8 px-4 py-3 text-sm font-medium text-white/80 transition hover:bg-white/12 hover:text-white"
+                                        >
+                                            Мой профиль
+                                        </Link>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -569,7 +566,7 @@ function Welcome({ canLogin }) {
                                             value={search}
                                             onChange={(e) => setSearch(e.target.value)}
                                             placeholder="Найти сервис..."
-                                            className="w-full border border-white/20 bg-white/10 py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/40 outline-none transition focus:border-[#E8A020]/60 focus:bg-white/15"
+                                            className="w-full border border-white/20 bg-white/95 py-2.5 pl-10 pr-4 text-sm text-[#0f243f] placeholder:text-[#0f243f]/55 outline-none transition focus:border-[#E8A020]/60 focus:bg-white"
                                         />
                                     </div>
                                 </div>
@@ -638,145 +635,9 @@ function Welcome({ canLogin }) {
                     </div>
                 )}
 
-                {/* ── AI modal ── */}
-                {isAiOpen && (
-                    <div
-                        className="animate-fade-in fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/55 px-4"
-                        onClick={() => setIsAiOpen(false)}
-                    >
-                        <div
-                            className="animate-modal-in w-full max-w-2xl border border-slate-200 bg-white shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-4">
-                                <div>
-                                    <h3 className="text-lg font-bold text-[#16355A]">AI Ассистент KazUTB</h3>
-                                    <p className="text-sm text-slate-500">Помощь по сервисам и разделам портала</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAiOpen(false)}
-                                    className="rounded p-1 text-slate-500 hover:bg-slate-100"
-                                    aria-label="Закрыть"
-                                >
-                                    <X className="h-5 w-5" />
-                                </button>
-                            </div>
 
-                            <div className="max-h-[52vh] space-y-3 overflow-y-auto p-5">
-                                {aiMessages.map((message) => (
-                                    <div
-                                        key={message.id}
-                                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div className={`max-w-[80%] px-4 py-2 text-sm ${message.role === 'user' ? 'bg-[#16355A] text-white' : 'border border-slate-200 bg-slate-50 text-slate-700'}`}>
-                                            <p className="whitespace-pre-line">{message.text}</p>
-                                            {message.role === 'assistant' && typeof message.imageUrl === 'string' && message.imageUrl.trim() !== '' && (
-                                                <div className="relative mt-3 w-full max-w-sm overflow-hidden border border-slate-200 bg-white">
-                                                    <img
-                                                        src={message.imageUrl}
-                                                        alt="Маршрут"
-                                                        className="block max-h-56 w-full object-contain"
-                                                        loading="lazy"
-                                                    />
-                                                    {Array.isArray(message.routePolyline) && message.routePolyline.length > 0 && (
-                                                        <svg
-                                                            viewBox="0 0 100 100"
-                                                            preserveAspectRatio="none"
-                                                            className="pointer-events-none absolute inset-0 h-full w-full"
-                                                            aria-hidden="true"
-                                                        >
-                                                            {message.routePolyline.length > 1 && (
-                                                                <>
-                                                                    <path
-                                                                        d={buildSmoothPath(message.routePolyline)}
-                                                                        fill="none"
-                                                                        stroke="#000"
-                                                                        strokeWidth="1.08"
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        opacity="0.18"
-                                                                    />
-                                                                    <path
-                                                                        d={buildSmoothPath(message.routePolyline)}
-                                                                        fill="none"
-                                                                        stroke="#111"
-                                                                        strokeWidth="0.64"
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeDasharray="1.45 2.2"
-                                                                    />
-                                                                </>
-                                                            )}
-                                                            <circle
-                                                                cx={message.routePolyline[0]?.x}
-                                                                cy={message.routePolyline[0]?.y}
-                                                                r="1.1"
-                                                                fill="#e5242a"
-                                                                stroke="#fff"
-                                                                strokeWidth="0.32"
-                                                            />
-                                                            {message.routePolyline.length > 1 && (
-                                                                <circle
-                                                                    cx={message.routePolyline[message.routePolyline.length - 1]?.x}
-                                                                    cy={message.routePolyline[message.routePolyline.length - 1]?.y}
-                                                                    r="1.1"
-                                                                    fill="#16a34a"
-                                                                    stroke="#fff"
-                                                                    strokeWidth="0.32"
-                                                                />
-                                                            )}
-                                                        </svg>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                                {aiLoading && (
-                                    <div className="flex justify-start">
-                                        <div className="border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-400">
-                                            ...
-                                        </div>
-                                    </div>
-                                )}
-                                <div ref={aiMessagesEndRef} />
-                            </div>
-
-                            <div className="border-t border-slate-200 p-4">
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={aiInput}
-                                        onChange={(e) => setAiInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                sendAiMessage();
-                                            }
-                                        }}
-                                        placeholder="Например: где найти факультеты?"
-                                        className="w-full border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#16355A]"
-                                        disabled={aiLoading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={sendAiMessage}
-                                        disabled={aiLoading || !aiInput.trim()}
-                                        className="inline-flex items-center gap-1 bg-[#16355A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f2744] disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        <Send className="h-4 w-4" />
-                                        Отправить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </main>
+            {isAiOpen && <AiAssistant onClose={() => setIsAiOpen(false)} />}
         </>
     );
 }
-
-Welcome.layout = page => <PublicLayout>{page}</PublicLayout>;
-export default Welcome;

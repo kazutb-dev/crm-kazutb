@@ -31,7 +31,11 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\Questionnaire\QuestionnaireAdminController;
 use App\Http\Controllers\Questionnaire\QuestionnaireStudentWebController;
 use App\Http\Controllers\CertificateRegistryController;
+use App\Http\Controllers\AuthorityLedgerController;
 use App\Http\Controllers\CertificateTemplateController;
+use App\Http\Controllers\GovernanceAccessRequestController;
+use App\Http\Controllers\OrgStructureController;
+use App\Http\Controllers\RoleAccessController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\DepartmentRequestController;
 use App\Http\Controllers\PositionChangeRequestController;
@@ -378,8 +382,6 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
         ->name('dept-requests.admin');
     Route::patch('admin/department-requests/{departmentRequest}/status', [DepartmentRequestController::class, 'updateStatus'])
         ->name('dept-requests.update-status');
-    Route::get('admin/department-request-handlers', [DepartmentRequestController::class, 'handlers'])
-        ->name('dept-request-handlers.index');
     Route::post('admin/department-request-handlers', [DepartmentRequestController::class, 'storeHandler'])
         ->name('dept-request-handlers.store');
     Route::delete('admin/department-request-handlers/{handler}', [DepartmentRequestController::class, 'destroyHandler'])
@@ -1833,6 +1835,25 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
     // API endpoint for survey questions
     Route::get('api/survey-questions/active', [\App\Http\Controllers\SurveyQuestionController::class, 'getActive'])
         ->name('api.survey-questions.active');
+
+    // ── Управление доступом (Governance) ──────────────────────────────────────
+    Route::get('governance/requests', [GovernanceAccessRequestController::class, 'index'])
+        ->name('governance.access-requests');
+    Route::post('governance/requests/{governanceAccessRequest}/approve', [GovernanceAccessRequestController::class, 'approve'])
+        ->middleware('throttle:30,1')
+        ->name('governance.access-requests.approve');
+    Route::post('governance/requests/{governanceAccessRequest}/reject', [GovernanceAccessRequestController::class, 'reject'])
+        ->middleware('throttle:30,1')
+        ->name('governance.access-requests.reject');
+    Route::post('governance/academic-scope', [GovernanceAccessRequestController::class, 'storeAcademicScope'])
+        ->middleware('throttle:20,1')
+        ->name('governance.academic-scope.store');
+    Route::get('governance/org-structure', [OrgStructureController::class, 'index'])
+        ->name('governance.org-structure');
+    Route::get('governance/authority-ledger', [AuthorityLedgerController::class, 'index'])
+        ->name('governance.authority-ledger');
+    Route::get('governance/role-access', [RoleAccessController::class, 'index'])
+        ->name('governance.role-access');
 });
 
 Route::get('certificate/verify/{certificateNumber}', [CertificateRegistryController::class, 'verify'])

@@ -218,6 +218,31 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
     const externalLinks = resolveExternalLinks(entry);
     const structuralConfirmations = resolveEntryStructuralConfirmations(entry);
     const isAdminViewer = Boolean(moderationContext?.is_admin);
+    const roleSlug = moderationContext?.role_slug;
+
+    const isEntryScopeActive = (entryObj) => {
+        if (!entryObj?.period || entryObj.period?.status !== 'active') {
+            return false;
+        }
+
+        if (roleSlug === 'teacher') {
+            return Boolean(entryObj.period?.is_teacher_active);
+        }
+
+        if (roleSlug === 'department_head' || roleSlug === 'hod') {
+            return Boolean(entryObj.period?.is_hod_active);
+        }
+
+        if (roleSlug === 'dean') {
+            return Boolean(entryObj.period?.is_dean_active);
+        }
+
+        if (roleSlug === 'structural' || roleSlug === 'structural_unit') {
+            return Boolean(entryObj.period?.is_structural_active);
+        }
+
+        return true;
+    };
     const actorStructuralUnitIds = new Set(
         Array.isArray(moderationContext?.actor_structural_unit_ids)
             ? moderationContext.actor_structural_unit_ids
@@ -313,7 +338,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                     <p className="text-sm text-muted-foreground">Единица измерения</p>
                                     <p className="mt-1 font-medium">{entry.indicator?.unit ?? '—'}</p>
                                 </div>
-                 
+
                                 <div>
                                     <p className="text-sm text-muted-foreground">Фактическое значение</p>
                                     <p className="mt-1 font-medium">{entry.fact_value ?? '—'}</p>
@@ -536,30 +561,38 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                         </div>
                                     ) : (
                                         <>
-                                            {permissions.canApprove && (
-                                                <Button type="button" disabled={form.processing} onClick={() => submitAction('kpi.entries.approve')}>
+                                            <div className="grid gap-2">
+                                                <Button
+                                                    type="button"
+                                                    disabled={form.processing || !permissions.canApprove || (!isEntryScopeActive(entry) && !isAdminViewer)}
+                                                    onClick={() => submitAction('kpi.entries.approve')}
+                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивированы — действие недоступно' : undefined}
+                                                >
                                                     <ShieldCheck className="h-4 w-4" />
                                                     Утвердить запись
                                                 </Button>
-                                            )}
 
-                                            {permissions.canReject && (
-                                                <Button type="button" disabled={form.processing} variant="destructive" onClick={() => submitAction('kpi.entries.reject')}>
+                                                <Button
+                                                    type="button"
+                                                    disabled={form.processing || !(permissions.canReject || permissions.canReturn) || (!isEntryScopeActive(entry) && !isAdminViewer)}
+                                                    variant="destructive"
+                                                    onClick={() => {
+                                                        if (permissions.canReject) {
+                                                            submitAction('kpi.entries.reject');
+                                                        } else if (permissions.canReturn) {
+                                                            submitAction('kpi.entries.return');
+                                                        }
+                                                    }}
+                                                    title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивированы — действие недоступно' : undefined}
+                                                >
                                                     <ShieldAlert className="h-4 w-4" />
                                                     Отклонить запись
                                                 </Button>
-                                            )}
 
-                                            {!permissions.canReject && permissions.canReturn && (
-                                                <Button type="button" disabled={form.processing} variant="destructive" onClick={() => submitAction('kpi.entries.return')}>
-                                                    <ShieldAlert className="h-4 w-4" />
-                                                    Отклонить запись
-                                                </Button>
-                                            )}
-
-                                            {!permissions.canApprove && !permissions.canReject && !permissions.canReturn && (
-                                                <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
-                                            )}
+                                                {!permissions.canApprove && !permissions.canReject && !permissions.canReturn && (
+                                                    <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
+                                                )}
+                                            </div>
                                         </>
                                     )}
                                 </div>

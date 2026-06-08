@@ -18,7 +18,8 @@ const roleLabels = {
     student: 'Студент',
 };
 
-export default function AdminAccess({ users = [], search = '' }) {
+export default function AdminAccess({ users = [], search = '', permissions = {} }) {
+    const requiresDangerousActionReason = Boolean(permissions.requiresDangerousActionReason);
     const form = useForm({
         search,
     });
@@ -38,9 +39,15 @@ export default function AdminAccess({ users = [], search = '' }) {
     };
 
     const grantAdmin = (userId) => {
+        const reason = resolveDangerousActionReason();
+
+        if (reason === null) {
+            return;
+        }
+
         router.post(
             route('users.admin-access.grant'),
-            { user_id: userId },
+            { user_id: userId, reason },
             {
                 preserveScroll: true,
             },
@@ -48,13 +55,34 @@ export default function AdminAccess({ users = [], search = '' }) {
     };
 
     const revokeAdmin = (userId) => {
+        const reason = resolveDangerousActionReason();
+
+        if (reason === null) {
+            return;
+        }
+
         router.post(
             route('users.admin-access.revoke'),
-            { user_id: userId },
+            { user_id: userId, reason },
             {
                 preserveScroll: true,
             },
         );
+    };
+
+    const resolveDangerousActionReason = () => {
+        if (!requiresDangerousActionReason) {
+            return '';
+        }
+
+        const reason = window.prompt('Укажите причину опасного действия') ?? '';
+
+        if (reason.trim().length < 8) {
+            window.alert('Причина должна быть минимум 8 символов.');
+            return null;
+        }
+
+        return reason.trim();
     };
 
     const adminUsers = useMemo(

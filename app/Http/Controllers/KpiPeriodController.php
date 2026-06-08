@@ -17,9 +17,7 @@ use Inertia\Response;
 
 class KpiPeriodController extends Controller
 {
-    public function __construct(private readonly KpiPeriodService $service)
-    {
-    }
+    public function __construct(private readonly KpiPeriodService $service) {}
 
     public function index(Request $request): Response|JsonResponse|RedirectResponse
     {
@@ -204,6 +202,32 @@ class KpiPeriodController extends Controller
         }
     }
 
+    public function activateScope(Request $request, KpiPeriod $period, string $scope): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $period);
+
+        try {
+            $activated = $this->service->activateScope($period, $scope);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Область KPI-сезона активирована.',
+                    'data' => $activated,
+                ]);
+            }
+
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'Область KPI-сезона активирована.');
+        } catch (KpiPeriodException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->withErrors(['kpi_period' => $e->getMessage()]);
+        }
+    }
+
     public function close(Request $request, KpiPeriod $period): RedirectResponse|JsonResponse
     {
         $this->authorize('update', $period);
@@ -245,6 +269,32 @@ class KpiPeriodController extends Controller
             }
 
             return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'KPI-сезон деактивирован.');
+        } catch (KpiPeriodException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->withErrors(['kpi_period' => $e->getMessage()]);
+        }
+    }
+
+    public function deactivateScope(Request $request, KpiPeriod $period, string $scope): RedirectResponse|JsonResponse
+    {
+        $this->authorize('update', $period);
+
+        try {
+            $deactivated = $this->service->deactivateScope($period, $scope);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Область KPI-сезона деактивирована.',
+                    'data' => $deactivated,
+                ]);
+            }
+
+            return redirect()->route('kpi.settings', ['tab' => 'seasons'])->with('success', 'Область KPI-сезона деактивирована.');
         } catch (KpiPeriodException $e) {
             if ($request->expectsJson()) {
                 return response()->json([

@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\GovernanceAccessRequest;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
 use App\Models\Questionnaire\Student as QuestionnaireStudent;
 use App\Models\User;
 use App\Services\BusinessActivityLogger;
+use App\Services\GovernanceAccessRequestService;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -50,9 +52,35 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $this->normalizeProfileData($request->validated());
 
-        if (! $this->canEditAcademicBindings($user)) {
-            unset($validated['faculty_id'], $validated['department_id']);
+        $requestedGovernedValues = [
+            'position_confirmed' => $validated['position_confirmed'] ?? null,
+            'position_id' => $validated['position_id'] ?? null,
+            'faculty_id' => $validated['faculty_id'] ?? null,
+            'department_id' => $validated['department_id'] ?? null,
+            'request_comment' => $validated['request_comment'] ?? null,
+        ];
+
+        $blockedSelfEditFields = [];
+
+        if ($this->isAdSynced($user)) {
+            foreach (['name', 'email'] as $identityField) {
+                if (array_key_exists($identityField, $validated)) {
+                    unset($validated[$identityField]);
+                    $blockedSelfEditFields[] = $identityField;
+                }
+            }
         }
+
+        // Phase 1 hard-freeze: never accept self-edits for access-affecting profile fields.
+        unset(
+            $validated['position_confirmed'],
+            $validated['position_id'],
+            $validated['position_title'],
+            $validated['faculty_id'],
+            $validated['department_id'],
+            $validated['profile_visibility'],
+            $validated['request_comment'],
+        );
 
         $newPhone = trim((string) ($validated['phone'] ?? ''));
         $currentPhone = trim((string) ($user->phone ?? ''));
@@ -88,53 +116,22 @@ class ProfileController extends Controller
             }
         }
 
-        // Handle position confirmation
-        $confirmed = isset($validated['position_confirmed'])
-            ? filter_var($validated['position_confirmed'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
-            : null;
 
-        if ($confirmed === true) {
-            $user->position_title     = $user->position_title ?: $user->ad_title;
-            $user->position_id        = null;
-            $user->position_confirmed = true;
-        } elseif ($confirmed === false && ! empty($validated['position_id'])) {
-            $requestedPosition = Position::query()->find((int) $validated['position_id']);
-            $positionRequestsEnabled = $this->positionRequestsTableExists();
-
-            if ($requestedPosition !== null) {
-                $hasPendingRequest = $positionRequestsEnabled
-                    ? PositionChangeRequest::query()
-                        ->where('user_id', $user->id)
-                        ->where('status', 'pending')
-                        ->exists()
-                    : false;
-
-                if ($hasPendingRequest) {
-                    // Position change is locked while request is pending; keep saving other profile fields.
-                    unset($validated['position_id']);
-                    $requestedPosition = null;
-                }
-
-                if ($requestedPosition !== null) {
-                    $currentPosition = trim((string) ($user->position_title ?: $user->ad_title));
-                    if ($currentPosition !== '' && $currentPosition === (string) $requestedPosition->name) {
-                        // Selecting the already assigned position is a no-op: continue saving other profile fields.
-                        unset($validated['position_id']);
-                    } elseif ($positionRequestsEnabled) {
-                        PositionChangeRequest::query()->create([
-                            'user_id' => $user->id,
-                            'current_position' => $user->position_title ?: $user->ad_title,
-                            'requested_position_id' => $requestedPosition->id,
-                            'status' => 'pending',
-                        ]);
-                    } else {
-                        unset($validated['position_id']);
-                    }
-                }
-            }
-        }
-
-        unset($validated['position_confirmed'], $validated['position_id'], $validated['position_title']);
+        $dangerousSelfEditKeys = [
+            'position_confirmed',
+            'position_id',
+            'position_title',
+            'faculty_id',
+            'department_id',
+            'profile_visibility',
+            'division_id',
+            'role',
+            'role_id',
+        ];
+        $blockedSelfEditFields = array_values(array_unique(array_merge(
+            $blockedSelfEditFields,
+            array_values(array_intersect($dangerousSelfEditKeys, array_keys($request->all()))),
+        )));
 
         $user->fill($validated);
 
@@ -150,6 +147,12 @@ class ProfileController extends Controller
 
         $user->save();
 
+        $createdGovernanceRequests = $this->submitProfileGovernanceRequests(
+            $user->fresh(['faculty', 'department']),
+            $request,
+            $requestedGovernedValues,
+        );
+
         app(BusinessActivityLogger::class)->log(
             'profile_updated',
             'Профиль пользователя обновлён',
@@ -158,14 +161,20 @@ class ProfileController extends Controller
                 'changed_fields' => array_values(array_diff(array_keys($validated), ['password'])),
                 'email_changed' => $user->wasChanged('email'),
                 'phone_changed' => $isPhoneChanged,
-                'academic_bindings_changed' => $this->canEditAcademicBindings($request->user()) ? ['faculty_id', 'department_id'] : [],
-                'position_request_created' => isset($requestedPosition) && $requestedPosition !== null,
+                'academic_bindings_changed' => in_array('academic_affiliation', $createdGovernanceRequests, true),
+                'position_request_created' => in_array('position', $createdGovernanceRequests, true),
+                'structural_request_created' => in_array('structural_binding', $createdGovernanceRequests, true),
+                'blocked_self_edit_fields' => $blockedSelfEditFields,
             ],
             $user,
             $request,
         );
 
-        return Redirect::route('profile.edit');
+        $message = empty($createdGovernanceRequests)
+            ? 'Профиль обновлён.'
+            : 'Профиль обновлён, security-relevant изменения отправлены на согласование.';
+
+        return Redirect::route('profile.edit')->with('success', $message);
     }
 
     /**
@@ -210,11 +219,11 @@ class ProfileController extends Controller
         $syncLabel = $isAdSynced ? 'AD-синхронизация' : 'Локальный аккаунт';
         $isStructuralRole = $user->resolvedRoleSlug() === 'structural';
         $divisionSource = $isStructuralRole
-            ? $user->kpiStructuralUnits->map(static fn ($unit) => [
+            ? $user->kpiStructuralUnits->map(static fn($unit) => [
                 'id' => $unit->id,
                 'name' => $unit->name,
             ])->values()
-            : $user->divisions->map(static fn ($division) => [
+            : $user->divisions->map(static fn($division) => [
                 'id' => $division->id,
                 'name' => $division->name,
             ])->values();
@@ -222,15 +231,29 @@ class ProfileController extends Controller
         $positionRequests = collect();
         $hasPendingPositionRequest = false;
         $pendingPositionRequest = null;
+        $pendingAcademicRequest = null;
 
-        if ($this->positionRequestsTableExists()) {
+        if ($this->governanceAccessRequestsTableExists()) {
+            $pendingRequests = GovernanceAccessRequest::query()
+                ->where('subject_user_id', $user->id)
+                ->where('status', GovernanceAccessRequest::STATUS_PENDING)
+                ->latest('id')
+                ->get()
+                ->keyBy('request_type');
+
+            $pendingPositionRequest = $pendingRequests->get(GovernanceAccessRequest::TYPE_POSITION);
+            $pendingAcademicRequest = $pendingRequests->get(GovernanceAccessRequest::TYPE_ACADEMIC);
+            $hasPendingPositionRequest = $pendingPositionRequest !== null;
+        }
+
+        if (! $this->governanceAccessRequestsTableExists() && $this->positionRequestsTableExists()) {
             $positionRequests = PositionChangeRequest::query()
                 ->where('user_id', $user->id)
                 ->with('requestedPosition:id,name')
                 ->latest('id')
                 ->limit(5)
                 ->get()
-                ->map(static fn (PositionChangeRequest $request) => [
+                ->map(static fn(PositionChangeRequest $request) => [
                     'id' => $request->id,
                     'status' => $request->status,
                     'requested_position' => $request->requestedPosition?->name,
@@ -279,14 +302,23 @@ class ProfileController extends Controller
             'role_slug' => $user->resolvedRoleSlug(),
             'sync_status' => $isAdSynced ? 'ad' : 'local',
             'sync_label' => $syncLabel,
+            'identity_editable' => ! $isAdSynced,
             'profile_completion_percent' => $profileCompletionPercent,
             'profile_completion_label' => $profileCompletionLabel,
             'profile_completion' => $profileCompletionPercent,
             'has_pending_position_request' => $hasPendingPositionRequest,
             'pending_position_request' => $pendingPositionRequest ? [
                 'id' => $pendingPositionRequest->id,
-                'requested_position' => $pendingPositionRequest->requestedPosition?->name,
+                'requested_position' => $pendingPositionRequest instanceof GovernanceAccessRequest
+                    ? ($pendingPositionRequest->requested_value['position_title'] ?? null)
+                    : $pendingPositionRequest->requestedPosition?->name,
                 'created_at' => $pendingPositionRequest->created_at?->toDateString(),
+            ] : null,
+            'pending_academic_request' => $pendingAcademicRequest ? [
+                'id' => $pendingAcademicRequest->id,
+                'faculty_id' => $pendingAcademicRequest->requested_value['faculty_id'] ?? null,
+                'department_id' => $pendingAcademicRequest->requested_value['department_id'] ?? null,
+                'created_at' => $pendingAcademicRequest->created_at?->toDateString(),
             ] : null,
             'position_requests' => $positionRequests->all(),
             'faculty' => $user->faculty ? [
@@ -314,7 +346,7 @@ class ProfileController extends Controller
                 'faculties' => Faculty::query()
                     ->orderBy('name')
                     ->get(['id', 'name'])
-                    ->map(static fn (Faculty $faculty) => [
+                    ->map(static fn(Faculty $faculty) => [
                         'id' => $faculty->id,
                         'name' => $faculty->name,
                     ])
@@ -323,7 +355,7 @@ class ProfileController extends Controller
                 'departments' => Department::query()
                     ->orderBy('name')
                     ->get(['id', 'name', 'faculty_id'])
-                    ->map(static fn (Department $department) => [
+                    ->map(static fn(Department $department) => [
                         'id' => $department->id,
                         'name' => $department->name,
                         'faculty_id' => $department->faculty_id,
@@ -346,8 +378,60 @@ class ProfileController extends Controller
                 'profile_visibility' => $profileVisibility,
                 'faculty_id' => $user->faculty_id,
                 'department_id' => $user->department_id,
+                'request_comment' => '',
+            ],
+            'authorization_core' => [
+                'identity_source' => $isAdSynced ? 'ad' : 'local',
+                'academic_context_source' => config('academic.upstream_source', 'platonus_read_only'),
+                'authorization_source' => 'crm',
+                'academic_contract' => app(\App\Services\AcademicScopeResolverService::class)->contractState(),
+                'self_editable_fields' => ['phone', 'telegram', 'bio', 'avatar_url', 'office_location'],
+                'approval_required_fields' => ['position_id', 'faculty_id', 'department_id', 'structural_unit_ids'],
+                'sync_only_fields' => ['ad_guid', 'ad_login', 'ad_title', 'ad_department', 'ad_division'],
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $requestedGovernedValues
+     * @return array<int, string>
+     */
+    private function submitProfileGovernanceRequests(User $user, Request $request, array $requestedGovernedValues): array
+    {
+        $service = app(GovernanceAccessRequestService::class);
+        $created = [];
+        $comment = is_string($requestedGovernedValues['request_comment'] ?? null)
+            ? trim((string) $requestedGovernedValues['request_comment'])
+            : null;
+
+        if (($requestedGovernedValues['position_confirmed'] ?? null) === false && ! empty($requestedGovernedValues['position_id'])) {
+            $positionRequest = $service->submitPositionRequest(
+                $user,
+                $request->user(),
+                (int) $requestedGovernedValues['position_id'],
+                $comment,
+                'profile_self_service'
+            );
+
+            if ($positionRequest) {
+                $created[] = GovernanceAccessRequest::TYPE_POSITION;
+            }
+        }
+
+        $academicRequest = $service->submitAcademicRequest(
+            $user,
+            $request->user(),
+            isset($requestedGovernedValues['faculty_id']) ? (int) ($requestedGovernedValues['faculty_id'] ?: 0) ?: null : null,
+            isset($requestedGovernedValues['department_id']) ? (int) ($requestedGovernedValues['department_id'] ?: 0) ?: null : null,
+            $comment,
+            'profile_self_service'
+        );
+
+        if ($academicRequest) {
+            $created[] = GovernanceAccessRequest::TYPE_ACADEMIC;
+        }
+
+        return $created;
     }
 
     private function resolveStudentBinding(User $user): ?array
@@ -495,6 +579,17 @@ class ProfileController extends Controller
 
         if ($exists === null) {
             $exists = Schema::hasTable('position_change_requests');
+        }
+
+        return $exists;
+    }
+
+    private function governanceAccessRequestsTableExists(): bool
+    {
+        static $exists = null;
+
+        if ($exists === null) {
+            $exists = Schema::hasTable('governance_access_requests');
         }
 
         return $exists;
