@@ -56,6 +56,7 @@ const SIDEBAR_GROUP_KEYS = [
     'calendarAdmin',
     'calendarShared',
     'templates',
+    'deptRequests',
 ];
 
 const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
@@ -123,7 +124,6 @@ export function AppSidebar() {
     const roleSlug = auth.roleSlug;
     const kpiGrants = new Set(kpi?.grants ?? []);
     const TEMP_HIDE_MAIN_MENUS = false;
-    const canManageTemplates = auth.canManageTemplates ?? false;
     const isAdminRole = ['admin', 'superadmin'].includes(roleSlug);
     const isKpiAdminGrant =
         kpiGrants.has('kpi_admin')
@@ -136,7 +136,8 @@ export function AppSidebar() {
     const isDepartmentRole = roleSlug === 'department';
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
-    const canAccessTemplatesSection = isAdminRole || canManageTemplates;
+    const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
+    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
     const canAccessPositionRequests =
         isAdminRole
         || isStructuralRole
@@ -631,6 +632,38 @@ export function AppSidebar() {
         },
     ];
 
+    // Department requests — visible to all authenticated users
+    const deptRequestItems = [
+        {
+            title: 'Мои заявки',
+            href: route('dept-requests.index'),
+            icon: ClipboardList,
+            active: route().current('dept-requests.index'),
+        },
+        {
+            title: 'Отделы (куда отправлять)',
+            href: route('dept-requests.departments'),
+            icon: BookOpenText,
+            active: route().current('dept-requests.departments'),
+        },
+        ...(isAdminRole ? [
+            {
+                title: 'Все заявки',
+                href: route('dept-requests.admin'),
+                icon: AlertCircle,
+                active: route().current('dept-requests.admin'),
+            },
+            {
+                title: 'Ответственные',
+                href: route('dept-request-handlers.index'),
+                icon: Users,
+                active: route().current('dept-request-handlers.index'),
+            },
+        ] : [
+            // Non-admin but assigned as handler
+        ]),
+    ];
+
     const { state: sidebarState } = useSidebar();
     const sidebarContentRef = useRef(null);
     const groupRefs = useRef({});
@@ -651,6 +684,7 @@ export function AppSidebar() {
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
+        deptRequests: !showOnlyKpiMenus && deptRequestItems.some((item) => item.active),
     };
 
     const activeGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupActivity[key]);
@@ -749,6 +783,7 @@ export function AppSidebar() {
         library: isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus,
+        deptRequests: !showOnlyKpiMenus,
     };
 
     const groupItems = {
@@ -761,6 +796,7 @@ export function AppSidebar() {
         library,
         calendarAdmin: adminCalendarItems,
         templates: templateItems,
+        deptRequests: deptRequestItems,
     };
 
     const visibleGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupVisibility[key] && (groupItems[key]?.length ?? 0) > 0);
@@ -896,13 +932,17 @@ export function AppSidebar() {
                 {canAccessTemplatesSection && !showOnlyKpiMenus && (
                     renderGroup('templates', 'Шаблоны и сертификаты', templateItems)
                 )}
+
+                {!showOnlyKpiMenus && deptRequestItems.length > 0 && (
+                    renderGroup('deptRequests', 'Заявки', deptRequestItems)
+                )}
             </SidebarContent>
 
             <SidebarFooter className="mt-auto border-t border-sidebar-border/80 pb-3 pt-3">
                 <SidebarMenu className="gap-1">
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Главная">
-                            <a href={route('dashboard')}>
+                            <a href="http://10.0.1.47/">
                                 <Home />
                                 <span>Главная</span>
                             </a>

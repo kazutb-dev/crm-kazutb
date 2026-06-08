@@ -33,6 +33,7 @@ use App\Http\Controllers\Questionnaire\QuestionnaireStudentWebController;
 use App\Http\Controllers\CertificateRegistryController;
 use App\Http\Controllers\CertificateTemplateController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\DepartmentRequestController;
 use App\Http\Controllers\PositionChangeRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
@@ -63,7 +64,7 @@ Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store
 Route::get('/special/login-image', function (Request $request) {
     $user = $request->user();
 
-    if (! $user || (int) $user->id !== 66 || (string) ($user->ad_login ?? '') !== 'a.ulykpan1') {
+    if (! $user || (int) $user->id !== 66 || (string) ($user->ad_login ?? '') !== 'a.ulykpan') {
         abort(404);
     }
 
@@ -73,6 +74,22 @@ Route::get('/special/login-image', function (Request $request) {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'track.last-seen'])
     ->name('dashboard');
+
+// Department requests — all authenticated users
+Route::middleware(['auth', 'verified', 'track.last-seen'])->group(function () {
+    Route::get('/department-requests', [DepartmentRequestController::class, 'index'])
+        ->name('dept-requests.index');
+    Route::get('/department-requests/departments', [DepartmentRequestController::class, 'departmentsPage'])
+        ->name('dept-requests.departments');
+    Route::post('/department-requests/departments', [DepartmentRequestController::class, 'storeRecipientDepartment'])
+        ->name('dept-requests.departments.store');
+    Route::post('/department-requests/departments/new', [DepartmentRequestController::class, 'storeNewRecipientDepartment'])
+        ->name('dept-requests.departments.store-new');
+    Route::delete('/department-requests/departments/{recipientDepartment}', [DepartmentRequestController::class, 'destroyRecipientDepartment'])
+        ->name('dept-requests.departments.destroy');
+    Route::post('/department-requests', [DepartmentRequestController::class, 'store'])
+        ->name('dept-requests.store');
+});
 
 Route::middleware(['auth', 'verified', 'track.last-seen'])
     ->prefix('questionnaire')
@@ -356,6 +373,18 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
     Route::patch('admin/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])
         ->name('tickets.update-status');
 
+    // Department requests — admin/handler management
+    Route::get('admin/department-requests', [DepartmentRequestController::class, 'adminIndex'])
+        ->name('dept-requests.admin');
+    Route::patch('admin/department-requests/{departmentRequest}/status', [DepartmentRequestController::class, 'updateStatus'])
+        ->name('dept-requests.update-status');
+    Route::get('admin/department-request-handlers', [DepartmentRequestController::class, 'handlers'])
+        ->name('dept-request-handlers.index');
+    Route::post('admin/department-request-handlers', [DepartmentRequestController::class, 'storeHandler'])
+        ->name('dept-request-handlers.store');
+    Route::delete('admin/department-request-handlers/{handler}', [DepartmentRequestController::class, 'destroyHandler'])
+        ->name('dept-request-handlers.destroy');
+
     Route::get('admin/nav-routes', [NavigationRouteController::class, 'index'])
         ->name('nav.routes.admin');
     Route::post('admin/nav-routes', [NavigationRouteController::class, 'store'])
@@ -389,7 +418,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
             ->paginate($perPage);
 
         return response()->json([
-            'data' => $users->map(fn (\App\Models\User $user): array => [
+            'data' => $users->map(fn(\App\Models\User $user): array => [
                 'id'       => $user->id,
                 'name'     => $user->name,
                 'first_name' => $user->first_name,
@@ -547,8 +576,8 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 
             if ($slot->recurrence_type === 'weekly') {
                 $days = collect((array) ($slot->recurrence_days ?? []))
-                    ->map(fn ($d) => (int) $d)
-                    ->filter(fn ($d) => $d >= 1 && $d <= 7)
+                    ->map(fn($d) => (int) $d)
+                    ->filter(fn($d) => $d >= 1 && $d <= 7)
                     ->values()
                     ->all();
 
@@ -704,7 +733,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                 ->whereNull('revoked_at')
                 ->orderByDesc('granted_at')
                 ->get()
-                ->map(fn ($access) => [
+                ->map(fn($access) => [
                     'id' => $access->manager_id,
                     'name' => $access->manager?->display_name ?? $access->manager?->name,
                     'title' => $access->manager?->ad_title,
@@ -731,7 +760,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                 ->where('id', '<>', $user->id)
                 ->orderBy('name')
                 ->get()
-                ->map(fn ($u) => [
+                ->map(fn($u) => [
                     'id' => $u->id,
                     'name' => $u->display_name ?? $u->name,
                     'title' => $u->ad_title,
@@ -760,7 +789,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                     })
                     ->orderBy('name')
                     ->get()
-                    ->map(fn ($u) => [
+                    ->map(fn($u) => [
                         'id'    => $u->id,
                         'name'  => $u->display_name ?? $u->name,
                         'title' => $u->ad_title,
@@ -780,7 +809,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                     ->whereNotIn('id', $excludedIds)
                     ->orderBy('name')
                     ->get()
-                    ->map(fn ($u) => [
+                    ->map(fn($u) => [
                         'id'      => $u->id,
                         'grantId' => $grantsMap[$u->id] ?? null,
                         'name'    => $u->display_name ?? $u->name,
@@ -800,7 +829,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                     ->whereIn('id', $excludedIds)
                     ->orderBy('name')
                     ->get()
-                    ->map(fn ($u) => [
+                    ->map(fn($u) => [
                         'id'          => $u->id,
                         'exclusionId' => $exclusionsMap[$u->id] ?? null,
                         'name'        => $u->display_name ?? $u->name,
@@ -818,7 +847,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                     ->whereNotIn('id', $alreadyVisibleIds)
                     ->orderBy('name')
                     ->get()
-                    ->map(fn ($u) => [
+                    ->map(fn($u) => [
                         'id'    => $u->id,
                         'name'  => $u->display_name ?? $u->name,
                         'title' => $u->ad_title,
@@ -835,7 +864,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                 ->whereNull('revoked_at')
                 ->orderByDesc('granted_at')
                 ->get()
-                ->map(fn ($access) => [
+                ->map(fn($access) => [
                     'id' => $access->id,
                     'secretary_id' => $access->secretary_id,
                     'secretary_name' => $access->secretary?->display_name ?? $access->secretary?->name,
@@ -852,7 +881,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                 ->orderBy('recurrence_type')
                 ->orderBy('starts_at')
                 ->get(['id', 'date', 'starts_at', 'ends_at', 'slot_duration_minutes', 'buffer_minutes', 'access_type', 'min_rank_level', 'recurrence_type', 'recurrence_days', 'note'])
-                ->map(fn ($slot) => [
+                ->map(fn($slot) => [
                     'id' => $slot->id,
                     'date' => $slot->date?->toDateString(),
                     'starts_at' => $slot->starts_at,
@@ -1024,7 +1053,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 
             $buildSlotConflictDetails = function (array $slotOverlaps, string $subjectLabel) use ($formatRange): array {
                 return collect($slotOverlaps)
-                    ->map(fn ($slot) => sprintf(
+                    ->map(fn($slot) => sprintf(
                         '• %s: "%s" (%s), с кем: личная занятость',
                         $subjectLabel,
                         (string) ($slot['note'] ?? 'Занято'),
@@ -1073,8 +1102,8 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                     return back()->with(
                         'error',
                         "Нельзя назначить встречу: у выбранного сотрудника есть конфликт в этот период.\n"
-                        . $detailsPreview
-                        . ($hasMore ? "\n• ...и другие пересечения" : '')
+                            . $detailsPreview
+                            . ($hasMore ? "\n• ...и другие пересечения" : '')
                     );
                 }
             }
@@ -1095,16 +1124,16 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 
             $attendeeConflictEvents = !empty($data['attendee_id'])
                 ? \App\Models\CalendarEvent::query()
-                    ->with(['organizer:id,name,display_name', 'attendee:id,name,display_name'])
-                    ->whereNotIn('status', ['cancelled', 'declined'])
-                    ->whereIn('type', $blockingTypes)
-                    ->where('starts_at', '<', $endsAt)
-                    ->where('ends_at', '>', $startsAt)
-                    ->where(function ($q) use ($data) {
-                        $q->where('organizer_id', $data['attendee_id'])
-                            ->orWhere('attendee_id', $data['attendee_id']);
-                    })
-                    ->get(['id', 'title', 'type', 'organizer_id', 'attendee_id', 'starts_at', 'ends_at', 'room'])
+                ->with(['organizer:id,name,display_name', 'attendee:id,name,display_name'])
+                ->whereNotIn('status', ['cancelled', 'declined'])
+                ->whereIn('type', $blockingTypes)
+                ->where('starts_at', '<', $endsAt)
+                ->where('ends_at', '>', $startsAt)
+                ->where(function ($q) use ($data) {
+                    $q->where('organizer_id', $data['attendee_id'])
+                        ->orWhere('attendee_id', $data['attendee_id']);
+                })
+                ->get(['id', 'title', 'type', 'organizer_id', 'attendee_id', 'starts_at', 'ends_at', 'room'])
                 : collect();
 
             $ownerSlotOverlaps = $findSlotOverlaps($ownerId, $startsAt, $endsAt, $timezone);
@@ -1185,8 +1214,8 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
                 return back()->with(
                     'warning',
                     "Обнаружено пересечение по времени. Событие сохранено со статусом \"Конфликт\".\n"
-                    . $detailsPreview
-                    . ($hasMore ? "\n• ...и другие пересечения" : '')
+                        . $detailsPreview
+                        . ($hasMore ? "\n• ...и другие пересечения" : '')
                 );
             }
 
@@ -1436,7 +1465,7 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
             ], (int) $event->organizer_id !== (int) $user->id ? (int) $event->organizer_id : null);
 
             $recipients = collect([$event->organizer, $event->attendee])
-                ->filter(fn ($recipient) => $recipient && (int) $recipient->id !== (int) $user->id)
+                ->filter(fn($recipient) => $recipient && (int) $recipient->id !== (int) $user->id)
                 ->unique('id');
 
             foreach ($recipients as $recipient) {
@@ -1809,4 +1838,4 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 Route::get('certificate/verify/{certificateNumber}', [CertificateRegistryController::class, 'verify'])
     ->name('certificates.verify');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
