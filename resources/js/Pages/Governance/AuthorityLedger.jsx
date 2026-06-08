@@ -248,7 +248,7 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
                 ) : null}
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    <SummaryCard title="Scoped grants" value={summary.scoped_grants} tone="green" icon={ShieldCheck} />
+                    <SummaryCard title="Назначения доступа" value={summary.scoped_grants} tone="green" icon={ShieldCheck} />
                     <SummaryCard title="Делегирования" value={summary.delegations} tone="blue" icon={History} />
                     <SummaryCard title="Активные" value={summary.active} tone="emerald" icon={Clock} />
                     <SummaryCard title="Истекшие" value={summary.expired} tone="amber" icon={ShieldAlert} />
@@ -272,7 +272,7 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
                                     value={form.q}
                                     onChange={(e) => updateFilters({ q: e.target.value })}
                                     className="pl-9"
-                                    placeholder="Поиск: субъект, делегат, capability, scope"
+                                    placeholder="Поиск: субъект, делегат, полномочие, область"
                                 />
                             </div>
                             <select

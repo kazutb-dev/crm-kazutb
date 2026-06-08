@@ -201,7 +201,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                             Ролевой доступ
                         </Button>
                     )}
-                    meta={<StatusBadge tone="info">Foundation layer</StatusBadge>}
+                    meta={<StatusBadge tone="info">Базовый уровень</StatusBadge>}
                 />
 
                 {canManageFoundation ? (

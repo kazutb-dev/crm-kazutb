@@ -6,6 +6,7 @@ use App\Models\KpiAccessGrant;
 use App\Models\OrgUnit;
 use App\Services\ElevatedAuthorityService;
 use App\Services\UniversityAuthorityCatalogService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -309,5 +310,73 @@ class OrgStructureController extends Controller
                 'to' => $paginator->lastItem(),
             ],
         ];
+    }
+
+    // ── Admin CRUD ────────────────────────────────────────────────────────────
+
+    public function store(Request $request): RedirectResponse
+    {
+        abort_unless($this->canManageFoundation($request), 403);
+
+        $data = $request->validate([
+            'code'        => ['nullable', 'string', 'max:50'],
+            'name'        => ['required', 'string', 'max:255'],
+            'unit_type'   => ['required', 'string', 'in:' . implode(',', array_keys(OrgUnit::TYPE_LABELS))],
+            'parent_id'   => ['nullable', 'integer', 'exists:org_units,id'],
+            'leader_name' => ['nullable', 'string', 'max:255'],
+            'is_active'   => ['boolean'],
+            'sort_order'  => ['nullable', 'integer'],
+        ]);
+
+        $unit = OrgUnit::create([
+            'code'        => $data['code'] ?? null,
+            'name'        => $data['name'],
+            'unit_type'   => $data['unit_type'],
+            'parent_id'   => $data['parent_id'] ?? null,
+            'leader_name' => $data['leader_name'] ?? null,
+            'is_active'   => $data['is_active'] ?? true,
+            'sort_order'  => $data['sort_order'] ?? 0,
+        ]);
+
+        return back()->with('success', "Орг. единица «{$unit->name}» создана.");
+    }
+
+    public function update(Request $request, OrgUnit $orgUnit): RedirectResponse
+    {
+        abort_unless($this->canManageFoundation($request), 403);
+
+        $data = $request->validate([
+            'code'        => ['nullable', 'string', 'max:50'],
+            'name'        => ['required', 'string', 'max:255'],
+            'unit_type'   => ['required', 'string', 'in:' . implode(',', array_keys(OrgUnit::TYPE_LABELS))],
+            'parent_id'   => ['nullable', 'integer', 'exists:org_units,id', 'different:id'],
+            'leader_name' => ['nullable', 'string', 'max:255'],
+            'is_active'   => ['boolean'],
+            'sort_order'  => ['nullable', 'integer'],
+        ]);
+
+        // Prevent circular parent assignment
+        if (isset($data['parent_id']) && (int) $data['parent_id'] === $orgUnit->id) {
+            return back()->withErrors(['parent_id' => 'Единица не может быть своим же родителем.']);
+        }
+
+        $orgUnit->update($data);
+
+        return back()->with('success', "Орг. единица «{$orgUnit->name}» обновлена.");
+    }
+
+    public function destroy(Request $request, OrgUnit $orgUnit): RedirectResponse
+    {
+        abort_unless($this->canManageFoundation($request), 403);
+
+        $childCount = OrgUnit::where('parent_id', $orgUnit->id)->count();
+        if ($childCount > 0) {
+            return back()->withErrors(['destroy' => "Нельзя удалить единицу с дочерними подразделениями ({$childCount} шт.). Сначала переместите их."]);
+        }
+
+        $name = $orgUnit->name;
+        $orgUnit->delete();
+
+        return back()->with('success', "Орг. единица «{$name}» удалена.");
     }
 }

@@ -58,6 +58,7 @@ const SIDEBAR_GROUP_KEYS = [
     'calendarShared',
     'templates',
     'deptRequests',
+    'phonebook',
 ];
 
 const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
@@ -659,6 +660,15 @@ export function AppSidebar() {
         ]),
     ];
 
+    const phonebookItems = [
+        {
+            title: 'Телефонный справочник',
+            href: route('phonebook.index'),
+            icon: Users,
+            active: route().current('phonebook.*'),
+        },
+    ];
+
     const governance = isAdminRole ? [
         {
             title: 'Запросы доступа',
@@ -708,6 +718,7 @@ export function AppSidebar() {
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
         deptRequests: !showOnlyKpiMenus && deptRequestItems.some((item) => item.active),
+        phonebook: !showOnlyKpiMenus && phonebookItems.some((item) => item.active),
     };
 
     const activeGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupActivity[key]);
@@ -808,6 +819,7 @@ export function AppSidebar() {
         calendarAdmin: isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus,
         deptRequests: !showOnlyKpiMenus,
+        phonebook: !showOnlyKpiMenus,
     };
 
     const groupItems = {
@@ -822,6 +834,7 @@ export function AppSidebar() {
         calendarAdmin: adminCalendarItems,
         templates: templateItems,
         deptRequests: deptRequestItems,
+        phonebook: phonebookItems,
     };
 
     const visibleGroupKeys = SIDEBAR_GROUP_KEYS.filter((key) => groupVisibility[key] && (groupItems[key]?.length ?? 0) > 0);
@@ -964,6 +977,10 @@ export function AppSidebar() {
 
                 {!showOnlyKpiMenus && deptRequestItems.length > 0 && (
                     renderGroup('deptRequests', 'Заявки', deptRequestItems)
+                )}
+
+                {!showOnlyKpiMenus && (
+                    renderGroup('phonebook', 'Справочник', phonebookItems)
                 )}
             </SidebarContent>
 

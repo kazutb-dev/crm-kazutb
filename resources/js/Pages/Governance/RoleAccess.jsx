@@ -227,7 +227,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                             Оргструктура
                         </Button>
                     )}
-                    meta={<StatusBadge tone="info">Deny-by-default обзор</StatusBadge>}
+                    meta={<StatusBadge tone="info">Режим запрет-по-умолчанию</StatusBadge>}
                 />
 
                 {canManageFoundation ? (
@@ -252,8 +252,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                     <SummaryCard title="Суперадмины" value={summary.superadmins} tone="red" icon={ShieldAlert} />
                     <SummaryCard title="Администраторы" value={summary.admins} tone="violet" icon={ShieldCheck} />
                     <SummaryCard title="Повышенный доступ" value={summary.elevated} tone="amber" icon={AlertTriangle} />
-                    <SummaryCard title="Business super admin" value={summary.business_super_admin} tone="blue" />
-                    <SummaryCard title="Technical super admin" value={summary.technical_super_admin} tone="red" />
+                    <SummaryCard title="Бизнес-суперадмин" value={summary.business_super_admin} tone="blue" />
+                    <SummaryCard title="Технический суперадмин" value={summary.technical_super_admin} tone="red" />
                     <SummaryCard title="Оператор платформы" value={summary.platform_operator} tone="violet" />
                     <SummaryCard title="Преподаватели" value={summary.teachers} tone="blue" />
                     <SummaryCard title="Студенты" value={summary.students} tone="blue" />
@@ -316,9 +316,9 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.elevated}
                                 onChange={(e) => updateFilters({ elevated: e.target.value })}
                             >
-                                <option value="">Elevated: все</option>
-                                <option value="1">Только elevated</option>
-                                <option value="0">Только без elevated</option>
+                                <option value="">Повышенный доступ: все</option>
+                                <option value="1">Только с повышенным доступом</option>
+                                <option value="0">Без повышенного доступа</option>
                             </select>
                         </div>
 
@@ -500,10 +500,10 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                             <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Business</Badge>
                                                         ) : null}
                                                         {user.elevated_authority?.has_technical ? (
-                                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Technical</Badge>
+                                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический</Badge>
                                                         ) : null}
                                                         {user.elevated_authority?.has_operator ? (
-                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Operator</Badge>
+                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор</Badge>
                                                         ) : null}
                                                         {user.academic_scope?.student_profile?.exists ? (
                                                             <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">Профиль студента</Badge>
@@ -784,13 +784,13 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
                                             {selectedUser.elevated_authority?.has_business ? (
-                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Business super admin</Badge>
+                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Бизнес-суперадмин</Badge>
                                             ) : null}
                                             {selectedUser.elevated_authority?.has_technical ? (
-                                                <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Technical super admin</Badge>
+                                                <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический суперадмин</Badge>
                                             ) : null}
                                             {selectedUser.elevated_authority?.has_operator ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Platform operator</Badge>
+                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор платформы</Badge>
                                             ) : null}
                                             {!selectedUser.elevated_authority?.has_business && !selectedUser.elevated_authority?.has_technical && !selectedUser.elevated_authority?.has_operator ? (
                                                 <span className="text-muted-foreground">Повышенная категория не найдена</span>

@@ -88,6 +88,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Governance/RoleAccess': 'Управление доступом — Роль-доступ',
         'Governance/AccessRequests': 'Управление доступом — Запросы доступа',
         'Governance/AuthorityLedger': 'Управление доступом — Журнал полномочий',
+        'Phonebook/Index': 'Справочник сотрудников',
         'Kpi/Index': 'KPI-сезоны',
         'Kpi/TeacherForm': 'KPI — Мои показатели',
         'Kpi/TeacherDashboard': 'KPI — Мои показатели',

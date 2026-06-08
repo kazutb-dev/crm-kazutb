@@ -33,6 +33,7 @@ use App\Http\Controllers\Questionnaire\QuestionnaireStudentWebController;
 use App\Http\Controllers\CertificateRegistryController;
 use App\Http\Controllers\AuthorityLedgerController;
 use App\Http\Controllers\CertificateTemplateController;
+use App\Http\Controllers\PhonebookDirectoryController;
 use App\Http\Controllers\GovernanceAccessRequestController;
 use App\Http\Controllers\OrgStructureController;
 use App\Http\Controllers\RoleAccessController;
@@ -61,6 +62,17 @@ Route::get('/nav', function () {
 Route::get('/catalog', function () {
     return Inertia::render('Catalog');
 })->name('catalog.index');
+
+// ── Телефонный справочник (публичный доступ для всех авторизованных) ──────────
+Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {
+    Route::get('phonebook', [PhonebookDirectoryController::class, 'index'])->name('phonebook.index');
+    Route::patch('phonebook/users/{phonebookUser}/avatar', [PhonebookDirectoryController::class, 'updateAvatar'])->name('phonebook.users.avatar');
+    Route::post('phonebook/users/{phonebookUser}/avatar/upload', [PhonebookDirectoryController::class, 'uploadAvatar'])->middleware('throttle:10,1')->name('phonebook.users.avatar.upload');
+    Route::patch('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'updateUser'])->name('phonebook.users.update');
+    Route::post('phonebook/users', [PhonebookDirectoryController::class, 'storeUser'])->name('phonebook.users.store');
+    Route::delete('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'destroyUser'])->name('phonebook.users.destroy');
+    Route::patch('phonebook/sort', [PhonebookDirectoryController::class, 'updateSort'])->name('phonebook.sort');
+});
 
 Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
 Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
@@ -1850,6 +1862,15 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
         ->name('governance.academic-scope.store');
     Route::get('governance/org-structure', [OrgStructureController::class, 'index'])
         ->name('governance.org-structure');
+    Route::post('governance/org-structure', [OrgStructureController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('governance.org-structure.store');
+    Route::patch('governance/org-structure/{orgUnit}', [OrgStructureController::class, 'update'])
+        ->middleware('throttle:30,1')
+        ->name('governance.org-structure.update');
+    Route::delete('governance/org-structure/{orgUnit}', [OrgStructureController::class, 'destroy'])
+        ->middleware('throttle:20,1')
+        ->name('governance.org-structure.destroy');
     Route::get('governance/authority-ledger', [AuthorityLedgerController::class, 'index'])
         ->name('governance.authority-ledger');
     Route::get('governance/role-access', [RoleAccessController::class, 'index'])
