@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Certificate;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\GovernanceAccessRequest;
+use App\Models\KpiAccessGrant;
 use App\Models\Position;
 use App\Models\PositionChangeRequest;
 use App\Models\Questionnaire\Student as QuestionnaireStudent;
 use App\Models\User;
 use App\Services\BusinessActivityLogger;
+use App\Services\ElevatedAuthorityService;
 use App\Services\GovernanceAccessRequestService;
 use App\Services\GreenApiWhatsAppNotifier;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -19,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -209,6 +213,26 @@ class ProfileController extends Controller
         return Redirect::to('/');
     }
 
+    public function uploadAvatar(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'max:4096', 'mimes:jpg,jpeg,png,gif,webp'],
+        ]);
+
+        $user = $request->user();
+        $file = $request->file('avatar');
+        $path = $file->store("avatars/{$user->id}", 'public');
+
+        if ($user->avatar_url && str_starts_with((string) $user->avatar_url, '/storage/avatars/')) {
+            $oldPath = str_replace('/storage/', '', (string) $user->avatar_url);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $user->update(['avatar_url' => '/storage/' . $path]);
+
+        return back()->with('success', 'Фотография профиля обновлена.');
+    }
+
     private function buildProfilePayload(User $user): array
     {
         $isAdSynced = $this->isAdSynced($user);
@@ -389,6 +413,52 @@ class ProfileController extends Controller
                 'approval_required_fields' => ['position_id', 'faculty_id', 'department_id', 'structural_unit_ids'],
                 'sync_only_fields' => ['ad_guid', 'ad_login', 'ad_title', 'ad_department', 'ad_division'],
             ],
+            // ── Profile 2.0 enrichment ────────────────────────────────────────
+            'kpi_grants' => KpiAccessGrant::query()
+                ->where('user_id', $user->id)
+                ->where('is_active', true)
+                ->get(['id', 'permission'])
+                ->map(fn(KpiAccessGrant $g) => ['id' => $g->id, 'permission' => $g->permission])
+                ->values()
+                ->all(),
+            'elevated_authority' => Schema::hasTable('scoped_grants')
+                ? app(ElevatedAuthorityService::class)->resolveForUser($user)
+                : null,
+            'certificates' => Schema::hasTable('certificates') && Schema::hasColumn('certificates', 'issued_to_user_id')
+                ? \App\Models\Certificate::query()
+                ->where('issued_to_user_id', $user->id)
+                ->latest('issued_at')
+                ->limit(10)
+                ->get(['id', 'certificate_number', 'issued_at', 'status'])
+                ->map(fn($c) => [
+                    'id' => $c->id,
+                    'title' => $c->certificate_number,
+                    'certificate_number' => $c->certificate_number,
+                    'issued_at' => $c->issued_at?->toDateString(),
+                    'status' => $c->status ?? 'issued',
+                ])
+                ->values()
+                ->all()
+                : [],
+            'recent_activity' => Schema::hasTable('activity_log')
+                ? \Spatie\Activitylog\Models\Activity::query()
+                ->where('causer_id', $user->id)
+                ->where('causer_type', User::class)
+                ->latest()
+                ->limit(8)
+                ->get(['id', 'description', 'created_at'])
+                ->map(fn($a) => [
+                    'id' => $a->id,
+                    'description' => $a->description,
+                    'created_at' => $a->created_at?->toIso8601String(),
+                    'created_at_human' => $a->created_at?->diffForHumans(),
+                ])
+                ->values()
+                ->all()
+                : [],
+            'ad_employee_type' => $user->ad_employee_type ?? null,
+            'ad_description' => $user->ad_description ?? null,
+            'kpi_workload_rate' => $user->kpi_workload_rate ?? null,
         ];
     }
 

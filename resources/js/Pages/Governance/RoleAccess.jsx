@@ -125,18 +125,18 @@ function formatDate(value) {
 }
 
 function resolverStatusLabel(scope) {
-    if (!scope) return 'Scope отсутствует';
+    if (!scope) return 'Область не определена';
     if (scope.status_label) return scope.status_label;
 
     switch (scope.status) {
         case 'exact':
-            return 'Scope определен точно';
+            return 'Область определена точно';
         case 'partial':
-            return 'Scope определен частично';
+            return 'Область определена частично';
         case 'missing':
-            return 'Scope отсутствует';
+            return 'Область не определена';
         default:
-            return 'Scope неизвестен';
+            return 'Область неизвестна';
     }
 }
 
@@ -219,23 +219,23 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
             <div className="admin-page-wrap space-y-5">
                 <PageHeader
-                    eyebrow="Governance"
+                    eyebrow="Управление доступом"
                     title="Ролевой доступ"
-                    description="Обзор ролей, grants, org scope, effective access и рисков."
+                    description="Обзор ролей, прав, орг. области, активного доступа и рисков."
                     actions={(
                         <Button variant="outline" size="sm" onClick={() => router.visit(route('governance.org-structure'))}>
                             Оргструктура
                         </Button>
                     )}
-                    meta={<StatusBadge tone="info">Deny-by-default обзор</StatusBadge>}
+                    meta={<StatusBadge tone="info">Режим запрет-по-умолчанию</StatusBadge>}
                 />
 
                 {canManageFoundation ? (
                     <Card className="border-red-200 bg-red-50/40 shadow-sm">
                         <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                             <div>
-                                <p className="text-sm font-semibold text-red-900">Super Admin управление</p>
-                                <p className="text-xs text-red-800">Редактирование, создание, удаление и override выполняются через audited workflows с обязательной причиной.</p>
+                                <p className="text-sm font-semibold text-red-900">Суперадмин-управление</p>
+                                <p className="text-xs text-red-800">Редактирование, создание, удаление и принудительное переопределение выполняются через проверяемые процессы с обязательной причиной.</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
@@ -252,18 +252,18 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                     <SummaryCard title="Суперадмины" value={summary.superadmins} tone="red" icon={ShieldAlert} />
                     <SummaryCard title="Администраторы" value={summary.admins} tone="violet" icon={ShieldCheck} />
                     <SummaryCard title="Повышенный доступ" value={summary.elevated} tone="amber" icon={AlertTriangle} />
-                    <SummaryCard title="Business super admin" value={summary.business_super_admin} tone="blue" />
-                    <SummaryCard title="Technical super admin" value={summary.technical_super_admin} tone="red" />
+                    <SummaryCard title="Бизнес-суперадмин" value={summary.business_super_admin} tone="blue" />
+                    <SummaryCard title="Технический суперадмин" value={summary.technical_super_admin} tone="red" />
                     <SummaryCard title="Оператор платформы" value={summary.platform_operator} tone="violet" />
                     <SummaryCard title="Преподаватели" value={summary.teachers} tone="blue" />
                     <SummaryCard title="Студенты" value={summary.students} tone="blue" />
                     <SummaryCard title="Профили сотрудников" value={summary.employee_profiles} tone="slate" />
                     <SummaryCard title="Профили студентов" value={summary.student_profiles} tone="blue" />
                     <SummaryCard title="Двойной контекст" value={summary.dual_context} tone="violet" />
-                    <SummaryCard title="Academic ready" value={summary.academic_ready} tone="green" />
-                    <SummaryCard title="Curator scope" value={summary.curator_scope} tone="violet" />
-                    <SummaryCard title="Registrar scope" value={summary.registrar_scope} tone="blue" />
-                    <SummaryCard title="Без org binding" value={summary.without_org_binding} tone="amber" />
+                    <SummaryCard title="Готовность академического контура" value={summary.academic_ready} tone="green" />
+                    <SummaryCard title="Кураторский контур" value={summary.curator_scope} tone="violet" />
+                    <SummaryCard title="Регистраторский контур" value={summary.registrar_scope} tone="blue" />
+                    <SummaryCard title="Без орг. привязки" value={summary.without_org_binding} tone="amber" />
                     <SummaryCard title="Риски" value={summary.suspicious} tone="red" />
                     <SummaryCard title="KPI расхождения" value={summary.kpi_mismatch} tone="amber" />
                 </div>
@@ -305,7 +305,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.grant}
                                 onChange={(e) => updateFilters({ grant: e.target.value })}
                             >
-                                <option value="">Все grants</option>
+                                <option value="">Все права</option>
                                 {grantOptions.map((grant) => (
                                     <option key={grant.value} value={grant.value}>{grant.label}</option>
                                 ))}
@@ -316,9 +316,9 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.elevated}
                                 onChange={(e) => updateFilters({ elevated: e.target.value })}
                             >
-                                <option value="">Elevated: все</option>
-                                <option value="1">Только elevated</option>
-                                <option value="0">Только без elevated</option>
+                                <option value="">Повышенный доступ: все</option>
+                                <option value="1">Только с повышенным доступом</option>
+                                <option value="0">Без повышенного доступа</option>
                             </select>
                         </div>
 
@@ -361,8 +361,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 value={form.missing_binding}
                                 onChange={(e) => updateFilters({ missing_binding: e.target.value })}
                             >
-                                <option value="">Binding: все</option>
-                                <option value="1">Только missing binding</option>
+                                <option value="">Привязка: все</option>
+                                <option value="1">Без привязки</option>
                             </select>
 
                             <div className="flex gap-2">
@@ -372,7 +372,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     onChange={(e) => updateFilters({ suspicious: e.target.value })}
                                 >
                                     <option value="">Риск: все</option>
-                                    <option value="1">Только suspicious</option>
+                                    <option value="1">Только подозрительные</option>
                                 </select>
                                 <Button variant="outline" onClick={clearFilters}>Сброс</Button>
                             </div>
@@ -381,14 +381,14 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                 </FilterBar>
 
                 <DataTable>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
-                        <div className="text-base font-semibold text-foreground">
-                            Текущие роли и доступы
-                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                ({pagination.total ?? users.length} записей)
-                            </span>
-                        </div>
-                        <StatusBadge tone="default">Tabular view</StatusBadge>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
+                            <div className="text-base font-semibold text-foreground">
+                                Текущие роли и доступы
+                                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                    ({pagination.total ?? users.length} записей)
+                                </span>
+                            </div>
+                        <StatusBadge tone="default">Табличный вид</StatusBadge>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -397,11 +397,11 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     <tr>
                                         <th>Пользователь</th>
                                         <th>Роль</th>
-                                        <th>Org binding</th>
+                                        <th>Привязка к орг.</th>
                                         <th>Структурные</th>
-                                        <th>Position / title</th>
-                                        <th>Grants</th>
-                                        <th>Effective / повышенный</th>
+                                        <th>Должность / титул</th>
+                                        <th>Права</th>
+                                        <th>Активный / повышенный</th>
                                         <th>Маркеры риска</th>
                                         <th className="text-right">Действия</th>
                                     </tr>
@@ -418,7 +418,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                             <td>
                                                 <div className="font-medium text-slate-900">{user.full_name}</div>
                                                 <div className="mt-0.5 text-xs text-muted-foreground">{user.email || '—'}</div>
-                                                <div className="mt-0.5 text-xs text-muted-foreground">login: {user.ad_login || '—'}</div>
+                                                <div className="mt-0.5 text-xs text-muted-foreground">Логин: {user.ad_login || '—'}</div>
                                                 <div className="mt-1 text-[11px] text-slate-500">Последний вход: {formatDate(user.last_login_at)}</div>
                                             </td>
                                             <td>
@@ -431,7 +431,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                     </Badge>
                                                 </div>
                                                 <div className="mt-1 text-xs text-muted-foreground">
-                                                    raw: {user.raw_role || '—'} · role_id: {user.role_id ?? '—'}
+                                                    Исходная роль: {user.raw_role || '—'} · ID роли: {user.role_id ?? '—'}
                                                 </div>
                                             </td>
                                             <td>
@@ -444,14 +444,14 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                     >
                                                         {resolverStatusLabel(user.resolved_org_scope)}
                                                     </Badge>
-                                                    {user.resolved_org_scope?.primary_scope?.org_unit?.name ? (
-                                                        <span className="text-xs text-slate-600">
-                                                            {user.resolved_org_scope.primary_scope.org_unit.name}
-                                                        </span>
-                                                    ) : null}
+                                                        {user.resolved_org_scope?.primary_scope?.org_unit?.name ? (
+                                                            <span className="text-xs text-slate-600">
+                                                                {user.resolved_org_scope.primary_scope.org_unit.name}
+                                                            </span>
+                                                        ) : null}
                                                 </div>
                                                 {user.missing_binding ? (
-                                                    <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-800">Missing binding</Badge>
+                                                    <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-800">Привязка отсутствует</Badge>
                                                 ) : null}
                                             </td>
                                             <td>
@@ -472,7 +472,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                             </td>
                                             <td>
                                                 <div className="text-sm text-slate-900">{user.position || '—'}</div>
-                                                <div className="text-xs text-muted-foreground">AD title: {user.ad_title || '—'}</div>
+                                                <div className="text-xs text-muted-foreground">AD-титул: {user.ad_title || '—'}</div>
                                             </td>
                                             <td>
                                                 {user.grants?.length ? (
@@ -497,13 +497,13 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                     </StatusBadge>
                                                     <div className="flex flex-wrap gap-1">
                                                         {user.elevated_authority?.has_business ? (
-                                                            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Business</Badge>
+                                                            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Бизнес</Badge>
                                                         ) : null}
                                                         {user.elevated_authority?.has_technical ? (
-                                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Technical</Badge>
+                                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический</Badge>
                                                         ) : null}
                                                         {user.elevated_authority?.has_operator ? (
-                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Operator</Badge>
+                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор</Badge>
                                                         ) : null}
                                                         {user.academic_scope?.student_profile?.exists ? (
                                                             <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">Профиль студента</Badge>
@@ -517,7 +517,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                     </div>
                                                     {user.kpi_authority?.mismatch_count > 0 ? (
                                                         <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">
-                                                            KPI mismatch: {user.kpi_authority.mismatch_count}
+                                                            Расхождение KPI: {user.kpi_authority.mismatch_count}
                                                         </Badge>
                                                     ) : null}
                                                     <div className="text-xs text-muted-foreground">
@@ -588,7 +588,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                             <DialogHeader>
                                 <DialogTitle>Снимок effective access: {selectedUser.full_name}</DialogTitle>
                                 <DialogDescription>
-                                    Текущая интерпретация доступа для governance и audit.
+                                    Текущая интерпретация доступа для управления и аудита.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -598,8 +598,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         <CardTitle className="text-sm">Идентичность</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
-                                        <div><span className="text-muted-foreground">Email:</span> {selectedUser.email || '—'}</div>
-                                        <div><span className="text-muted-foreground">Login:</span> {selectedUser.ad_login || '—'}</div>
+                                        <div><span className="text-muted-foreground">Эл. почта:</span> {selectedUser.email || '—'}</div>
+                                        <div><span className="text-muted-foreground">Логин:</span> {selectedUser.ad_login || '—'}</div>
                                         <div><span className="text-muted-foreground">Синхронизация:</span> {selectedUser.sync_state === 'ad' ? 'AD связан' : 'Локально'}</div>
                                         <div><span className="text-muted-foreground">Последний вход:</span> {formatDate(selectedUser.last_login_at)}</div>
                                     </CardContent>
@@ -611,9 +611,9 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
                                         <div><span className="text-muted-foreground">Вычисленная роль:</span> {selectedUser.resolved_role_label}</div>
-                                        <div><span className="text-muted-foreground">raw role:</span> {selectedUser.raw_role || '—'}</div>
-                                        <div><span className="text-muted-foreground">role_id:</span> {selectedUser.role_id ?? '—'}</div>
-                                        <div><span className="text-muted-foreground">roleRef:</span> {selectedUser.role_ref_slug || '—'}</div>
+                                        <div><span className="text-muted-foreground">Исходная роль:</span> {selectedUser.raw_role || '—'}</div>
+                                        <div><span className="text-muted-foreground">ID роли:</span> {selectedUser.role_id ?? '—'}</div>
+                                        <div><span className="text-muted-foreground">Ссылка на роль:</span> {selectedUser.role_ref_slug || '—'}</div>
                                         <Badge variant="outline" className={ROLE_STATUS_BADGES[selectedUser.role_status] ?? ROLE_STATUS_BADGES.aligned}>
                                             {roleStatusLabel(selectedUser.role_status)}
                                         </Badge>
@@ -622,7 +622,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Org scope</CardTitle>
+                                        <CardTitle className="text-sm">Орг. область</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
                                         <div><span className="text-muted-foreground">Факультет:</span> {selectedUser.faculty?.name || '—'}</div>
@@ -638,14 +638,14 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                             </div>
                                         ) : <div className="text-muted-foreground">—</div>}
                                         {selectedUser.missing_binding ? (
-                                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">Binding отсутствует</Badge>
+                                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">Привязка отсутствует</Badge>
                                         ) : null}
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Resolver bridge: legacy -&gt; org unit</CardTitle>
+                                        <CardTitle className="text-sm">Сопоставление: устаревший → орг. единица</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -663,7 +663,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         <div>
                                             <span className="text-muted-foreground">Основной:</span>{' '}
                                             {selectedUser.resolved_org_scope?.primary_scope?.org_unit?.name
-                                                ? `${selectedUser.resolved_org_scope.primary_scope.org_unit.name} (${selectedUser.resolved_org_scope.primary_scope?.mapping_kind ?? 'mapped'})`
+                                                ? `${selectedUser.resolved_org_scope.primary_scope.org_unit.name} (${selectedUser.resolved_org_scope.primary_scope?.mapping_kind ?? 'сопоставлен'})`
                                                 : '—'}
                                         </div>
 
@@ -673,7 +673,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <ul className="space-y-1 text-xs text-slate-700">
                                                     {selectedUser.resolved_org_scope.resolved_units.slice(0, 6).map((entry, idx) => (
                                                         <li key={`${entry?.org_unit?.id ?? 'na'}-${idx}`}>
-                                                            {entry?.source_type || 'source'}: {entry?.org_unit?.name || '—'} ({entry?.mapping_type || 'mapped'})
+                                                            {entry?.source_type || 'источник'}: {entry?.org_unit?.name || '—'} ({entry?.mapping_type || 'сопоставлен'})
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -688,7 +688,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <ul className="space-y-1 text-xs text-red-700">
                                                     {selectedUser.resolved_org_scope.missing_mappings.slice(0, 6).map((entry, idx) => (
                                                         <li key={`${entry?.source_type || 'src'}-${entry?.source_id || idx}-${idx}`}>
-                                                            {entry?.source_type || 'source'} #{entry?.source_id ?? '—'}
+                                                            {entry?.source_type || 'источник'} #{entry?.source_id ?? '—'}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -698,7 +698,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         </div>
 
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Scope-конфликты</p>
+                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Конфликты области</p>
                                             {selectedUser.resolved_org_scope?.inconsistencies?.length ? (
                                                 <ul className="space-y-1 text-xs text-amber-700">
                                                     {selectedUser.resolved_org_scope.inconsistencies.slice(0, 4).map((item, idx) => (
@@ -714,7 +714,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Grants и effective access</CardTitle>
+                                        <CardTitle className="text-sm">Права и активный доступ</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-1">
@@ -722,7 +722,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <Badge key={grant.id} variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">
                                                     {grant.label}
                                                 </Badge>
-                                            )) : <span className="text-muted-foreground">Активных grants нет</span>}
+                                            )) : <span className="text-muted-foreground">Активных прав нет</span>}
                                         </div>
                                         <div>
                                             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Почему доступ вычислен</p>
@@ -737,7 +737,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">KPI governance полномочия</CardTitle>
+                                        <CardTitle className="text-sm">Полномочия KPI и управления</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
@@ -745,7 +745,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 {selectedUser.kpi_authority?.position_confirmed ? 'Позиция подтверждена' : 'Позиция ожидает подтверждения'}
                                             </Badge>
                                             <Badge variant="outline" className={(selectedUser.kpi_authority?.mismatch_count ?? 0) > 0 ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
-                                                Расхождение legacy/governance: {selectedUser.kpi_authority?.mismatch_count ?? 0}
+                                                Расхождение устаревшего и управляемого контура: {selectedUser.kpi_authority?.mismatch_count ?? 0}
                                             </Badge>
                                         </div>
 
@@ -756,17 +756,17 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                     <Badge key={source} variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">
                                                         {source}
                                                     </Badge>
-                                                )) : <span className="text-muted-foreground">KPI источник не найден</span>}
+                                                )) : <span className="text-muted-foreground">Источник KPI не найден</span>}
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
-                                                <div className="text-xs text-muted-foreground">Legacy allow</div>
+                                                <div className="text-xs text-muted-foreground">Устаревший доступ</div>
                                                 <div className="text-base font-semibold text-slate-900">{selectedUser.kpi_authority?.legacy_allow_count ?? 0}</div>
                                             </div>
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
-                                                <div className="text-xs text-muted-foreground">Governance allow</div>
+                                                <div className="text-xs text-muted-foreground">Управляемый доступ</div>
                                                 <div className="text-base font-semibold text-slate-900">{selectedUser.kpi_authority?.governance_allow_count ?? 0}</div>
                                             </div>
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
@@ -784,13 +784,13 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
                                             {selectedUser.elevated_authority?.has_business ? (
-                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Business super admin</Badge>
+                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Бизнес-суперадмин</Badge>
                                             ) : null}
                                             {selectedUser.elevated_authority?.has_technical ? (
-                                                <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Technical super admin</Badge>
+                                                <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический суперадмин</Badge>
                                             ) : null}
                                             {selectedUser.elevated_authority?.has_operator ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Platform operator</Badge>
+                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор платформы</Badge>
                                             ) : null}
                                             {!selectedUser.elevated_authority?.has_business && !selectedUser.elevated_authority?.has_technical && !selectedUser.elevated_authority?.has_operator ? (
                                                 <span className="text-muted-foreground">Повышенная категория не найдена</span>
@@ -803,19 +803,19 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                             <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800">Смешанные повышенные полномочия</Badge>
                                         ) : null}
                                         {selectedUser.elevated_authority?.legacy_broad ? (
-                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">Legacy broad fallback активен</Badge>
+                                            <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">Активен широкий устаревший резервный режим</Badge>
                                         ) : null}
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Готовность academic scope</CardTitle>
+                                        <CardTitle className="text-sm">Готовность академического контура</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
                                             <Badge variant="outline" className={selectedUser.academic_scope?.status === 'ready' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : selectedUser.academic_scope?.status === 'partial' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-red-200 bg-red-50 text-red-700'}>
-                                                {selectedUser.academic_scope?.status_label || 'Academic scope отсутствует'}
+                                                {selectedUser.academic_scope?.status_label || 'Академический контур отсутствует'}
                                             </Badge>
                                             {selectedUser.academic_scope?.employee_profile?.exists ? (
                                                 <Badge variant="outline" className="border-slate-200 bg-slate-100 text-slate-700">Профиль сотрудника связан</Badge>
@@ -830,19 +830,19 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                                         <div className="flex flex-wrap gap-1">
                                             {selectedUser.academic_scope?.curator_scope_exists ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Curator scope есть</Badge>
+                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Кураторский контур есть</Badge>
                                             ) : null}
                                             {selectedUser.academic_scope?.registrar_scope_exists ? (
-                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Registrar scope есть</Badge>
+                                                <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Контур регистратора есть</Badge>
                                             ) : null}
                                             {selectedUser.academic_scope?.academic_admin_scope_exists ? (
-                                                <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">Academic admin scope есть</Badge>
+                                                <Badge variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">Контур академического администрирования есть</Badge>
                                             ) : null}
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
-                                                <div className="text-xs text-muted-foreground">Ожидающие academic requests</div>
+                                                <div className="text-xs text-muted-foreground">Ожидающие академические запросы</div>
                                                 <div className="text-base font-semibold text-slate-900">{selectedUser.academic_scope?.pending_academic_requests ?? 0}</div>
                                             </div>
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
@@ -850,8 +850,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <div className="text-base font-semibold text-slate-900">{selectedUser.academic_scope?.active_scope_assignments?.length ?? 0}</div>
                                             </div>
                                             <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
-                                                <div className="text-xs text-muted-foreground">Platonus external id</div>
-                                                <div className="text-base font-semibold text-slate-900">{selectedUser.academic_scope?.platonus_readiness?.has_upstream_external_id ? 'yes' : 'no'}</div>
+                                                <div className="text-xs text-muted-foreground">Внешний ID Platonus</div>
+                                                <div className="text-base font-semibold text-slate-900">{selectedUser.academic_scope?.platonus_readiness?.has_upstream_external_id ? 'да' : 'нет'}</div>
                                             </div>
                                         </div>
                                     </CardContent>

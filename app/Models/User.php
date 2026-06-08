@@ -202,6 +202,11 @@ class User extends Authenticatable
         return $this->hasOne(UserActivitySnapshot::class, 'user_id');
     }
 
+    public function issuedCertificates(): HasMany
+    {
+        return $this->hasMany(Certificate::class, 'issued_to_user_id');
+    }
+
     public function employeeProfile(): HasOne
     {
         return $this->hasOne(EmployeeProfile::class, 'user_id');
