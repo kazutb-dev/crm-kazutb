@@ -1038,7 +1038,7 @@ class KpiSummaryController extends Controller
             ->whereIn('kpi_entries.user_id', $userIds)
             ->where('kpi_entries.status', KpiEntry::STATUS_APPROVED)
             ->selectRaw(
-                'kpi_entries.user_id, 
+                'kpi_entries.user_id,
                  kpi_indicators.section,
                  COALESCE(SUM(kpi_entries.manual_points), 0) + COALESCE(SUM(kpi_entries.calculated_points), 0) as section_total'
             )
@@ -1085,8 +1085,8 @@ class KpiSummaryController extends Controller
             ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('user_id', $userIds)
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id, 
-                         SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved_count', 
+            ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id,
+                         SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved_count',
                         [KpiEntry::STATUS_APPROVED])
             ->groupBy('user_id')
             ->get();
