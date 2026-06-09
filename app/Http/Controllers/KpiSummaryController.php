@@ -1001,47 +1001,135 @@ class KpiSummaryController extends Controller
 
     /**
      * Live aggregation for a specific entity_type (hod/dean fallback).
+     * Properly calculates K1-K6 from KPI entries grouped by indicator section.
      *
      * @param  array<int>  $userIds
      * @return array<int, array<string, mixed>>
      */
     private function liveEntityAggregation(string $entityType, ?KpiPeriod $period, array $userIds): array
     {
-        $rows = KpiEntry::query()
+        // ──────────────────────────────────────────────────────────────────
+        // STEP 1: Fetch user metadata (departments, faculties, position)
+        // ──────────────────────────────────────────────────────────────────
+        $users = User::query()
+            ->whereIn('id', $userIds)
+            ->get(['id', 'display_name', 'name', 'position_title', 'ad_title'])
+            ->keyBy('id');
+
+        if ($users->isEmpty()) {
+            return [];
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // STEP 2: Aggregate K1-K6 by user and indicator section
+        // ──────────────────────────────────────────────────────────────────
+        $sectionMap = [
+            KpiIndicator::SECTION_TEACHING => 'k1',
+            KpiIndicator::SECTION_SCIENCE => 'k2',
+            KpiIndicator::SECTION_SOCIAL => 'k3',
+            KpiIndicator::SECTION_QUALIFICATION => 'k4',
+            KpiIndicator::SECTION_SURVEY => 'k5',
+        ];
+
+        $coefficients = KpiEntry::query()
+            ->join('kpi_indicators', 'kpi_indicators.id', '=', 'kpi_entries.indicator_id')
+            ->where('kpi_entries.entity_type', $entityType)
+            ->when($period, fn($q) => $q->where('kpi_entries.kpi_period_id', $period->id))
+            ->whereIn('kpi_entries.user_id', $userIds)
+            ->where('kpi_entries.status', KpiEntry::STATUS_APPROVED)
+            ->selectRaw(
+                'kpi_entries.user_id,
+                 kpi_indicators.section,
+                 COALESCE(SUM(kpi_entries.manual_points), 0) + COALESCE(SUM(kpi_entries.calculated_points), 0) as section_total'
+            )
+            ->groupBy('kpi_entries.user_id', 'kpi_indicators.section')
+            ->get();
+
+        // Build a map: user_id → {k1, k2, k3, k4, k5, totals}
+        $userCoefficients = [];
+        $userMetadata = [];
+
+        foreach ($coefficients as $row) {
+            $userId = (int) $row->user_id;
+            $section = (string) $row->section;
+            $sectionTotal = (float) $row->section_total;
+
+            if (!isset($userCoefficients[$userId])) {
+                $userCoefficients[$userId] = [
+                    'k1' => 0.0,
+                    'k2' => 0.0,
+                    'k3' => 0.0,
+                    'k4' => 0.0,
+                    'k5' => 0.0,
+                    'department_id' => null,
+                    'faculty_id' => null,
+                    'total_approved' => 0,
+                ];
+                $userMetadata[$userId] = ['total_points' => 0.0, 'approved_count' => 0];
+            }
+
+            // Map section to coefficient
+            if (isset($sectionMap[$section])) {
+                $coefKey = $sectionMap[$section];
+                $userCoefficients[$userId][$coefKey] = $sectionTotal;
+            }
+
+            $userMetadata[$userId]['total_points'] += $sectionTotal;
+        }
+
+        // ──────────────────────────────────────────────────────────────────
+        // STEP 3: Fetch user department/faculty and approved count
+        // ──────────────────────────────────────────────────────────────────
+        $userDepts = KpiEntry::query()
             ->where('entity_type', $entityType)
             ->when($period, fn($q) => $q->where('kpi_period_id', $period->id))
             ->whereIn('user_id', $userIds)
             ->whereNotIn('status', [KpiEntry::STATUS_DRAFT])
-            ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id, COUNT(*) as total_entries, SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved, COALESCE(SUM(manual_points), 0) + COALESCE(SUM(calculated_points), 0) as total_points', [KpiEntry::STATUS_APPROVED])
+            ->selectRaw('user_id, MAX(department_id) as department_id, MAX(faculty_id) as faculty_id,
+                         SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as approved_count',
+                        [KpiEntry::STATUS_APPROVED])
             ->groupBy('user_id')
-            ->orderByDesc('approved')
             ->get();
 
-        if ($rows->isEmpty()) {
-            return [];
+        foreach ($userDepts as $row) {
+            $userId = (int) $row->user_id;
+            if (isset($userCoefficients[$userId])) {
+                $userCoefficients[$userId]['department_id'] = $row->department_id ? (int) $row->department_id : null;
+                $userCoefficients[$userId]['faculty_id'] = $row->faculty_id ? (int) $row->faculty_id : null;
+                $userMetadata[$userId]['approved_count'] = (int) $row->approved_count;
+            }
         }
 
-        $fetchedUserIds = $rows->pluck('user_id')->filter()->values();
-        $users = User::query()
-            ->whereIn('id', $fetchedUserIds)
-            ->get(['id', 'display_name', 'name', 'position_title', 'ad_title'])
-            ->keyBy('id');
+        // ──────────────────────────────────────────────────────────────────
+        // STEP 4: Load department/faculty names
+        // ──────────────────────────────────────────────────────────────────
+        $deptIds = array_filter(array_map(fn($c) => $c['department_id'], $userCoefficients));
+        $deptNames = !empty($deptIds) ? Department::query()->whereIn('id', $deptIds)->pluck('name', 'id') : collect();
+        $deptCodes = !empty($deptIds) ? Department::query()->whereIn('id', $deptIds)->pluck('code', 'id') : collect();
 
-        $deptIds = $rows->pluck('department_id')->filter()->unique()->values();
-        $deptNames = Department::query()->whereIn('id', $deptIds)->pluck('name', 'id');
-        $deptCodes = $deptIds->isNotEmpty()
-            ? Department::query()->whereIn('id', $deptIds)->pluck('code', 'id')
-            : collect();
+        $facultyIds = array_filter(array_map(fn($c) => $c['faculty_id'], $userCoefficients));
+        $facultyNames = !empty($facultyIds) ? Faculty::query()->whereIn('id', $facultyIds)->pluck('name', 'id') : collect();
 
-        $facultyIds = $rows->pluck('faculty_id')->filter()->unique()->values();
-        $facultyNames = Faculty::query()->whereIn('id', $facultyIds)->pluck('name', 'id');
-
-        $isHod  = $entityType === KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD;
+        // ──────────────────────────────────────────────────────────────────
+        // STEP 5: Calculate rank scores using correct formula
+        // ──────────────────────────────────────────────────────────────────
+        $isHod = $entityType === KpiEntry::ENTITY_TYPE_DEPARTMENT_HEAD;
         $isDean = $entityType === KpiEntry::ENTITY_TYPE_DEAN;
 
-        return $rows->map(function ($r) use ($users, $deptNames, $deptCodes, $facultyNames, $isHod, $isDean) {
+        $result = [];
+        foreach ($userIds as $userId) {
+            $userId = (int) $userId;
+            $user = $users[$userId] ?? null;
+            $coeffs = $userCoefficients[$userId] ?? null;
+            $metadata = $userMetadata[$userId] ?? null;
+
+            if (!$user || !$coeffs || !$metadata) {
+                continue; // Skip if no data
+            }
+
+            // Get NPU threshold
             if ($isHod) {
-                $deptCode = $r->department_id ? ($deptCodes[$r->department_id] ?? null) : null;
+                $deptCode = $coeffs['department_id'] ? ($deptCodes[$coeffs['department_id']] ?? null) : null;
                 $npu = $this->hodNpuThreshold($deptCode);
             } elseif ($isDean) {
                 $npu = $this->deanNpuThreshold();
@@ -1049,25 +1137,38 @@ class KpiSummaryController extends Controller
                 $npu = 0;
             }
 
-            return [
-                'id' => $r->user_id,
-                'name' => ($users[$r->user_id]?->display_name ?? $users[$r->user_id]?->name) ?? '—',
-                'title' => $this->resolveUserTitle($users[$r->user_id]?->position_title, $users[$r->user_id]?->ad_title),
-                'department_name' => $r->department_id ? ($deptNames[$r->department_id] ?? null) : null,
-                'faculty_name' => $r->faculty_id ? ($facultyNames[$r->faculty_id] ?? null) : null,
+            // For HOD/DEAN: K5 should always be 0 per regulation
+            if ($isHod || $isDean) {
+                $coeffs['k5'] = 0.0;
+            }
+
+            // Rank score formula: R = (K1 + K2 + K3 + K4 + K5) - NPU
+            $rankScore = ($coeffs['k1'] + $coeffs['k2'] + $coeffs['k3'] + $coeffs['k4'] + $coeffs['k5']) - $npu;
+
+            $result[] = [
+                'id' => $userId,
+                'name' => ($user->display_name ?? $user->name) ?? '—',
+                'title' => $this->resolveUserTitle($user->position_title, $user->ad_title),
+                'department_name' => $coeffs['department_id'] ? ($deptNames[$coeffs['department_id']] ?? null) : null,
+                'faculty_name' => $coeffs['faculty_id'] ? ($facultyNames[$coeffs['faculty_id']] ?? null) : null,
                 'npu_threshold' => $npu,
                 'rate' => $npu,
-                'rank_score' => (float) $r->total_points - $npu,
-                'k1' => 0.0,
-                'k2' => 0.0,
-                'k3' => 0.0,
-                'k4' => 0.0,
-                'k5' => 0.0,
-                'k6' => 0.0,
-                'approved_entries' => (int) $r->approved,
+                'k1' => (float) $coeffs['k1'],
+                'k2' => (float) $coeffs['k2'],
+                'k3' => (float) $coeffs['k3'],
+                'k4' => (float) $coeffs['k4'],
+                'k5' => (float) $coeffs['k5'],
+                'k6' => $npu,
+                'rank_score' => $rankScore,
+                'approved_entries' => (int) $metadata['approved_count'],
                 'source' => 'live',
             ];
-        })->values()->all();
+        }
+
+        // Sort by rank score descending
+        usort($result, fn($a, $b) => (float) ($b['rank_score'] ?? 0) <=> (float) ($a['rank_score'] ?? 0));
+
+        return $result;
     }
 
     /**

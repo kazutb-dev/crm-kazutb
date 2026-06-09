@@ -1684,8 +1684,13 @@ function OverviewTab({ summary }) {
     const top10 = useMemo(() => {
         let t = summary.top_teachers ?? [];
         if (topFilter.faculty) t = t.filter((r) => r.faculty_name === topFilter.faculty);
-        const kKey = sectionToK[topFilter.section];
-        if (kKey) t = [...t].sort((a, b) => Number(b[kKey] ?? 0) - Number(a[kKey] ?? 0));
+        if (topFilter.section) {
+            const kKey = sectionToK[topFilter.section];
+            if (kKey) t = [...t].sort((a, b) => Number(b[kKey] ?? 0) - Number(a[kKey] ?? 0));
+        } else {
+            // Default: sort by rank_score (R) in descending order
+            t = [...t].sort((a, b) => Number(b.rank_score ?? 0) - Number(a.rank_score ?? 0));
+        }
         return t.slice(0, 10);
     }, [summary.top_teachers, topFilter]);
 
@@ -2203,43 +2208,6 @@ export default function Summary({
 }) {
     const normalizedRole = ['superadmin', 'structural'].includes(roleSlug) ? 'admin' : (roleSlug ?? 'teacher');
     const [adminTab, setAdminTab] = useState('overview');
-    const [aiReportType, setAiReportType] = useState('summary');
-    const [aiReportText, setAiReportText] = useState('');
-
-    const generateAiReport = (type = 'summary') => {
-        setAiReportType(type);
-        setAiReportText(buildKpiAiReportText({
-            type,
-            role: normalizedRole,
-            summary,
-            academicYear,
-            period,
-            adminTab,
-        }));
-    };
-
-    const copyAiReport = async () => {
-        if (!aiReportText) return;
-        try {
-            await navigator.clipboard.writeText(aiReportText);
-        } catch {
-            // Ignore clipboard errors in unsupported browsers.
-        }
-    };
-
-    const downloadAiReport = () => {
-        if (!aiReportText) return;
-
-        const blob = new Blob([aiReportText], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `kpi-ai-report-${aiReportType}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
 
     const renderContent = () => {
         if (normalizedRole === 'teacher') return <TeacherView summary={summary} />;
@@ -2289,144 +2257,11 @@ export default function Summary({
         handleExportSummaryExcel();
     };
 
-    const showHeaderExcelButton = !(
-        normalizedRole === 'admin'
-        && (adminTab === 'teachers' || adminTab === 'deans' || adminTab === 'hods')
-    );
-
     return (
         <AuthenticatedLayout>
             <Head title="KPI — Сводка" />
 
             <div className="admin-page-wrap">
-                {/* ── Report header ──────────────────────────────────────── */}
-                <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
-                    {/* left: title block */}
-                    <div className="flex items-center gap-3.5">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#139AA4] to-[#1a6bb5] shadow-sm">
-                            <TrendingUp className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold leading-tight text-[#132844]">KPI — Сводка</h1>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                                {SCOPE_DESC[normalizedRole] ?? ''}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* right: filters + period label */}
-                    <div className="flex flex-col items-end gap-2">
-                        <FilterBar filters={filters} filterOptions={filterOptions} />
-                        {showHeaderExcelButton && (
-                            <button
-                                type="button"
-                                onClick={handleExportCurrentExcel}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                                title="Экспортировать открытую страницу в Excel"
-                            >
-                                <FileText className="h-3.5 w-3.5" />
-                                Excel
-                            </button>
-                        )}
-                        <div className="flex items-center gap-2">
-                            {period ? (
-                                <>
-                                    <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">
-                                        {academicYear?.name && <span className="mr-1">{academicYear.name} ·</span>}
-                                        <strong className="text-foreground">{period.name}</strong>
-                                    </span>
-                                    {period.status === 'active' && (
-                                        <Badge variant="default" className="h-5 text-[0.65rem] px-2">Активный</Badge>
-                                    )}
-                                    {period.status === 'closed' && (
-                                        <Badge variant="secondary" className="h-5 text-[0.65rem] px-2">Закрыт</Badge>
-                                    )}
-                                </>
-                            ) : (
-                                <span className="text-xs text-amber-600 flex items-center gap-1">
-                                    <CalendarRange className="h-3.5 w-3.5" />
-                                    Активный период не найден
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <Card className="admin-surface">
-                    <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="flex flex-wrap items-center justify-between gap-3 text-sm font-semibold text-[#132844]">
-                            <span className="flex items-center gap-2">
-                                <Bot className="h-4 w-4 text-[#139AA4]" />
-                                ИИ помощник KPI
-                            </span>
-                            <span className="text-xs font-normal text-muted-foreground">
-                                Генерация отчётов и выводов по текущей сводке в один клик
-                            </span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-3 flex flex-wrap gap-2">
-                            <button
-                                type="button"
-                                onClick={() => generateAiReport('summary')}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#132844] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#0f1f36] transition-colors"
-                            >
-                                <Sparkles className="h-3.5 w-3.5" />
-                                Сформировать сводный отчёт
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => generateAiReport('risks')}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            >
-                                <BarChart3 className="h-3.5 w-3.5" />
-                                Риски
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => generateAiReport('recommendations')}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            >
-                                <BookOpen className="h-3.5 w-3.5" />
-                                Рекомендации
-                            </button>
-                        </div>
-
-                        {aiReportText ? (
-                            <>
-                                <textarea
-                                    value={aiReportText}
-                                    onChange={(e) => setAiReportText(e.target.value)}
-                                    className="min-h-[220px] w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                                />
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={copyAiReport}
-                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                                    >
-                                        <Copy className="h-3.5 w-3.5" />
-                                        Копировать
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={downloadAiReport}
-                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                                    >
-                                        <FileDown className="h-3.5 w-3.5" />
-                                        Скачать TXT
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="rounded-md border border-dashed border-border/80 bg-muted/20 p-3 text-xs text-muted-foreground">
-                                Нажмите кнопку выше, чтобы помощник сформировал текстовый KPI-отчёт по текущему периоду.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
                 {renderContent()}
             </div>
         </AuthenticatedLayout>
