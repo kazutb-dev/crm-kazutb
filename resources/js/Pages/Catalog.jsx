@@ -1,7 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    ArrowRight,
     Award,
     BarChart3,
     Bot,
@@ -32,36 +30,12 @@ import {
     X,
 } from 'lucide-react';
 import PublicLayout from '@/Layouts/PublicLayout';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Star } from 'lucide-react';
+import useReveal from '@/hooks/useReveal';
 
-const headingFont = { fontFamily: '"Playfair Display", Georgia, "Times New Roman", serif' };
-
-const CATEGORY_FILTERS = [
-    'Все',
-    'Учебный процесс',
-    'Студентам',
-    'Сотрудникам',
-    'Документы',
-    'Навигация',
-    'Сервисы',
-    'AI',
-];
-
-const SEARCH_EXAMPLES = ['библиотека', 'справка', 'расписание', 'общежитие', 'KPI'];
-
-const STATE_LABELS = {
-    internal: 'Внутренний сервис',
-    external: 'Внешний сервис',
-    new: 'Новый',
-    popular: 'Популярный',
-};
-
-const STATE_STYLES = {
-    internal: 'border-white/14 bg-white/8 text-white/62',
-    external: 'border-[#00B0AD]/25 bg-[#00B0AD]/10 text-white/70',
-    new: 'border-[#E8A020]/30 bg-[#E8A020]/12 text-[#f0ba53]',
-    popular: 'border-white/18 bg-white/12 text-white/78',
-};
+const FAVORITES_KEY = 'kazutb.catalog.favorites';
+const RECENT_KEY = 'kazutb.catalog.recent';
 
 const safeRoute = (name) => {
     try {
@@ -106,7 +80,7 @@ function buildCatalogSections() {
 
     const sections = [
         {
-            title: 'Внешние платформы',
+            title: 'Внутренние платформы',
             subtitle: 'Подключенные сервисы и партнерские системы',
             badge: 'Платформы',
             items: [
@@ -867,209 +841,234 @@ function ServiceLink({ href, external, className, children, ariaLabel }) {
     );
 }
 
-function ServiceSearch({ query, onQueryChange, onExampleSelect, totalServices, resultCount }) {
+/* ============================================================
+   Presentation layer — progressive-disclosure catalog:
+   search-first, favorites, recently used, accordion sections.
+   ============================================================ */
+
+const serviceId = (item) => `${item.sectionTitle}::${item.title}`;
+
+function readStoredList(key, limit) {
+    if (typeof window === 'undefined') {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(key) ?? '[]');
+        return Array.isArray(parsed)
+            ? parsed.filter((value) => typeof value === 'string').slice(0, limit)
+            : [];
+    } catch {
+        return [];
+    }
+}
+
+function useStoredList(key, limit) {
+    const [list, setList] = useState(() => readStoredList(key, limit));
+
+    const update = useCallback((next) => {
+        const trimmed = next.slice(0, limit);
+        setList(trimmed);
+        try {
+            window.localStorage.setItem(key, JSON.stringify(trimmed));
+        } catch {
+            // Storage unavailable (private mode) — favorites stay in-memory.
+        }
+    }, [key, limit]);
+
+    return [list, update];
+}
+
+function CatalogSearch({ query, onQueryChange, resultCount, totalServices, isFiltering, inputRef }) {
     return (
         <section>
             <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#0f243f]/45" />
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
                 <input
+                    ref={inputRef}
                     id="service-search"
                     type="search"
                     value={query}
                     onChange={(event) => onQueryChange(event.target.value)}
-                    placeholder="Поиск сервиса..."
-                    className="h-13 h-[52px] w-full rounded-2xl bg-white/95 py-3 pl-12 pr-11 text-[15px] font-medium text-[#0f243f] shadow-none outline-none transition placeholder:text-[#0f243f]/55 focus:bg-white"
+                    placeholder="Найти сервис: справка, KPI, библиотека…"
+                    className="kz-field h-[54px] !pl-12 !pr-20 text-[15px]"
                     autoComplete="off"
                 />
-                {query && (
-                    <button
-                        type="button"
-                        onClick={() => onQueryChange('')}
-                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#0f243f]/45 transition hover:bg-black/5 hover:text-[#0f243f]"
-                        aria-label="Очистить поиск"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
-                )}
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1 text-[12px] text-white/45">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-white/38">Примеры:</span>
-                    {SEARCH_EXAMPLES.map((example) => (
+                <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+                    {query ? (
                         <button
-                            key={example}
                             type="button"
-                            onClick={() => onExampleSelect(example)}
-                            className="rounded-full bg-white/[0.07] px-3 py-1 text-white/55 transition hover:bg-white/[0.12] hover:text-white/85"
+                            onClick={() => onQueryChange('')}
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-white/45 transition hover:bg-white/10 hover:text-white"
+                            aria-label="Очистить поиск"
                         >
-                            {example}
+                            <X className="h-4 w-4" />
                         </button>
-                    ))}
+                    ) : (
+                        <kbd className="hidden rounded-md border border-white/15 bg-white/5 px-2 py-1 font-[var(--font-mono)] text-[11px] text-white/40 sm:block">
+                            /
+                        </kbd>
+                    )}
                 </div>
-                <span className="text-white/38">Найдено: {resultCount} из {totalServices}</span>
             </div>
-        </section>
-    );
-}
 
-function ServiceQuickAccess({ shortcuts }) {
-    return (
-        <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {shortcuts.map((shortcut) => {
-                const Icon = shortcut.icon ?? BookOpenText;
-
-                return (
-                    <ServiceLink
-                        key={shortcut.title}
-                        href={shortcut.href}
-                        external={shortcut.external}
-                        className="group flex min-h-[64px] items-center gap-2.5 rounded-xl bg-white/[0.07] p-3 text-left transition hover:bg-white/[0.11]"
-                    >
-                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#E8A020]/12 text-[#E8A020]">
-                            <Icon className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0">
-                            <span className="block truncate text-xs font-bold text-white/88">{shortcut.title}</span>
-                            <span className="mt-0.5 block truncate text-[11px] text-white/42">{shortcut.desc}</span>
-                        </span>
-                    </ServiceLink>
-                );
-            })}
-        </section>
-    );
-}
-
-function ServiceSectionHeading({ title, subtitle, count }) {
-    return (
-        <div className="space-y-1.5">
-            <div className="flex items-baseline gap-3">
-                <h2 style={headingFont} className="text-xl font-bold tracking-[-0.02em] text-white sm:text-[1.7rem]">
-                    {title}
-                </h2>
-                {typeof count === 'number' && (
-                    <span className="text-[13px] text-white/35">{count}</span>
-                )}
-                <div className="h-px flex-1 bg-gradient-to-r from-white/15 to-white/0" />
-            </div>
-            {subtitle && (
-                <p className="max-w-3xl text-[13px] leading-6 text-white/50 sm:text-sm">
-                    {subtitle}
-                </p>
+            {isFiltering && (
+                <div className="mt-3 px-1 text-[12px]" role="status">
+                    <span className="text-white/45">Найдено: {resultCount} из {totalServices}</span>
+                </div>
             )}
+        </section>
+    );
+}
+
+function ServiceRow({ item, isFavorite, onToggleFavorite, onOpen }) {
+    const Icon = item.icon ?? BookOpenText;
+    const id = serviceId(item);
+
+    return (
+        <div className="kz-tile relative">
+            <div className="min-w-0 flex-1" onClickCapture={() => onOpen(item)}>
+                <ServiceLink
+                    href={item.href}
+                    external={item.external}
+                    ariaLabel={`Открыть сервис ${item.title}`}
+                    className="flex min-h-[64px] items-center gap-3 p-3.5 pr-11"
+                >
+                    <span className="kz-icon-badge h-10 w-10">
+                        <Icon className="h-[18px] w-[18px]" />
+                    </span>
+                    <span className="min-w-0">
+                        <span className="flex items-center gap-1.5 text-[14px] font-bold leading-snug text-white/92">
+                            <span className="truncate">{item.title}</span>
+                            {item.external && <ExternalLink className="h-3 w-3 flex-shrink-0 text-white/35" aria-label="Внешний сервис" />}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[12.5px] text-white/50">{item.desc}</span>
+                    </span>
+                </ServiceLink>
+            </div>
+            <button
+                type="button"
+                onClick={() => onToggleFavorite(id)}
+                aria-pressed={isFavorite}
+                aria-label={isFavorite ? `Убрать «${item.title}» из избранного` : `Добавить «${item.title}» в избранное`}
+                className={`absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition ${
+                    isFavorite
+                        ? 'text-[var(--gold-400)] hover:bg-white/10'
+                        : 'text-white/25 hover:bg-white/10 hover:text-white/70'
+                }`}
+            >
+                <Star className="h-4 w-4" fill={isFavorite ? 'currentColor' : 'none'} />
+            </button>
         </div>
     );
 }
 
-function ServiceCategoryTabs({ categories, activeCategory, onCategoryChange }) {
+function ServiceGrid({ items, favorites, onToggleFavorite, onOpen }) {
     return (
-        <nav aria-label="Категории сервисов" className="flex flex-wrap items-center gap-x-1 gap-y-1">
-            {categories.map((category) => {
-                const isActive = activeCategory === category.label;
-
-                return (
-                    <button
-                        key={category.label}
-                        type="button"
-                        onClick={() => onCategoryChange(category.label)}
-                        aria-pressed={isActive}
-                        className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-medium transition ${
-                            isActive
-                                ? 'bg-[#E8A020]/14 text-[#f0ba53]'
-                                : 'text-white/48 hover:bg-white/[0.06] hover:text-white/78'
-                        }`}
-                    >
-                        <span>{category.label}</span>
-                        <span className={`text-[11px] tabular-nums ${
-                            isActive ? 'text-[#f0ba53]/60' : 'text-white/28'
-                        }`}>{category.count}</span>
-                    </button>
-                );
-            })}
-        </nav>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {items.map((item) => (
+                <ServiceRow
+                    key={serviceId(item)}
+                    item={item}
+                    isFavorite={favorites.includes(serviceId(item))}
+                    onToggleFavorite={onToggleFavorite}
+                    onOpen={onOpen}
+                />
+            ))}
+        </div>
     );
 }
 
-function ServiceCard({ item }) {
-    const Icon = item.icon ?? BookOpenText;
-
+function CatalogSection({ section, isOpen, onToggle, favorites, onToggleFavorite, onOpen }) {
     return (
-        <ServiceLink
-            href={item.href}
-            external={item.external}
-            ariaLabel={`Открыть сервис ${item.title}`}
-            className="group flex h-full flex-col rounded-xl bg-white/[0.07] p-4 transition hover:bg-white/[0.11]"
-        >
-            <div className="flex items-start gap-3.5">
-                <span className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#E8A020]/12 text-[#E8A020] transition group-hover:bg-[#E8A020]/18">
-                    <Icon className="h-5 w-5" />
-                </span>
+        <section className="kz-panel overflow-hidden">
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-white/[0.04]"
+            >
                 <div className="min-w-0 flex-1">
-                    <h3 style={headingFont} className="text-[15px] font-bold leading-snug text-white/92">
-                        {item.title}
-                    </h3>
-                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-white/55">{item.desc}</p>
+                    <h2 className="kz-display text-[16px] font-semibold">{section.title}</h2>
+                    <p className="mt-0.5 truncate text-[13px] text-white/50">{section.subtitle}</p>
                 </div>
-            </div>
-
-            <div className="mt-auto pt-4">
-                <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#E8A020]/75 transition group-hover:text-[#E8A020]">
-                    {item.external ? 'Открыть' : 'Перейти'}
-                    {item.external ? <ExternalLink className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
+                <span className="rounded-full bg-white/[0.07] px-2.5 py-0.5 text-[12px] tabular-nums text-white/55">
+                    {section.items.length}
                 </span>
-            </div>
-        </ServiceLink>
-    );
-}
-
-function ServiceCategory({ section }) {
-    return (
-        <section className="space-y-4">
-            <header className="flex items-baseline gap-3">
-                <h2 style={headingFont} className="text-xl font-bold tracking-[-0.02em] text-white sm:text-2xl">
-                    {section.title}
-                </h2>
-                <span className="text-[13px] text-white/35">{section.items.length}</span>
-                <div className="h-px flex-1 bg-gradient-to-r from-white/15 to-white/0" />
-            </header>
-
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-                {section.items.map((item) => (
-                    <ServiceCard key={`${section.title}-${item.title}`} item={item} />
-                ))}
-            </div>
+                <ChevronDown
+                    className="h-4 w-4 flex-shrink-0 text-white/45"
+                    style={{
+                        transform: isOpen ? 'rotate(180deg)' : 'none',
+                        transition: 'transform var(--dur-base) var(--ease-out)',
+                    }}
+                />
+            </button>
+            {isOpen && (
+                <div className="animate-fade-in px-4 pb-4">
+                    <ServiceGrid
+                        items={section.items}
+                        favorites={favorites}
+                        onToggleFavorite={onToggleFavorite}
+                        onOpen={onOpen}
+                    />
+                </div>
+            )}
         </section>
     );
 }
 
+function SectionHeading({ title, count, action }) {
+    return (
+        <div className="flex items-baseline gap-3">
+            <h2 className="kz-display text-[19px] font-semibold sm:text-[22px]">{title}</h2>
+            {typeof count === 'number' && <span className="text-[13px] tabular-nums text-white/35">{count}</span>}
+            <div className="h-px flex-1 bg-gradient-to-r from-white/12 to-white/0" />
+            {action}
+        </div>
+    );
+}
+
 function Catalog() {
+    useReveal();
     const sections = useMemo(() => buildCatalogSections(), []);
     const quickAccess = useMemo(() => buildQuickAccess(), []);
     const allServices = useMemo(() => sections.flatMap((section) => section.items), [sections]);
+    const servicesById = useMemo(
+        () => new Map(allServices.map((item) => [serviceId(item), item])),
+        [allServices],
+    );
     const totalServices = allServices.length;
+
     const [query, setQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('Все');
+    const [favorites, setFavorites] = useStoredList(FAVORITES_KEY, 30);
+    const [recent, setRecent] = useStoredList(RECENT_KEY, 6);
+    const [openSections, setOpenSections] = useState(() => new Set());
+    const searchRef = useRef(null);
 
-    const categoryCounts = useMemo(() => (
-        CATEGORY_FILTERS.map((label) => ({
-            label,
-            count: label === 'Все'
-                ? totalServices
-                : allServices.filter((item) => item.facets.includes(label)).length,
-        }))
-    ), [allServices, totalServices]);
+    // "/" focuses search from anywhere on the page
+    useEffect(() => {
+        const handler = (event) => {
+            if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+            const tag = event.target?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || event.target?.isContentEditable) {
+                return;
+            }
+            event.preventDefault();
+            searchRef.current?.focus();
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, []);
 
-    const matchesActiveFilters = (item) => {
+    const isFiltering = query.trim() !== '' || activeCategory !== 'Все';
+
+    const matchesActiveFilters = useCallback((item) => {
         const matchesCategory = activeCategory === 'Все' || item.facets.includes(activeCategory);
         return matchesCategory && serviceMatchesQuery(item, query);
-    };
-
-    const popularServices = useMemo(() => (
-        allServices
-            .filter((item) => item.states.includes('popular'))
-            .filter(matchesActiveFilters)
-            .slice(0, 8)
-    ), [activeCategory, allServices, query]);
+    }, [activeCategory, query]);
 
     const visibleSections = useMemo(() => (
         sections
@@ -1078,109 +1077,185 @@ function Catalog() {
                 items: section.items.filter(matchesActiveFilters),
             }))
             .filter((section) => section.items.length > 0)
-    ), [sections, activeCategory, query]);
+    ), [sections, matchesActiveFilters]);
 
     const visibleTotal = visibleSections.reduce((sum, section) => sum + section.items.length, 0);
 
+    const toggleFavorite = useCallback((id) => {
+        setFavorites(
+            favorites.includes(id)
+                ? favorites.filter((entry) => entry !== id)
+                : [id, ...favorites],
+        );
+    }, [favorites, setFavorites]);
+
+    const recordRecent = useCallback((item) => {
+        const id = serviceId(item);
+        setRecent([id, ...recent.filter((entry) => entry !== id)]);
+    }, [recent, setRecent]);
+
+    const favoriteItems = favorites.map((id) => servicesById.get(id)).filter(Boolean);
+    const recentItems = recent
+        .map((id) => servicesById.get(id))
+        .filter(Boolean)
+        .filter((item) => !favorites.includes(serviceId(item)));
+
+    const toggleSection = (title) => {
+        setOpenSections((prev) => {
+            const next = new Set(prev);
+            if (next.has(title)) {
+                next.delete(title);
+            } else {
+                next.add(title);
+            }
+            return next;
+        });
+    };
+
+    const allOpen = openSections.size >= sections.length;
+    const toggleAll = () => {
+        setOpenSections(allOpen ? new Set() : new Set(sections.map((section) => section.title)));
+    };
+
     return (
         <>
-            <Head title="Каталог сервисов · КазУТБ">
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
-            </Head>
+            <Head title="Каталог сервисов · КазУТБ" />
 
             <main
-                className="relative flex min-h-screen flex-col items-center justify-start overflow-x-hidden p-3 font-['Manrope'] sm:p-4 lg:p-6"
-                style={{ fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif' }}
+                className="relative mx-auto w-full max-w-[var(--container-xl)] px-[var(--gutter)] pb-14 pt-8 text-white lg:pt-12"
+                style={{ fontFamily: 'var(--font-sans)' }}
             >
-                <section className="animate-fade-slide-up relative z-10 w-full max-w-[1380px] rounded-2xl bg-[#0f243f]/55 px-5 py-6 text-white sm:px-6 lg:px-8 lg:py-8">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="max-w-3xl">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#E8A020]/60">
-                                Единый цифровой портал · КазУТБ
-                            </p>
-                            <h1 style={headingFont} className="mt-2 text-3xl font-extrabold leading-tight tracking-[-0.03em] text-white sm:text-4xl lg:text-[2.8rem]">
-                                Каталог сервисов
-                            </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/76 sm:text-base">
-                                Все сервисы собраны в единой цифровой витрине университета: та же визуальная среда, что на главной странице, логине и навигации.
-                            </p>
-                        </div>
-                    </div>
+                {/* ── Header ── */}
+                <header className="kz-up max-w-3xl">
+                    <h1 className="kz-display text-[clamp(1.6rem,2.8vw,2.2rem)] font-semibold">
+                        Каталог сервисов
+                    </h1>
+                    <p className="mt-2 text-sm leading-6 text-white/60 sm:text-[15px]">
+                        {totalServices} цифровых сервисов университета — поиск, фильтры и избранное.
+                    </p>
+                </header>
 
-                    <div className="mt-4 space-y-6">
-                            <ServiceSearch
-                                query={query}
-                                onQueryChange={setQuery}
-                                onExampleSelect={setQuery}
-                                totalServices={totalServices}
-                                resultCount={visibleTotal}
-                            />
+                <div className="kz-up mt-6 space-y-6" style={{ animationDelay: '120ms' }}>
+                    <CatalogSearch
+                        query={query}
+                        onQueryChange={setQuery}
+                        resultCount={visibleTotal}
+                        totalServices={totalServices}
+                        isFiltering={isFiltering}
+                        inputRef={searchRef}
+                    />
 
-                        {popularServices.length > 0 && (
-                            <section className="space-y-4">
-                                <ServiceSectionHeading
-                                    title="Популярные сервисы"
-                                    subtitle="Ключевые цифровые сервисы университета для быстрого старта."
-                                    count={popularServices.length}
+                    {isFiltering ? (
+                        /* ── Search / filter results: relevant sections, expanded ── */
+                        visibleSections.length > 0 ? (
+                            <div className="space-y-7">
+                                {visibleSections.map((section) => (
+                                    <section key={section.title} className="space-y-3">
+                                        <SectionHeading title={section.title} count={section.items.length} />
+                                        <ServiceGrid
+                                            items={section.items}
+                                            favorites={favorites}
+                                            onToggleFavorite={toggleFavorite}
+                                            onOpen={recordRecent}
+                                        />
+                                    </section>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="kz-panel px-6 py-12 text-center">
+                                <p className="text-[15px] text-white/60">Сервисы не найдены.</p>
+                                <p className="mt-1 text-sm text-white/40">
+                                    Измените запрос или сбросьте фильтр категории.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => { setQuery(''); setActiveCategory('Все'); }}
+                                    className="kz-btn kz-btn--ghost mt-5 !min-h-[40px]"
+                                >
+                                    Сбросить фильтры
+                                </button>
+                            </div>
+                        )
+                    ) : (
+                        <>
+                            {/* ── Favorites ── */}
+                            {favoriteItems.length > 0 && (
+                                <section className="space-y-3">
+                                    <SectionHeading title="Избранное" count={favoriteItems.length} />
+                                    <ServiceGrid
+                                        items={favoriteItems}
+                                        favorites={favorites}
+                                        onToggleFavorite={toggleFavorite}
+                                        onOpen={recordRecent}
+                                    />
+                                </section>
+                            )}
+
+                            {/* ── Quick access until the user builds favorites ── */}
+                            {favoriteItems.length === 0 && (
+                                <section className="space-y-3">
+                                    <SectionHeading title="Быстрый доступ" />
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                                        {quickAccess.map((shortcut) => {
+                                            const Icon = shortcut.icon ?? BookOpenText;
+                                            return (
+                                                <ServiceLink
+                                                    key={shortcut.title}
+                                                    href={shortcut.href}
+                                                    external={shortcut.external}
+                                                    className="kz-tile min-h-[64px] items-center gap-2.5 p-3"
+                                                >
+                                                    <span className="kz-icon-badge h-8 w-8">
+                                                        <Icon className="h-4 w-4" />
+                                                    </span>
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-xs font-bold text-white/88">{shortcut.title}</span>
+                                                        <span className="mt-0.5 block truncate text-[11px] text-white/42">{shortcut.desc}</span>
+                                                    </span>
+                                                </ServiceLink>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* ── All sections, collapsed by default ── */}
+                            <section className="space-y-3">
+                                <SectionHeading
+                                    title="Все разделы"
+                                    count={totalServices}
+                                    action={(
+                                        <button
+                                            type="button"
+                                            onClick={toggleAll}
+                                            className="text-[13px] font-semibold text-[var(--teal-300)] transition hover:text-[var(--teal-200)]"
+                                        >
+                                            {allOpen ? 'Свернуть всё' : 'Развернуть всё'}
+                                        </button>
+                                    )}
                                 />
-                                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-                                    {popularServices.map((item) => (
-                                        <ServiceCard key={`popular-${item.sectionTitle}-${item.title}`} item={item} />
+                                <div className="space-y-2.5">
+                                    {sections.map((section) => (
+                                        <CatalogSection
+                                            key={section.title}
+                                            section={section}
+                                            isOpen={openSections.has(section.title)}
+                                            onToggle={() => toggleSection(section.title)}
+                                            favorites={favorites}
+                                            onToggleFavorite={toggleFavorite}
+                                            onOpen={recordRecent}
+                                        />
                                     ))}
                                 </div>
                             </section>
-                        )}
+                        </>
+                    )}
+                </div>
 
-                        <section className="space-y-4">
-                            <ServiceSectionHeading
-                                title="Быстрый доступ"
-                                subtitle="Самые частые точки входа для студентов, сотрудников и повседневных задач."
-                            />
-                            <ServiceQuickAccess shortcuts={quickAccess} />
-                        </section>
-
-                        <section className="space-y-4 pt-1">
-                            <ServiceSectionHeading
-                                title="Все сервисы"
-                                subtitle="Полный каталог сервисов с фильтрацией по направлениям и поиском по названию, описанию и ключевым словам."
-                                count={visibleTotal}
-                            />
-                            <div>
-                                <ServiceCategoryTabs
-                                    categories={categoryCounts}
-                                    activeCategory={activeCategory}
-                                    onCategoryChange={setActiveCategory}
-                                />
-                            </div>
-
-                            {visibleSections.length > 0 ? (
-                                <div className="space-y-6 pt-1">
-                                    {visibleSections.map((section) => (
-                                        <ServiceCategory key={section.title} section={section} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="py-10 text-center text-[15px] text-white/40">
-                                    Сервисы не найдены. Измените запрос или категорию.
-                                </div>
-                            )}
-                        </section>
-                    </div>
-
-                    <div className="mt-8 flex items-center justify-between border-t border-white/[0.07] pt-5 text-[12px] text-white/38">
-                        <span>Сервисов: {totalServices}</span>
-                        <Link href="/" className="inline-flex items-center gap-1.5 text-white/45 transition hover:text-white/75">
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                            На главную
-                        </Link>
-                    </div>
-                </section>
             </main>
         </>
     );
 }
 
-Catalog.layout = page => <PublicLayout>{page}</PublicLayout>;
+Catalog.layout = (page) => <PublicLayout>{page}</PublicLayout>;
 export default Catalog;

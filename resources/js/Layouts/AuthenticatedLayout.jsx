@@ -81,14 +81,13 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Departments/Edit': 'Редактирование кафедры',
         'AcademicYears/Index': 'Учебные годы',
         'EducationalPrograms/Index': 'Образовательные программы',
-        'Phonebook/Index': 'Телефонные справочники',
+        'Phonebook/Index': 'Справочник сотрудников',
         'Users/Index': 'Пользователи',
         'Users/AdminAccess': 'Права администратора',
         'Governance/OrgStructure': 'Управление доступом — Оргструктура',
         'Governance/RoleAccess': 'Управление доступом — Роль-доступ',
         'Governance/AccessRequests': 'Управление доступом — Запросы доступа',
         'Governance/AuthorityLedger': 'Управление доступом — Журнал полномочий',
-        'Phonebook/Index': 'Справочник сотрудников',
         'Kpi/Index': 'KPI-сезоны',
         'Kpi/TeacherForm': 'KPI — Мои показатели',
         'Kpi/TeacherDashboard': 'KPI — Мои показатели',
@@ -180,16 +179,12 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
 
     return (
         <SidebarProvider>
-            <Head>
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
-            </Head>
+            <Head />
             <AppSidebar />
             <SidebarInset>
-                <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-                    <div className="absolute left-[-120px] top-[-180px] h-80 w-80 rounded-full bg-cyan-300/20 blur-3xl" />
-                    <div className="absolute right-[-140px] top-[-140px] h-96 w-96 rounded-full bg-amber-300/20 blur-3xl" />
+                <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+                    <div style={{ position: 'absolute', left: -120, top: -180, width: 320, height: 320, borderRadius: '50%', background: 'rgba(9,186,178,0.12)', filter: 'blur(72px)' }} />
+                    <div style={{ position: 'absolute', right: -140, top: -140, width: 384, height: 384, borderRadius: '50%', background: 'rgba(252,187,89,0.12)', filter: 'blur(80px)' }} />
                 </div>
 
                 {/* Reminder Modal for incomplete profile */}
@@ -205,10 +200,10 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                         <Separator orientation="vertical" className="h-5" />
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="outline" className="border-cyan-200 bg-cyan-50/70 text-cyan-900">{section}</Badge>
+                                <Badge variant="outline" style={{ borderColor: 'var(--teal-200)', background: 'var(--teal-50)', color: 'var(--teal-800)' }}>{section}</Badge>
                                 <p className="truncate text-sm font-medium text-muted-foreground/90">{sectionPage}</p>
                             </div>
-                            <h1 className="mt-0.5 truncate text-[1.1rem] font-semibold text-[#132844]">{pageTitle}</h1>
+                            <h1 className="mt-0.5 truncate text-[1.1rem] font-semibold" style={{ color: 'var(--navy-800)', fontFamily: 'var(--font-sans)' }}>{pageTitle}</h1>
                         </div>
 
                         <a
