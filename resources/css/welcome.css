@@ -1,21 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 :root {
-    --kazutb-navy: #2B4565;
-    --kazutb-navy2: #243E5F;
-    --kazutb-teal: #0AB7B0;
-    --kazutb-gold: #FABA59;
+    /* Legacy aliases — mapped to KazUTB design tokens */
+    --kazutb-navy: var(--navy-600);
+    --kazutb-navy2: var(--navy-700);
+    --kazutb-teal: var(--teal-400);
+    --kazutb-gold: var(--gold-400);
     --kazutb-white: #FBFBFC;
-    --bg: #F6F8FC;
-    --card: #FFFFFF;
-    --text: #0F172A;
-    --muted: #64748B;
+    --bg: var(--ink-50);
+    --card: var(--white);
+    --text: var(--ink-900);
+    --muted: var(--ink-500);
     --stroke: rgba(35, 62, 95, .12);
-    --shadow-soft: 0 12px 28px rgba(2, 6, 23, .10);
-    --shadow: 0 18px 44px rgba(2, 6, 23, .14);
+    --shadow-soft: var(--shadow-sm);
+    --shadow: var(--shadow-lg);
     --ui-scale: 1.22;
-    --radius-lg: 22px;
-    --radius-md: 16px;
-    --radius-sm: 12px;
 }
 * {
     box-sizing: border-box;
@@ -25,11 +22,11 @@ a {
 }
 html, body {
     height: 100%;
-    font-family: "Open Sans", sans-serif;
+    font-family: var(--font-sans);
 }
 body {
     margin: 0;
-    font-family: var(--font-open-sans), 'Open Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     background: radial-gradient(circle at 20% 0%, rgba(10, 183, 176, .10), transparent 50%), radial-gradient(circle at 80% 10%, rgba(250, 186, 89, .10), transparent 40%), var(--bg);
     background-attachment: fixed;
     color: var(--text);
@@ -156,9 +153,10 @@ body {
     line-height: 1.05;
     letter-spacing: -.7px;
     color: rgba(15, 23, 42, .92);
+    font-family: var(--font-display);
 }
 .title .accent {
-    background: linear-gradient(135deg, var(--kazutb-navy2), var(--kazutb-teal));
+    background: var(--gradient-wave);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -178,11 +176,11 @@ body {
 }
 .btn-primary {
     color: white;
-    background: radial-gradient(circle at 30% 30%, rgba(251, 251, 252, .20), transparent 55%), linear-gradient(135deg, var(--kazutb-navy2), var(--kazutb-teal));
-    box-shadow: 0 18px 44px rgba(43, 69, 101, .28);
+    background: var(--gradient-deep);
+    box-shadow: var(--shadow-md);
 }
 .btn {
-    font-family: var(--font-open-sans), 'Open Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     border: 0;
     cursor: pointer;
     border-radius: 14px;
@@ -833,7 +831,7 @@ body {
 }
 
 .chat-bot-message.user .chat-bot-bubble {
-    background: linear-gradient(135deg, var(--kazutb-navy2), var(--kazutb-teal));
+    background: var(--gradient-deep);
     color: white;
 }
 
@@ -864,14 +862,14 @@ body {
     border-radius: 12px;
     padding: 10px 14px;
     font-size: 14px;
-    font-family: var(--font-open-sans), 'Open Sans', ui-sans-serif, system-ui;
+    font-family: var(--font-sans);
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .chat-bot-input:focus {
-    border-color: var(--kazutb-teal);
-    box-shadow: 0 0 0 3px rgba(10, 183, 176, .1);
+    border-color: var(--teal-400);
+    box-shadow: var(--ring-focus);
 }
 
 .chat-bot-input::placeholder {
@@ -880,7 +878,7 @@ body {
 
 .chat-bot-send {
     padding: 10px 18px;
-    background: linear-gradient(135deg, var(--kazutb-navy2), var(--kazutb-teal));
+    background: var(--gradient-deep);
     border: none;
     border-radius: 10px;
     color: white;

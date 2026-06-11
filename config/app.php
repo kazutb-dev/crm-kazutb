@@ -33,13 +33,14 @@ return [
     | Application Debug Mode
     |--------------------------------------------------------------------------
     |
-    | When your application is in debug mode, detailed error messages with
-    | stack traces will be shown on every error that occurs within your
-    | application. If disabled, a simple generic error page is shown.
+    | Never allow debug mode in production, even if APP_DEBUG is misconfigured.
+    | This prevents accidental verbose error pages in live environments.
     |
     */
 
-    'debug' => (bool) env('APP_DEBUG', false),
+    'debug' => env('APP_ENV') === 'production'
+        ? false
+        : (bool) env('APP_DEBUG', false),
 
     /*
     |--------------------------------------------------------------------------
