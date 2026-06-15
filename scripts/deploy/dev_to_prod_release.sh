@@ -249,8 +249,20 @@ if [[ "$SKIP_BUILD" != "1" ]]; then
     check_public_build "$PROD_ROOT"
 fi
 
-prod_http_code="$(curl -s -o /dev/null -w '%{http_code}' https://crm.kaztbu.edu.kz/)"
-[[ "$prod_http_code" != "500" ]] || fail "PROD health check failed: / returned 500"
+_prod_smoke_check() {
+    local label="$1" url="$2"
+    local code
+    code="$(curl -sL -o /dev/null -w '%{http_code}' "$url" || true)"
+    if [[ "$code" =~ ^5 ]]; then
+        fail "PROD smoke test FAILED: ${label} returned HTTP ${code} (5xx server error)"
+    fi
+    info "  smoke: ${label} → HTTP ${code} OK"
+}
+_prod_smoke_check "/"                      "https://crm.kaztbu.edu.kz/"
+_prod_smoke_check "/login"                 "https://crm.kaztbu.edu.kz/login"
+_prod_smoke_check "/certificates"          "https://crm.kaztbu.edu.kz/certificates"
+_prod_smoke_check "/certificates/registry" "https://crm.kaztbu.edu.kz/certificates/registry"
+_prod_smoke_check "/templates"             "https://crm.kaztbu.edu.kz/templates"
 run_failpoint_if_requested "after-health"
 
 ROLLBACK_NEEDED=0
