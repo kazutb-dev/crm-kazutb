@@ -96,6 +96,22 @@ check_http_code() {
     fi
 }
 
+# Like check_http_code but uses fail_check (not warn_check) for any 5xx response.
+# Use for routes that must never return a server error.
+check_critical_route() {
+    local name="$1"
+    local url="$2"
+    local code
+    code="$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)"
+    if [[ "$code" == "000" ]]; then
+        fail_check "$name" "No HTTP response (connection failed) for $url"
+    elif [[ "$code" =~ ^5 ]]; then
+        fail_check "$name" "HTTP $code (server error) for $url — route is broken"
+    else
+        pass_check "$name" "HTTP $code for $url"
+    fi
+}
+
 check_db_connectivity() {
     local root="$1"
     local name="$2"
@@ -194,6 +210,9 @@ if [[ "$TARGET" == "prod" || "$TARGET" == "all" ]]; then
     check_env_root "$PROD_ROOT" "PROD"
     check_http_code "PROD home" "https://crm.kaztbu.edu.kz/" '^(2|3|4)[0-9][0-9]$'
     check_http_code "PROD login" "https://crm.kaztbu.edu.kz/login" '^(2|3|4)[0-9][0-9]$'
+    check_critical_route "PROD /certificates"          "https://crm.kaztbu.edu.kz/certificates"
+    check_critical_route "PROD /certificates/registry" "https://crm.kaztbu.edu.kz/certificates/registry"
+    check_critical_route "PROD /templates"             "https://crm.kaztbu.edu.kz/templates"
 fi
 
 if [[ "$TARGET" == "dev" || "$TARGET" == "all" ]]; then

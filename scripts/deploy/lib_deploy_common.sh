@@ -154,7 +154,24 @@ check_storage_permissions() {
 
 check_public_build() {
     local project_root="$1"
-    [[ -f "$project_root/public/build/manifest.json" ]] || fail "public/build/manifest.json missing in $project_root"
+    local manifest="$project_root/public/build/manifest.json"
+
+    # 1. Manifest must exist
+    [[ -f "$manifest" ]] || fail "public/build/manifest.json missing in $project_root"
+
+    # 2. Manifest must have been written within the last 10 minutes.
+    #    A stale manifest means the build failed and the old file was left in place.
+    local age_seconds
+    age_seconds=$(( $(date +%s) - $(stat -c %Y "$manifest") ))
+    if [[ "$age_seconds" -gt 600 ]]; then
+        fail "public/build/manifest.json is stale (${age_seconds}s old) in $project_root — build likely failed silently"
+    fi
+
+    # 3. The primary app entry point must be present in the manifest.
+    php -r "
+        \$m = json_decode(file_get_contents('$manifest'), true);
+        if (!\$m || !isset(\$m['resources/js/app.jsx'])) { exit(1); }
+    " || fail "Vite manifest missing required entry resources/js/app.jsx in $project_root — build output is corrupt"
 }
 
 check_laravel_health() {
