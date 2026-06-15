@@ -1,16 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link } from '@inertiajs/react';
 import { QRCodeCanvas } from 'qrcode.react';
-
-const statusLabel = {
-    draft: 'Черновик',
-    generated: 'Сгенерирован',
-    issued: 'Выдан',
-    revoked: 'Отозван',
-};
 
 export default function CertificateShow({ certificate }) {
     const canvasWidth = Number(certificate?.template_canvas_width ?? 1600);
@@ -54,7 +46,7 @@ export default function CertificateShow({ certificate }) {
                 <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
                     <div>
                         <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Сертификат {certificate?.certificate_number}
+                            Сертификат
                         </h2>
                         <p className="mt-1 text-sm text-gray-500">
                             Просмотр и печать сертификата
@@ -64,13 +56,13 @@ export default function CertificateShow({ certificate }) {
                         <Button variant="outline" onClick={openVerify}>Проверка</Button>
                         <Button onClick={printCertificate}>Печать</Button>
                         <Button asChild variant="outline">
-                            <Link href={route('certificates.index')}>Назад</Link>
+                            <Link href={route('certificates.registry.page')}>Назад</Link>
                         </Button>
                     </div>
                 </div>
             }
         >
-            <Head title={`Сертификат ${certificate?.certificate_number ?? ''}`} />
+            <Head title="Сертификат" />
 
             <div className="admin-page-wrap">
                 <Card className="print:shadow-none print:border-none">
@@ -79,16 +71,7 @@ export default function CertificateShow({ certificate }) {
                     </CardHeader>
                     <CardContent className="grid gap-4 md:grid-cols-2 print:grid-cols-1">
                         <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">Номер:</span> {certificate?.certificate_number}</div>
                             <div><span className="font-medium">ФИО:</span> {certificate?.recipient_full_name}</div>
-                            <div><span className="font-medium">Тема:</span> {certificate?.topic}</div>
-                            <div>
-                                <span className="font-medium">Статус:</span>{' '}
-                                <Badge variant="outline">{statusLabel[certificate?.status] ?? certificate?.status}</Badge>
-                            </div>
-                            <div><span className="font-medium">Выдан:</span> {certificate?.issued_at_human ?? '-'}</div>
-                            <div><span className="font-medium">Сгенерирован:</span> {certificate?.generated_at_human ?? '-'}</div>
-                            <div><span className="font-medium">Шаблон:</span> {certificate?.template_name} ({certificate?.template_code}) v{certificate?.template_version}</div>
                         </div>
 
                         <div className="print:hidden flex flex-col items-center justify-center gap-2 rounded-md border bg-white p-4">

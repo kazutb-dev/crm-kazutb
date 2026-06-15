@@ -16,7 +16,7 @@ class CertificateRegistryController extends Controller
 {
     public function page(Request $request): InertiaResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $templates = CertificateTemplateVersion::query()
             ->with(['template:id,name,code,is_active'])
@@ -34,18 +34,33 @@ class CertificateRegistryController extends Controller
                     'template_name' => $version->template?->name,
                     'template_code' => $version->template?->code,
                     'version' => $version->version,
+                    'auto_topic' => $version->template?->name,
+                    'background_url' => $version->background_path
+                        ? '/storage/' . ltrim((string) $version->background_path, '/')
+                        : null,
+                    'canvas_width' => (int) ($version->canvas_width ?? 1600),
+                    'canvas_height' => (int) ($version->canvas_height ?? 1131),
+                    'layout_json' => is_array($version->layout_json) ? $version->layout_json : [],
+                    'published_at_human' => optional($version->published_at)?->format('d.m.Y H:i'),
                 ];
             })
             ->values();
 
-        return Inertia::render('Certificates/Index', [
+        return Inertia::render('Certificates/Generate', [
             'templates' => $templates,
         ]);
     }
 
+    public function registryPage(Request $request): InertiaResponse
+    {
+        $this->ensureCertificatesAccess($request);
+
+        return Inertia::render('Certificates/Registry');
+    }
+
     public function show(Request $request, Certificate $certificate): InertiaResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $certificate->load([
             'template:id,name,code',
@@ -69,9 +84,7 @@ class CertificateRegistryController extends Controller
                     : null,
                 'template_canvas_width' => (int) ($certificate->templateVersion?->canvas_width ?? 1600),
                 'template_canvas_height' => (int) ($certificate->templateVersion?->canvas_height ?? 1131),
-                'template_layout' => is_array($certificate->templateVersion?->layout_json)
-                    ? $certificate->templateVersion?->layout_json
-                    : [],
+                'template_layout' => $this->resolveCertificateLayout($certificate),
                 'qr_payload' => $certificate->qr_payload,
             ],
         ]);
@@ -79,7 +92,7 @@ class CertificateRegistryController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $perPage = min(max((int) $request->query('per_page', 20), 1), 200);
         $query = trim((string) $request->query('q', ''));
@@ -129,12 +142,13 @@ class CertificateRegistryController extends Controller
 
     public function generate(Request $request): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $data = $request->validate([
             'recipient_full_name' => ['required', 'string', 'max:255'],
             'topic' => ['required', 'string', 'max:255'],
             'template_version_id' => ['nullable', 'integer', 'exists:certificate_template_versions,id'],
+            'layout_override' => ['nullable', 'array'],
         ]);
 
         $certificate = DB::transaction(function () use ($request, $data): Certificate {
@@ -150,7 +164,9 @@ class CertificateRegistryController extends Controller
                 'certificate_number' => $number,
                 'recipient_full_name' => trim((string) $data['recipient_full_name']),
                 'topic' => trim((string) $data['topic']),
-                'optional_json' => null,
+                'optional_json' => is_array($data['layout_override'] ?? null)
+                    ? ['layout_override' => $data['layout_override']]
+                    : null,
                 'qr_payload' => route('certificates.verify', ['certificateNumber' => $number]),
                 'status' => Certificate::STATUS_GENERATED,
                 'generated_at' => now(),
@@ -172,13 +188,14 @@ class CertificateRegistryController extends Controller
 
     public function bulkGenerate(Request $request): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $data = $request->validate([
             'recipients'           => ['required', 'array', 'min:1', 'max:500'],
             'recipients.*'         => ['required', 'string', 'max:255'],
             'topic'                => ['required', 'string', 'max:255'],
             'template_version_id'  => ['nullable', 'integer', 'exists:certificate_template_versions,id'],
+            'layout_override'      => ['nullable', 'array'],
         ]);
 
         $templateVersion = $this->resolveTemplateVersion($data['template_version_id'] ?? null);
@@ -203,7 +220,9 @@ class CertificateRegistryController extends Controller
                     'certificate_number'   => $number,
                     'recipient_full_name'  => $name,
                     'topic'                => trim((string) $data['topic']),
-                    'optional_json'        => null,
+                    'optional_json'        => is_array($data['layout_override'] ?? null)
+                        ? ['layout_override' => $data['layout_override']]
+                        : null,
                     'qr_payload'           => route('certificates.verify', ['certificateNumber' => $number]),
                     'status'               => Certificate::STATUS_GENERATED,
                     'generated_at'         => now(),
@@ -231,7 +250,7 @@ class CertificateRegistryController extends Controller
 
     public function issue(Request $request, Certificate $certificate): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         if ($certificate->status !== Certificate::STATUS_GENERATED) {
             return response()->json([
@@ -253,7 +272,7 @@ class CertificateRegistryController extends Controller
 
     public function revoke(Request $request, Certificate $certificate): JsonResponse
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $data = $request->validate([
             'reason' => ['nullable', 'string', 'max:2000'],
@@ -280,7 +299,7 @@ class CertificateRegistryController extends Controller
 
     public function exportCsv(Request $request): Response
     {
-        $this->ensureAdmin($request);
+        $this->ensureCertificatesAccess($request);
 
         $query = trim((string) $request->query('q', ''));
         $status = trim((string) $request->query('status', ''));
@@ -345,6 +364,7 @@ class CertificateRegistryController extends Controller
                 'issued_at',
                 'generated_at',
                 'revoked_at',
+                'optional_json',
             ])
             ->where('certificate_number', $certificateNumber)
             ->first();
@@ -389,9 +409,7 @@ class CertificateRegistryController extends Controller
                         : null,
                     'template_canvas_width' => (int) ($certificate->templateVersion?->canvas_width ?? 1600),
                     'template_canvas_height' => (int) ($certificate->templateVersion?->canvas_height ?? 1131),
-                    'template_layout' => is_array($certificate->templateVersion?->layout_json)
-                        ? $certificate->templateVersion?->layout_json
-                        : [],
+                    'template_layout' => $this->resolveCertificateLayout($certificate),
                     'qr_payload' => $certificate->qr_payload,
                     'revoked_at_human' => optional($certificate->revoked_at)?->format('d.m.Y H:i'),
                 ],
@@ -411,7 +429,7 @@ class CertificateRegistryController extends Controller
         ]);
     }
 
-    private function ensureAdmin(Request $request): void
+    private function ensureCertificatesAccess(Request $request): void
     {
         $user = $request->user();
         $role = $user?->resolvedRoleSlug();
@@ -419,7 +437,7 @@ class CertificateRegistryController extends Controller
         $allowedEmails = [
             'a.khastayeva@kaztbu.edu.kz',
         ];
-        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin'], true);
+        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin', 'certificates'], true);
         $hasEmailAccess = in_array($email, $allowedEmails, true);
 
         abort_unless($hasRoleAccess || $hasEmailAccess, 403);
@@ -502,5 +520,17 @@ class CertificateRegistryController extends Controller
             ->when($status !== '', function ($builder) use ($status): void {
                 $builder->where('status', $status);
             });
+    }
+
+    private function resolveCertificateLayout(Certificate $certificate): array
+    {
+        $override = $certificate->optional_json['layout_override'] ?? null;
+        if (is_array($override)) {
+            return $override;
+        }
+
+        return is_array($certificate->templateVersion?->layout_json)
+            ? $certificate->templateVersion?->layout_json
+            : [];
     }
 }
