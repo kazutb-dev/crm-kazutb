@@ -1716,6 +1716,8 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 
     Route::get('certificates', [CertificateRegistryController::class, 'page'])
         ->name('certificates.index');
+    Route::get('certificates/registry', [CertificateRegistryController::class, 'registryPage'])
+        ->name('certificates.registry.page');
     Route::get('certificates/{certificate}', [CertificateRegistryController::class, 'show'])
         ->name('certificates.show');
 

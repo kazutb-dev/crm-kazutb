@@ -237,6 +237,8 @@ export default function CertificateVerify({ valid, status, message, certificate 
                                     )}
 
                                     <div style={textStyle(layout?.fio)}>{certificate?.recipient_full_name}</div>
+                                    <div style={textStyle(layout?.topic)}>{certificate?.topic}</div>
+                                    <div style={textStyle(layout?.number, 'right')}>{certificate?.certificate_number}</div>
 
                                     <div
                                         style={{
