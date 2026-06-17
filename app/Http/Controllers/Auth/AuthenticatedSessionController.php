@@ -89,6 +89,12 @@ class AuthenticatedSessionController extends Controller
                 ->with('profileReminderAfterLogin', $shouldShowProfileReminder);
         }
 
+        if ($user !== null && $user->resolvedRoleSlug() === 'certificates') {
+            return redirect()
+                ->route('templates.index')
+                ->with('profileReminderAfterLogin', false);
+        }
+
         return redirect()
             ->intended(route('profile.edit'))
             ->with('profileReminderAfterLogin', $shouldShowProfileReminder);

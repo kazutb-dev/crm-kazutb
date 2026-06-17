@@ -623,12 +623,12 @@ export function AppSidebar() {
     ];
 
     const templateItems = [
-        ...(isCertificatesRole ? [] : [{
+        {
             title: 'Шаблоны',
             href: route('templates.index'),
             icon: FileCheck,
             active: route().current('templates.*'),
-        }]),
+        },
         {
             title: 'Сертификаты',
             href: route('certificates.index'),
