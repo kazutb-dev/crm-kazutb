@@ -254,7 +254,7 @@ class User extends Authenticatable
         if ($legacyRole !== '') {
             return match ($legacyRole) {
                 'department_head' => 'hod',
-                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin' => $legacyRole,
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates' => $legacyRole,
                 'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
                 default => 'teacher',
             };
@@ -265,7 +265,7 @@ class User extends Authenticatable
         if (is_string($roleFromRelation) && $roleFromRelation !== '') {
             return match ($roleFromRelation) {
                 'department_head' => 'hod',
-                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin' => $roleFromRelation,
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates' => $roleFromRelation,
                 'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
                 default => 'teacher',
             };
@@ -276,8 +276,21 @@ class User extends Authenticatable
 
     public function resolveRoleLabel(): string
     {
+        $positionTitle = mb_strtolower(trim((string) ($this->position_title ?: $this->ad_title ?: '')));
+
+        if ($positionTitle !== '') {
+            if (str_contains($positionTitle, 'проректор') || str_contains($positionTitle, 'vice rector') || str_contains($positionTitle, 'vice-rector') || str_contains($positionTitle, 'prorector')) {
+                return 'Проректор';
+            }
+
+            if (str_contains($positionTitle, 'ректор') || str_contains($positionTitle, 'rector')) {
+                return 'Ректор';
+            }
+        }
+
         return match ($this->resolvedRoleSlug()) {
             'teacher' => 'Преподаватель',
+            'certificates' => 'Оператор сертификатов',
             'hod', 'department_head' => 'Завед. кафедрой',
             'dean' => 'Декан',
             'department', 'structural' => 'Структурное подразделение',

@@ -69,6 +69,7 @@ const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
 const ROLE_LABELS = {
     admin: 'Администратор',
     superadmin: 'Суперадмин',
+    certificates: 'Оператор сертификатов',
     teacher: 'Преподаватель',
     hod: 'Завед. кафедрой',
     department_head: 'Завед. кафедрой',
@@ -127,6 +128,7 @@ export function AppSidebar() {
     const kpiGrants = new Set(kpi?.grants ?? []);
     const TEMP_HIDE_MAIN_MENUS = false;
     const isAdminRole = ['admin', 'superadmin'].includes(roleSlug);
+    const isCertificatesRole = roleSlug === 'certificates';
     const isKpiAdminGrant =
         kpiGrants.has('kpi_admin')
         || kpiGrants.has('kpi-admin')
@@ -139,7 +141,7 @@ export function AppSidebar() {
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
     const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
-    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess;
+    const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess || isCertificatesRole;
     const canAccessPositionRequests =
         isAdminRole
         || isStructuralRole
@@ -150,6 +152,7 @@ export function AppSidebar() {
     const sharedAccessCount = calendarShared?.shared_access_count ?? 0;
     const showAllKpiMenus = isAdminRole;
     const showOnlyKpiMenus = false;
+    const showOnlyCertificatesMenus = isCertificatesRole;
     const roleLabel = ROLE_LABELS[roleSlug] ?? (roleSlug || '—');
     const facultyLabel = user?.faculty?.name ?? user?.faculty_name ?? user?.ad_division ?? '—';
     const departmentLabel = user?.department?.name ?? user?.department_name ?? user?.ad_department ?? '—';
@@ -630,7 +633,13 @@ export function AppSidebar() {
             title: 'Сертификаты',
             href: route('certificates.index'),
             icon: Award,
-            active: route().current('certificates.*'),
+            active: route().current('certificates.index'),
+        },
+        {
+            title: 'Реестр сертификатов',
+            href: route('certificates.registry.page'),
+            icon: BookOpenText,
+            active: route().current('certificates.registry.page') || route().current('certificates.show'),
         },
     ];
 
@@ -808,18 +817,18 @@ export function AppSidebar() {
     };
 
     const groupVisibility = {
-        main: !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
-        directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
-        governance: isAdminRole && !showOnlyKpiMenus,
-        kpi: kpiMenuItems.length > 0,
-        questionnaire: isAdminRole && !showOnlyKpiMenus,
-        calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hr: isAdminRole && !showOnlyKpiMenus,
-        library: isAdminRole && !showOnlyKpiMenus,
-        calendarAdmin: isAdminRole && !showOnlyKpiMenus,
+        main: !showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
+        directories: !showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
+        governance: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
+        kpi: !showOnlyCertificatesMenus && kpiMenuItems.length > 0,
+        questionnaire: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
+        calendarShared: !showOnlyCertificatesMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
+        hr: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
+        library: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
+        calendarAdmin: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus,
-        deptRequests: !showOnlyKpiMenus,
-        phonebook: !showOnlyKpiMenus,
+        deptRequests: !showOnlyCertificatesMenus && !showOnlyKpiMenus,
+        phonebook: !showOnlyCertificatesMenus && !showOnlyKpiMenus,
     };
 
     const groupItems = {
@@ -934,40 +943,40 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent ref={sidebarContentRef} className="pb-2">
-                {!TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus && (
                     renderGroup('main', 'Основное', navigation)
                 )}
 
-                {!TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('directories', 'Справочники', management)
                 )}
 
-                {isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('governance', 'Управление доступом', governance)
                 )}
 
-                {kpiMenuItems.length > 0 && (
+                {!showOnlyCertificatesMenus && kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
                 )}
 
-                {questionnaire.length > 0 && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && questionnaire.length > 0 && !showOnlyKpiMenus && (
                     renderGroup('questionnaire', 'Анкетирование', questionnaire)
                 )}
 
                 {/* Календарь для пользователей без прав администратора */}
-                {!isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && (
+                {!showOnlyCertificatesMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && (
                     renderGroup('calendarShared', 'Календарь', nonAdminCalendarItems)
                 )}
 
-                {isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('hr', 'HR и учет', hr)
                 )}
 
-                {isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('library', 'Библиотека', library)
                 )}
 
-                {isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('calendarAdmin', 'Календарь', adminCalendarItems)
                 )}
 
@@ -975,11 +984,11 @@ export function AppSidebar() {
                     renderGroup('templates', 'Шаблоны и сертификаты', templateItems)
                 )}
 
-                {!showOnlyKpiMenus && deptRequestItems.length > 0 && (
+                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && deptRequestItems.length > 0 && (
                     renderGroup('deptRequests', 'Заявки', deptRequestItems)
                 )}
 
-                {!showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && (
                     renderGroup('phonebook', 'Справочник', phonebookItems)
                 )}
             </SidebarContent>

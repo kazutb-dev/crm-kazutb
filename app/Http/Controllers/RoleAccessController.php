@@ -610,6 +610,8 @@ class RoleAccessController extends Controller
     private function roleLabel(string $role): string
     {
         return match ($role) {
+            'rector' => 'Ректор',
+            'vice_rector', 'vice-rector', 'prorector' => 'Проректор',
             'superadmin' => 'Суперадмин',
             'admin' => 'Администратор',
             'teacher' => 'Преподаватель',
