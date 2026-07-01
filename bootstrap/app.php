@@ -38,9 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
             'panel.role.access' => \App\Http\Middleware\EnsurePanelRoleAccess::class,
+            'testing.access' => \App\Http\Middleware\EnsureTestingAccess::class,
             'calendar.access' => \App\Http\Middleware\EnsureCalendarLeadershipAccess::class,
             'track.last-seen' => \App\Http\Middleware\TrackLastSeen::class,
             'block.in.production' => \App\Http\Middleware\BlockInProduction::class,
+            'testing.api.key' => \App\Http\Middleware\VerifyTestingApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

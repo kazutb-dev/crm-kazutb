@@ -70,4 +70,8 @@ return [
         'user_id' => env('ZOOM_USER_ID', 'me'),
     ],
 
+    'crm' => [
+        'api_key' => env('CRM_API_KEY'),
+    ],
+
 ];

@@ -117,6 +117,9 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Templates/Index': 'Шаблоны сертификатов',
         'Certificates/Index': 'Сертификаты',
         'Certificates/Show': 'Сертификат',
+        'LanguageTesting/Tests/Index': 'Проверка знаний языка — Тесты',
+        'LanguageTesting/Questions/Index': 'Проверка знаний языка — Вопросы',
+        'LanguageTesting/Statistics/Index': 'Проверка знаний языка — Статистика',
         'DepartmentRequests/Index': 'Заявки',
         'DepartmentRequests/Departments': 'Отделы для заявок',
         'DepartmentRequests/Admin/Index': 'Заявки — Администрирование',
@@ -127,6 +130,10 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Calendar/Settings': 'Календарь — Настройки',
         'Questionnaire/Student/Index': 'Анкетирование — Студент',
         'Questionnaire/Admin/Specialities': 'Анкетирование — Специальности',
+        'Testing/Index': 'Тестирование — Предметы',
+        'Testing/BindingShow': 'Тестирование — Привязка предмета',
+        'Testing/TestForm': 'Тестирование — Конструктор теста',
+        'Testing/BindingAnalytics': 'Тестирование — Аналитика',
     };
 
     const pageTitleBase =

@@ -56,11 +56,24 @@ class EnsurePanelRoleAccess
         }
 
         if ($role === 'certificates') {
-            if ($this->startsWith($routeName, 'certificates.')) {
-                return $next($request);
+            $allowedCertificateRoutes = [
+                'templates.',
+                'certificates.',
+                'certificate-templates.',
+                'certificate-template-versions.',
+            ];
+
+            foreach ($allowedCertificateRoutes as $allowedRoute) {
+                if ($this->startsWith($routeName, $allowedRoute)) {
+                    return $next($request);
+                }
             }
 
-            return $this->forbidden($request, 'Для роли certificates доступен только модуль сертификатов.');
+            if ($request->expectsJson()) {
+                return $this->forbidden($request, 'Для роли certificates доступен только модуль сертификатов.');
+            }
+
+            return redirect()->route('templates.index');
         }
 
         // Admin roles can access all panel routes.

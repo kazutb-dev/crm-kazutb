@@ -240,8 +240,9 @@ class CertificateTemplateController extends Controller
         $email = mb_strtolower(trim((string) ($user?->email ?? '')));
         $allowedEmails = [
             'a.khastayeva@kaztbu.edu.kz',
+            'certificates@kaztbu.edu.kz',
         ];
-        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin'], true);
+        $hasRoleAccess = in_array($role, ['admin', 'superadmin', 'super_admin', 'certificates'], true);
         $hasEmailAccess = in_array($email, $allowedEmails, true);
 
         abort_unless($hasRoleAccess || $hasEmailAccess, 403);

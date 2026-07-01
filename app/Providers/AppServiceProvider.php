@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\AcademicContextProvider;
 use App\Listeners\LogSuccessfulLogin;
 use App\Models\AcademicYear;
+use App\Models\Announcement;
 use App\Models\Department;
 use App\Models\Diploma;
 use App\Models\Division;
@@ -16,6 +17,7 @@ use App\Models\KpiPeriod;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Observers\AuditableModelObserver;
+use App\Policies\AnnouncementPolicy;
 use App\Policies\KpiEntryPolicy;
 use App\Policies\KpiPeriodPolicy;
 use App\Services\AcademicScopeResolverService;
@@ -54,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
         $this->guardDestructiveConsoleCommands();
         $this->configureRateLimiting();
 
+        Gate::policy(Announcement::class, AnnouncementPolicy::class);
         Gate::policy(KpiPeriod::class, KpiPeriodPolicy::class);
         Gate::policy(KpiEntry::class, KpiEntryPolicy::class);
 

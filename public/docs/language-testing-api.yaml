@@ -1,0 +1,1228 @@
+openapi: 3.0.3
+info:
+  title: Language Testing Module API
+  version: 1.0.0
+  description: >-
+    Production-ready OpenAPI specification for the CRM LanguageTestingModule
+    and its AI Students integration endpoints.
+servers:
+  - url: https://dev-crm.kaztbu.edu.kz
+tags:
+  - name: Language Testing CRM
+    description: CRM management endpoints for tests, questions, statistics, and exports.
+  - name: Language Testing AI Students
+    description: External integration endpoints for the AI Students platform.
+paths:
+  /api/v1/tests:
+    get:
+      tags:
+        - Language Testing AI Students
+      summary: List available language tests
+      description: >-
+        Returns active language tests for AI Students when called with an API key.
+        The same endpoint returns all tests when called by CRM with a Sanctum bearer token.
+      operationId: listLanguageTests
+      security:
+        - ApiKeyAuth: []
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SortTests'
+        - $ref: '#/components/parameters/SortDirection'
+        - $ref: '#/components/parameters/TestLanguageFilter'
+        - $ref: '#/components/parameters/TestStatusFilter'
+      responses:
+        '200':
+          description: Tests list returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestListResponse'
+              examples:
+                success:
+                  value:
+                    data:
+                      - id: 1
+                        name: English Placement Test
+                        language: english
+                        language_label: English
+                        description: null
+                        passing_score: 60
+                        total_questions: 20
+                        questions_count: 3
+                        status: active
+                        status_label: Активен
+                        created_at: '2026-07-01T09:33:45+05:00'
+                        updated_at: '2026-07-01T09:33:45+05:00'
+                      - id: 3
+                        name: Kazakh Placement Test
+                        language: kazakh
+                        language_label: Kazakh
+                        description: null
+                        passing_score: 60
+                        total_questions: 20
+                        questions_count: 3
+                        status: active
+                        status_label: Активен
+                        created_at: '2026-07-01T09:33:45+05:00'
+                        updated_at: '2026-07-01T09:33:45+05:00'
+                      - id: 2
+                        name: Russian Placement Test
+                        language: russian
+                        language_label: Russian
+                        description: null
+                        passing_score: 60
+                        total_questions: 20
+                        questions_count: 3
+                        status: active
+                        status_label: Активен
+                        created_at: '2026-07-01T09:33:45+05:00'
+                        updated_at: '2026-07-01T09:33:45+05:00'
+                    meta:
+                      current_page: 1
+                      last_page: 1
+                      per_page: 10
+                      total: 3
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Language Testing CRM
+      summary: Create a language test
+      description: Creates a new language test in CRM.
+      operationId: createLanguageTest
+      security:
+        - SanctumBearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestUpsertRequest'
+            examples:
+              create:
+                value:
+                  name: German Placement Test
+                  language: english
+                  description: Internal staging example.
+                  passing_score: 60
+                  total_questions: 20
+                  status: active
+      responses:
+        '201':
+          description: Test created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleTestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/tests/{id}:
+    get:
+      tags:
+        - Language Testing AI Students
+      summary: Get a single test
+      description: Returns one active test for AI Students or any visible test for CRM.
+      operationId: showLanguageTest
+      security:
+        - ApiKeyAuth: []
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      responses:
+        '200':
+          description: Test returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleTestResponse'
+              examples:
+                success:
+                  value:
+                    data:
+                      id: 1
+                      name: English Placement Test
+                      language: english
+                      language_label: English
+                      description: null
+                      passing_score: 60
+                      total_questions: 20
+                      questions_count: 3
+                      status: active
+                      status_label: Активен
+                      created_at: '2026-07-01T09:33:45+05:00'
+                      updated_at: '2026-07-01T09:33:45+05:00'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Language Testing CRM
+      summary: Update a language test
+      description: Updates a language test in CRM.
+      operationId: updateLanguageTest
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestUpsertRequest'
+      responses:
+        '200':
+          description: Test updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleTestResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Language Testing CRM
+      summary: Delete a language test
+      description: Deletes a language test along with its questions, sessions, and results.
+      operationId: deleteLanguageTest
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      responses:
+        '204':
+          description: Test deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/tests/{id}/questions:
+    get:
+      tags:
+        - Language Testing CRM
+      summary: List test questions
+      description: Returns paginated question bank for a single test with correct-answer metadata for CRM only.
+      operationId: listLanguageTestQuestions
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/SortQuestions'
+        - $ref: '#/components/parameters/SortDirection'
+      responses:
+        '200':
+          description: Questions returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Language Testing CRM
+      summary: Create a question
+      description: Adds a single-choice question with answer options to a test.
+      operationId: createLanguageTestQuestion
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionUpsertRequest'
+            examples:
+              create:
+                value:
+                  question: Choose the correct sentence.
+                  points: 5
+                  options:
+                    - text: She goes to university every day.
+                      is_correct: true
+                    - text: She go to university every day.
+                      is_correct: false
+                    - text: She going to university every day.
+                      is_correct: false
+      responses:
+        '201':
+          description: Question created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleQuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/questions/{id}:
+    put:
+      tags:
+        - Language Testing CRM
+      summary: Update a question
+      description: Updates the question text, score, and answer options.
+      operationId: updateLanguageTestQuestion
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionUpsertRequest'
+      responses:
+        '200':
+          description: Question updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleQuestionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Language Testing CRM
+      summary: Delete a question
+      description: Deletes a question and all its answer options.
+      operationId: deleteLanguageTestQuestion
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/QuestionId'
+      responses:
+        '204':
+          description: Question deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/tests/{id}/start:
+    get:
+      tags:
+        - Language Testing AI Students
+      summary: Start a test session
+      description: >-
+        Creates a new session, randomly selects unique questions from the test bank,
+        randomizes answer order, and never returns correctness metadata.
+      operationId: startLanguageTest
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      responses:
+        '200':
+          description: Test session started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartTestResponse'
+              examples:
+                success:
+                  value:
+                    session_id: 63eccfd6-f850-4cc3-98de-9b4c2afd4e3e
+                    test_id: 1
+                    test:
+                      id: 1
+                      name: English Placement Test
+                      language: english
+                      description: null
+                      passing_score: 60
+                      total_questions: 20
+                      status: active
+                    questions:
+                      - id: 29
+                        text: 'Which word correctly completes the sentence: "I have lived here ___ 2020."'
+                        answers:
+                          - id: 60
+                            text: for
+                          - id: 61
+                            text: during
+                          - id: 59
+                            text: since
+                      - id: 28
+                        text: 'Select the synonym for "rapid".'
+                        answers:
+                          - id: 57
+                            text: Late
+                          - id: 56
+                            text: Fast
+                          - id: 58
+                            text: Quiet
+                      - id: 27
+                        text: Choose the correct sentence.
+                        answers:
+                          - id: 55
+                            text: She going to university every day.
+                          - id: 54
+                            text: She go to university every day.
+                          - id: 53
+                            text: She goes to university every day.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/tests/{id}/submit:
+    post:
+      tags:
+        - Language Testing AI Students
+      summary: Submit test results
+      description: >-
+        Accepts student identity and answers, checks correctness, calculates score,
+        percentage, and pass flag, then saves the result to CRM statistics.
+      operationId: submitLanguageTest
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+            examples:
+              submit:
+                value:
+                  session_id: 63eccfd6-f850-4cc3-98de-9b4c2afd4e3e
+                  student_id: ai-student-spec-001
+                  iin: '030101123456'
+                  first_name: AI
+                  middle_name: null
+                  last_name: Student
+                  email: ai.student.spec@example.test
+                  phone: '+77005556677'
+                  answers:
+                    - question_id: 29
+                      answer_id: 59
+                    - question_id: 28
+                      answer_id: 56
+                    - question_id: 27
+                      answer_id: 53
+      responses:
+        '200':
+          description: Result saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+              examples:
+                success:
+                  value:
+                    result_id: 3
+                    score: 15
+                    percentage: 100
+                    correct_answers: 3
+                    total_questions: 3
+                    passed: true
+                    completed_at: '2026-07-01T09:58:18+05:00'
+                    status: Passed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/statistics:
+    get:
+      tags:
+        - Language Testing CRM
+      summary: List testing statistics
+      description: Returns paginated CRM statistics for completed language tests.
+      operationId: listLanguageTestingStatistics
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/StatisticsTestFilter'
+        - $ref: '#/components/parameters/StatisticsLanguageFilter'
+        - $ref: '#/components/parameters/StatisticsStatusFilter'
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+        - $ref: '#/components/parameters/SortStatistics'
+        - $ref: '#/components/parameters/SortDirection'
+      responses:
+        '200':
+          description: Statistics returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatisticsListResponse'
+              examples:
+                success:
+                  value:
+                    data:
+                      - id: 3
+                        student_id: ai-student-spec-001
+                        iin: '030101123456'
+                        first_name: AI
+                        middle_name: null
+                        last_name: Student
+                        email: ai.student.spec@example.test
+                        phone: '+77005556677'
+                        language: english
+                        language_label: English
+                        test_name: English Placement Test
+                        score: 15
+                        percentage: 100
+                        correct_answers: 3
+                        total_questions: 3
+                        passed: true
+                        status: passed
+                        status_label: Passed
+                        completed_at: '2026-07-01T09:58:18+05:00'
+                        submitted_at: '2026-07-01T09:58:18+05:00'
+                    meta:
+                      current_page: 1
+                      last_page: 1
+                      per_page: 5
+                      total: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/statistics/{id}:
+    get:
+      tags:
+        - Language Testing CRM
+      summary: Get a single statistics record
+      description: Returns one saved language testing result.
+      operationId: showLanguageTestingStatisticsRecord
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ResultId'
+      responses:
+        '200':
+          description: Statistics record returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleStatisticsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/statistics/export/csv:
+    get:
+      tags:
+        - Language Testing CRM
+      summary: Export statistics to CSV
+      description: Streams the current filtered statistics list as CSV.
+      operationId: exportLanguageTestingStatisticsCsv
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/StatisticsTestFilter'
+        - $ref: '#/components/parameters/StatisticsLanguageFilter'
+        - $ref: '#/components/parameters/StatisticsStatusFilter'
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+      responses:
+        '200':
+          description: CSV file stream.
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/statistics/export/excel:
+    get:
+      tags:
+        - Language Testing CRM
+      summary: Export statistics to Excel
+      description: Downloads the current filtered statistics list as XLSX.
+      operationId: exportLanguageTestingStatisticsExcel
+      security:
+        - SanctumBearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/StatisticsTestFilter'
+        - $ref: '#/components/parameters/StatisticsLanguageFilter'
+        - $ref: '#/components/parameters/StatisticsStatusFilter'
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+      responses:
+        '200':
+          description: Excel file download.
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+components:
+  securitySchemes:
+    SanctumBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+      description: Bearer token for CRM authenticated users.
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: API key used by AI Students integration.
+  parameters:
+    TestId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Language test identifier.
+    QuestionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Question identifier.
+    ResultId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Statistics result identifier.
+    SearchQuery:
+      name: q
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Search query.
+    PerPage:
+      name: per_page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      description: Pagination size.
+    SortTests:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [name, language, status, passing_score, total_questions, created_at]
+      description: Sort field for tests.
+    SortQuestions:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [sort_order, points, created_at]
+      description: Sort field for questions.
+    SortStatistics:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [submitted_at, percentage, score, correct_answers, test_name, language]
+      description: Sort field for statistics.
+    SortDirection:
+      name: direction
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: Sort direction.
+    TestLanguageFilter:
+      name: language
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [english, russian, kazakh]
+      description: Filter by language.
+    TestStatusFilter:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [active, inactive]
+      description: Filter by test status.
+    StatisticsTestFilter:
+      name: test_id
+      in: query
+      required: false
+      schema:
+        type: integer
+      description: Filter by test id.
+    StatisticsLanguageFilter:
+      name: language
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [english, russian, kazakh]
+      description: Filter by language.
+    StatisticsStatusFilter:
+      name: status
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [passed, failed]
+      description: Filter by pass/fail status.
+    FromDate:
+      name: from_date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      description: Start of date range.
+    ToDate:
+      name: to_date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      description: End of date range.
+  schemas:
+    PaginationMeta:
+      type: object
+      required: [current_page, last_page, per_page, total]
+      properties:
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+    Student:
+      type: object
+      properties:
+        student_id:
+          type: string
+          nullable: true
+        iin:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+        middle_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+    Test:
+      type: object
+      required: [id, name, language, passing_score, total_questions, status]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        language:
+          type: string
+          enum: [english, russian, kazakh]
+        language_label:
+          type: string
+        description:
+          type: string
+          nullable: true
+        passing_score:
+          type: integer
+        total_questions:
+          type: integer
+        questions_count:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive]
+        status_label:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+    AnswerPublic:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+    AnswerAdmin:
+      type: object
+      required: [id, text, is_correct]
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        is_correct:
+          type: boolean
+        sort_order:
+          type: integer
+    QuestionPublic:
+      type: object
+      required: [id, text, answers]
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerPublic'
+    QuestionAdmin:
+      type: object
+      required: [id, question, options]
+      properties:
+        id:
+          type: integer
+        test_id:
+          type: integer
+        question:
+          type: string
+        question_type:
+          type: string
+        points:
+          type: integer
+        sort_order:
+          type: integer
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerAdmin'
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+    StartTestResponse:
+      type: object
+      required: [session_id, test, questions]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        test_id:
+          type: integer
+        test:
+          $ref: '#/components/schemas/Test'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionPublic'
+    QuestionAnswerSubmission:
+      type: object
+      required: [question_id]
+      properties:
+        question_id:
+          type: integer
+        answer_id:
+          type: integer
+          nullable: true
+    SubmitRequest:
+      type: object
+      required: [session_id, first_name, last_name, email, answers]
+      properties:
+        session_id:
+          type: string
+          maxLength: 100
+        student_id:
+          type: string
+          nullable: true
+        iin:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+        middle_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        answers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/QuestionAnswerSubmission'
+    SubmitResponse:
+      type: object
+      required: [result_id, score, percentage, correct_answers, total_questions, passed, completed_at]
+      properties:
+        result_id:
+          type: integer
+        score:
+          type: integer
+        percentage:
+          type: number
+          format: float
+        correct_answers:
+          type: integer
+        total_questions:
+          type: integer
+        passed:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          example: Passed
+    StatisticsRecord:
+      type: object
+      required: [id, first_name, last_name, email, language, test_name, correct_answers, total_questions, score, percentage, passed, completed_at]
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: string
+          nullable: true
+        iin:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+        middle_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        language:
+          type: string
+        language_label:
+          type: string
+        test_name:
+          type: string
+        correct_answers:
+          type: integer
+        total_questions:
+          type: integer
+        score:
+          type: integer
+        percentage:
+          type: number
+          format: float
+        passed:
+          type: boolean
+        status:
+          type: string
+        status_label:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+        submitted_at:
+          type: string
+          format: date-time
+    TestUpsertRequest:
+      type: object
+      required: [name, language, passing_score, total_questions, status]
+      properties:
+        name:
+          type: string
+        language:
+          type: string
+          enum: [english, russian, kazakh]
+        description:
+          type: string
+          nullable: true
+        passing_score:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total_questions:
+          type: integer
+          minimum: 1
+          maximum: 500
+        status:
+          type: string
+          enum: [active, inactive]
+    QuestionOptionRequest:
+      type: object
+      required: [text, is_correct]
+      properties:
+        text:
+          type: string
+        is_correct:
+          type: boolean
+    QuestionUpsertRequest:
+      type: object
+      required: [question, points, options]
+      properties:
+        question:
+          type: string
+        points:
+          type: integer
+          minimum: 1
+          maximum: 100
+        sort_order:
+          type: integer
+          nullable: true
+        options:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/QuestionOptionRequest'
+    TestListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Test'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    SingleTestResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/Test'
+    QuestionListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionAdmin'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    SingleQuestionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/QuestionAdmin'
+    StatisticsListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatisticsRecord'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+    SingleStatisticsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/StatisticsRecord'
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+  responses:
+    BadRequest:
+      description: Bad request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            badRequest:
+              value:
+                message: Bad request.
+    Unauthorized:
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          examples:
+            unauthorized:
+              value:
+                message: Unauthorized.
+                errors:
+                  authorization:
+                    - Valid CRM Bearer token or integration API key is required.
+    Forbidden:
+      description: Authenticated but not allowed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            forbidden:
+              value:
+                message: Only CRM consumers can access this endpoint.
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              value:
+                message: Resource not found.
+    ValidationError:
+      description: Validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          examples:
+            validation:
+              value:
+                message: The given data was invalid.
+                errors:
+                  answers:
+                    - Один из переданных ответов не принадлежит текущей сессии.
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            serverError:
+              value:
+                message: Internal Server Error.

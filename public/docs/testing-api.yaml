@@ -1,0 +1,533 @@
+openapi: 3.0.3
+info:
+  title: Integration Testing API
+  description: API для интеграции CRM с внешней образовательной платформой для прохождения тестов.
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /testing/subjects:
+    get:
+      summary: Получить список предметов
+      description: Возвращает пагинированный список всех предметов (дисциплин).
+      parameters:
+        - name: search
+          in: query
+          description: Поиск по названию или коду предмета
+          required: false
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          description: Количество записей на страницу
+          required: false
+          schema:
+            type: integer
+            default: 15
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Успешный запрос
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subject'
+                  current_page:
+                    type: integer
+                  last_page:
+                    type: integer
+                  per_page:
+                    type: integer
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /testing/subjects/{subjectId}/teachers:
+    get:
+      summary: Получить список преподавателей по предмету
+      description: Возвращает преподавателей, которые создали активную привязку по выбранному предмету.
+      parameters:
+        - name: subjectId
+          in: path
+          required: true
+          description: ID предмета
+          schema:
+            type: integer
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Список преподавателей получен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subject_id:
+                    type: integer
+                  subject_name:
+                    type: string
+                  teachers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        teacher_binding_id:
+                          type: integer
+                        teacher_id:
+                          type: integer
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        created_at:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Предмет не найден
+
+  /testing/student-bindings:
+    post:
+      summary: Создать привязку студента
+      description: Устанавливает связь Студент -> Предмет -> Преподаватель (по teacherBindingId).
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studentId
+                - teacherBindingId
+              properties:
+                studentId:
+                  type: string
+                  description: Логин/GUID студента в AD
+                teacherBindingId:
+                  type: integer
+                  description: ID привязки преподавателя к предмету
+      responses:
+        '201':
+          description: Привязка создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/StudentBinding'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Ошибка валидации
+
+  /testing/student-bindings/{studentId}:
+    get:
+      summary: Получить мои привязки
+      description: Возвращает список активных привязок (предметов и преподавателей) для конкретного студента.
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          description: Логин/GUID студента в AD
+          schema:
+            type: string
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Список привязок получен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student_id:
+                    type: string
+                  bindings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        student_id:
+                          type: string
+                        teacher_binding_id:
+                          type: integer
+                        subject:
+                          $ref: '#/components/schemas/Subject'
+                        teacher:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            email:
+                              type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /testing/tests:
+    get:
+      summary: Получить список тестов
+      description: Возвращает только опубликованные тесты выбранного преподавателя по выбранному предмету.
+      parameters:
+        - name: studentId
+          in: query
+          required: true
+          description: Логин/GUID студента
+          schema:
+            type: string
+        - name: bindingId
+          in: query
+          required: true
+          description: ID привязки преподавателя (teacher_binding_id)
+          schema:
+            type: integer
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Список тестов получен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Test'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Студент не привязан к данному преподавателю/предмету
+        '422':
+          description: Недостаточно параметров
+
+  /testing/tests/{testId}:
+    get:
+      summary: Получить структуру теста
+      description: Возвращает настройки теста, список вопросов и варианты ответов (без правильных ответов).
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          description: ID теста
+          schema:
+            type: integer
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Структура теста получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  time_limit:
+                    type: integer
+                    description: Лимит времени в минутах (если есть)
+                  questions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Question'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Тест не найден или не опубликован
+
+  /testing/tests/{testId}/submit:
+    post:
+      summary: Отправить результаты прохождения
+      description: Принимает ответы студента, выполняет проверку, рассчитывает балл и сохраняет попытку.
+      parameters:
+        - name: testId
+          in: path
+          required: true
+          description: ID теста
+          schema:
+            type: integer
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - studentId
+                - answers
+              properties:
+                studentId:
+                  type: string
+                startedAt:
+                  type: string
+                  format: date-time
+                finishedAt:
+                  type: string
+                  format: date-time
+                answers:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - questionId
+                      - selected
+                    properties:
+                      questionId:
+                        type: integer
+                      selected:
+                        oneOf:
+                          - type: string
+                          - type: array
+                            items:
+                              type: string
+                        description: Выбранный вариант ответа (строка или массив для множественного выбора)
+      responses:
+        '200':
+          description: Тест успешно проверен и сохранен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  attempt_id:
+                    type: integer
+                  score:
+                    type: number
+                  percentage:
+                    type: number
+                  correct_answers_count:
+                    type: integer
+                  total_questions:
+                    type: integer
+                  passed:
+                    type: boolean
+                  finished_at:
+                    type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Ошибка валидации
+
+  /testing/results/{studentId}:
+    get:
+      summary: История прохождений студента
+      description: Возвращает все попытки сдачи тестов студентом.
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          description: Логин/GUID студента
+          schema:
+            type: string
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: История получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student_id:
+                    type: string
+                  attempts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TestAttempt'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /testing/analytics/{bindingId}:
+    get:
+      summary: Аналитика для преподавателя
+      description: Возвращает количество прохождений, средний балл и последние попытки по привязке предмета.
+      parameters:
+        - name: bindingId
+          in: path
+          required: true
+          description: ID привязки преподавателя
+          schema:
+            type: integer
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Аналитика получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  binding_id:
+                    type: integer
+                  subject_name:
+                    type: string
+                  attempts_count:
+                    type: integer
+                  students_count:
+                    type: integer
+                  average_score:
+                    type: number
+                  success_rate:
+                    type: number
+                  recent_results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        student_id:
+                          type: string
+                        student_name:
+                          type: string
+                        test_title:
+                          type: string
+                        score:
+                          type: number
+                        passed:
+                          type: boolean
+                        finished_at:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+  responses:
+    Unauthorized:
+      description: Не предоставлен или невалидный X-API-KEY в заголовках.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized. Invalid API Key.
+  schemas:
+    Subject:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+    StudentBinding:
+      type: object
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: string
+        teacher_binding_id:
+          type: integer
+        created_at:
+          type: string
+    Test:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        question_count:
+          type: integer
+        status:
+          type: string
+        published_at:
+          type: string
+        attempts_allowed:
+          type: integer
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        type:
+          type: string
+          enum: [single_choice, multiple_choice, short_text]
+        options:
+          type: array
+          items:
+            type: string
+    TestAttempt:
+      type: object
+      properties:
+        id:
+          type: integer
+        test:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+        subject:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            code:
+              type: string
+        teacher:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        score:
+          type: number
+        percentage:
+          type: number
+        passed:
+          type: boolean
+        started_at:
+          type: string
+        finished_at:
+          type: string
+        time_taken_seconds:
+          type: integer

@@ -48,6 +48,8 @@ class AnnouncementController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Announcement::class);
+
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
@@ -78,6 +80,8 @@ class AnnouncementController extends Controller
 
     public function update(Request $request, Announcement $announcement): JsonResponse
     {
+        $this->authorize('update', $announcement);
+
         $data = $request->validate([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'content' => ['sometimes', 'required', 'string', 'max:5000'],
@@ -108,6 +112,8 @@ class AnnouncementController extends Controller
 
     public function destroy(Announcement $announcement): JsonResponse
     {
+        $this->authorize('delete', $announcement);
+
         if ($announcement->image_path) {
             Storage::disk('public')->delete($announcement->image_path);
         }

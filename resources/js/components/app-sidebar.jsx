@@ -51,6 +51,8 @@ const SIDEBAR_GROUP_KEYS = [
     'directories',
     'governance',
     'kpi',
+    'testing',
+    'languageTesting',
     'questionnaire',
     'hr',
     'library',
@@ -463,6 +465,48 @@ export function AppSidebar() {
             : []),
     ] : [];
 
+    const testingItems = (() => {
+        const items = [];
+        if (isTeacherRole || isAdminRole) {
+            items.push({
+                title: 'Мое тестирование',
+                href: route('testing.index'),
+                icon: CheckCircle2,
+                active: route().current('testing.index') || route().current('testing.bindings.*') || route().current('testing.tests.*'),
+            });
+        }
+        if (isAdminRole) {
+            items.push({
+                title: 'Предметы (дисциплины)',
+                href: route('testing.subjects.index'),
+                icon: BookOpenText,
+                active: route().current('testing.subjects.*'),
+            });
+        }
+        return items;
+    })();
+
+    const languageTestingItems = (() => {
+        if (!['teacher', 'admin', 'superadmin', 'certificates'].includes(roleSlug)) {
+            return [];
+        }
+
+        return [
+            {
+                title: 'Тесты',
+                href: route('language-testing.tests.index'),
+                icon: CheckCircle2,
+                active: route().current('language-testing.tests.*') || route().current('language-testing.questions.*'),
+            },
+            {
+                title: 'Статистика',
+                href: route('language-testing.statistics.index'),
+                icon: BarChart3,
+                active: route().current('language-testing.statistics.*'),
+            },
+        ];
+    })();
+
 
     const hr = isAdminRole ? [
         {
@@ -623,12 +667,12 @@ export function AppSidebar() {
     ];
 
     const templateItems = [
-        ...(isCertificatesRole ? [] : [{
+        {
             title: 'Шаблоны',
             href: route('templates.index'),
             icon: FileCheck,
             active: route().current('templates.*'),
-        }]),
+        },
         {
             title: 'Сертификаты',
             href: route('certificates.index'),
@@ -720,6 +764,8 @@ export function AppSidebar() {
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && management.some((item) => item.active),
         governance: isAdminRole && !showOnlyKpiMenus && governance.some((item) => item.active),
         kpi: kpiMenuItems.length > 0 && kpiMenuItems.some((item) => item.active),
+        testing: testingItems.some((item) => item.active),
+        languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
         hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
@@ -821,6 +867,8 @@ export function AppSidebar() {
         directories: !showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
         governance: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
         kpi: !showOnlyCertificatesMenus && kpiMenuItems.length > 0,
+        testing: !showOnlyCertificatesMenus && testingItems.length > 0 && !showOnlyKpiMenus,
+        languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus,
         questionnaire: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
         hr: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
@@ -836,6 +884,8 @@ export function AppSidebar() {
         directories: management,
         governance,
         kpi: kpiMenuItems,
+        testing: testingItems,
+        languageTesting: languageTestingItems,
         questionnaire,
         calendarShared: nonAdminCalendarItems,
         hr,
@@ -957,6 +1007,14 @@ export function AppSidebar() {
 
                 {!showOnlyCertificatesMenus && kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
+                )}
+
+                {!showOnlyCertificatesMenus && testingItems.length > 0 && !showOnlyKpiMenus && (
+                    renderGroup('testing', 'Тестирование', testingItems)
+                )}
+
+                {languageTestingItems.length > 0 && !showOnlyKpiMenus && (
+                    renderGroup('languageTesting', 'Проверка знаний языка', languageTestingItems)
                 )}
 
                 {!showOnlyCertificatesMenus && questionnaire.length > 0 && !showOnlyKpiMenus && (
