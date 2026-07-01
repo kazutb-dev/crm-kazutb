@@ -1,5 +1,7 @@
 
 === DIRECTORY TREE (max depth 3, source files only) ===
+.claude
+.claude/settings.local.json
 .editorconfig
 .env
 .env.example
@@ -42,6 +44,8 @@ app/Console/Commands/ImportPhonebookBackup.php
 app/Console/Commands/NormalizeKpiEntryValues.php
 app/Console/Commands/RefreshDashboardCache.php
 app/Console/Commands/UpdateUserPassword.php
+app/Contracts
+app/Contracts/AcademicContextProvider.php
 app/Exceptions
 app/Exceptions/Kpi
 app/Exceptions/Kpi/KpiEntryException.php
@@ -74,6 +78,7 @@ app/Http/Controllers/CertificateTemplateController.php
 app/Http/Controllers/Controller.php
 app/Http/Controllers/DashboardController.php
 app/Http/Controllers/DepartmentController.php
+app/Http/Controllers/DepartmentRequestController.php
 app/Http/Controllers/DiplomaController.php
 app/Http/Controllers/DirectoryUserController.php
 app/Http/Controllers/DivisionController.php
@@ -108,6 +113,7 @@ app/Http/Controllers/SurveyStudentController.php
 app/Http/Controllers/TicketController.php
 app/Http/Middleware
 app/Http/Middleware/Authenticate.php
+app/Http/Middleware/BlockInProduction.php
 app/Http/Middleware/EnsureCalendarLeadershipAccess.php
 app/Http/Middleware/EnsurePanelRoleAccess.php
 app/Http/Middleware/HandleInertiaRequests.php
@@ -143,6 +149,9 @@ app/Models/CertificateTemplate.php
 app/Models/CertificateTemplateVersion.php
 app/Models/Delegation.php
 app/Models/Department.php
+app/Models/DepartmentRequest.php
+app/Models/DepartmentRequestDepartment.php
+app/Models/DepartmentRequestHandler.php
 app/Models/Diploma.php
 app/Models/Discipline.php
 app/Models/Division.php
@@ -151,6 +160,11 @@ app/Models/EmployeeProfile.php
 app/Models/Faculty.php
 app/Models/GovernanceAccessRequest.php
 app/Models/Group.php
+app/Models/ImportAudit.php
+app/Models/ImportJob.php
+app/Models/ImportMapping.php
+app/Models/ImportSource.php
+app/Models/ImportValidation.php
 app/Models/KpiAccessGrant.php
 app/Models/KpiEntry.php
 app/Models/KpiEntryFile.php
@@ -162,11 +176,16 @@ app/Models/KpiStructuralConfirmation.php
 app/Models/KpiStructuralUnit.php
 app/Models/LibraryLoan.php
 app/Models/LibraryReservation.php
+app/Models/ModuleAssignment.php
 app/Models/NavigationRoute.php
 app/Models/OrgUnit.php
 app/Models/OrgUnitMapping.php
 app/Models/PhonebookDepartment.php
 app/Models/PhonebookUser.php
+app/Models/PlatonusEmployee.php
+app/Models/PlatonusStudent.php
+app/Models/PlatonusSyncConflict.php
+app/Models/PlatonusSyncLog.php
 app/Models/Position.php
 app/Models/PositionChangeRequest.php
 app/Models/Questionnaire
@@ -181,25 +200,6 @@ app/Models/Questionnaire/Survey.php
 app/Models/Questionnaire/SurveyAnswer.php
 app/Models/Questionnaire/SurveyOption.php
 app/Models/Questionnaire/SurveyQuestion.php
-app/Models/Questionnaire/SurveyResponse.php
-app/Models/Questionnaire/TeacherDiscipline.php
-app/Models/Role.php
-app/Models/ScopedGrant.php
-app/Models/Student.php
-app/Models/StudentProfile.php
-app/Models/Survey.php
-app/Models/SurveyAnswer.php
-app/Models/SurveyGroup.php
-app/Models/SurveyQuestion.php
-app/Models/SurveyStudent.php
-app/Models/TelegramChatLink.php
-app/Models/Ticket.php
-app/Models/TopicCheck.php
-app/Models/TopicCheckItem.php
-app/Models/User.php
-app/Models/UserActivitySnapshot.php
-app/Observers
-app/Observers/AuditableModelObserver.php
 
 === STACK DETECTION (manifest files) ===
 
@@ -391,6 +391,7 @@ app/Observers/AuditableModelObserver.php
                 "clsx": "^2.1.1",
                 "i18next": "^26.0.3",
                 "i18next-browser-languagedetector": "^8.2.1",
+                "jspdf": "^4.2.1",
                 "jszip": "^3.10.1",
                 "lucide-react": "^0.577.0",
                 "qrcode": "^1.5.4",
@@ -449,9 +450,8 @@ app/Observers/AuditableModelObserver.php
             "engines": {
                 "node": ">=6.9.0"
             }
-        },
 
-[TRUNCATED] Showing first 80 of 6416 lines.
+[TRUNCATED] Showing first 80 of 6633 lines.
 --- package.json ---
 {
     "$schema": "https://www.schemastore.org/package.json",
@@ -499,6 +499,7 @@ app/Observers/AuditableModelObserver.php
         "clsx": "^2.1.1",
         "i18next": "^26.0.3",
         "i18next-browser-languagedetector": "^8.2.1",
+        "jspdf": "^4.2.1",
         "jszip": "^3.10.1",
         "lucide-react": "^0.577.0",
         "qrcode": "^1.5.4",
@@ -520,7 +521,8 @@ Found: .editorconfig
 === ENVIRONMENT VARIABLE TEMPLATES ===
 --- .env.example ---
 APP_NAME=CRM KazUTB
-APP_ENV=local
+APP_ENV=production
+APP_DEBUG=false
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -571,6 +573,12 @@ TOPIC_AI_MODEL=gpt-4o-mini
 TOPIC_AI_API_KEY=
 TOPIC_AI_TIMEOUT=15
 
+TELESCOPE_ENABLED=false
+PULSE_ENABLED=false
+
+# Swagger UI must stay disabled in production.
+L5_SWAGGER_GENERATE_ALWAYS=false
+
 # Frontend env vars
 VITE_APP_NAME="${APP_NAME}"
 VITE_HOME_URL=http://10.0.1.47/
@@ -580,9 +588,22 @@ TEMPLATES_ALLOWED_EMAILS=
 
 
 === TODO / FIXME / HACK (production code only, test dirs excluded) ===
-None found.
+app/Services/PlatonusSyncService.php:47: // TODO: Replace with actual Platonus HTTP client call when tunnel is available.
+app/Services/PlatonusSyncService.php:83: // TODO: Replace with actual Platonus HTTP client call.
 
 === GIT RECENT COMMITS (last 20) ===
+7c38a52 feat(certificates): add certificate operator role workflow
+3f40bbe fix(certificates): remove dynamic @vite injection, add sidebar items, harden deploy pipeline
+2b63c5b fix(certificates): add jspdf dependency
+4b5b6a6 feat(certificates): split registry and generation flows
+21b4aaf release: prepare CRM platform for production deployment
+4eb91f6 style: Remove trailing spaces in KpiSummaryController
+b65203f ui: Remove header and AI helper sections, fix Top-10 sorting by rank_score
+ae8e812 fix: Correct K1-K6 aggregation in liveEntityAggregation
+38fb8fb fix(profile): run pending certificate migration + governance UX improvements + Russian UI complete
+e1cd457 feat(platform): Phase 2.1 - Profile 2.0, OrgStructure CRUD UI, Russian UI audit complete
+5f6de36 feat(platform): phase 2 - phonebook routes, Platonus arch, governance CRUD, Russian UI
+5fc7e2c feat(nav): restore governance routes, Russian UI normalization, sidebar UX
 1ed5a65 fix(build): stabilize JSX structure and production build
 dce7af4 fix(migration): make stale structural confirmation reset safety-compatible
 1ea55db Merge remote-tracking branch 'origin/main' into dev
@@ -591,53 +612,41 @@ dce7af4 fix(migration): make stale structural confirmation reset safety-compatib
 e6c0839 style: standardize admin page wrapper with admin-page-wrap class (Task C)
 3bf7262 fix(ux): replace 32 window.confirm calls with ConfirmDialog (Task F)
 7d5f054 fix(ux): replace 5 window.alert calls with Sonner toast (Task G)
-aca36cb chore: delete 8 unreferenced draft files (_new.jsx / .new.jsx)
-7047a86 fix(security): replace hardcoded IPs and email gate with env/config
-52589a6 chore(ui): checkpoint before phase3 responsive remediation
-6ca1cc0 Merge remote-tracking branch 'origin/main' into dev
-77ab64f fix(dev): sync KPI delete policy hotfix
-86e134a fix(prod): allow owner delete for KPI draft entries
-fb391a2 fix(kpi): reset stale rejected structural confirmations via data migration
-a2cd56a release(rel_20260528_073433): merge dev into main
-ac7fb1b Merge remote-tracking branch 'origin/main' into dev
-4bcb486 chore: commit текущие локальные изменения
-aa2278b fix(deploy): correct protected-path guards to new canonical locations
-a889b32 fix(deploy): update protected-path guards to canonical doc locations
 
 === HIGH-CHURN FILES (last 90 days, top 20) ===
+  15 resources/js/components/app-sidebar.jsx
   15 scripts/backup_prod.sh
-  12 app/Http/Controllers/KpiEntryController.php
+  14 routes/web.php
+  13 resources/js/Pages/Welcome.jsx
+  13 app/Http/Controllers/KpiEntryController.php
+  11 resources/js/Layouts/AuthenticatedLayout.jsx
+  11 app/Http/Controllers/ProfileController.php
   11 resources/js/Pages/Kpi/TeacherDashboard.jsx
-  11 resources/js/Pages/Welcome.jsx
-  11 resources/js/components/app-sidebar.jsx
-   9 resources/js/Pages/Kpi/ModerationQueue.jsx
-   9 scripts/deploy/lib_deploy_common.sh
+  10 app/Http/Controllers/Auth/AuthenticatedSessionController.php
+  10 app/Http/Middleware/EnsurePanelRoleAccess.php
+  10 app/Models/User.php
+  10 scripts/deploy/lib_deploy_common.sh
+  10 app/Http/Controllers/KpiSummaryController.php
+  10 resources/js/Pages/Kpi/ModerationQueue.jsx
+   9 resources/js/Pages/Kpi/Summary.jsx
+   9 app/Http/Controllers/DirectoryUserController.php
+   9 resources/js/Pages/Kpi/EntryShow.jsx
    9 docs/deployment.md
-   9 routes/web.php
-   8 resources/js/Pages/Kpi/EntryShow.jsx
-   8 app/Http/Controllers/DirectoryUserController.php
-   8 resources/js/Layouts/AuthenticatedLayout.jsx
-   8 .gitignore
-   8 scripts/deploy/check_deploy_safety.sh
-   8 app/Http/Controllers/Auth/AuthenticatedSessionController.php
-   8 app/Http/Controllers/ProfileController.php
-   7 resources/js/Pages/Kpi/StructuralUnitShow.jsx
-   7 resources/js/Pages/Users/Index.jsx
-   7 app/Http/Controllers/KpiSummaryController.php
-   7 app/Http/Middleware/EnsurePanelRoleAccess.php
+   8 resources/js/Pages/Nav/Index.jsx
+   8 app/Policies/KpiEntryPolicy.php
 
 === MONOREPO SIGNALS ===
 No monorepo signals detected.
 
 === CODE METRICS ===
-Total files scanned: 4006
-Total lines of code: 122904
+Total files scanned: 4024
+Total lines of code: 127494
 
 Files by language:
-  Other: 3363
-  PHP: 467
-  JavaScript/React: 164
-  JavaScript: 9
+  Other: 3377
+  PHP: 454
+  JavaScript/React: 178
+  JavaScript: 12
   Python: 3
 
 Top 10 largest files:

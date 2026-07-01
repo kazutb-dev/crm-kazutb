@@ -8,10 +8,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use App\Models\Testing\TestingBinding;
+
 class Discipline extends Model
 {
     /** @use HasFactory<\Database\Factories\DisciplineFactory> */
     use HasFactory;
+
+    /**
+     * Получить привязки тестов
+     */
+    public function bindings(): HasMany
+    {
+        return $this->hasMany(TestingBinding::class, 'subject_id');
+    }
 
     protected $fillable = [
         'name',

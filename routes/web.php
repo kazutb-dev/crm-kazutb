@@ -30,6 +30,10 @@ use App\Http\Controllers\NavigationRouteController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\Questionnaire\QuestionnaireAdminController;
 use App\Http\Controllers\Questionnaire\QuestionnaireStudentWebController;
+use App\Http\Controllers\Testing\TestingBindingController;
+use App\Http\Controllers\Testing\TestingModuleController;
+use App\Http\Controllers\Testing\TestingSubjectController;
+use App\Http\Controllers\Testing\TestingTestController;
 use App\Http\Controllers\CertificateRegistryController;
 use App\Http\Controllers\AuthorityLedgerController;
 use App\Http\Controllers\CertificateTemplateController;
@@ -114,6 +118,30 @@ Route::middleware(['auth', 'verified', 'track.last-seen'])
             ->name('student.take');
         Route::post('student/submit', [QuestionnaireStudentWebController::class, 'submit'])
             ->name('student.submit');
+    });
+
+Route::middleware(['auth', 'verified', 'track.last-seen', 'testing.access'])
+    ->prefix('testing')
+    ->name('testing.')
+    ->group(function () {
+        Route::get('/', [TestingModuleController::class, 'index'])->name('index');
+        Route::post('bindings', [TestingBindingController::class, 'store'])->name('bindings.store');
+        Route::get('bindings/{binding}', [TestingBindingController::class, 'show'])->name('bindings.show');
+        Route::get('bindings/{binding}/analytics', [TestingBindingController::class, 'analytics'])->name('bindings.analytics');
+        Route::delete('bindings/{binding}', [TestingBindingController::class, 'destroy'])->name('bindings.destroy');
+
+        Route::get('bindings/{binding}/tests/create', [TestingTestController::class, 'create'])->name('tests.create');
+        Route::post('bindings/{binding}/tests', [TestingTestController::class, 'store'])->name('tests.store');
+        Route::get('tests/{test}/edit', [TestingTestController::class, 'edit'])->name('tests.edit');
+        Route::patch('tests/{test}', [TestingTestController::class, 'update'])->name('tests.update');
+        Route::delete('tests/{test}', [TestingTestController::class, 'destroy'])->name('tests.destroy');
+
+        // Subjects (disciplines) management — admin/superadmin only
+        Route::get('subjects', [TestingSubjectController::class, 'index'])->name('subjects.index');
+        Route::post('subjects', [TestingSubjectController::class, 'store'])->name('subjects.store');
+        Route::patch('subjects/{discipline}', [TestingSubjectController::class, 'update'])->name('subjects.update');
+        Route::delete('subjects/{discipline}', [TestingSubjectController::class, 'destroy'])->name('subjects.destroy');
+        Route::get('subjects/bindings/{bindingId}/students', [TestingSubjectController::class, 'getBindingStudents'])->name('subjects.binding-students');
     });
 
 Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {

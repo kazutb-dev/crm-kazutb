@@ -1,0 +1,57 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Language Testing API",
+        "description": "Base OpenAPI metadata for the LanguageTestingModule documentation generation.",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/v1/tests": {
+            "get": {
+                "tags": [
+                    "Language Testing"
+                ],
+                "operationId": "languageTestingOpenApiPlaceholder",
+                "responses": {
+                    "200": {
+                        "description": "Language Testing tests endpoint placeholder for Swagger generation"
+                    }
+                },
+                "servers": [
+                    {
+                        "url": "https://dev-crm.kaztbu.edu.kz",
+                        "description": "Development CRM"
+                    }
+                ]
+            },
+            "servers": [
+                {
+                    "url": "https://dev-crm.kaztbu.edu.kz",
+                    "description": "Development CRM"
+                }
+            ]
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "SanctumBearerAuth": {
+                "type": "http",
+                "description": "Bearer token for CRM authenticated users.",
+                "bearerFormat": "Sanctum",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "description": "API key used by AI Students integration.",
+                "name": "X-API-KEY",
+                "in": "header"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Language Testing",
+            "description": "Language Testing"
+        }
+    ]
+}

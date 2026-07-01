@@ -120,3 +120,15 @@ Route::middleware('auth:sanctum')->group(function (): void {
         });
     });
 });
+
+Route::middleware('testing.api.key')->prefix('testing')->group(function () {
+    Route::get('subjects', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'subjects']);
+    Route::get('subjects/{subjectId}/teachers', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'teachers']);
+    Route::post('student-bindings', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'storeStudentBinding']);
+    Route::get('student-bindings/{studentId}', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'getStudentBindings']);
+    Route::get('tests', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'tests']);
+    Route::get('tests/{testId}', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'showTest']);
+    Route::post('tests/{testId}/submit', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'submitTest']);
+    Route::get('results/{studentId}', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'studentResults']);
+    Route::get('analytics/{bindingId}', [\App\Http\Controllers\Api\Testing\TestingApiController::class, 'analytics']);
+});
