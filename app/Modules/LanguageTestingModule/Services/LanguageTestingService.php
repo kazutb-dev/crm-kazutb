@@ -12,9 +12,12 @@ use App\Modules\LanguageTestingModule\Models\LanguageTestingSession;
 use App\Modules\LanguageTestingModule\Models\LanguageTestingTest;
 use App\Modules\LanguageTestingModule\Repositories\LanguageTestingRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Illuminate\Validation\ValidationException;
 
 class LanguageTestingService
@@ -195,105 +198,140 @@ class LanguageTestingService
 
     public function submitSession(LanguageTestingTest $test, LanguageTestingSubmissionData $submission): array
     {
-        $session = $this->repository->findStartedSession($test, $submission->sessionId);
-        if (! $session) {
-            throw ValidationException::withMessages([
-                'session_id' => 'Сессия тестирования не найдена или уже завершена.',
-            ]);
-        }
-
-        $questionPayload = collect($session->question_payload ?? []);
-        if ($questionPayload->isEmpty()) {
-            throw ValidationException::withMessages([
-                'session_id' => 'Содержимое сессии повреждено.',
-            ]);
-        }
-
-        $submittedByQuestion = collect($submission->answers)->keyBy('question_id');
-        $totalQuestions = $questionPayload->count();
-        $totalPoints = (int) $questionPayload->sum(fn (array $item): int => (int) ($item['points'] ?? 0));
-        $correctAnswers = 0;
-        $score = 0;
-
-        $submittedAnswers = $questionPayload->map(function (array $question) use ($submittedByQuestion, &$correctAnswers, &$score): array {
-            $questionId = (int) $question['question_id'];
-            $submitted = $submittedByQuestion->get($questionId);
-            $selectedAnswerId = isset($submitted['answer_id']) ? (int) $submitted['answer_id'] : null;
-            $allowedAnswerIds = collect($question['answers'] ?? [])->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
-
-            if ($selectedAnswerId !== null && ! in_array($selectedAnswerId, $allowedAnswerIds, true)) {
+        return DB::transaction(function () use ($test, $submission): array {
+            $session = $this->repository->findSessionForSubmission($test, $submission->sessionId);
+            if (! $session) {
                 throw ValidationException::withMessages([
-                    'answers' => 'Один из переданных ответов не принадлежит текущей сессии.',
+                    'session_id' => 'Сессия тестирования не найдена или уже завершена.',
                 ]);
             }
 
-            $isCorrect = $selectedAnswerId !== null && $selectedAnswerId === (int) $question['correct_answer_id'];
+            $submissionHash = $this->submissionHash($submission);
 
-            if ($isCorrect) {
-                $correctAnswers++;
-                $score += (int) ($question['points'] ?? 0);
+            if ($session->status === LanguageTestingSession::STATUS_SUBMITTED) {
+                $result = $this->repository->findResultBySessionId($session->id);
+                if (! $result) {
+                    throw new ConflictHttpException('Session already submitted, but result record is missing.');
+                }
+
+                if ($session->submission_hash === $submissionHash) {
+                    return $this->serializeSubmissionResult($result);
+                }
+
+                throw new ConflictHttpException('Session has already been submitted.');
             }
 
-            return [
-                'question_id' => $questionId,
-                'selected_answer_id' => $selectedAnswerId,
-                'is_correct' => $isCorrect,
-            ];
-        })->all();
+            if ($this->sessionIsExpired($session)) {
+                $this->repository->finalizeSession($session, [
+                    'status' => LanguageTestingSession::STATUS_EXPIRED,
+                    'finished_at' => now(),
+                ]);
 
-        $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0.0;
-        $status = $percentage >= (float) $test->passing_score
-            ? LanguageTestingResult::STATUS_PASSED
-            : LanguageTestingResult::STATUS_FAILED;
+                throw ValidationException::withMessages([
+                    'session_id' => 'Срок действия сессии тестирования истек.',
+                ]);
+            }
 
-        $finishedAt = now();
-        $this->repository->finalizeSession($session, [
-            'student_id' => $submission->studentId,
-            'iin' => $submission->iin,
-            'first_name' => $submission->firstName,
-            'middle_name' => $submission->middleName,
-            'last_name' => $submission->lastName,
-            'email' => $submission->email,
-            'phone' => $submission->phone,
-            'submitted_answers' => $submittedAnswers,
-            'score' => $score,
-            'percentage' => $percentage,
-            'correct_answers' => $correctAnswers,
-            'total_questions' => $totalQuestions,
-            'status' => LanguageTestingSession::STATUS_SUBMITTED,
-            'finished_at' => $finishedAt,
-        ]);
+            if ($session->status !== LanguageTestingSession::STATUS_STARTED) {
+                throw ValidationException::withMessages([
+                    'session_id' => 'Сессия тестирования недоступна для отправки.',
+                ]);
+            }
 
-        $result = $this->repository->createResult([
-            'language_testing_session_id' => $session->id,
-            'language_testing_test_id' => $test->id,
-            'student_id' => $submission->studentId,
-            'iin' => $submission->iin,
-            'first_name' => $submission->firstName,
-            'middle_name' => $submission->middleName,
-            'last_name' => $submission->lastName,
-            'email' => $submission->email,
-            'phone' => $submission->phone,
-            'language' => $test->language,
-            'test_name' => $test->name,
-            'score' => $score,
-            'percentage' => $percentage,
-            'correct_answers' => $correctAnswers,
-            'total_questions' => $totalQuestions,
-            'status' => $status,
-            'submitted_at' => $finishedAt,
-        ]);
+            $questionPayload = collect($session->question_payload ?? []);
+            if ($questionPayload->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'session_id' => 'Содержимое сессии повреждено.',
+                ]);
+            }
 
-        return [
-            'result_id' => $result->id,
-            'score' => $score,
-            'percentage' => $percentage,
-            'correct_answers' => $correctAnswers,
-            'total_questions' => $totalQuestions,
-            'passed' => $status === LanguageTestingResult::STATUS_PASSED,
-            'completed_at' => $finishedAt->toIso8601String(),
-            'status' => $status === LanguageTestingResult::STATUS_PASSED ? 'Passed' : 'Failed',
-        ];
+            $submittedByQuestion = collect($submission->answers)->keyBy('question_id');
+            $allowedQuestionIds = $questionPayload->pluck('question_id')->map(fn (mixed $id): int => (int) $id)->values();
+            $submittedQuestionIds = collect($submission->answers)->pluck('question_id')->map(fn (mixed $id): int => (int) $id)->values();
+
+            if ($submittedQuestionIds->diff($allowedQuestionIds)->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'answers' => 'Один или несколько вопросов не принадлежат текущей сессии.',
+                ]);
+            }
+
+            $totalQuestions = $questionPayload->count();
+            $totalPoints = (int) $questionPayload->sum(fn (array $item): int => (int) ($item['points'] ?? 0));
+            $correctAnswers = 0;
+            $score = 0;
+
+            $submittedAnswers = $questionPayload->map(function (array $question) use ($submittedByQuestion, &$correctAnswers, &$score): array {
+                $questionId = (int) $question['question_id'];
+                $submitted = $submittedByQuestion->get($questionId);
+                $selectedAnswerId = isset($submitted['answer_id']) ? (int) $submitted['answer_id'] : null;
+                $allowedAnswerIds = collect($question['answers'] ?? [])->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
+
+                if ($selectedAnswerId !== null && ! in_array($selectedAnswerId, $allowedAnswerIds, true)) {
+                    throw ValidationException::withMessages([
+                        'answers' => 'Один из переданных ответов не принадлежит текущей сессии.',
+                    ]);
+                }
+
+                $isCorrect = $selectedAnswerId !== null && $selectedAnswerId === (int) $question['correct_answer_id'];
+
+                if ($isCorrect) {
+                    $correctAnswers++;
+                    $score += (int) ($question['points'] ?? 0);
+                }
+
+                return [
+                    'question_id' => $questionId,
+                    'selected_answer_id' => $selectedAnswerId,
+                    'is_correct' => $isCorrect,
+                ];
+            })->all();
+
+            $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0.0;
+            $status = $percentage >= (float) $test->passing_score
+                ? LanguageTestingResult::STATUS_PASSED
+                : LanguageTestingResult::STATUS_FAILED;
+
+            $finishedAt = now();
+            $this->repository->finalizeSession($session, [
+                'student_id' => $submission->studentId,
+                'iin' => $submission->iin,
+                'first_name' => $submission->firstName,
+                'middle_name' => $submission->middleName,
+                'last_name' => $submission->lastName,
+                'email' => $submission->email,
+                'phone' => $submission->phone,
+                'submitted_answers' => $submittedAnswers,
+                'score' => $score,
+                'percentage' => $percentage,
+                'correct_answers' => $correctAnswers,
+                'total_questions' => $totalQuestions,
+                'submission_hash' => $submissionHash,
+                'status' => LanguageTestingSession::STATUS_SUBMITTED,
+                'finished_at' => $finishedAt,
+            ]);
+
+            $result = $this->repository->createResult([
+                'language_testing_session_id' => $session->id,
+                'language_testing_test_id' => $test->id,
+                'student_id' => $submission->studentId,
+                'iin' => $submission->iin,
+                'first_name' => $submission->firstName,
+                'middle_name' => $submission->middleName,
+                'last_name' => $submission->lastName,
+                'email' => $submission->email,
+                'phone' => $submission->phone,
+                'language' => $test->language,
+                'test_name' => $test->name,
+                'score' => $score,
+                'percentage' => $percentage,
+                'correct_answers' => $correctAnswers,
+                'total_questions' => $totalQuestions,
+                'status' => $status,
+                'submitted_at' => $finishedAt,
+            ]);
+
+            return $this->serializeSubmissionResult($result);
+        }, 3);
     }
 
     public function paginateStatistics(LanguageTestingStatisticsFiltersData $filters): LengthAwarePaginator
@@ -389,6 +427,57 @@ class LanguageTestingService
             'status_label' => $result->status === LanguageTestingResult::STATUS_PASSED ? 'Passed' : 'Failed',
             'completed_at' => optional($result->submitted_at)?->toIso8601String(),
             'submitted_at' => optional($result->submitted_at)?->toIso8601String(),
+        ];
+    }
+
+    private function sessionIsExpired(LanguageTestingSession $session): bool
+    {
+        $ttlMinutes = max(0, (int) config('language_testing_module.integration.session_ttl_minutes', 180));
+
+        if ($ttlMinutes === 0) {
+            return false;
+        }
+
+        $startedAt = $session->started_at instanceof Carbon ? $session->started_at : optional($session->started_at);
+
+        return $startedAt !== null && $startedAt->lte(now()->subMinutes($ttlMinutes));
+    }
+
+    private function submissionHash(LanguageTestingSubmissionData $submission): string
+    {
+        $normalizedAnswers = collect($submission->answers)
+            ->map(fn (array $answer): array => [
+                'question_id' => (int) $answer['question_id'],
+                'answer_id' => $answer['answer_id'] !== null ? (int) $answer['answer_id'] : null,
+            ])
+            ->sortBy('question_id')
+            ->values()
+            ->all();
+
+        return hash('sha256', json_encode([
+            'session_id' => $submission->sessionId,
+            'student_id' => $submission->studentId,
+            'iin' => $submission->iin,
+            'first_name' => $submission->firstName,
+            'middle_name' => $submission->middleName,
+            'last_name' => $submission->lastName,
+            'email' => $submission->email,
+            'phone' => $submission->phone,
+            'answers' => $normalizedAnswers,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function serializeSubmissionResult(LanguageTestingResult $result): array
+    {
+        return [
+            'result_id' => $result->id,
+            'score' => (int) $result->score,
+            'percentage' => (float) $result->percentage,
+            'correct_answers' => (int) $result->correct_answers,
+            'total_questions' => (int) $result->total_questions,
+            'passed' => $result->status === LanguageTestingResult::STATUS_PASSED,
+            'completed_at' => optional($result->submitted_at)?->toIso8601String(),
+            'status' => $result->status === LanguageTestingResult::STATUS_PASSED ? 'Passed' : 'Failed',
         ];
     }
 }

@@ -34,7 +34,7 @@ class LanguageTestingStatisticsFiltersData
             toDate: trim((string) $request->query('to_date', '')),
             sort: $sort,
             direction: $direction,
-            perPage: max(5, min(100, (int) $request->query('per_page', 15))),
+            perPage: max(1, min(100, (int) $request->query('per_page', 15))),
         );
     }
 }

@@ -13,23 +13,39 @@ tags:
   - name: Language Testing AI Students
     description: External integration endpoints for the AI Students platform.
 paths:
+  /api/v1/health:
+    get:
+      tags:
+        - Language Testing AI Students
+      summary: Integration API health
+      description: Returns a minimal health snapshot for the public integration surface without sensitive internals.
+      operationId: languageTestingHealth
+      responses:
+        '200':
+          description: Health status returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
   /api/v1/tests:
     get:
       tags:
         - Language Testing AI Students
       summary: List available language tests
       description: >-
-        Returns active language tests for AI Students when called with an API key.
-        The same endpoint returns all tests when called by CRM with a Sanctum bearer token.
+        Returns active language tests for AI Students when called with an integration API key
+        or integration bearer token. The same endpoint returns all tests when called by CRM
+        with a Sanctum bearer token.
       operationId: listLanguageTests
       security:
         - ApiKeyAuth: []
+        - IntegrationBearerAuth: []
         - SanctumBearerAuth: []
       parameters:
         - $ref: '#/components/parameters/SearchQuery'
         - $ref: '#/components/parameters/PerPage'
         - $ref: '#/components/parameters/SortTests'
-        - $ref: '#/components/parameters/SortDirection'
+        - $ref: '#/components/parameters/SortDirectionAsc'
         - $ref: '#/components/parameters/TestLanguageFilter'
         - $ref: '#/components/parameters/TestStatusFilter'
       responses:
@@ -139,6 +155,7 @@ paths:
       operationId: showLanguageTest
       security:
         - ApiKeyAuth: []
+        - IntegrationBearerAuth: []
         - SanctumBearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TestId'
@@ -241,7 +258,7 @@ paths:
         - $ref: '#/components/parameters/SearchQuery'
         - $ref: '#/components/parameters/PerPage'
         - $ref: '#/components/parameters/SortQuestions'
-        - $ref: '#/components/parameters/SortDirection'
+        - $ref: '#/components/parameters/SortDirectionAsc'
       responses:
         '200':
           description: Questions returned.
@@ -372,6 +389,7 @@ paths:
       operationId: startLanguageTest
       security:
         - ApiKeyAuth: []
+        - IntegrationBearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TestId'
       responses:
@@ -443,6 +461,7 @@ paths:
       operationId: submitLanguageTest
       security:
         - ApiKeyAuth: []
+        - IntegrationBearerAuth: []
       parameters:
         - $ref: '#/components/parameters/TestId'
       requestBody:
@@ -515,7 +534,7 @@ paths:
         - $ref: '#/components/parameters/FromDate'
         - $ref: '#/components/parameters/ToDate'
         - $ref: '#/components/parameters/SortStatistics'
-        - $ref: '#/components/parameters/SortDirection'
+        - $ref: '#/components/parameters/SortDirectionDesc'
       responses:
         '200':
           description: Statistics returned.
@@ -653,6 +672,11 @@ components:
       scheme: bearer
       bearerFormat: Sanctum
       description: Bearer token for CRM authenticated users.
+    IntegrationBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Optional bearer token for external integration consumers.
     ApiKeyAuth:
       type: apiKey
       in: header
@@ -721,7 +745,16 @@ components:
         type: string
         enum: [submitted_at, percentage, score, correct_answers, test_name, language]
       description: Sort field for statistics.
-    SortDirection:
+    SortDirectionAsc:
+      name: direction
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: asc
+      description: Sort direction.
+    SortDirectionDesc:
       name: direction
       in: query
       required: false
@@ -798,6 +831,9 @@ components:
           type: integer
         total:
           type: integer
+    RequestId:
+      type: string
+      format: uuid
     Student:
       type: object
       properties:
@@ -919,6 +955,8 @@ components:
       type: object
       required: [session_id, test, questions]
       properties:
+        request_id:
+          $ref: '#/components/schemas/RequestId'
         session_id:
           type: string
           format: uuid
@@ -974,6 +1012,8 @@ components:
       type: object
       required: [result_id, score, percentage, correct_answers, total_questions, passed, completed_at]
       properties:
+        request_id:
+          $ref: '#/components/schemas/RequestId'
         result_id:
           type: integer
         score:
@@ -1095,6 +1135,37 @@ components:
           maxItems: 10
           items:
             $ref: '#/components/schemas/QuestionOptionRequest'
+    HealthRecord:
+      type: object
+      required: [status, api_version, database, queue, storage, configuration, language_testing_module, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        api_version:
+          type: string
+        database:
+          type: string
+        queue:
+          type: string
+        storage:
+          type: string
+        configuration:
+          type: string
+          enum: [configured, missing_credentials]
+        language_testing_module:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    HealthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/HealthRecord'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     TestListResponse:
       type: object
       required: [data, meta]
@@ -1105,12 +1176,16 @@ components:
             $ref: '#/components/schemas/Test'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     SingleTestResponse:
       type: object
       required: [data]
       properties:
         data:
           $ref: '#/components/schemas/Test'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     QuestionListResponse:
       type: object
       required: [data, meta]
@@ -1121,12 +1196,16 @@ components:
             $ref: '#/components/schemas/QuestionAdmin'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     SingleQuestionResponse:
       type: object
       required: [data]
       properties:
         data:
           $ref: '#/components/schemas/QuestionAdmin'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     StatisticsListResponse:
       type: object
       required: [data, meta]
@@ -1137,22 +1216,30 @@ components:
             $ref: '#/components/schemas/StatisticsRecord'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     SingleStatisticsResponse:
       type: object
       required: [data]
       properties:
         data:
           $ref: '#/components/schemas/StatisticsRecord'
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     ErrorResponse:
       type: object
       properties:
         message:
           type: string
+        request_id:
+          $ref: '#/components/schemas/RequestId'
     ValidationErrorResponse:
       type: object
       properties:
         message:
           type: string
+        request_id:
+          $ref: '#/components/schemas/RequestId'
         errors:
           type: object
           additionalProperties:

@@ -15,6 +15,8 @@ class LanguageTestingSession extends Model
 
     public const STATUS_SUBMITTED = 'submitted';
 
+    public const STATUS_EXPIRED = 'expired';
+
     protected $table = 'language_testing_sessions';
 
     protected $fillable = [
@@ -33,6 +35,7 @@ class LanguageTestingSession extends Model
         'percentage',
         'correct_answers',
         'total_questions',
+        'submission_hash',
         'status',
         'started_at',
         'finished_at',

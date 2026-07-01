@@ -1,13 +1,20 @@
 <?php
 
 use App\Modules\LanguageTestingModule\Http\Controllers\Api\V1\LanguageTestingApiController;
+use App\Modules\LanguageTestingModule\Http\Controllers\Api\V1\LanguageTestingHealthApiController;
 use App\Modules\LanguageTestingModule\Http\Controllers\Api\V1\LanguageTestingStatisticsApiController;
 use App\Modules\LanguageTestingModule\Http\Middleware\EnsureLanguageTestingApiConsumer;
 use App\Modules\LanguageTestingModule\Http\Middleware\LogLanguageTestingApiRequests;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('api/v1')
-    ->middleware(['api', LogLanguageTestingApiRequests::class, EnsureLanguageTestingApiConsumer::class])
+    ->middleware(['api', LogLanguageTestingApiRequests::class, 'throttle:language-testing-integration'])
+    ->group(function (): void {
+        Route::get('health', [LanguageTestingHealthApiController::class, 'show']);
+    });
+
+Route::prefix('api/v1')
+    ->middleware(['api', LogLanguageTestingApiRequests::class, 'throttle:language-testing-integration', EnsureLanguageTestingApiConsumer::class])
     ->group(function (): void {
         Route::get('tests', [LanguageTestingApiController::class, 'index']);
         Route::get('tests/{languageTestingTest}', [LanguageTestingApiController::class, 'show']);

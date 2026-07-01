@@ -20,7 +20,7 @@ class LanguageTestingListFiltersData
     {
         $sort = (string) $request->query('sort', 'name');
         $direction = strtolower((string) $request->query('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
-        $perPage = max(5, min(100, (int) $request->query('per_page', 10)));
+        $perPage = max(1, min(100, (int) $request->query('per_page', 10)));
 
         return new self(
             q: trim((string) $request->query('q', '')),

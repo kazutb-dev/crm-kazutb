@@ -133,6 +133,15 @@ class LanguageTestingRepository
         return LanguageTestingSession::query()->create($payload);
     }
 
+    public function findSessionForSubmission(LanguageTestingTest $test, string $publicSessionId): ?LanguageTestingSession
+    {
+        return LanguageTestingSession::query()
+            ->where('language_testing_test_id', $test->id)
+            ->where('public_session_id', $publicSessionId)
+            ->lockForUpdate()
+            ->first();
+    }
+
     public function findStartedSession(LanguageTestingTest $test, string $publicSessionId): ?LanguageTestingSession
     {
         return LanguageTestingSession::query()
@@ -152,6 +161,13 @@ class LanguageTestingRepository
     public function createResult(array $payload): LanguageTestingResult
     {
         return LanguageTestingResult::query()->create($payload);
+    }
+
+    public function findResultBySessionId(int $sessionId): ?LanguageTestingResult
+    {
+        return LanguageTestingResult::query()
+            ->where('language_testing_session_id', $sessionId)
+            ->first();
     }
 
     public function paginateResults(LanguageTestingStatisticsFiltersData $filters): LengthAwarePaginator

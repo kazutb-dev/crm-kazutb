@@ -126,6 +126,26 @@ DB_PASSWORD=YOUR_DB_PASS
 ## Статус проекта
 В активной разработке
 
+## Language Testing Integration API
+
+- Public contract: `docs/modules/language-testing-ai-students-api.yaml`
+- Published copy: `public/docs/language-testing-api.yaml`
+- Integration guide: `docs/guides/LANGUAGE_TESTING_INTEGRATION_API.md`
+- Audit report: `docs/audits/language-testing-integration-api-audit-2026-07-01.md`
+
+Required integration auth configuration:
+```env
+LANGUAGE_TESTING_INTEGRATION_API_KEY=
+LANGUAGE_TESTING_INTEGRATION_BEARER_TOKEN=
+```
+
+Legacy compatibility:
+```env
+LANGUAGE_TESTING_API_KEY=
+```
+
+Preferred external authentication is `X-API-KEY`. CRM management endpoints continue to use Sanctum bearer authentication.
+
 ---
 
 ## Контакты

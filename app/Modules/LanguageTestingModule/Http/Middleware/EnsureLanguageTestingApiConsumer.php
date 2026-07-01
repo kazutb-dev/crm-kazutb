@@ -19,7 +19,11 @@ class EnsureLanguageTestingApiConsumer
             return $next($request);
         }
 
-        $configuredApiKey = (string) config('language_testing_module.integration.api_key', '');
+        $configuredApiKey = trim((string) config('language_testing_module.integration.api_key', ''));
+        if ($configuredApiKey === '') {
+            $configuredApiKey = trim((string) config('language_testing.api_key', ''));
+        }
+
         $configuredBearer = (string) config('language_testing_module.integration.bearer_token', '');
         $apiKey = (string) $request->header('X-API-KEY', '');
         $bearer = (string) $request->bearerToken();
@@ -33,11 +37,24 @@ class EnsureLanguageTestingApiConsumer
             return $next($request);
         }
 
-        return response()->json([
+        $requestId = (string) $request->attributes->get('language_testing_request_id', '');
+        $errors = [];
+
+        if ($configuredApiKey === '' && trim($configuredBearer) === '') {
+            $errors['authorization'] = ['Integration credentials are not configured on CRM.'];
+        } else {
+            $errors['authorization'] = ['Valid CRM Bearer token or integration API key is required.'];
+        }
+
+        $payload = [
             'message' => 'Unauthorized.',
-            'errors' => [
-                'authorization' => ['Valid CRM Bearer token or integration API key is required.'],
-            ],
-        ], 401);
+            'errors' => $errors,
+        ];
+
+        if ($requestId !== '') {
+            $payload['request_id'] = $requestId;
+        }
+
+        return response()->json($payload, 401);
     }
 }

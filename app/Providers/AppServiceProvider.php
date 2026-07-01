@@ -100,6 +100,22 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by($routeScope . '|ip|' . $clientIp),
             ];
         });
+
+        RateLimiter::for('language-testing-integration', function (Request $request): array {
+            $clientIp = (string) $request->ip();
+            $apiKey = trim((string) $request->header('X-API-KEY', ''));
+            $token = trim((string) $request->bearerToken());
+            $credentialFingerprint = $apiKey !== ''
+                ? 'key:' . sha1($apiKey)
+                : ($token !== '' ? 'bearer:' . sha1($token) : 'anonymous');
+            $credentialLimit = max(30, (int) config('language_testing_module.integration.rate_limit_per_minute', 120));
+            $ipLimit = max($credentialLimit, (int) config('language_testing_module.integration.rate_limit_per_minute_per_ip', 240));
+
+            return [
+                Limit::perMinute($credentialLimit)->by('language-testing-integration|' . $credentialFingerprint),
+                Limit::perMinute($ipLimit)->by('language-testing-integration|ip|' . $clientIp),
+            ];
+        });
     }
 
     /**
