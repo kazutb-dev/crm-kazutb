@@ -276,6 +276,18 @@ class User extends Authenticatable
 
     public function resolveRoleLabel(): string
     {
+        $positionTitle = mb_strtolower(trim((string) ($this->position_title ?: $this->ad_title ?: '')));
+
+        if ($positionTitle !== '') {
+            if (str_contains($positionTitle, 'проректор') || str_contains($positionTitle, 'vice rector') || str_contains($positionTitle, 'vice-rector') || str_contains($positionTitle, 'prorector')) {
+                return 'Проректор';
+            }
+
+            if (str_contains($positionTitle, 'ректор') || str_contains($positionTitle, 'rector')) {
+                return 'Ректор';
+            }
+        }
+
         return match ($this->resolvedRoleSlug()) {
             'teacher' => 'Преподаватель',
             'certificates' => 'Оператор сертификатов',

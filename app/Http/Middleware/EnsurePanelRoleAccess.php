@@ -81,6 +81,11 @@ class EnsurePanelRoleAccess
             return $next($request);
         }
 
+        // Phonebook directory index is accessible to all authenticated users regardless of role.
+        if ($routeName === 'phonebook.index') {
+            return $next($request);
+        }
+
         // Students are restricted to profile routes only.
         if ($role === 'student') {
             if ($this->startsWith($routeName, 'profile.')) {
