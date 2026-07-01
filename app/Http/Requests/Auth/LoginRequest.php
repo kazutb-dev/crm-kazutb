@@ -56,15 +56,41 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $login = (string) $this->input('email');
+        $normalizedLogin = Str::lower(trim($login));
         $password = (string) $this->input('password');
         $remember = $this->boolean('remember');
 
         $authenticated = false;
         $trackedByAd = false;
 
+        $skipAdForUser = false;
+
+        if ($normalizedLogin !== '') {
+            $localByEmail = User::query()
+                ->whereRaw('LOWER(email) = ?', [$normalizedLogin])
+                ->first();
+
+            if ($localByEmail !== null) {
+                $hasAdLoginColumn = Schema::hasColumn('users', 'ad_login');
+                $hasAdGuidColumn = Schema::hasColumn('users', 'ad_guid');
+
+                $adLogin = $hasAdLoginColumn ? trim((string) ($localByEmail->ad_login ?? '')) : '';
+                $adGuid = $hasAdGuidColumn ? trim((string) ($localByEmail->ad_guid ?? '')) : '';
+
+                // If AD identifiers are explicitly cleared, force local-only auth for this account.
+                if (($hasAdLoginColumn || $hasAdGuidColumn) && $adLogin === '' && $adGuid === '') {
+                    $skipAdForUser = true;
+                }
+            }
+        }
+
         /** @var ActiveDirectoryAuthenticator $adAuthenticator */
-        $adAuthenticator = app(ActiveDirectoryAuthenticator::class);
-        $adUser = $adAuthenticator->authenticateAndSync($login, $password);
+        $adUser = null;
+
+        if (! $skipAdForUser) {
+            $adAuthenticator = app(ActiveDirectoryAuthenticator::class);
+            $adUser = $adAuthenticator->authenticateAndSync($login, $password);
+        }
 
         if ($adUser !== null) {
             Auth::login($adUser, $remember);
