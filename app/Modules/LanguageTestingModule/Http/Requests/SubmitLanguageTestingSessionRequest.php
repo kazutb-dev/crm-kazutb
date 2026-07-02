@@ -3,13 +3,59 @@
 namespace App\Modules\LanguageTestingModule\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class SubmitLanguageTestingSessionRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $payload = $this->all();
+
+        if (! isset($payload['student_id'])) {
+            $payload['student_id'] = $payload['applicant_id']
+                ?? $payload['applicantId']
+                ?? $payload['studentId']
+                ?? null;
+        }
+
+        if (isset($payload['iin'])) {
+            $payload['iin'] = preg_replace('/\D+/', '', (string) $payload['iin']);
+        }
+
+        if (! isset($payload['first_name']) || ! isset($payload['last_name'])) {
+            $name = trim((string) ($payload['full_name'] ?? $payload['fullName'] ?? $payload['name'] ?? ''));
+            $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+            if (count($parts) >= 2) {
+                $payload['last_name'] ??= (string) array_shift($parts);
+                $payload['first_name'] ??= (string) array_shift($parts);
+                $payload['middle_name'] ??= count($parts) > 0 ? implode(' ', $parts) : null;
+            }
+        }
+
+        if (isset($payload['answers']) && is_array($payload['answers'])) {
+            $payload['answers'] = array_map(static function (mixed $answer): mixed {
+                if (! is_array($answer)) {
+                    return $answer;
+                }
+
+                if (! array_key_exists('question_id', $answer)) {
+                    $answer['question_id'] = $answer['questionId'] ?? $answer['question'] ?? null;
+                }
+
+                if (! array_key_exists('answer_id', $answer)) {
+                    $answer['answer_id'] = $answer['answerId'] ?? $answer['selected_answer_id'] ?? $answer['selectedAnswerId'] ?? null;
+                }
+
+                return $answer;
+            }, $payload['answers']);
+        }
+
+        $this->replace($payload);
     }
 
     /**

@@ -390,6 +390,52 @@ class LanguageTestingIntegrationApiTest extends TestCase
         ]);
     }
 
+    public function test_submit_accepts_ai_student_compatible_payload_aliases(): void
+    {
+        config()->set('language_testing_module.integration.api_key', 'integration-test-key');
+
+        [$test, $correctAnswers] = $this->createTestWithQuestions([
+            'name' => 'AI Student Compatible Submit Test',
+            'total_questions' => 2,
+        ]);
+
+        $startPayload = $this->withHeaders(['X-API-KEY' => 'integration-test-key'])
+            ->getJson("/api/v1/tests/{$test->id}/start")
+            ->assertOk()
+            ->json();
+
+        $answers = collect($startPayload['questions'])
+            ->map(fn (array $question): array => [
+                'questionId' => $question['id'],
+                'answerId' => $correctAnswers[$question['id']],
+            ])
+            ->values()
+            ->all();
+
+        $this->withHeaders(['X-API-KEY' => 'integration-test-key'])
+            ->postJson("/api/v1/tests/{$test->id}/submit", [
+                'session_id' => $startPayload['session_id'],
+                'applicantId' => 'applicant-compatible-001',
+                'iin' => '050915-500442',
+                'fullName' => 'Murat Almas Erlanuly',
+                'email' => 'almas@example.test',
+                'phone' => '+7 705 542 07 92',
+                'answers' => $answers,
+            ])
+            ->assertOk()
+            ->assertJsonPath('correct_answers', 2)
+            ->assertJsonPath('total_questions', 2);
+
+        $this->assertDatabaseHas('language_testing_results', [
+            'language_testing_test_id' => $test->id,
+            'student_id' => 'applicant-compatible-001',
+            'iin' => '050915500442',
+            'first_name' => 'Almas',
+            'last_name' => 'Murat',
+            'email' => 'almas@example.test',
+        ]);
+    }
+
     public function test_integration_rate_limit_returns_429(): void
     {
         config()->set('language_testing_module.integration.api_key', 'rate-limit-key');
