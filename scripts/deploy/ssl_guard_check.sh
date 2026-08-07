@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-CERT_FILE="/var/www/laravel-react/ssl/fullchain.pem"
-KEY_FILE="/var/www/laravel-react/ssl/private.key"
+CERT_FILE="/home/admaza/projects/laravel-react/ssl/fullchain.pem"
+KEY_FILE="/home/admaza/projects/laravel-react/ssl/private.key"
 HOSTS=("crm.kaztbu.edu.kz" "dev-crm.kaztbu.edu.kz")
 SELECTED_HOSTS=()
 LOCAL_ENDPOINT="127.0.0.1:443"

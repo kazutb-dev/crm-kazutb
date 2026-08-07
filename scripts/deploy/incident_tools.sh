@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROD_ROOT="/var/www/laravel-react"
-DEV_ROOT="/var/www/laravel-react-dev"
+PROD_ROOT="/home/admaza/projects/laravel-react"
+DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 
 usage() {
     cat <<'USAGE'

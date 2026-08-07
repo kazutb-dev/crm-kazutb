@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 LOG_PREFIX="${LOG_PREFIX:-[deploy]}"
-PROD_ROOT_DEFAULT="/var/www/laravel-react"
-DEV_ROOT_DEFAULT="/var/www/laravel-react-dev"
+PROD_ROOT_DEFAULT="/home/admaza/projects/laravel-react"
+DEV_ROOT_DEFAULT="/home/admaza/projects/laravel-react-dev"
 DEPLOY_LOCK_FILE_DEFAULT="/var/lock/kazutb-deploy.lock"
 
 if [[ ! -w "$(dirname "$DEPLOY_LOCK_FILE_DEFAULT")" ]]; then
