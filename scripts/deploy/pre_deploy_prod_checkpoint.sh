@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_ROOT="/var/www/laravel-react"
+PROJECT_ROOT="/home/admaza/projects/laravel-react"
 BACKUP_SCRIPT="${PROJECT_ROOT}/scripts/backup_prod.sh"
 CHECKPOINT_DIR="${PROJECT_ROOT}/storage/app/deploy_checkpoints"
 SAFECOMMIT_SCRIPT="${PROJECT_ROOT}/scripts/deploy/safecommit.sh"

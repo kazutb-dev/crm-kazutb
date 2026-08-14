@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROD_ROOT="/var/www/laravel-react"
+PROD_ROOT="/home/admaza/projects/laravel-react"
 BACKUP_ROOT="${PROD_ROOT}/backups"
 MODE="list"
 TARGET=""
