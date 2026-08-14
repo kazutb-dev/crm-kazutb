@@ -44,6 +44,7 @@ use App\Http\Controllers\RoleAccessController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\DepartmentRequestController;
 use App\Http\Controllers\PositionChangeRequestController;
+use App\Http\Controllers\AcademicMobilityController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -96,6 +97,21 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth', 'verified', 'track.last-seen'])->group(function () {
     Route::get('/department-requests', [DepartmentRequestController::class, 'index'])
         ->name('dept-requests.index');
+    Route::get('/academic-mobility', [AcademicMobilityController::class, 'index'])
+        ->name('academic-mobility.index');
+    Route::get('/academic-mobility/status', [AcademicMobilityController::class, 'studentStatus'])
+        ->name('academic-mobility.student.status');
+    Route::get('/academic-mobility/resubmit', [AcademicMobilityController::class, 'showResubmissionForm'])
+        ->name('academic-mobility.student.resubmit');
+    Route::get('/academic-mobility/applications/{application}/documents/{documentIndex}', [AcademicMobilityController::class, 'viewDocument'])
+        ->whereNumber('documentIndex')
+        ->name('academic-mobility.documents.view');
+    Route::post('/academic-mobility/student', [AcademicMobilityController::class, 'storeStudentApplication'])
+        ->name('academic-mobility.student.store');
+    Route::post('/academic-mobility/staff/{application}/accept', [AcademicMobilityController::class, 'accept'])
+        ->name('academic-mobility.staff.accept');
+    Route::post('/academic-mobility/staff/{application}/reject', [AcademicMobilityController::class, 'reject'])
+        ->name('academic-mobility.staff.reject');
     Route::get('/department-requests/departments', [DepartmentRequestController::class, 'departmentsPage'])
         ->name('dept-requests.departments');
     Route::post('/department-requests/departments', [DepartmentRequestController::class, 'storeRecipientDepartment'])

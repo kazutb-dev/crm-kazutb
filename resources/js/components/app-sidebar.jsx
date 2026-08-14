@@ -79,6 +79,7 @@ const ROLE_LABELS = {
     department: 'Департаменты',
     structural: 'Структурные подразделения',
     student: 'Студент',
+    academic_mobility: 'Академическая мобильность',
 };
 
 function readSidebarExpandedGroups() {
@@ -142,6 +143,7 @@ export function AppSidebar() {
     const isDepartmentRole = roleSlug === 'department';
     const isStructuralRole = roleSlug === 'structural';
     const isStudentRole = roleSlug === 'student';
+    const isAcademicMobilityRole = roleSlug === 'academic_mobility';
     const hasTemplatesEmailAccess = String(user?.email ?? '').toLowerCase() === 'a.khastayeva@kaztbu.edu.kz';
     const canAccessTemplatesSection = isAdminRole || hasTemplatesEmailAccess || isCertificatesRole;
     const canAccessPositionRequests =
@@ -155,6 +157,7 @@ export function AppSidebar() {
     const showAllKpiMenus = isAdminRole;
     const showOnlyKpiMenus = false;
     const showOnlyCertificatesMenus = isCertificatesRole;
+    const showOnlyAcademicMobilityMenus = isAcademicMobilityRole;
     const roleLabel = ROLE_LABELS[roleSlug] ?? (roleSlug || '—');
     const facultyLabel = user?.faculty?.name ?? user?.faculty_name ?? user?.ad_division ?? '—';
     const departmentLabel = user?.department?.name ?? user?.department_name ?? user?.ad_department ?? '—';
@@ -360,6 +363,18 @@ export function AppSidebar() {
             href: route('dashboard'),
             icon: LayoutDashboard,
             active: route().current('dashboard'),
+        }] : []),
+        ...(isAcademicMobilityRole ? [{
+            title: 'Академическая мобильность',
+            href: route('academic-mobility.index'),
+            icon: GraduationCap,
+            active: route().current('academic-mobility.*'),
+        }] : []),
+        ...(isStudentRole ? [{
+            title: 'Академическая мобильность',
+            href: route('academic-mobility.index'),
+            icon: GraduationCap,
+            active: route().current('academic-mobility.*'),
         }] : []),
         ...(canAccessPositionRequests ? [{
             title: 'Заявки на должность',
@@ -863,20 +878,20 @@ export function AppSidebar() {
     };
 
     const groupVisibility = {
-        main: !showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
-        directories: !showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
-        governance: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
-        kpi: !showOnlyCertificatesMenus && kpiMenuItems.length > 0,
-        testing: !showOnlyCertificatesMenus && testingItems.length > 0 && !showOnlyKpiMenus,
-        languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus,
-        questionnaire: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
-        calendarShared: !showOnlyCertificatesMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hr: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
-        library: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
-        calendarAdmin: !showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus,
-        templates: canAccessTemplatesSection && !showOnlyKpiMenus,
-        deptRequests: !showOnlyCertificatesMenus && !showOnlyKpiMenus,
-        phonebook: !showOnlyCertificatesMenus && !showOnlyKpiMenus,
+        main: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
+        directories: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
+        governance: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        kpi: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && kpiMenuItems.length > 0,
+        testing: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && testingItems.length > 0 && !showOnlyKpiMenus,
+        languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
+        questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
+        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        templates: canAccessTemplatesSection && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
+        deptRequests: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !showOnlyKpiMenus,
+        phonebook: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !showOnlyKpiMenus,
     };
 
     const groupItems = {
@@ -1005,15 +1020,15 @@ export function AppSidebar() {
                     renderGroup('governance', 'Управление доступом', governance)
                 )}
 
-                {!showOnlyCertificatesMenus && kpiMenuItems.length > 0 && (
+                {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
                 )}
 
-                {!showOnlyCertificatesMenus && testingItems.length > 0 && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && testingItems.length > 0 && !showOnlyKpiMenus && (
                     renderGroup('testing', 'Тестирование', testingItems)
                 )}
 
-                {languageTestingItems.length > 0 && !showOnlyKpiMenus && (
+                {languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus && (
                     renderGroup('languageTesting', 'Проверка знаний языка', languageTestingItems)
                 )}
 
@@ -1038,29 +1053,31 @@ export function AppSidebar() {
                     renderGroup('calendarAdmin', 'Календарь', adminCalendarItems)
                 )}
 
-                {canAccessTemplatesSection && !showOnlyKpiMenus && (
+                {canAccessTemplatesSection && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus && (
                     renderGroup('templates', 'Шаблоны и сертификаты', templateItems)
                 )}
 
-                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && deptRequestItems.length > 0 && (
+                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus && deptRequestItems.length > 0 && (
                     renderGroup('deptRequests', 'Заявки', deptRequestItems)
                 )}
 
-                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus && (
                     renderGroup('phonebook', 'Справочник', phonebookItems)
                 )}
             </SidebarContent>
 
             <SidebarFooter className="mt-auto border-t border-sidebar-border/80 pb-3 pt-3">
                 <SidebarMenu className="gap-1">
-                    <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Главная">
-                            <a href="http://10.0.1.47/">
-                                <Home />
-                                <span>Главная</span>
-                            </a>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {!showOnlyAcademicMobilityMenus && (
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild tooltip="Главная">
+                                <a href="http://10.0.1.47/">
+                                    <Home />
+                                    <span>Главная</span>
+                                </a>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                     {!isStudentRole && (
                         <SidebarMenuItem>
                             <SidebarMenuButton

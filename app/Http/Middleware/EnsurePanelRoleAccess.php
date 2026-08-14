@@ -55,6 +55,21 @@ class EnsurePanelRoleAccess
             return $next($request);
         }
 
+        if ($role === 'academic_mobility') {
+            $allowedAcademicMobilityRoutes = [
+                'academic-mobility.',
+                'profile.',
+            ];
+
+            foreach ($allowedAcademicMobilityRoutes as $allowedRoute) {
+                if ($this->startsWith($routeName, $allowedRoute)) {
+                    return $next($request);
+                }
+            }
+
+            return $this->forbidden($request, 'Для роли academic_mobility доступен только модуль академической мобильности.');
+        }
+
         if ($role === 'certificates') {
             $allowedCertificateRoutes = [
                 'templates.',
