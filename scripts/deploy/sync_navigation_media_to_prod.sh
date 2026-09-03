@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/lib_deploy_common.sh"
 begin_operation_lock "sync-navigation-media"
 trap 'end_operation_lock' EXIT
 
-PROD_ROOT="/home/admaza/projects/laravel-react"
+PROD_ROOT="/home/admaza/projects/du"
 DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 
 DRY_RUN=0
@@ -17,7 +17,7 @@ ASSUME_YES=0
 usage() {
     cat <<'USAGE'
 Usage:
-  /home/admaza/projects/laravel-react/scripts/deploy/sync_navigation_media_to_prod.sh [--dry-run] [--yes]
+  /home/admaza/projects/du/scripts/deploy/sync_navigation_media_to_prod.sh [--dry-run] [--yes]
 
 What it does:
 - validates no duplicate (room,title) in DEV/PROD navigation_routes

@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/lib_deploy_common.sh"
 begin_operation_lock "sync-public-assets"
 trap 'end_operation_lock' EXIT
 
-PROD_ROOT="/home/admaza/projects/laravel-react"
+PROD_ROOT="/home/admaza/projects/du"
 DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 MANIFEST_FILE="${SCRIPT_DIR}/runtime_public_assets_manifest.txt"
 
@@ -19,7 +19,7 @@ DIRECTION=""
 usage() {
     cat <<'USAGE'
 Usage:
-  /home/admaza/projects/laravel-react/scripts/deploy/sync_public_assets.sh --direction <dev-to-prod|prod-to-dev> [--dry-run] [--yes]
+  /home/admaza/projects/du/scripts/deploy/sync_public_assets.sh --direction <dev-to-prod|prod-to-dev> [--dry-run] [--yes]
 
 What it does:
 - syncs required runtime public assets listed in runtime_public_assets_manifest.txt

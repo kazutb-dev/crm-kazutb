@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PROJECT_ROOT="/home/admaza/projects/laravel-react"
+PROJECT_ROOT="/home/admaza/projects/du"
 BACKUP_ROOT="${PROJECT_ROOT}/backups"
-EXPECTED_BACKUP_ROOT="/home/admaza/projects/laravel-react/backups"
+EXPECTED_BACKUP_ROOT="/home/admaza/projects/du/backups"
 
 DRY_RUN="${BACKUP_DRY_RUN:-0}"
 CLEANUP_ONLY="${BACKUP_CLEANUP_ONLY:-0}"

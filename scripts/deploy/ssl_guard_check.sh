@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-CERT_FILE="/home/admaza/projects/laravel-react/ssl/fullchain.pem"
-KEY_FILE="/home/admaza/projects/laravel-react/ssl/private.key"
-HOSTS=("crm.kaztbu.edu.kz" "dev-crm.kaztbu.edu.kz")
+CERT_FILE="/home/admaza/projects/du/ssl/fullchain.pem"
+KEY_FILE="/home/admaza/projects/du/ssl/private.key"
+HOSTS=("crm.kaztbu.edu.kz")
 SELECTED_HOSTS=()
 LOCAL_ENDPOINT="127.0.0.1:443"
 PUBLIC_PORT="443"

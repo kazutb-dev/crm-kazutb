@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/lib_deploy_common.sh"
 begin_operation_lock "rollback-prod-to-tag"
 trap 'end_operation_lock' EXIT
 
-PROJECT_ROOT="/home/admaza/projects/laravel-react"
+PROJECT_ROOT="/home/admaza/projects/du"
 BACKUP_SCRIPT="${PROJECT_ROOT}/scripts/backup_prod.sh"
 DRY_RUN=0
 ASSUME_YES=0

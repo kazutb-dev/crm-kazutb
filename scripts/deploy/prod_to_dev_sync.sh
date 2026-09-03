@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/lib_deploy_common.sh"
 begin_operation_lock "prod-to-dev-sync"
 trap 'end_operation_lock' EXIT
 
-PROD_ROOT="/home/admaza/projects/laravel-react"
+PROD_ROOT="/home/admaza/projects/du"
 DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
 

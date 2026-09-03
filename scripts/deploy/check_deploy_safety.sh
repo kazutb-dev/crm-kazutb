@@ -5,7 +5,7 @@ LOG_PREFIX="[safety]"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib_deploy_common.sh"
 
-PROD_ROOT="/home/admaza/projects/laravel-react"
+PROD_ROOT="/home/admaza/projects/du"
 DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 BACKUP_SCRIPT="${PROD_ROOT}/scripts/backup_prod.sh"
 RUNTIME_ASSET_MANIFEST="${PROD_ROOT}/scripts/deploy/runtime_public_assets_manifest.txt"

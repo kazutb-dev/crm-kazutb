@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 DEV_ROOT="/home/admaza/projects/laravel-react-dev"
 REMOTE_URL="https://github.com/kazutb-dev/crm-kazutb.git"
-SAFECOMMIT_SCRIPT="/home/admaza/projects/laravel-react/scripts/deploy/safecommit.sh"
+SAFECOMMIT_SCRIPT="/home/admaza/projects/du/scripts/deploy/safecommit.sh"
 DRY_RUN=0
 
 for arg in "$@"; do
@@ -12,7 +12,7 @@ for arg in "$@"; do
         -h|--help)
             cat <<'EOF'
 Usage:
-  /home/admaza/projects/laravel-react/scripts/deploy/ensure_dev_branch.sh [--dry-run]
+  /home/admaza/projects/du/scripts/deploy/ensure_dev_branch.sh [--dry-run]
 EOF
             exit 0
             ;;

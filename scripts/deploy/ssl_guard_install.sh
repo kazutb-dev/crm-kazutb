@@ -6,7 +6,7 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 1
 fi
 
-SRC_SCRIPT="/home/admaza/projects/laravel-react/scripts/deploy/ssl_guard_check.sh"
+SRC_SCRIPT="/home/admaza/projects/du/scripts/deploy/ssl_guard_check.sh"
 DST_SCRIPT="/usr/local/sbin/ssl_guard_check.sh"
 SERVICE_FILE="/etc/systemd/system/ssl-guard.service"
 TIMER_FILE="/etc/systemd/system/ssl-guard.timer"
