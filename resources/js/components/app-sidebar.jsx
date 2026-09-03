@@ -80,6 +80,7 @@ const ROLE_LABELS = {
     structural: 'Структурные подразделения',
     student: 'Студент',
     academic_mobility: 'Академическая мобильность',
+    hr: 'Отдел кадров',
 };
 
 function readSidebarExpandedGroups() {
@@ -138,6 +139,7 @@ export function AppSidebar() {
         || kpiGrants.has('kpi administrator')
         || roleSlug === 'kpi_admin';
     const isTeacherRole = roleSlug === 'teacher';
+    const isHrRole = roleSlug === 'hr';
     const isHodRole = ['hod', 'department_head'].includes(roleSlug);
     const isDeanRole = roleSlug === 'dean';
     const isDepartmentRole = roleSlug === 'department';
@@ -352,12 +354,12 @@ export function AppSidebar() {
     })();
 
     const navigation = [
-        {
+        ...(!isHrRole ? [{
             title: 'Профиль',
             href: route('profile.edit'),
             icon: UserCog,
             active: route().current('profile.*'),
-        },
+        }] : []),
         ...(isAdminRole ? [{
             title: 'Панель управления',
             href: route('dashboard'),
@@ -878,7 +880,7 @@ export function AppSidebar() {
     };
 
     const groupVisibility = {
-        main: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus,
+        main: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus && !isHrRole,
         directories: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
         governance: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         kpi: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && kpiMenuItems.length > 0,

@@ -295,12 +295,28 @@ class PhonebookDirectoryController extends Controller
         return back()->with('success', 'Сотрудник добавлен.');
     }
 
+    public function storeDepartment(Request $request): RedirectResponse
+    {
+        $this->authorizeManage($request);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:phonebook_departments,name'],
+        ]);
+
+        PhonebookDepartment::query()->create([
+            'name' => trim((string) $data['name']),
+            'legacy_id' => null,
+        ]);
+
+        return back()->with('success', 'Отдел добавлен в справочник.');
+    }
+
     private function authorizeManage(Request $request): void
     {
         $actor = $request->user();
         $role = method_exists($actor, 'resolvedRoleSlug') ? $actor->resolvedRoleSlug() : null;
 
-        if (! in_array($role, ['admin', 'superadmin'], true)) {
+        if (! in_array($role, ['admin', 'superadmin', 'hr'], true)) {
             abort(403, 'Недостаточно прав для изменения справочника.');
         }
     }

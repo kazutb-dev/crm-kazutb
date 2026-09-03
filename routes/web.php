@@ -68,12 +68,13 @@ Route::get('/catalog', function () {
 // ── Телефонный справочник (публичный доступ для всех авторизованных) ──────────
 Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(function () {
     Route::get('phonebook', [PhonebookDirectoryController::class, 'index'])->name('phonebook.index');
-    Route::patch('phonebook/users/{phonebookUser}/avatar', [PhonebookDirectoryController::class, 'updateAvatar'])->name('phonebook.users.avatar');
+    Route::post('phonebook/departments', [PhonebookDirectoryController::class, 'storeDepartment'])->name('phonebook.departments.store');
+    Route::patch('phonebook/users/{phonebookUser}/avatar', [PhonebookDirectoryController::class, 'updateAvatar'])->name('phonebook.users.avatar.update');
     Route::post('phonebook/users/{phonebookUser}/avatar/upload', [PhonebookDirectoryController::class, 'uploadAvatar'])->middleware('throttle:10,1')->name('phonebook.users.avatar.upload');
-    Route::patch('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'updateUser'])->name('phonebook.users.update');
-    Route::post('phonebook/users', [PhonebookDirectoryController::class, 'storeUser'])->name('phonebook.users.store');
-    Route::delete('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'destroyUser'])->name('phonebook.users.destroy');
-    Route::patch('phonebook/sort', [PhonebookDirectoryController::class, 'updateSort'])->name('phonebook.sort');
+    Route::patch('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'update'])->name('phonebook.users.update');
+    Route::post('phonebook/users', [PhonebookDirectoryController::class, 'store'])->name('phonebook.users.store');
+    Route::delete('phonebook/users/{phonebookUser}', [PhonebookDirectoryController::class, 'destroy'])->name('phonebook.users.destroy');
+    Route::patch('phonebook/users/{phonebookUser}/move', [PhonebookDirectoryController::class, 'move'])->name('phonebook.users.move');
 });
 
 Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');

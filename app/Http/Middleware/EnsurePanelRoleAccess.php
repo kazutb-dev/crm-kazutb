@@ -96,8 +96,20 @@ class EnsurePanelRoleAccess
             return $next($request);
         }
 
-        // Phonebook directory index is accessible to all authenticated users regardless of role.
-        if ($routeName === 'phonebook.index') {
+        if ($role === 'hr') {
+            if ($this->startsWith($routeName, 'phonebook.')) {
+                return $next($request);
+            }
+
+            if ($request->expectsJson()) {
+                return $this->forbidden($request, 'Для роли hr доступен только телефонный справочник.');
+            }
+
+            return redirect()->route('phonebook.index');
+        }
+
+        // Phonebook routes are available to authenticated users.
+        if ($this->startsWith($routeName, 'phonebook.')) {
             return $next($request);
         }
 

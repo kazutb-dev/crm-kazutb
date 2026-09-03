@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\BusinessActivityLogger;
 use App\Services\UserPresenceService;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +36,7 @@ class AuthenticatedSessionController extends Controller
         $alreadyTracked = (bool) $request->session()->pull('login_tracked', false);
         $user = Auth::user();
 
-        if ($user && empty($user->role_id)) {
+        if ($user instanceof User && empty($user->role_id)) {
             $defaultRoleId = Role::query()->where('slug', 'teacher')->value('id');
 
             if ($defaultRoleId) {
@@ -44,10 +45,10 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        $shouldShowProfileReminder = $user
+        $shouldShowProfileReminder = $user instanceof User
             && (empty($user->faculty_id) || empty($user->department_id));
 
-        if ($user && ! $alreadyTracked) {
+        if ($user instanceof User && ! $alreadyTracked) {
             $hasLastLogin = Schema::hasColumn('users', 'last_login');
             $hasLastLoginAt = Schema::hasColumn('users', 'last_login_at');
             $hasLoginCount = Schema::hasColumn('users', 'login_count');
@@ -69,7 +70,7 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        if ($user !== null) {
+        if ($user instanceof User) {
             app(UserPresenceService::class)->record($user, $request, true);
         }
 
@@ -80,7 +81,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         if (
-            $user !== null
+            $user instanceof User
             && (int) $user->id === 66
             && (string) ($user->ad_login ?? '') === 'a.ulykpan1'
         ) {
@@ -89,9 +90,15 @@ class AuthenticatedSessionController extends Controller
                 ->with('profileReminderAfterLogin', $shouldShowProfileReminder);
         }
 
-        if ($user !== null && $user->resolvedRoleSlug() === 'certificates') {
+        if ($user instanceof User && $user->resolvedRoleSlug() === 'certificates') {
             return redirect()
                 ->route('templates.index')
+                ->with('profileReminderAfterLogin', false);
+        }
+
+        if ($user instanceof User && $user->resolvedRoleSlug() === 'hr') {
+            return redirect()
+                ->route('phonebook.index')
                 ->with('profileReminderAfterLogin', false);
         }
 

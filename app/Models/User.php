@@ -254,7 +254,7 @@ class User extends Authenticatable
         if ($legacyRole !== '') {
             return match ($legacyRole) {
                 'department_head' => 'hod',
-                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates', 'academic_mobility' => $legacyRole,
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates', 'academic_mobility', 'hr' => $legacyRole,
                 'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
                 default => 'teacher',
             };
@@ -265,7 +265,7 @@ class User extends Authenticatable
         if (is_string($roleFromRelation) && $roleFromRelation !== '') {
             return match ($roleFromRelation) {
                 'department_head' => 'hod',
-                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates', 'academic_mobility' => $roleFromRelation,
+                'hod', 'dean', 'teacher', 'student', 'admin', 'superadmin', 'certificates', 'academic_mobility', 'hr' => $roleFromRelation,
                 'department', 'structural' => $this->hasStructuralAccess() ? 'structural' : 'teacher',
                 default => 'teacher',
             };
@@ -297,6 +297,7 @@ class User extends Authenticatable
             'admin', 'superadmin' => 'Администратор',
             'student' => 'Студент',
             'academic_mobility' => 'Академическая мобильность',
+            'hr' => 'Отдел кадров',
             default => 'Без роли',
         };
     }

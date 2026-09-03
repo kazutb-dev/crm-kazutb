@@ -21,8 +21,8 @@ const LOGO_AVATAR_URL = '/assets/images/logo.png';
 export default function Index({ sections, totalUsers, departments, filters }) {
     const page = usePage();
     const roleSlug = page?.props?.auth?.roleSlug;
-    const canManagePhotos = ['admin', 'superadmin'].includes(roleSlug);
-    const canManageDirectory = ['admin', 'superadmin'].includes(roleSlug);
+    const canManagePhotos = ['admin', 'superadmin', 'hr'].includes(roleSlug);
+    const canManageDirectory = ['admin', 'superadmin', 'hr'].includes(roleSlug);
 
     const groupedSections = Array.isArray(sections) ? sections : [];
     const [localSections, setLocalSections] = useState(groupedSections);
@@ -36,6 +36,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
     });
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [addDialogOpen, setAddDialogOpen] = useState(false);
+    const [addDepartmentDialogOpen, setAddDepartmentDialogOpen] = useState(false);
     const [viewMode, setViewMode] = useState('cards');
     const [editingUser, setEditingUser] = useState(null);
     const [draggingUserId, setDraggingUserId] = useState(null);
@@ -68,6 +69,10 @@ export default function Index({ sections, totalUsers, departments, filters }) {
         email: '',
         office: '',
         sort_order: '',
+    });
+
+    const departmentForm = useForm({
+        name: '',
     });
 
     useEffect(() => {
@@ -198,6 +203,23 @@ export default function Index({ sections, totalUsers, departments, filters }) {
             preserveScroll: true,
             onSuccess: () => {
                 setAddDialogOpen(false);
+            },
+        });
+    };
+
+    const openAddDepartmentDialog = () => {
+        departmentForm.setData('name', '');
+        departmentForm.clearErrors();
+        setAddDepartmentDialogOpen(true);
+    };
+
+    const submitAddDepartment = (event) => {
+        event.preventDefault();
+
+        departmentForm.post(route('phonebook.departments.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setAddDepartmentDialogOpen(false);
             },
         });
     };
@@ -757,6 +779,45 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 </DialogContent>
             </Dialog>
 
+            <Dialog
+                open={addDepartmentDialogOpen}
+                onOpenChange={(open) => {
+                    setAddDepartmentDialogOpen(open);
+
+                    if (!open) {
+                        departmentForm.clearErrors();
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Добавить отдел</DialogTitle>
+                        <DialogDescription>
+                            Новый отдел сразу появится в фильтре и в карточках сотрудников.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form className="space-y-3" onSubmit={submitAddDepartment}>
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">Название отдела</label>
+                            <Input
+                                value={departmentForm.data.name}
+                                onChange={(event) => departmentForm.setData('name', event.target.value)}
+                                placeholder="Например: Отдел кадров"
+                            />
+                            {departmentForm.errors.name && <p className="text-sm text-destructive">{departmentForm.errors.name}</p>}
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setAddDepartmentDialogOpen(false)}>
+                                Отмена
+                            </Button>
+                            <Button type="submit" disabled={departmentForm.processing}>Добавить отдел</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
             <div className="admin-page-wrap space-y-4">
                 <PageHeader
                     eyebrow="Directory"
@@ -795,7 +856,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 />
 
                 <FilterBar>
-                        <form className="grid gap-3 md:grid-cols-[1fr_260px_auto_auto]" onSubmit={submitFilters}>
+                    <form className="grid gap-3 md:grid-cols-[1fr_260px_auto_auto_auto]" onSubmit={submitFilters}>
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-muted-foreground">Поиск</label>
                                 <div className="relative">
@@ -828,6 +889,14 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             <div className="flex items-end">
                                 <Button type="submit" className="w-full md:w-auto">Применить</Button>
                             </div>
+
+                            {canManageDirectory && (
+                                <div className="flex items-end">
+                                    <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openAddDepartmentDialog}>
+                                        Добавить отдел
+                                    </Button>
+                                </div>
+                            )}
 
                             <div className="flex items-end">
                                 <Button type="button" variant="outline" className="w-full md:w-auto" onClick={clearFilters}>
