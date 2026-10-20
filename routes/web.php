@@ -45,6 +45,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\DepartmentRequestController;
 use App\Http\Controllers\PositionChangeRequestController;
 use App\Http\Controllers\AcademicMobilityController;
+use App\Http\Controllers\TeacherAiLessonController;
 use App\Http\Controllers\TeacherAiReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -102,6 +103,15 @@ Route::middleware(['auth', 'verified', 'track.last-seen'])->prefix('teacher-ai')
     Route::get('/reviews/{review}', [TeacherAiReviewController::class, 'show'])->whereNumber('review')->name('reviews.show');
     Route::post('/reviews/{review}/retry', [TeacherAiReviewController::class, 'retry'])->whereNumber('review')->middleware('throttle:10,1')->name('reviews.retry');
     Route::delete('/reviews/{review}', [TeacherAiReviewController::class, 'destroy'])->whereNumber('review')->name('reviews.destroy');
+
+    Route::get('/lessons', [TeacherAiLessonController::class, 'index'])->name('lessons.index');
+    Route::post('/lessons', [TeacherAiLessonController::class, 'store'])->middleware('throttle:10,1')->name('lessons.store');
+    Route::get('/lessons/{lesson}', [TeacherAiLessonController::class, 'show'])->whereNumber('lesson')->name('lessons.show');
+    Route::post('/lessons/{lesson}/retry', [TeacherAiLessonController::class, 'retry'])->whereNumber('lesson')->middleware('throttle:10,1')->name('lessons.retry');
+    Route::delete('/lessons/{lesson}', [TeacherAiLessonController::class, 'destroy'])->whereNumber('lesson')->name('lessons.destroy');
+    Route::get('/lessons/{lesson}/download/lecture', [TeacherAiLessonController::class, 'downloadLecture'])->whereNumber('lesson')->name('lessons.download.lecture');
+    Route::get('/lessons/{lesson}/download/presentation', [TeacherAiLessonController::class, 'downloadPresentation'])->whereNumber('lesson')->name('lessons.download.presentation');
+    Route::get('/lessons/{lesson}/images/{slide}', [TeacherAiLessonController::class, 'image'])->whereNumber(['lesson', 'slide'])->name('lessons.image');
 });
 
 // Department requests — all authenticated users

@@ -732,14 +732,21 @@ export function AppSidebar() {
         ]),
     ];
 
-    // ИИ-помощник — всем, кто преподаёт (роли совпадают с TeacherAiReviewController)
+    // AI-ассистент — всем, кто преподаёт (роли совпадают с TeacherAiReviewController / TeacherAiLessonController).
+    // «Ассистент преподавателя» генерирует лекции и презентации, «Проверка документов» — рецензирует загруженные файлы.
     const canAccessTeacherAi = isTeacherRole || isHodRole || isDeanRole || isAdminRole;
     const teacherAiItems = canAccessTeacherAi ? [
         {
+            title: 'Ассистент преподавателя',
+            href: route('teacher-ai.lessons.index'),
+            icon: Sparkles,
+            active: route().current('teacher-ai.lessons.*'),
+        },
+        {
             title: 'Проверка документов',
             href: route('teacher-ai.reviews.index'),
-            icon: Sparkles,
-            active: route().current('teacher-ai.*'),
+            icon: FileCheck,
+            active: route().current('teacher-ai.reviews.*'),
         },
     ] : [];
 
@@ -1043,7 +1050,7 @@ export function AppSidebar() {
                 )}
 
                 {teacherAiItems.length > 0 && (
-                    renderGroup('teacherAi', 'ИИ-помощник', teacherAiItems)
+                    renderGroup('teacherAi', 'AI-ассистент', teacherAiItems)
                 )}
 
                 {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && testingItems.length > 0 && !showOnlyKpiMenus && (

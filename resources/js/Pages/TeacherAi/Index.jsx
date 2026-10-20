@@ -75,7 +75,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
         <AuthenticatedLayout
             header={(
                 <div className="space-y-2">
-                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">ИИ-помощник преподавателя</p>
+                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">AI-ассистент преподавателя</p>
                     <h2 className="text-2xl font-semibold text-slate-900">Проверка документов</h2>
                     <p className="max-w-3xl text-sm text-slate-600">
                         ИИ кратко перескажет документ и отметит спорные места. Это только подсказки:
@@ -88,7 +88,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                 {!aiEnabled && (
                     <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                         <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-                        <p>ИИ-помощник сейчас отключён. Обратитесь к администратору системы.</p>
+                        <p>AI-ассистент сейчас отключён. Обратитесь к администратору системы.</p>
                     </div>
                 )}
 

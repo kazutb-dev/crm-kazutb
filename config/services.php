@@ -52,6 +52,20 @@ return [
         'max_chars' => env('TEACHER_AI_MAX_CHARS', 60000),
         'daily_limit' => env('TEACHER_AI_DAILY_LIMIT', 20),
         'pdftotext_binary' => env('TEACHER_AI_PDFTOTEXT_BINARY', 'pdftotext'),
+        // Lesson generator (lectures + presentations). Shares endpoint/key with reviews.
+        'lesson_daily_limit' => env('TEACHER_AI_LESSON_DAILY_LIMIT', 10),
+        'lesson_timeout' => env('TEACHER_AI_LESSON_TIMEOUT', 90),
+        'lesson_model' => env('TEACHER_AI_LESSON_MODEL'),
+        'lesson_concurrency' => env('TEACHER_AI_LESSON_CONCURRENCY', 4),
+        'lesson_city' => env('TEACHER_AI_LESSON_CITY'),
+        // Slide illustrations (OpenAI images API, same key).
+        'images_enabled' => env('TEACHER_AI_IMAGES_ENABLED', true),
+        'image_model' => env('TEACHER_AI_IMAGE_MODEL', 'gpt-image-1.5'),
+        'image_quality' => env('TEACHER_AI_IMAGE_QUALITY', 'low'),
+        'image_endpoint' => env('TEACHER_AI_IMAGE_ENDPOINT', 'https://api.openai.com/v1/images/generations'),
+        'image_timeout' => env('TEACHER_AI_IMAGE_TIMEOUT', 90),
+        'images_max' => env('TEACHER_AI_IMAGES_MAX', 8),
+        'image_concurrency' => env('TEACHER_AI_IMAGE_CONCURRENCY', 3),
     ],
 
     'openai' => [
