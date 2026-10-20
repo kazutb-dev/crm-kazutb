@@ -45,6 +45,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\DepartmentRequestController;
 use App\Http\Controllers\PositionChangeRequestController;
 use App\Http\Controllers\AcademicMobilityController;
+use App\Http\Controllers\TeacherAiReviewController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
@@ -93,6 +94,15 @@ Route::get('/special/login-image', function (Request $request) {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'track.last-seen'])
     ->name('dashboard');
+
+// ИИ-помощник преподавателя — роли проверяются в контроллере
+Route::middleware(['auth', 'verified', 'track.last-seen'])->prefix('teacher-ai')->name('teacher-ai.')->group(function () {
+    Route::get('/reviews', [TeacherAiReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews', [TeacherAiReviewController::class, 'store'])->middleware('throttle:10,1')->name('reviews.store');
+    Route::get('/reviews/{review}', [TeacherAiReviewController::class, 'show'])->whereNumber('review')->name('reviews.show');
+    Route::post('/reviews/{review}/retry', [TeacherAiReviewController::class, 'retry'])->whereNumber('review')->middleware('throttle:10,1')->name('reviews.retry');
+    Route::delete('/reviews/{review}', [TeacherAiReviewController::class, 'destroy'])->whereNumber('review')->name('reviews.destroy');
+});
 
 // Department requests — all authenticated users
 Route::middleware(['auth', 'verified', 'track.last-seen'])->group(function () {

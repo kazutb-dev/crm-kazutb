@@ -82,6 +82,8 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'AcademicYears/Index': 'Учебные годы',
         'EducationalPrograms/Index': 'Образовательные программы',
         'Phonebook/Index': 'Справочник сотрудников',
+        'TeacherAi/Index': 'ИИ-помощник — Проверка документов',
+        'TeacherAi/Show': 'ИИ-помощник — Результат проверки',
         'Users/Index': 'Пользователи',
         'Users/AdminAccess': 'Права администратора',
         'Governance/OrgStructure': 'Управление доступом — Оргструктура',
