@@ -133,7 +133,7 @@ class TeacherAiReviewController extends Controller
             'focus' => $validated['focus'] ?? null,
             'content_text' => $prepared['text'],
             'content_chars' => $prepared['chars'],
-            'is_truncated' => $prepared['truncated'],
+            'is_partial' => $prepared['truncated'],
             'status' => TeacherAiReview::STATUS_PENDING,
         ]);
 
@@ -162,7 +162,7 @@ class TeacherAiReviewController extends Controller
                 'can_retry' => $review->canRetry(),
                 'content_chars' => $review->content_chars,
                 'analyzed_chars' => mb_strlen($review->content_text),
-                'is_truncated' => $review->is_truncated,
+                'is_partial' => $review->is_partial,
                 'summary' => $review->summary,
                 'key_points' => $review->key_points ?? [],
                 'findings' => $review->findings ?? [],
