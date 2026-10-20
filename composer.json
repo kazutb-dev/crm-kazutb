@@ -16,7 +16,9 @@
         "laravel/pulse": "^1.7",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "phpoffice/phppresentation": "^1.2",
         "phpoffice/phpspreadsheet": "^3.10",
+        "phpoffice/phpword": "^1.4",
         "spatie/laravel-activitylog": "^4.12",
         "tightenco/ziggy": "^2.0"
     },
