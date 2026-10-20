@@ -42,6 +42,7 @@ import {
     ChevronDown,
     Megaphone,
     MapPinned,
+    Sparkles,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -51,6 +52,7 @@ const SIDEBAR_GROUP_KEYS = [
     'directories',
     'governance',
     'kpi',
+    'teacherAi',
     'testing',
     'languageTesting',
     'questionnaire',
@@ -730,6 +732,17 @@ export function AppSidebar() {
         ]),
     ];
 
+    // ИИ-помощник — всем, кто преподаёт (роли совпадают с TeacherAiReviewController)
+    const canAccessTeacherAi = isTeacherRole || isHodRole || isDeanRole || isAdminRole;
+    const teacherAiItems = canAccessTeacherAi ? [
+        {
+            title: 'Проверка документов',
+            href: route('teacher-ai.reviews.index'),
+            icon: Sparkles,
+            active: route().current('teacher-ai.*'),
+        },
+    ] : [];
+
     const phonebookItems = [
         {
             title: 'Телефонный справочник',
@@ -781,6 +794,7 @@ export function AppSidebar() {
         directories: !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && management.some((item) => item.active),
         governance: isAdminRole && !showOnlyKpiMenus && governance.some((item) => item.active),
         kpi: kpiMenuItems.length > 0 && kpiMenuItems.some((item) => item.active),
+        teacherAi: teacherAiItems.some((item) => item.active),
         testing: testingItems.some((item) => item.active),
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
@@ -884,6 +898,7 @@ export function AppSidebar() {
         directories: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus,
         governance: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         kpi: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && kpiMenuItems.length > 0,
+        teacherAi: teacherAiItems.length > 0,
         testing: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && testingItems.length > 0 && !showOnlyKpiMenus,
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
@@ -901,6 +916,7 @@ export function AppSidebar() {
         directories: management,
         governance,
         kpi: kpiMenuItems,
+        teacherAi: teacherAiItems,
         testing: testingItems,
         languageTesting: languageTestingItems,
         questionnaire,
@@ -1024,6 +1040,10 @@ export function AppSidebar() {
 
                 {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && kpiMenuItems.length > 0 && (
                     renderGroup('kpi', 'KPI Система', kpiMenuItems)
+                )}
+
+                {teacherAiItems.length > 0 && (
+                    renderGroup('teacherAi', 'ИИ-помощник', teacherAiItems)
                 )}
 
                 {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && testingItems.length > 0 && !showOnlyKpiMenus && (

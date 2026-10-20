@@ -43,6 +43,17 @@ return [
         'timeout' => env('TOPIC_AI_TIMEOUT', 15),
     ],
 
+    'teacher_ai' => [
+        'enabled' => env('TEACHER_AI_ENABLED', false),
+        'endpoint' => env('TEACHER_AI_ENDPOINT', 'https://api.openai.com/v1/chat/completions'),
+        'model' => env('TEACHER_AI_MODEL', 'gpt-4o-mini'),
+        'api_key' => env('TEACHER_AI_API_KEY'),
+        'timeout' => env('TEACHER_AI_TIMEOUT', 90),
+        'max_chars' => env('TEACHER_AI_MAX_CHARS', 60000),
+        'daily_limit' => env('TEACHER_AI_DAILY_LIMIT', 20),
+        'pdftotext_binary' => env('TEACHER_AI_PDFTOTEXT_BINARY', 'pdftotext'),
+    ],
+
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
