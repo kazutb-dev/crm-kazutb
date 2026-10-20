@@ -44,7 +44,7 @@ class RunTeacherAiReview implements ShouldQueue
                 $review->document_type,
                 $review->content_text,
                 $review->focus,
-                $review->is_truncated,
+                $review->is_partial,
             );
         } catch (TeacherAiReviewException $e) {
             $this->markFailed($review, $e->getMessage());

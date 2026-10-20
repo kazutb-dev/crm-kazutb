@@ -33,7 +33,7 @@ class TeacherAiReview extends Model
         'focus',
         'content_text',
         'content_chars',
-        'is_truncated',
+        'is_partial',
         'status',
         'summary',
         'key_points',
@@ -49,7 +49,7 @@ class TeacherAiReview extends Model
     protected $casts = [
         'key_points' => 'array',
         'findings' => 'array',
-        'is_truncated' => 'boolean',
+        'is_partial' => 'boolean',
         'content_chars' => 'integer',
         'prompt_tokens' => 'integer',
         'completion_tokens' => 'integer',

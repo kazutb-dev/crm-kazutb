@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('focus')->nullable();
             $table->longText('content_text');
             $table->unsignedInteger('content_chars')->default(0);
-            $table->boolean('is_truncated')->default(false);
+            $table->boolean('is_partial')->default(false);
             $table->string('status', 20)->default('pending');
             $table->text('summary')->nullable();
             $table->json('key_points')->nullable();
