@@ -41,6 +41,40 @@ class AuditLogService
         ]);
     }
 
+    /**
+     * Generic business event (e.g. the HR module: a document generated or downloaded).
+     * Callers keep personal data out of the label, description and metadata.
+     *
+     * @param  array<string, mixed>  $metadata
+     */
+    public function logEvent(
+        string $eventType,
+        string $subjectType,
+        ?int $subjectId,
+        string $subjectLabel,
+        string $description,
+        array $metadata = [],
+        ?User $actor = null,
+        ?Request $request = null,
+    ): void {
+        $request ??= app()->bound('request') ? request() : null;
+        $actor ??= $request?->user();
+
+        $this->create([
+            'user_id' => $actor?->id,
+            'actor_name' => $actor?->name ?? 'Система',
+            'actor_email' => $actor?->email,
+            'event_type' => $eventType,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'subject_label' => $subjectLabel,
+            'description' => $description,
+            'ip_address' => $request?->ip(),
+            'user_agent' => $request?->userAgent(),
+            'metadata' => $metadata,
+        ]);
+    }
+
     public function logCreated(Model $model, ?User $actor = null, ?Request $request = null): void
     {
         $request ??= request();
