@@ -5,9 +5,9 @@ import StepContract from '@/components/hr-hiring/StepContract';
 import StepEmployee from '@/components/hr-hiring/StepEmployee';
 import { fieldElementId, fieldId, fullNameAccusative, missingFields, parseIin } from '@/components/hr-hiring/logic';
 import { buttonClassName, MissingFieldsContext, StatusBadge, validationErrors } from '@/components/hr-hiring/ui';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, Check, CircleAlert, FolderOpen, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, FlaskConical, FolderOpen, LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SAVE_DELAY_MS = 1200;
@@ -209,6 +209,16 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
         markDirty();
     };
 
+    /** Administrators: replace the data of this draft with demo data (the page reloads from the server). */
+    const fillDemo = () => {
+        if (!window.confirm('Заменить все данные этого черновика демо-данными?')) {
+            return;
+        }
+        window.clearTimeout(timerRef.current);
+        savedEditRef.current = editRef.current;
+        router.post(route('hr.hiring.demo.fill', hiring.id), {}, { preserveState: false, preserveScroll: false });
+    };
+
     const changeStep = (target) => {
         setStep(target);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -292,6 +302,11 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                         <SaveIndicator saveState={saveState} />
+                        {abilities.rights && hiring.status === 'draft' && (
+                            <button type="button" onClick={fillDemo} className={buttonClassName.secondary} title="Заполнить выдуманными данными для проверки документов (видят только администраторы)">
+                                <FlaskConical className="h-4 w-4" /> Демо-данные
+                            </button>
+                        )}
                         <Link href={route('hr.hiring.show', hiring.id)} className={buttonClassName.secondary}>
                             <FolderOpen className="h-4 w-4" /> Карточка приёма
                         </Link>
