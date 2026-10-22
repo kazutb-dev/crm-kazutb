@@ -43,13 +43,14 @@ import {
     Megaphone,
     MapPinned,
     Sparkles,
-    Contact,
+    UserPlus,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const SIDEBAR_GROUPS_STORAGE_KEY = 'kazutb.crm.sidebar.expanded-groups.v2';
 const SIDEBAR_GROUP_KEYS = [
     'main',
+    'hiring',
     'directories',
     'governance',
     'kpi',
@@ -66,8 +67,9 @@ const SIDEBAR_GROUP_KEYS = [
     'phonebook',
 ];
 
+// «Отдел кадров» holds a single item, so it starts expanded.
 const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
-    acc[key] = false;
+    acc[key] = key === 'hiring';
     return acc;
 }, {});
 
@@ -528,8 +530,15 @@ export function AppSidebar() {
     })();
 
 
-    // «Отдел кадров» (the hiring module) is a standalone item above all sections: the hr role and administrators.
-    const showHrDepartment = (isAdminRole || isHrRole) && !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !showOnlyKpiMenus;
+    // «Приём на работу» is a section of its own, open to the hr role and administrators.
+    const hiringItems = isAdminRole || isHrRole ? [
+        {
+            title: 'Приём на работу',
+            href: route('hr.hiring.index'),
+            icon: UserPlus,
+            active: route().current('hr.hiring.*'),
+        },
+    ] : [];
 
     const hr = isAdminRole ? [
         {
@@ -810,6 +819,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
+        hiring: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hiringItems.some((item) => item.active),
         hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
@@ -914,6 +924,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
+        hiring: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
         hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
@@ -924,6 +935,7 @@ export function AppSidebar() {
 
     const groupItems = {
         main: navigation,
+        hiring: hiringItems,
         directories: management,
         governance,
         kpi: kpiMenuItems,
@@ -1037,23 +1049,12 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent ref={sidebarContentRef} className="pb-2">
-                {showHrDepartment && (
-                    <SidebarGroup className="border-b border-sidebar-border/80 pb-3">
-                        <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild size="lg" isActive={route().current('hr.hiring.*')} tooltip="Отдел кадров">
-                                    <Link href={route('hr.hiring.index')}>
-                                        <Contact />
-                                        <span className="font-semibold">Отдел кадров</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarGroup>
-                )}
-
                 {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus && (
                     renderGroup('main', 'Основное', navigation)
+                )}
+
+                {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
+                    renderGroup('hiring', 'Отдел кадров', hiringItems)
                 )}
 
                 {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && (
