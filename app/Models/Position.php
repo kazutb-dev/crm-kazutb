@@ -16,6 +16,19 @@ class Position extends Model
     public const AUTHORITY_FLAG_WORKFLOW = 'workflow_authority';
     public const AUTHORITY_FLAG_KPI = 'kpi_authority';
 
+    /** Staff categories of the hiring module: teaching, administrative, support staff. */
+    public const CATEGORY_PPS = 'pps';
+
+    public const CATEGORY_AUP = 'aup';
+
+    public const CATEGORY_UVP = 'uvp';
+
+    public const CATEGORY_LABELS = [
+        self::CATEGORY_PPS => 'ППС',
+        self::CATEGORY_AUP => 'АУП',
+        self::CATEGORY_UVP => 'УВП',
+    ];
+
     /**
      * @var list<string>
      */
@@ -24,6 +37,19 @@ class Position extends Model
         'name',
         'code',
         'description',
+        'staff_category',
+        'name_ru_gen',
+        'name_kz',
+        'name_kz_poss',
+        'case_forms_verified_at',
+        'case_forms_verified_by',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'case_forms_verified_at' => 'datetime',
     ];
 
     public function division(): BelongsTo
