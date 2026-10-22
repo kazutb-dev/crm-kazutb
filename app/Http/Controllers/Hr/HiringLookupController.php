@@ -139,7 +139,7 @@ class HiringLookupController extends Controller
         $duplicate = ! empty($data['value']) ? $numbers->duplicateOf($data['kind'], $data['value'], $year, $data['hiring'] ?? null) : null;
 
         return response()->json([
-            'next' => $numbers->next($data['kind'], $year),
+            'next' => $numbers->next($data['kind'], $year, $data['hiring'] ?? null),
             'year' => $year,
             'duplicate_hiring_id' => $duplicate,
         ]);

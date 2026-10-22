@@ -18,9 +18,10 @@ class HrNumberSuggester
 
     public const ORDER_SUFFIX = '-К';
 
-    public function next(string $kind, int $year): string
+    /** The hiring being edited does not count, so its own number is not «taken». */
+    public function next(string $kind, int $year, ?int $exceptHiringId = null): string
     {
-        $max = $this->numbersOfYear($kind, $year)
+        $max = $this->numbersOfYear($kind, $year, $exceptHiringId)
             ->map(fn (?string $number): int => preg_match('/^\s*(\d+)/u', (string) $number, $match) ? (int) $match[1] : 0)
             ->max() ?? 0;
 
@@ -58,10 +59,10 @@ class HrNumberSuggester
             ->value('hiring_id');
     }
 
-    private function numbersOfYear(string $kind, int $year)
+    private function numbersOfYear(string $kind, int $year, ?int $exceptHiringId)
     {
         return $kind === self::ORDER
-            ? HrHiring::query()->whereYear('order_date', $year)->pluck('order_number')
-            : HrEmploymentContract::query()->whereYear('date', $year)->whereHas('hiring')->pluck('number');
+            ? HrHiring::query()->whereYear('order_date', $year)->when($exceptHiringId, fn ($q) => $q->whereKeyNot($exceptHiringId))->pluck('order_number')
+            : HrEmploymentContract::query()->whereYear('date', $year)->whereHas('hiring')->when($exceptHiringId, fn ($q) => $q->where('hiring_id', '!=', $exceptHiringId))->pluck('number');
     }
 }

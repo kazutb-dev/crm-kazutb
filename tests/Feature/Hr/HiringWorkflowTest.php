@@ -196,7 +196,7 @@ class HiringWorkflowTest extends TestCase
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.numbers', ['kind' => 'order', 'date' => '2027-11-01', 'value' => '412-К', 'hiring' => $other->id]))
             ->assertJson(['duplicate_hiring_id' => null]);
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.numbers', ['kind' => 'contract', 'date' => '2026-11-01', 'value' => '412', 'hiring' => $hiring->id]))
-            ->assertJson(['duplicate_hiring_id' => null]);
+            ->assertJson(['duplicate_hiring_id' => null, 'next' => '1'], 'the hiring\'s own number is neither a duplicate nor taken');
     }
 
     public function test_lookups_find_units_positions_and_people(): void
