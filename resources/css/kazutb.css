@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ---- Fonts ---- */
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Fonts (Google Sans, Google Sans Code) are loaded in resources/views/app.blade.php. */
 
 :root {
   /* ---- Brand: Navy (dark-blue) ---- */
@@ -102,9 +102,10 @@
   --gradient-aurora: linear-gradient(135deg, var(--navy-800) 0%, var(--teal-700) 60%, var(--gold-500) 130%);
 
   /* ---- Typography ---- */
-  --font-display: 'Unbounded', 'Manrope', system-ui, sans-serif;
-  --font-sans:    'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  --font-display: 'Google Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans:    'Google Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Google Sans Code has no Cyrillic: letters fall back to Google Sans, digits stay monospaced. */
+  --font-mono:    'Google Sans Code', 'Google Sans', ui-monospace, 'SFMono-Regular', monospace;
   --font-heading: var(--font-display);
   --font-body:    var(--font-sans);
   --font-eyebrow: var(--font-sans);
