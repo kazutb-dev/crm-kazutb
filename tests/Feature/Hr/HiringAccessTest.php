@@ -74,6 +74,8 @@ class HiringAccessTest extends TestCase
             'save' => ['putJson', 'hr.hiring.update', 'hiring', null],
             'delete draft' => ['delete', 'hr.hiring.destroy', 'fresh_draft', null],
             'rehire' => ['post', 'hr.hiring.rehire', 'hiring', null],
+            'demo hiring' => ['post', 'hr.hiring.demo.store', 'none', 'admin'],
+            'demo fill' => ['post', 'hr.hiring.demo.fill', 'hiring', 'admin'],
             'photo' => ['get', 'hr.hiring.photo.show', 'hiring', null],
             'photo upload' => ['post', 'hr.hiring.photo.store', 'hiring', null],
             'photo delete' => ['deleteJson', 'hr.hiring.photo.destroy', 'hiring', null],
