@@ -97,12 +97,12 @@ class EnsurePanelRoleAccess
         }
 
         if ($role === 'hr') {
-            if ($this->startsWith($routeName, 'phonebook.')) {
+            if ($this->startsWith($routeName, 'phonebook.') || $this->startsWith($routeName, 'hr.hiring.')) {
                 return $next($request);
             }
 
             if ($request->expectsJson()) {
-                return $this->forbidden($request, 'Для роли hr доступен только телефонный справочник.');
+                return $this->forbidden($request, 'Для роли hr доступны телефонный справочник и приём на работу.');
             }
 
             return redirect()->route('phonebook.index');

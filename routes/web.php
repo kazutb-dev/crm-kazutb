@@ -1945,4 +1945,5 @@ Route::middleware(['auth', 'panel.role.access', 'track.last-seen'])->group(funct
 Route::get('certificate/verify/{certificateNumber}', [CertificateRegistryController::class, 'verify'])
     ->name('certificates.verify');
 
+require __DIR__ . '/hr.php';
 require __DIR__ . '/auth.php';

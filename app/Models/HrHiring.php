@@ -123,6 +123,17 @@ class HrHiring extends Model
         return $this->hasMany(HrDocument::class, 'hiring_id');
     }
 
+    public function previews(): HasMany
+    {
+        return $this->hasMany(HrDocumentPreview::class, 'hiring_id');
+    }
+
+    /** The employee's scans, reachable from the hiring for scoped route bindings. */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(HrEmployeeAttachment::class, 'employee_id', 'employee_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

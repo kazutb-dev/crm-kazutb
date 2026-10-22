@@ -26,6 +26,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use App\Services\Hr\HrAccess;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
@@ -59,6 +60,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Announcement::class, AnnouncementPolicy::class);
         Gate::policy(KpiPeriod::class, KpiPeriodPolicy::class);
         Gate::policy(KpiEntry::class, KpiEntryPolicy::class);
+
+        // «Приём на работу»: module access and its separate rights (see App\Services\Hr\HrAccess).
+        Gate::define('hr-hiring', fn (User $user): bool => app(HrAccess::class)->canUseModule($user));
+        Gate::define('hr-hiring.sensitive', fn (User $user): bool => app(HrAccess::class)->canViewSensitive($user));
+        Gate::define('hr-hiring.catalog', fn (User $user): bool => app(HrAccess::class)->canManageCatalog($user));
+        Gate::define('hr-hiring.rights', fn (User $user): bool => app(HrAccess::class)->isAdmin($user));
 
         Gate::define('viewPulse', function (User $user): bool {
             return in_array($user->resolvedRoleSlug(), ['admin', 'superadmin'], true);
