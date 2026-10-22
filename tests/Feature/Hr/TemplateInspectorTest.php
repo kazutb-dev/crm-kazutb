@@ -71,6 +71,19 @@ class TemplateInspectorTest extends TestCase
         $this->assertContains('В шаблоне нет обязательного тега «${fio}».', $errors);
     }
 
+    public function test_oversized_document_is_refused_before_unpacking(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'hr-big-').'.docx';
+        $this->files[] = $path;
+        copy(HrDocumentTemplate::builtInPath(HrDocumentTemplate::TYPE_ORDER), $path);
+        $zip = new ZipArchive;
+        $zip->open($path);
+        $zip->addFromString('word/document.xml', str_repeat(' ', TemplateInspector::MAX_DOCUMENT_XML_BYTES + 1));
+        $zip->close();
+
+        $this->assertSame(['Документ слишком большой для шаблона.'], app(TemplateInspector::class)->inspect($path, HrDocumentTemplate::TYPE_ORDER)['errors']);
+    }
+
     public function test_not_a_word_file(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'hr-bad-');

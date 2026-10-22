@@ -12,6 +12,9 @@ use ZipArchive;
  */
 final class TemplateInspector
 {
+    /** The sample contract unpacks to ~0.6 MB; anything far larger is not a real template (zip bomb guard). */
+    public const MAX_DOCUMENT_XML_BYTES = 20 * 1024 * 1024;
+
     /**
      * @return array{errors: list<string>, tags: list<string>}
      */
@@ -21,7 +24,11 @@ final class TemplateInspector
         if ($zip->open($path) !== true || $zip->locateName('word/document.xml') === false) {
             return ['errors' => ['Файл не является документом Word (.docx).'], 'tags' => []];
         }
+        $size = $zip->statName('word/document.xml')['size'] ?? 0;
         $zip->close();
+        if ($size > self::MAX_DOCUMENT_XML_BYTES) {
+            return ['errors' => ['Документ слишком большой для шаблона.'], 'tags' => []];
+        }
 
         try {
             $processor = new HrTemplateProcessor($path);
