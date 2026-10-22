@@ -7,6 +7,7 @@ use App\Models\HrDocumentPreview;
 use App\Models\HrDocumentTemplate;
 use App\Models\HrEmployeeAttachment;
 use App\Models\HrHiring;
+use App\Models\OrgUnit;
 use App\Models\Position;
 use App\Models\User;
 use App\Services\Hr\HiringDocumentGenerator;
@@ -59,7 +60,7 @@ class HiringAccessTest extends TestCase
     }
 
     /**
-     * [method, route name, params builder key, needed right: null | hr.* | admin | owner]
+     * Every route of the module: [method, route name, params builder key, needed right: null | hr.* | admin | owner].
      *
      * @return array<string, array{string, string, string, ?string}>
      */
@@ -67,40 +68,69 @@ class HiringAccessTest extends TestCase
     {
         return [
             'list' => ['get', 'hr.hiring.index', 'none', null],
+            'new draft' => ['post', 'hr.hiring.store', 'none', null],
             'wizard' => ['get', 'hr.hiring.edit', 'hiring', null],
             'card' => ['get', 'hr.hiring.show', 'hiring', null],
             'save' => ['putJson', 'hr.hiring.update', 'hiring', null],
+            'delete draft' => ['delete', 'hr.hiring.destroy', 'fresh_draft', null],
+            'rehire' => ['post', 'hr.hiring.rehire', 'hiring', null],
             'photo' => ['get', 'hr.hiring.photo.show', 'hiring', null],
-            'download' => ['get', 'hr.hiring.documents.download', 'document', null],
+            'photo upload' => ['post', 'hr.hiring.photo.store', 'hiring', null],
+            'photo delete' => ['deleteJson', 'hr.hiring.photo.destroy', 'hiring', null],
+            'attachment upload' => ['post', 'hr.hiring.attachments.store', 'hiring', null],
+            'attachment pdf' => ['get', 'hr.hiring.attachments.show', 'attachment', HrAccess::SENSITIVE],
+            'attachment delete' => ['deleteJson', 'hr.hiring.attachments.destroy', 'fresh_attachment', HrAccess::SENSITIVE],
             'generate' => ['postJson', 'hr.hiring.documents.generate', 'type', null],
+            'download' => ['get', 'hr.hiring.documents.download', 'document', null],
+            'sign' => ['post', 'hr.hiring.documents.sign', 'document', null],
+            'signed scan' => ['get', 'hr.hiring.documents.scan', 'document', HrAccess::SENSITIVE],
+            'preview request' => ['postJson', 'hr.hiring.previews.store', 'type', null],
             'preview status' => ['getJson', 'hr.hiring.previews.show', 'preview', 'owner'],
             'preview pdf' => ['get', 'hr.hiring.previews.pdf', 'preview', 'owner'],
             'lookup units' => ['getJson', 'hr.hiring.lookup.units', 'none', null],
+            'lookup positions' => ['getJson', 'hr.hiring.lookup.positions', 'none', null],
+            'lookup staff' => ['getJson', 'hr.hiring.lookup.staff', 'staff', null],
+            'lookup inflect' => ['postJson', 'hr.hiring.lookup.inflect', 'none', null],
             'lookup numbers' => ['getJson', 'hr.hiring.lookup.numbers', 'numbers', null],
             'settings' => ['get', 'hr.hiring.settings.index', 'none', null],
+            'employer' => ['put', 'hr.hiring.settings.employer', 'none', null],
+            'template upload' => ['post', 'hr.hiring.settings.templates.store', 'none', null],
+            'template activate' => ['post', 'hr.hiring.settings.templates.activate', 'template', null],
             'template download' => ['get', 'hr.hiring.settings.templates.download', 'template', null],
-            'attachment pdf' => ['get', 'hr.hiring.attachments.show', 'attachment', HrAccess::SENSITIVE],
-            'signed scan' => ['get', 'hr.hiring.documents.scan', 'document', HrAccess::SENSITIVE],
+            'catalog unit' => ['put', 'hr.hiring.settings.units.update', 'unit', HrAccess::CATALOG],
             'catalog position' => ['putJson', 'hr.hiring.settings.positions.update', 'position', HrAccess::CATALOG],
+            'catalog new position' => ['post', 'hr.hiring.settings.positions.store', 'none', HrAccess::CATALOG],
             'rights users' => ['getJson', 'hr.hiring.settings.users', 'users', 'admin'],
+            'rights grant' => ['post', 'hr.hiring.settings.rights.grant', 'none', 'admin'],
+            'rights revoke' => ['delete', 'hr.hiring.settings.rights.revoke', 'none', 'admin'],
         ];
+    }
+
+    public function test_every_module_route_is_in_the_access_matrix(): void
+    {
+        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes()->getRoutesByName())->keys()
+            ->filter(fn (string $name) => str_starts_with($name, 'hr.hiring.'))->sort()->values()->all();
+        $covered = collect(self::routes())->pluck(1)->sort()->values()->all();
+
+        $this->assertSame($routes, $covered);
     }
 
     #[DataProvider('routes')]
     public function test_route_access_by_role_and_right(string $method, string $name, string $params, ?string $right): void
     {
-        $url = route($name, $this->params($params));
+        $url = fn () => route($name, $this->params($params));
         $teacher = User::factory()->create(['role' => 'teacher']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->assertGuestBlocked($method, $url);
-        $this->assertBlocked($this->actingAs($teacher)->{$method}($url));
+        $this->assertGuestBlocked($method, $url());
+        $this->assertBlocked($this->actingAs($teacher)->{$method}($url(), $this->payload($name)));
 
-        $hrResponse = $this->actingAs($this->hr)->{$method}($url, $this->payload($name));
+        $hrUrl = $url();
+        $hrResponse = $this->actingAs($this->hr)->{$method}($hrUrl, $this->payload($name));
         if ($right === 'owner') {
             // A preview belongs to the person who requested it (here: the hr user), even administrators get 404.
             $this->assertLessThan(400, $hrResponse->getStatusCode(), "owner on {$name}");
-            $this->actingAs($admin)->{$method}($url)->assertNotFound();
+            $this->actingAs($admin)->{$method}($hrUrl)->assertNotFound();
 
             return;
         }
@@ -110,11 +140,13 @@ class HiringAccessTest extends TestCase
             $hrResponse->assertForbidden();
             if ($right !== 'admin') {
                 app(HrAccess::class)->grant($this->hr, $right, $admin);
-                $this->assertLessThan(400, $this->actingAs($this->hr->fresh())->{$method}($url, $this->payload($name))->getStatusCode(), "hr with {$right} on {$name}");
+                $this->assertLessThan(400, $this->actingAs($this->hr->fresh())->{$method}($url(), $this->payload($name))->getStatusCode(), "hr with {$right} on {$name}");
             }
         }
 
-        $this->assertLessThan(400, $this->actingAs($admin)->{$method}($url, $this->payload($name))->getStatusCode(), "admin on {$name}");
+        $adminResponse = $this->actingAs($admin)->{$method}($url(), $this->payload($name));
+        $this->assertLessThan(400, $adminResponse->getStatusCode(), "admin on {$name}: ".$adminResponse->getContent());
+        $this->assertSessionHasNoErrorsFor($adminResponse, $name);
     }
 
     public function test_a_document_of_another_hiring_is_not_reachable(): void
@@ -178,6 +210,8 @@ class HiringAccessTest extends TestCase
     }
 
     /**
+     * Route parameters; "fresh_*" builds a new record per call for routes that consume it.
+     *
      * @return array<string, mixed>
      */
     private function params(string $kind): array
@@ -185,13 +219,17 @@ class HiringAccessTest extends TestCase
         return match ($kind) {
             'none' => [],
             'hiring' => [$this->hiring],
+            'fresh_draft' => [HrHiring::query()->create(['employee_id' => $this->hiring->employee_id])],
             'document' => [$this->hiring, $this->document],
             'type' => [$this->hiring, 'order'],
             'preview' => [$this->hiring, $this->preview],
             'attachment' => [$this->hiring, $this->attachment],
+            'fresh_attachment' => [$this->hiring, $this->hiring->employee->attachments()->create(['doc_type' => 'other', 'original_name' => 'x.pdf', 'file_path' => 'hr/employees/x.pdf'])],
             'template' => [$this->template],
+            'unit' => [OrgUnit::query()->firstOrCreate(['code' => 'T_ACCESS'], ['name' => 'Отдел управления персоналом', 'unit_type' => OrgUnit::TYPE_OFFICE])],
             'position' => [Position::query()->firstOrFail()],
             'numbers' => ['kind' => 'contract'],
+            'staff' => ['q' => 'Тас'],
             'users' => ['q' => 'Тас'],
         };
     }
@@ -203,9 +241,34 @@ class HiringAccessTest extends TestCase
     {
         return match ($name) {
             'hr.hiring.update' => ['contract' => ['salary' => 390000]],
+            'hr.hiring.photo.store' => ['photo' => UploadedFile::fake()->image('photo.jpg', 300, 400)],
+            'hr.hiring.attachments.store' => ['doc_type' => 'diploma', 'file' => UploadedFile::fake()->create('d.pdf', 20, 'application/pdf')],
+            'hr.hiring.documents.sign' => ['scan' => UploadedFile::fake()->create('signed.pdf', 20, 'application/pdf')],
+            'hr.hiring.lookup.inflect' => ['kind' => 'position', 'name' => 'Старший преподаватель'],
+            'hr.hiring.settings.employer' => ['visa_name' => 'А. Қуат'],
+            'hr.hiring.settings.templates.store' => ['type' => 'order', 'file' => $this->templateUpload()],
+            'hr.hiring.settings.units.update' => ['name_ru_gen' => 'Отдела управления персоналом', 'verified' => true],
             'hr.hiring.settings.positions.update' => ['name_ru_gen' => 'старшего преподавателя', 'verified' => true],
+            'hr.hiring.settings.positions.store' => ['name' => 'Должность '.uniqid(), 'staff_category' => 'aup'],
+            'hr.hiring.settings.rights.grant', 'hr.hiring.settings.rights.revoke' => ['user_id' => $this->hr->id, 'capability' => HrAccess::CATALOG],
             default => [],
         };
+    }
+
+    private function templateUpload(): UploadedFile
+    {
+        $copy = tempnam(sys_get_temp_dir(), 'hr-access-').'.docx';
+        copy(HrDocumentTemplate::builtInPath('order'), $copy);
+
+        return new UploadedFile($copy, 'order.docx', null, null, true);
+    }
+
+    /** A redirect "back" with validation errors would hide a wrong payload behind a 302. */
+    private function assertSessionHasNoErrorsFor($response, string $name): void
+    {
+        if ($response->getStatusCode() === 302) {
+            $this->assertFalse(session()->has('errors'), "{$name} redirected with validation errors: ".json_encode(session('errors')?->all(), JSON_UNESCAPED_UNICODE));
+        }
     }
 
     private function assertGuestBlocked(string $method, string $url): void
