@@ -53,7 +53,12 @@ export default function Settings(props) {
                         </button>
                     ))}
                 </div>
-                {tab === 'employer' && <EmployerTab {...props} />}
+                {tab === 'employer' && (
+                    <div className="space-y-4">
+                        <NumberingCard numbering={props.numbering} />
+                        <EmployerTab {...props} />
+                    </div>
+                )}
                 {tab === 'templates' && <TemplatesTab {...props} />}
                 {tab === 'catalog' && <CatalogTab {...props} />}
                 {tab === 'rights' && abilities.rights && <RightsTab {...props} />}
@@ -88,6 +93,44 @@ function EmployerTab({ employer, employerFields }) {
             </div>
             <p className="text-xs text-slate-500">В многострочных полях перенос строки сохраняется в документе (как в образце договора).</p>
             <button type="submit" disabled={form.processing} className={buttonClassName.primary}>Сохранить</button>
+        </form>
+    );
+}
+
+function NumberingCard({ numbering }) {
+    const form = useForm({
+        year: numbering?.year ?? numbering?.current_year,
+        last_order_number: numbering?.year === numbering?.current_year ? (numbering?.last_order_number ?? '') : '',
+    });
+
+    const submit = (event) => {
+        event.preventDefault();
+        form.transform((data) => ({ ...data, last_order_number: data.last_order_number === '' ? null : Number(data.last_order_number) }));
+        form.put(route('hr.hiring.settings.numbering'), { preserveScroll: true });
+    };
+
+    return (
+        <form onSubmit={submit} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="font-semibold text-slate-900">Нумерация приказов «-К»</h3>
+            <p className="text-sm text-slate-600">
+                Другие кадровые приказы «-К» нумеруются вне системы. Укажите последний выданный номер — подсказка следующего номера
+                приказа о приёме продолжит с него. Номер действует для указанного года; с 1 января счёт начинается заново.
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+                <div>
+                    <label htmlFor="numbering-year" className="mb-1 block text-xs font-medium text-slate-600">Год</label>
+                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', Number(event.target.value))} className={`${inputClassName} w-28`} />
+                </div>
+                <div>
+                    <label htmlFor="numbering-last" className="mb-1 block text-xs font-medium text-slate-600">Последний номер приказа вне системы</label>
+                    <div className="flex items-center gap-1">
+                        <input id="numbering-last" inputMode="numeric" value={form.data.last_order_number} onChange={(event) => form.setData('last_order_number', event.target.value.replace(/\D/g, ''))} placeholder="например, 415" className={`${inputClassName} w-40 font-mono`} />
+                        <span className="text-sm text-slate-500">-К</span>
+                    </div>
+                </div>
+                <button type="submit" disabled={form.processing} className={buttonClassName.secondary}>Сохранить</button>
+            </div>
+            {(form.errors.year || form.errors.last_order_number) && <p className="text-xs text-rose-600">{form.errors.year ?? form.errors.last_order_number}</p>}
         </form>
     );
 }

@@ -27,7 +27,8 @@ export default function NumberHint({ kind, date, value, hiringId, onApply }) {
         <div className="mt-1 space-y-1 text-xs">
             {hint.next !== value && (
                 <p className="text-slate-500">
-                    Следующий свободный за {hint.year} г.: <span className="font-medium text-slate-700">{hint.next}</span>{' '}
+                    Следующий свободный за {hint.year} г.: <span className="font-medium text-slate-700">{hint.next}</span>
+                    {hint.external_last ? ` (учтён номер вне системы: ${hint.external_last}-К)` : ''}{' '}
                     <button type="button" onClick={() => onApply(hint.next)} className="font-medium text-teal-700 hover:underline">подставить</button>
                 </p>
             )}

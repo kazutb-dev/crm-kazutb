@@ -12,6 +12,7 @@ use App\Services\Hr\EmployerSettings;
 use App\Services\Hr\HrAccess;
 use App\Services\Hr\HrAuditLogger;
 use App\Services\Hr\HrDates;
+use App\Services\Hr\HrNumberSuggester;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -51,6 +52,7 @@ class HiringSettingsController extends Controller
         return Inertia::render('Hr/Hiring/Settings', [
             'tab' => $request->query('tab', 'employer'),
             'employer' => $this->employer->all(),
+            'numbering' => app(HrNumberSuggester::class)->externalSetting() + ['current_year' => (int) now()->year],
             'employerFields' => EmployerSettings::FIELDS,
             'templates' => $this->templates(),
             'units' => OrgUnit::query()->whereNotIn('unit_type', self::NOT_HIRING_UNITS)->with('parent:id,name')->orderBy('name')->get()
@@ -100,6 +102,22 @@ class HiringSettingsController extends Controller
         $this->audit->module(HrAuditLogger::SETTINGS_UPDATED, 'AppSetting', null, 'Изменены настройки работодателя', ['fields' => array_keys($data)], $request->user());
 
         return Redirect::back()->with('success', 'Настройки работодателя сохранены.');
+    }
+
+    /** The last «-К» order number issued outside the module for a year (the next-number hint continues from it). */
+    public function updateNumbering(Request $request, HrNumberSuggester $numbers): RedirectResponse
+    {
+        $data = $request->validate([
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'last_order_number' => ['nullable', 'integer', 'between:0,100000'],
+        ], [
+            'last_order_number.integer' => 'Укажите номер числом, без «-К».',
+        ]);
+
+        $numbers->setExternalOrderNumber((int) $data['year'], isset($data['last_order_number']) ? (int) $data['last_order_number'] : null);
+        $this->audit->module(HrAuditLogger::SETTINGS_UPDATED, 'AppSetting', null, 'Изменён последний номер приказа вне системы', ['year' => (int) $data['year']], $request->user());
+
+        return Redirect::back()->with('success', 'Номер сохранён: подсказка следующего номера приказа учтёт его.');
     }
 
     /**

@@ -25,6 +25,8 @@ class HrAuditLogger
 
     public const HIRING_DELETED = 'hr.hiring.deleted';
 
+    public const HIRING_PURGED = 'hr.hiring.purged';
+
     public const DOCUMENT_GENERATED = 'hr.document.generated';
 
     public const DOCUMENT_DOWNLOADED = 'hr.document.downloaded';

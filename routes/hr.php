@@ -19,6 +19,7 @@ Route::middleware(['auth', 'panel.role.access', 'can:hr-hiring', 'track.last-see
 
         Route::get('settings', [HiringSettingsController::class, 'index'])->name('settings.index');
         Route::put('settings/employer', [HiringSettingsController::class, 'updateEmployer'])->name('settings.employer');
+        Route::put('settings/numbering', [HiringSettingsController::class, 'updateNumbering'])->name('settings.numbering');
         Route::post('settings/templates', [HiringSettingsController::class, 'storeTemplate'])->middleware('throttle:20,1')->name('settings.templates.store');
         Route::post('settings/templates/{template}/activate', [HiringSettingsController::class, 'activateTemplate'])->whereNumber('template')->name('settings.templates.activate');
         Route::get('settings/templates/{template}/download', [HiringSettingsController::class, 'downloadTemplate'])->whereNumber('template')->name('settings.templates.download');

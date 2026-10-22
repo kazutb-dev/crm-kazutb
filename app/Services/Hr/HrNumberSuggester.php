@@ -2,6 +2,7 @@
 
 namespace App\Services\Hr;
 
+use App\Models\AppSetting;
 use App\Models\HrEmploymentContract;
 use App\Models\HrHiring;
 
@@ -18,6 +19,9 @@ class HrNumberSuggester
 
     public const ORDER_SUFFIX = '-К';
 
+    /** app_settings key: the last «-К» order number issued outside the module, for one year. */
+    public const EXTERNAL_KEY = 'hr_numbering';
+
     /** The hiring being edited does not count, so its own number is not «taken». */
     public function next(string $kind, int $year, ?int $exceptHiringId = null): string
     {
@@ -25,7 +29,41 @@ class HrNumberSuggester
             ->map(fn (?string $number): int => preg_match('/^\s*(\d+)/u', (string) $number, $match) ? (int) $match[1] : 0)
             ->max() ?? 0;
 
+        if ($kind === self::ORDER) {
+            $max = max($max, $this->externalOrderNumber($year) ?? 0);
+        }
+
         return $this->format($kind, $max + 1);
+    }
+
+    /**
+     * Personnel orders «-К» of other kinds are numbered outside the module; HR enters the last such number
+     * so the hint continues from it. It applies to its year only (the counter restarts on 1 January).
+     */
+    public function externalOrderNumber(int $year): ?int
+    {
+        $setting = $this->externalSetting();
+
+        return $setting['year'] === $year ? $setting['last_order_number'] : null;
+    }
+
+    /**
+     * @return array{year: ?int, last_order_number: ?int}
+     */
+    public function externalSetting(): array
+    {
+        $value = AppSetting::query()->where('key', self::EXTERNAL_KEY)->value('value');
+        $value = is_array($value) ? $value : [];
+
+        return [
+            'year' => isset($value['year']) ? (int) $value['year'] : null,
+            'last_order_number' => isset($value['last_order_number']) ? (int) $value['last_order_number'] : null,
+        ];
+    }
+
+    public function setExternalOrderNumber(int $year, ?int $number): void
+    {
+        AppSetting::query()->updateOrCreate(['key' => self::EXTERNAL_KEY], ['value' => ['year' => $year, 'last_order_number' => $number]]);
     }
 
     public function format(string $kind, int $number): string

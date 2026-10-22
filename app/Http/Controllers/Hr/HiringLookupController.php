@@ -140,6 +140,7 @@ class HiringLookupController extends Controller
 
         return response()->json([
             'next' => $numbers->next($data['kind'], $year, $data['hiring'] ?? null),
+            'external_last' => $data['kind'] === HrNumberSuggester::ORDER ? $numbers->externalOrderNumber($year) : null,
             'year' => $year,
             'duplicate_hiring_id' => $duplicate,
         ]);

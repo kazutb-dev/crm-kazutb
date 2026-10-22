@@ -8,6 +8,7 @@ use App\Models\HrDocument;
 use App\Models\HrHiring;
 use App\Services\Hr\DocxToPdfConverter;
 use App\Services\Hr\EmployerSettings;
+use App\Services\Hr\HiringCleanup;
 use App\Services\Hr\HiringOptions;
 use App\Services\Hr\HiringService;
 use App\Services\Hr\HrAccess;
@@ -107,14 +108,14 @@ class HiringController extends Controller
     }
 
     /** Only a draft without signed documents can be deleted. */
-    public function destroy(Request $request, HrHiring $hiring): RedirectResponse
+    /** Only a draft without signed documents can be deleted; its files go at once, the record after 30 days. */
+    public function destroy(Request $request, HrHiring $hiring, HiringCleanup $cleanup): RedirectResponse
     {
         if ($hiring->status !== HrHiring::STATUS_DRAFT || $hiring->documents()->where('status', HrDocument::STATUS_SIGNED)->exists()) {
             return Redirect::back()->with('error', 'Удалить можно только черновик без подписанных документов.');
         }
 
-        $hiring->delete();
-        $this->audit->hiring(HrAuditLogger::HIRING_DELETED, $hiring, 'Удалён черновик приёма #'.$hiring->id, [], $request->user());
+        $cleanup->deleteDraft($hiring, $request->user());
 
         return Redirect::route('hr.hiring.index')->with('success', 'Черновик удалён.');
     }
