@@ -256,7 +256,7 @@ _prod_smoke_check() {
     if [[ "$code" =~ ^5 ]]; then
         fail "PROD smoke test FAILED: ${label} returned HTTP ${code} (5xx server error)"
     fi
-    info "  smoke: ${label} → HTTP ${code} OK"
+    log "  smoke: ${label} → HTTP ${code} OK"
 }
 _prod_smoke_check "/"                      "https://crm.kaztbu.edu.kz/"
 _prod_smoke_check "/login"                 "https://crm.kaztbu.edu.kz/login"
