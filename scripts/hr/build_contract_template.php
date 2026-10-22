@@ -49,6 +49,7 @@ $e->block('if_prob', 27, 37);
 
 $e->blockAfter(44, 44, 'if_sched_aup', '${clause_3_1_2_aup_kz}')->block('if_sched_pps', 44, 44);
 $e->blockAfter(45, 42, 'if_sched_shift', '${clause_3_1_shift_kz}');
+$e->replace(45, '12.30-дан 13.30-ға дейін', '${break_kz}');
 $e->block('if_week', 42, 43)->block('if_week', 45, 45);
 
 $e->replace(47, '56 (елу алты)', '${vac_days} (${vac_days_kz})');
@@ -101,6 +102,7 @@ $e->block('if_prob', 326, 335);
 
 $e->blockAfter(342, 342, 'if_sched_aup', '${clause_3_1_2_aup_ru}')->block('if_sched_pps', 342, 342);
 $e->blockAfter(343, 340, 'if_sched_shift', '${clause_3_1_shift_ru}');
+$e->replace(343, 'с 12.30 до 13.30', '${break_ru}');
 $e->block('if_week', 340, 341)->block('if_week', 343, 343);
 
 $e->replace(345, '/продолжительностью\s+/', 'продолжительностью ')

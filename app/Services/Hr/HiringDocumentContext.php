@@ -257,6 +257,9 @@ class HiringDocumentContext
 
         $salary = (int) $contract->salary;
         $vacation = (int) $contract->vacation_days;
+        $breakStart = HrDates::normalizeTime($contract->break_start);
+        $breakEnd = HrDates::normalizeTime($contract->break_end);
+        $hasBreak = $breakStart !== null && $breakEnd !== null;
 
         return [
             'num' => self::text($contract->number),
@@ -274,6 +277,8 @@ class HiringDocumentContext
             'salary' => $salary > 0 ? NumberToWords::grouped($salary) : self::BLANK,
             'salary_ru' => $salary > 0 ? NumberToWords::ru($salary) : self::BLANK,
             'salary_kz' => $salary > 0 ? NumberToWords::kz($salary) : self::BLANK,
+            'break_ru' => $hasBreak ? HrDates::breakRu($breakStart, $breakEnd) : 'с '.self::BLANK.' до '.self::BLANK,
+            'break_kz' => $hasBreak ? HrDates::breakKz($breakStart, $breakEnd) : self::BLANK.' '.self::BLANK.' дейін',
             'employment_label' => HrEmploymentContract::EMPLOYMENT_LABELS[$contract->employment ?: HrEmploymentContract::EMPLOYMENT_MAIN],
             'clause_1_7_sovm_ru' => HiringTexts::CLAUSE_1_7_SECONDARY['ru'],
             'clause_1_7_sovm_kz' => HiringTexts::CLAUSE_1_7_SECONDARY['kz'],
@@ -407,6 +412,8 @@ class HiringDocumentContext
             [$usesForms, 'contract.term', 'Срок договора', self::STEP_CONTRACT, self::filled($contract->term)],
             [$usesForms, 'contract.salary', 'Оклад', self::STEP_CONTRACT, (int) $contract->salary > 0],
             [$isContract, 'contract.vacation_days', 'Дни отпуска', self::STEP_CONTRACT, (int) $contract->vacation_days > 0],
+            [$isContract && $contract->schedule !== HrEmploymentContract::SCHEDULE_SHIFT, 'contract.break', 'Перерыв для отдыха и питания', self::STEP_CONTRACT,
+                HrDates::normalizeTime($contract->break_start) !== null && HrDates::normalizeTime($contract->break_end) !== null],
         ];
 
         foreach (self::EMPLOYER_FIELDS[$type] ?? [] as $field) {

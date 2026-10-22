@@ -61,6 +61,8 @@ return new class extends Migration
             $table->string('schedule', 10)->nullable();
             $table->string('employment', 10)->default('main');
             $table->unsignedSmallInteger('vacation_days')->nullable();
+            $table->string('break_start', 5)->nullable();
+            $table->string('break_end', 5)->nullable();
             $table->timestamps();
 
             $table->index('date');

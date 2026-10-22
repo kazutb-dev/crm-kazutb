@@ -59,6 +59,8 @@ class HrEmploymentContract extends Model
         'schedule',
         'employment',
         'vacation_days',
+        'break_start',
+        'break_end',
     ];
 
     protected function casts(): array

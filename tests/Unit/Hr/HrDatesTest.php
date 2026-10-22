@@ -45,6 +45,25 @@ class HrDatesTest extends TestCase
         $this->assertSame('', HrDates::ru(null));
     }
 
+    public function test_break_time_as_in_the_sample_and_kazakh_endings_by_the_last_word(): void
+    {
+        $this->assertSame('с 12.30 до 13.30', HrDates::breakRu('12.30', '13.30'));
+        $this->assertSame('12.30-дан 13.30-ға дейін', HrDates::breakKz('12.30', '13.30'));
+        $this->assertSame('13.00-тен 14.00-ке дейін', HrDates::breakKz('13.00', '14.00'));
+        $this->assertSame('11.40-тан 12.20-ға дейін', HrDates::breakKz('11.40', '12.20'));
+        $this->assertSame('12.10-нан 12.50-ге дейін', HrDates::breakKz('12.10', '12.50'));
+        $this->assertSame('12.45-тен 13.15-ке дейін', HrDates::breakKz('12.45', '13.15'));
+    }
+
+    public function test_time_is_normalized(): void
+    {
+        $this->assertSame('09.05', HrDates::normalizeTime('9:05'));
+        $this->assertSame('12.30', HrDates::normalizeTime(' 12.30 '));
+        $this->assertNull(HrDates::normalizeTime('24.00'));
+        $this->assertNull(HrDates::normalizeTime('12-30'));
+        $this->assertNull(HrDates::normalizeTime(null));
+    }
+
     public function test_kazakh_ablative_months(): void
     {
         $expected = ['қаңтардан', 'ақпаннан', 'наурыздан', 'сәуірден', 'мамырдан', 'маусымнан', 'шілдеден', 'тамыздан', 'қыркүйектен', 'қазаннан', 'қарашадан', 'желтоқсаннан'];

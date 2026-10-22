@@ -68,6 +68,13 @@ class HrHiringCatalogSeeder extends Seeder
         'visa_title_ru' => "Руководитель отдела\nпротиводействия коррупции и правового обеспечения",
         'visa_title_kz' => "Сыбайлас жемқорлыққа\nқарсы іс-қимыл және құқықтық қамтамасыз ету бөлімінің басшысы",
         'visa_name' => 'А. Қуат',
+        'break_start' => '12.30',
+        'break_end' => '13.30',
+    ];
+
+    /** Unit names the rules decline wrongly, written out by hand. */
+    private const UNIT_GENITIVE = [
+        'Эндаумент фонд' => 'Эндаумент фонда',
     ];
 
     public function run(): void
@@ -77,7 +84,7 @@ class HrHiringCatalogSeeder extends Seeder
             ->whereNull('name_ru_gen')
             ->get()
             ->each(function (OrgUnit $unit): void {
-                $unit->forceFill(['name_ru_gen' => RussianInflector::genitive($unit->name)])->save();
+                $unit->forceFill(['name_ru_gen' => self::UNIT_GENITIVE[$unit->name] ?? RussianInflector::genitive($unit->name)])->save();
             });
 
         foreach (self::PPS_GENITIVE as $name => $genitive) {

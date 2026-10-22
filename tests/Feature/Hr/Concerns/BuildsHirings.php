@@ -89,6 +89,8 @@ trait BuildsHirings
             'schedule' => HrEmploymentContract::SCHEDULE_PPS,
             'employment' => HrEmploymentContract::EMPLOYMENT_MAIN,
             'vacation_days' => 56,
+            'break_start' => '12.30',
+            'break_end' => '13.30',
         ], $contract));
 
         return $record->fresh();

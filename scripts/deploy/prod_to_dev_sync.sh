@@ -258,6 +258,19 @@ if [[ "$SKIP_FILES" == "0" ]]; then
     fi
 fi
 
+# Personal data of the HR hiring module (IIN, ID cards, scans) must not stay in DEV; it is also encrypted
+# with the PROD APP_KEY, which DEV does not have. Clear what was just copied from PROD.
+hr_purge_args=""
+if [[ "$SKIP_DB" == "0" ]]; then
+    hr_purge_args+=" --db"
+fi
+if [[ "$SKIP_FILES" == "0" ]]; then
+    hr_purge_args+=" --files"
+fi
+if [[ -n "$hr_purge_args" ]]; then
+    run_cmd "\"${SCRIPT_DIR}/purge_dev_hr_data.sh\" \"$DEV_ROOT\"${hr_purge_args}"
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then
     log "DRY-RUN: would run composer install, npm ci/build, optimize:clear, about, and health checks"
 else

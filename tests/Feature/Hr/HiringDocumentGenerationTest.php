@@ -139,6 +139,17 @@ class HiringDocumentGenerationTest extends TestCase
         $this->assertSame(['Падежные формы должности «Старший преподаватель» не проверены ОУП.'], $document->warnings);
     }
 
+    public function test_break_time_comes_from_the_contract(): void
+    {
+        $hiring = $this->makeHiring([], [], ['break_start' => '13.00', 'break_end' => '14.00']);
+
+        $document = app(HiringDocumentGenerator::class)->generate($hiring, HrDocumentTemplate::TYPE_CONTRACT, $this->hrUser());
+        $text = $this->docxText(Storage::disk('local')->path($document->file_path));
+
+        $this->assertStringContainsString('KZ | 3.1.3. Демалу мен тамақ ішуге үзіліс – 13.00-тен 14.00-ке дейін.', $text);
+        $this->assertStringContainsString('RU | 3.1.3. Перерыв для отдыха и питания - с 13.00 до 14.00.', $text);
+    }
+
     public function test_missing_kazakh_form_is_reported_and_left_blank(): void
     {
         $hiring = $this->makeHiring();

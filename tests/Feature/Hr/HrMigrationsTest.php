@@ -30,6 +30,7 @@ class HrMigrationsTest extends TestCase
     {
         $chair = OrgUnit::query()->create(['code' => 'T_CHAIR', 'name' => 'Кафедра Информационные технологии', 'unit_type' => OrgUnit::TYPE_ACADEMIC_CHAIR]);
         $office = OrgUnit::query()->create(['code' => 'T_OUP', 'name' => 'Отдел управления персоналом', 'unit_type' => OrgUnit::TYPE_OFFICE, 'name_ru_gen' => 'Отдела управления персоналом (проверено)']);
+        $endowment = OrgUnit::query()->create(['code' => 'T_EF', 'name' => 'Эндаумент фонд', 'unit_type' => OrgUnit::TYPE_CENTER]);
         $board = OrgUnit::query()->create(['code' => 'T_BOARD', 'name' => 'Совет директоров', 'unit_type' => OrgUnit::TYPE_GOVERNANCE]);
         $lecturer = Position::query()->create(['name' => 'Сеньор-лектор']);
 
@@ -39,6 +40,7 @@ class HrMigrationsTest extends TestCase
         $this->assertSame('кафедры «Информационные технологии»', $chair->fresh()->name_ru_gen);
         $this->assertSame('Отдела управления персоналом (проверено)', $office->fresh()->name_ru_gen);
         $this->assertNull($board->fresh()->name_ru_gen);
+        $this->assertSame('Эндаумент фонда', $endowment->fresh()->name_ru_gen);
         $this->assertSame('сеньор-лектора', $lecturer->fresh()->name_ru_gen);
         $this->assertSame(Position::CATEGORY_PPS, $lecturer->fresh()->staff_category);
 
@@ -54,6 +56,7 @@ class HrMigrationsTest extends TestCase
 
         $this->assertSame('030240001575', $settings['bin']);
         $this->assertSame('А. Қуат', $settings['visa_name']);
+        $this->assertSame(['12.30', '13.30'], [$settings['break_start'], $settings['break_end']]);
         $this->assertSame(1, AppSetting::query()->where('key', EmployerSettings::KEY)->count());
     }
 }
