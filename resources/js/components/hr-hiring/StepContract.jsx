@@ -1,6 +1,6 @@
 import NumberHint from './NumberHint';
 import { fieldId, formatMoney, parseIin } from './logic';
-import { Field, Section, SelectInput, TextInput } from './ui';
+import { ChoiceGroup, Field, Section, SelectInput, TextInput } from './ui';
 
 const show = (value) => (value === null || value === undefined || String(value).trim() === '' ? '—' : value);
 const date = (value) => (value ? value.split('-').reverse().join('.') : '—');
@@ -14,8 +14,8 @@ export default function StepContract({ state, set, errors, options, hiringId, on
     const address = [e.city && `г. ${e.city}`, e.street, e.house && `д. ${e.house}`, e.apartment && `кв. ${e.apartment}`].filter(Boolean).join(', ');
 
     return (
-        <div className="space-y-6">
-            <Section title="Договор" feeds="договор · приказ">
+        <div className="space-y-4">
+            <Section title="Номер и срок договора" description="Номер подсказывается по счётчику договоров этого года." feeds={['contract', 'order']}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field id={fieldId('contract.number')} label="Номер договора" error={errors['contract.number']}>
                         <TextInput id={fieldId('contract.number')} value={c.number} onChange={(value) => set('contract.number', value)} className="font-mono" maxLength={30} placeholder="412" />
@@ -26,11 +26,11 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                     </Field>
                 </div>
                 <Field id={fieldId('contract.term')} label="Срок трудового договора" error={errors['contract.term']} className="sm:max-w-sm">
-                    <SelectInput id={fieldId('contract.term')} value={c.term} onChange={(value) => set('contract.term', value)} options={options.terms} placeholder="—" />
+                    <SelectInput id={fieldId('contract.term')} value={c.term} onChange={(value) => set('contract.term', value)} options={options.terms} placeholder="Выберите" />
                 </Field>
             </Section>
 
-            <Section title="Оплата и режим" feeds="договор">
+            <Section title="Оплата и режим работы" description="Отпуск и график подставляются по категории персонала — их можно изменить." feeds={['contract']}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field id={fieldId('contract.salary')} label="Должностной оклад, ₸" error={errors['contract.salary']}>
                         <TextInput
@@ -59,7 +59,7 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                     </Field>
                 </div>
                 <Field id={fieldId('contract.schedule')} label="График работы (пункт 3.1)" error={errors['contract.schedule']}>
-                    <SelectInput id={fieldId('contract.schedule')} value={c.schedule} onChange={(value) => set('contract.schedule', value)} options={options.schedules} placeholder="—" />
+                    <SelectInput id={fieldId('contract.schedule')} value={c.schedule} onChange={(value) => set('contract.schedule', value)} options={options.schedules} placeholder="Выберите" />
                 </Field>
                 {!isShift && (
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -71,18 +71,19 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                         </Field>
                     </div>
                 )}
-                <div id={fieldId('contract.employment')} className="flex flex-wrap gap-4 text-sm">
-                    {options.employments.map((item) => (
-                        <label key={item.value} className="flex items-center gap-1.5">
-                            <input type="radio" name="employment" checked={(c.employment ?? 'main') === item.value} onChange={() => set('contract.employment', item.value)} className="text-teal-600 focus:ring-teal-500" />
-                            {item.label}
-                        </label>
-                    ))}
-                </div>
+                <Field id={fieldId('contract.employment')} label="Вид работы">
+                    <ChoiceGroup
+                        id={fieldId('contract.employment')}
+                        label="Вид работы"
+                        value={c.employment ?? 'main'}
+                        onChange={(value) => set('contract.employment', value)}
+                        options={options.employments}
+                    />
+                </Field>
             </Section>
 
-            <Section title="Из карточки сотрудника" feeds="только просмотр">
-                <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
+            <Section title="Проверьте данные сотрудника" note="Только просмотр: так эти данные попадут в договор.">
+                <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
                     <dt className="text-slate-500">ИИН</dt>
                     <dd className="font-mono">{iin.valid ? e.iin : '—'}</dd>
                     <dt className="text-slate-500">Удостоверение</dt>
@@ -92,7 +93,7 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                     <dt className="text-slate-500">Телефон</dt>
                     <dd>{show(e.phone)}</dd>
                 </dl>
-                <button type="button" onClick={() => onGoTo({ step: 1, field: 'employee.iin' })} className="text-xs font-medium text-teal-700 hover:underline">
+                <button type="button" onClick={() => onGoTo({ step: 1, field: 'employee.iin' })} className="text-sm font-medium text-teal-700 hover:underline">
                     Изменить на шаге «Сотрудник»
                 </button>
             </Section>
