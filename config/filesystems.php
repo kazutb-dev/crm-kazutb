@@ -36,6 +36,12 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+            // Storage is shared by the web server (www-data) and the deploy user in group www-data (cron
+            // queue, scheduler, backups): private files are group readable and writable, never owner-only.
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0660],
+                'dir' => ['public' => 0775, 'private' => 0770],
+            ],
         ],
 
         'public' => [
