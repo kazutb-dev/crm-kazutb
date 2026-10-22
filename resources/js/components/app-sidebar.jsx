@@ -50,6 +50,7 @@ import { useEffect, useRef, useState } from 'react';
 const SIDEBAR_GROUPS_STORAGE_KEY = 'kazutb.crm.sidebar.expanded-groups.v2';
 const SIDEBAR_GROUP_KEYS = [
     'main',
+    'hiring',
     'directories',
     'governance',
     'kpi',
@@ -66,8 +67,9 @@ const SIDEBAR_GROUP_KEYS = [
     'phonebook',
 ];
 
+// «Отдел кадров» holds a single item, so it starts expanded.
 const SIDEBAR_DEFAULT_GROUP_STATE = SIDEBAR_GROUP_KEYS.reduce((acc, key) => {
-    acc[key] = false;
+    acc[key] = key === 'hiring';
     return acc;
 }, {});
 
@@ -528,7 +530,7 @@ export function AppSidebar() {
     })();
 
 
-    // «Приём на работу» is open to the hr role and administrators; the PERCo pages stay admin-only.
+    // «Приём на работу» is a section of its own, open to the hr role and administrators.
     const hiringItems = isAdminRole || isHrRole ? [
         {
             title: 'Приём на работу',
@@ -539,7 +541,6 @@ export function AppSidebar() {
     ] : [];
 
     const hr = isAdminRole ? [
-        ...hiringItems,
         {
             title: 'Панель HR',
             href: route('hr.dashboard'),
@@ -582,7 +583,7 @@ export function AppSidebar() {
             icon: SlidersHorizontal,
             active: route().current('hr.perco.settings'),
         },
-    ] : hiringItems;
+    ] : [];
 
     const library = isAdminRole ? [
         {
@@ -818,7 +819,8 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
-        hr: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hr.some((item) => item.active),
+        hiring: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hiringItems.some((item) => item.active),
+        hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
@@ -922,7 +924,8 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
+        hiring: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
+        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
@@ -932,6 +935,7 @@ export function AppSidebar() {
 
     const groupItems = {
         main: navigation,
+        hiring: hiringItems,
         directories: management,
         governance,
         kpi: kpiMenuItems,
@@ -1049,6 +1053,10 @@ export function AppSidebar() {
                     renderGroup('main', 'Основное', navigation)
                 )}
 
+                {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
+                    renderGroup('hiring', 'Отдел кадров', hiringItems)
+                )}
+
                 {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('directories', 'Справочники', management)
                 )}
@@ -1082,7 +1090,7 @@ export function AppSidebar() {
                     renderGroup('calendarShared', 'Календарь', nonAdminCalendarItems)
                 )}
 
-                {!showOnlyCertificatesMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('hr', 'HR и учет', hr)
                 )}
 
