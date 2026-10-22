@@ -1,6 +1,10 @@
-import { CircleAlert, ShieldCheck } from 'lucide-react';
+import { Check, CircleAlert, ShieldCheck } from 'lucide-react';
+import { createContext, useContext } from 'react';
 
-export const inputClassName = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:bg-slate-50 disabled:text-slate-500';
+/** DOM ids of the fields the documents still need (see Wizard): their labels get a marker. */
+export const MissingFieldsContext = createContext(new Set());
+
+export const inputClassName = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:bg-slate-50 disabled:text-slate-500';
 
 export const buttonClassName = {
     primary: 'inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300',
@@ -17,13 +21,28 @@ export function FieldError({ message }) {
     return <p className="mt-1 text-xs text-rose-600">{Array.isArray(message) ? message[0] : message}</p>;
 }
 
+/** Marker after a label: the documents need this field and it is empty. */
+export function MissingMark({ id }) {
+    const missing = useContext(MissingFieldsContext);
+    if (!missing.has(id)) {
+        return null;
+    }
+
+    return (
+        <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-amber-400 align-middle" title="Нужно для документов">
+            <span className="sr-only">(нужно для документов)</span>
+        </span>
+    );
+}
+
 /** Label + control + hint/error. `id` must be the control's id (missing-field links focus it). */
 export function Field({ id, label, hint, error, required = false, className = '', children }) {
     return (
         <div className={className}>
-            <label htmlFor={id} className="mb-1 block text-xs font-medium text-slate-600">
+            <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">
                 {label}
                 {required && <span className="text-rose-500"> *</span>}
+                <MissingMark id={id} />
             </label>
             {children}
             {error ? <FieldError message={error} /> : hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
@@ -61,16 +80,80 @@ export function SelectInput({ id, value, onChange, options, placeholder, classNa
     );
 }
 
-/** Form section with the documents it feeds («договор · личное дело»), as in the prototype. */
-export function Section({ title, feeds, children, id }) {
+const FEED_LABELS = { contract: 'договор', order: 'приказ', card: 'личная карточка' };
+
+/**
+ * Form section as a card: title, a plain-language description and the documents it feeds
+ * (`feeds`: contract, order, card) — or `note` when it feeds none of them.
+ */
+export function Section({ title, description, feeds = [], note, children, id }) {
     return (
-        <section id={id} className="space-y-3 border-t border-slate-100 pt-5 first:border-t-0 first:pt-0">
-            <h3 className="flex flex-wrap items-baseline gap-2 text-sm font-semibold text-slate-900">
-                {title}
-                {feeds && <span className="text-xs font-normal text-slate-400">{feeds}</span>}
-            </h3>
-            {children}
+        <section id={id} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <header className="mb-4">
+                <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+                {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+                {(feeds.length > 0 || note) && (
+                    <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                        {feeds.length > 0 ? (
+                            <>
+                                Попадает в:
+                                {feeds.map((feed) => (
+                                    <span key={feed} className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">{FEED_LABELS[feed]}</span>
+                                ))}
+                            </>
+                        ) : note}
+                    </p>
+                )}
+            </header>
+            <div className="space-y-4">{children}</div>
         </section>
+    );
+}
+
+const PILL_LABELS = { contract: 'Договор', order: 'Приказ', card: 'Карточка' };
+const PILL_STATES = {
+    none: { className: 'border-dashed border-slate-300 text-slate-400', title: 'ещё не сформирован' },
+    draft: { className: 'border-sky-200 bg-sky-50 text-sky-800', title: 'сформирован, не подписан' },
+    signed: { className: 'border-emerald-200 bg-emerald-50 text-emerald-800', title: 'подписан' },
+};
+
+/** The three documents of a hiring: not generated yet / generated / signed. */
+export function DocumentPills({ documents = {} }) {
+    return (
+        <span className="inline-flex flex-wrap gap-1">
+            {Object.entries(PILL_LABELS).map(([type, label]) => {
+                const state = PILL_STATES[documents[type]] ?? PILL_STATES.none;
+                return (
+                    <span key={type} title={`${label}: ${state.title}`} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${state.className}`}>
+                        {documents[type] === 'signed' && <Check className="h-3 w-3" />}
+                        {label}
+                    </span>
+                );
+            })}
+        </span>
+    );
+}
+
+/** Two to four mutually exclusive options as a segmented control (radio semantics). */
+export function ChoiceGroup({ id, label, value, onChange, options }) {
+    return (
+        <div id={id} tabIndex={-1} role="radiogroup" aria-label={label} className="inline-flex gap-1 rounded-xl border border-slate-300 bg-slate-50 p-1">
+            {options.map((option) => {
+                const checked = value === option.value;
+                return (
+                    <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        onClick={() => onChange(option.value)}
+                        className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${checked ? 'bg-white text-teal-800 shadow-sm ring-1 ring-teal-500/40' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                        {option.label}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 

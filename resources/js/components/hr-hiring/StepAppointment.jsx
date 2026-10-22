@@ -24,18 +24,22 @@ export default function StepAppointment({ state, set, errors, options, abilities
     const isReplacement = c.term === 'replacement';
 
     return (
-        <div className="space-y-6">
-            <Section title="Должность" feeds="приказ · договор · личное дело">
+        <div className="space-y-4">
+            <Section
+                title="Должность и подразделение"
+                description="Выберите из справочника или введите вручную. Категория персонала задаёт отпуск и график по умолчанию."
+                feeds={['contract', 'order', 'card']}
+            >
                 <div id={fieldId('hiring.staff_category')} role="radiogroup" aria-label="Категория персонала" className="grid gap-2 sm:grid-cols-3">
                     {options.categories.map((category) => (
                         <label key={category.value} className={`flex cursor-pointer flex-col rounded-xl border px-3 py-2 text-sm transition ${h.staff_category === category.value ? 'border-teal-500 bg-teal-50 text-teal-900' : 'border-slate-200 hover:bg-slate-50'}`}>
                             <input type="radio" name="staff_category" className="sr-only" checked={h.staff_category === category.value} onChange={() => set('hiring.staff_category', category.value)} />
                             <span className="font-semibold">{category.label}</span>
                             <span className="text-xs leading-snug text-slate-500">{category.name}</span>
+                            {category.defaults?.vacation_days && <span className="mt-1 text-xs text-slate-400">отпуск {category.defaults.vacation_days} дн.</span>}
                         </label>
                     ))}
                 </div>
-                <p className="text-xs text-slate-500">Категория подставляет отпуск и график по умолчанию (ППС — 56 дней, АУП и УВП — 24 дня); их можно изменить в условиях договора.</p>
 
                 <CatalogCombobox
                     id={fieldId('hiring.top_unit')}
@@ -82,14 +86,15 @@ export default function StepAppointment({ state, set, errors, options, abilities
                 />
 
                 {full.ru && (
-                    <div className="space-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                        <p><span className="text-slate-400">В договоре (рус.):</span> на должность <span className="text-slate-900">{full.ru}</span></p>
-                        <p><span className="text-slate-400">Каз.:</span> <span className="text-slate-900">{full.kz}</span> лауазымына</p>
+                    <div className="space-y-1.5 rounded-xl border border-teal-100 bg-teal-50/50 px-4 py-3 text-sm text-slate-700">
+                        <p className="text-xs font-medium uppercase tracking-wide text-teal-800">Так будет написано в договоре</p>
+                        <p>на должность <span className="font-medium text-slate-900">{full.ru}</span></p>
+                        <p><span className="font-medium text-slate-900">{full.kz}</span> лауазымына</p>
                     </div>
                 )}
             </Section>
 
-            <Section title="Приём" feeds="приказ · договор">
+            <Section title="Дата приёма" feeds={['contract', 'order']}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field id={fieldId('hiring.start_date')} label="Дата приёма на работу" error={errors['hiring.start_date']}>
                         <TextInput id={fieldId('hiring.start_date')} type="date" value={h.start_date} onChange={(value) => set('hiring.start_date', value)} />
@@ -103,7 +108,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
                         />
                     </Field>
                 </div>
-                <label className="flex items-start gap-2 text-sm text-slate-800">
+                <label className="flex items-start gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800">
                     <input
                         type="checkbox"
                         checked={isReplacement}
@@ -122,7 +127,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
                 )}
             </Section>
 
-            <Section title="Приказ" feeds="приказ">
+            <Section title="Приказ о приёме" description="Номер подсказывается по счётчику приказов этого года." feeds={['order']}>
                 <div className="grid gap-3 sm:grid-cols-2">
                     <Field id={fieldId('hiring.order_number')} label="Номер приказа" error={errors['hiring.order_number']}>
                         <TextInput id={fieldId('hiring.order_number')} value={h.order_number} onChange={(value) => set('hiring.order_number', value)} className="font-mono" maxLength={30} placeholder="412-К" />

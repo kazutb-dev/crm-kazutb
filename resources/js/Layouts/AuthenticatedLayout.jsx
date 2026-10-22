@@ -86,10 +86,10 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'TeacherAi/Show': 'AI-ассистент — Результат проверки',
         'TeacherAi/Lessons/Index': 'AI-ассистент — Лекции и презентации',
         'TeacherAi/Lessons/Show': 'AI-ассистент — Материалы занятия',
-        'Hr/Hiring/Index': 'Приём на работу',
-        'Hr/Hiring/Wizard': 'Приём на работу — оформление',
-        'Hr/Hiring/Show': 'Приём на работу — карточка',
-        'Hr/Hiring/Settings': 'Приём на работу — настройки',
+        'Hr/Hiring/Index': 'Список приёмов',
+        'Hr/Hiring/Wizard': 'Оформление приёма',
+        'Hr/Hiring/Show': 'Карточка приёма',
+        'Hr/Hiring/Settings': 'Настройки модуля',
         'Users/Index': 'Пользователи',
         'Users/AdminAccess': 'Права администратора',
         'Governance/OrgStructure': 'Управление доступом — Оргструктура',
@@ -190,7 +190,10 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
     })();
 
     const pageTitle = queueScopeTitle ? `${pageTitleBase} — ${queueScopeTitle}` : pageTitleBase;
-    const [section = 'Раздел', sectionPage = 'Страница'] = component.split('/');
+    // The top bar shows the component path; the HR module gets readable names instead of «Hr · Hiring».
+    const [section = 'Раздел', sectionPage = 'Страница'] = component.startsWith('Hr/Hiring/')
+        ? ['Отдел кадров', 'Приём на работу']
+        : component.split('/');
 
     return (
         <SidebarProvider>

@@ -313,9 +313,54 @@ class HiringService
      */
     public function listing(array $filters): LengthAwarePaginator
     {
-        $query = HrHiring::query()
-            ->with(['employee', 'contract'])
-            ->withCount(['documents as signed_documents_count' => fn (Builder $q) => $q->where('status', HrDocument::STATUS_SIGNED)]);
+        $query = $this->filtered($filters)->with([
+            'employee',
+            'contract',
+            'documents' => fn ($q) => $q->select(['id', 'hiring_id', 'type', 'version', 'status']),
+        ]);
+
+        return $query->orderByDesc('id')->paginate(20)->withQueryString()->through(fn (HrHiring $hiring): array => [
+            'id' => $hiring->id,
+            'full_name' => $hiring->employee?->fullName() ?: 'Без имени',
+            'iin_masked' => $hiring->employee?->maskedIin() ?: '',
+            'id_card_masked' => $hiring->employee?->maskedIdCardNumber() ?: '',
+            'position' => $hiring->position_name_ru,
+            'unit' => collect([$hiring->sub_unit_name_ru, $hiring->top_unit_name_ru])->filter()->implode(', '),
+            'start_date' => $hiring->start_date?->format('d.m.Y'),
+            'status' => $hiring->status,
+            'status_label' => HrHiring::STATUS_LABELS[$hiring->status] ?? $hiring->status,
+            'contract_number' => $hiring->contract?->number,
+            'order_number' => $hiring->order_number,
+            'documents' => $this->documentStates($hiring),
+            'updated_at' => $hiring->updated_at?->format('d.m.Y H:i'),
+        ]);
+    }
+
+    /**
+     * Hirings per status under the other list filters (search, unit, dates), for the status tabs.
+     *
+     * @return array<string, int> {all, draft, signed, cancelled}
+     */
+    public function statusCounts(array $filters): array
+    {
+        $counts = $this->filtered(['status' => null] + $filters)
+            ->toBase()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $result = ['all' => (int) $counts->sum()];
+        foreach (array_keys(HrHiring::STATUS_LABELS) as $status) {
+            $result[$status] = (int) ($counts[$status] ?? 0);
+        }
+
+        return $result;
+    }
+
+    /** @return Builder<HrHiring> */
+    private function filtered(array $filters): Builder
+    {
+        $query = HrHiring::query();
 
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -343,21 +388,21 @@ class HiringService
             }
         }
 
-        return $query->orderByDesc('id')->paginate(20)->withQueryString()->through(fn (HrHiring $hiring): array => [
-            'id' => $hiring->id,
-            'full_name' => $hiring->employee?->fullName() ?: 'Без имени',
-            'iin_masked' => $hiring->employee?->maskedIin() ?: '',
-            'id_card_masked' => $hiring->employee?->maskedIdCardNumber() ?: '',
-            'position' => $hiring->position_name_ru,
-            'unit' => collect([$hiring->sub_unit_name_ru, $hiring->top_unit_name_ru])->filter()->implode(', '),
-            'start_date' => $hiring->start_date?->format('d.m.Y'),
-            'status' => $hiring->status,
-            'status_label' => HrHiring::STATUS_LABELS[$hiring->status] ?? $hiring->status,
-            'contract_number' => $hiring->contract?->number,
-            'order_number' => $hiring->order_number,
-            'signed_documents_count' => (int) $hiring->signed_documents_count,
-            'updated_at' => $hiring->updated_at?->format('d.m.Y H:i'),
-        ]);
+        return $query;
+    }
+
+    /**
+     * State of the latest version of each document, for the list: none (not generated yet), draft, signed.
+     *
+     * @return array<string, string>
+     */
+    private function documentStates(HrHiring $hiring): array
+    {
+        $latest = $hiring->documents->sortByDesc('version')->unique('type')->keyBy('type');
+
+        return collect(array_keys(HrDocumentTemplate::TYPE_LABELS))
+            ->mapWithKeys(fn (string $type): array => [$type => $latest[$type]->status ?? 'none'])
+            ->all();
     }
 
     /**

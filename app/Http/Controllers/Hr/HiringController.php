@@ -46,9 +46,9 @@ class HiringController extends Controller
 
         return Inertia::render('Hr/Hiring/Index', [
             'hirings' => $this->hirings->listing($filters),
+            'counts' => $this->hirings->statusCounts($filters),
             'filters' => $filters + ['status' => null, 'unit' => null, 'date_from' => null, 'date_to' => null, 'q' => null],
             'units' => $this->hirings->unitFilterOptions(),
-            'statuses' => HiringOptions::all()['statuses'],
             'abilities' => $this->access->abilities($request->user()),
         ]);
     }

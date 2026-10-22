@@ -9,6 +9,7 @@ use App\Models\HrHiring;
 use App\Models\OrgUnit;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\Hr\HiringDocumentGenerator;
 use App\Services\Hr\HrAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -177,6 +178,29 @@ class HiringWorkflowTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->has('hirings.data', 2));
 
         $this->actingAs($this->hr)->get(route('hr.hiring.index'))->assertDontSee('940512300019');
+    }
+
+    public function test_list_counts_hirings_per_status_and_shows_the_state_of_each_document(): void
+    {
+        $signed = $this->makeHiring();
+        $this->makeHiring(['iin' => '940512300029', 'last_name' => 'Жумабаева', 'first_name' => 'Динара']);
+        $generator = app(HiringDocumentGenerator::class);
+        $contract = $generator->generate($signed, 'contract', $this->hr);
+        $generator->generate($signed, 'order', $this->hr);
+        $generator->markSigned($contract, $this->hr, 'hr/scans/contract.pdf');
+        $signed->forceFill(['status' => HrHiring::STATUS_SIGNED])->save();
+
+        $this->actingAs($this->hr)->get(route('hr.hiring.index', ['status' => 'draft']))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('counts', ['all' => 2, 'draft' => 1, 'signed' => 1, 'cancelled' => 0])
+                ->has('hirings.data', 1));
+
+        $this->actingAs($this->hr)->get(route('hr.hiring.index', ['q' => 'жумаб']))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('counts.all', 1)->where('counts.signed', 0));
+
+        $this->actingAs($this->hr)->get(route('hr.hiring.index', ['status' => 'signed']))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hirings.data.0.documents', ['contract' => 'signed', 'order' => 'draft', 'card' => 'none']));
     }
 
     public function test_next_numbers_follow_the_yearly_counter_and_warn_about_duplicates(): void
