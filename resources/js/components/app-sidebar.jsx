@@ -43,6 +43,7 @@ import {
     Megaphone,
     MapPinned,
     Sparkles,
+    UserPlus,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -527,7 +528,18 @@ export function AppSidebar() {
     })();
 
 
+    // «Приём на работу» is open to the hr role and administrators; the PERCo pages stay admin-only.
+    const hiringItems = isAdminRole || isHrRole ? [
+        {
+            title: 'Приём на работу',
+            href: route('hr.hiring.index'),
+            icon: UserPlus,
+            active: route().current('hr.hiring.*'),
+        },
+    ] : [];
+
     const hr = isAdminRole ? [
+        ...hiringItems,
         {
             title: 'Панель HR',
             href: route('hr.dashboard'),
@@ -570,7 +582,7 @@ export function AppSidebar() {
             icon: SlidersHorizontal,
             active: route().current('hr.perco.settings'),
         },
-    ] : [];
+    ] : hiringItems;
 
     const library = isAdminRole ? [
         {
@@ -806,7 +818,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
-        hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
+        hr: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
@@ -910,7 +922,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
+        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
         library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
@@ -1070,7 +1082,7 @@ export function AppSidebar() {
                     renderGroup('calendarShared', 'Календарь', nonAdminCalendarItems)
                 )}
 
-                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
                     renderGroup('hr', 'HR и учет', hr)
                 )}
 

@@ -98,7 +98,7 @@ class AuthenticatedSessionController extends Controller
 
         if ($user instanceof User && $user->resolvedRoleSlug() === 'hr') {
             return redirect()
-                ->route('phonebook.index')
+                ->route('hr.hiring.index')
                 ->with('profileReminderAfterLogin', false);
         }
 

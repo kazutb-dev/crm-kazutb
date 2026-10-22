@@ -88,6 +88,11 @@ class OrgUnit extends Model
         'is_active',
         'source',
         'metadata',
+        'name_ru_gen',
+        'name_kz',
+        'name_kz_gen',
+        'case_forms_verified_at',
+        'case_forms_verified_by',
     ];
 
     /**
@@ -97,6 +102,7 @@ class OrgUnit extends Model
         'metadata' => 'array',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'case_forms_verified_at' => 'datetime',
     ];
 
     public function parent(): BelongsTo

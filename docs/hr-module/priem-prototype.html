@@ -1,0 +1,1060 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Оформление приёма на работу</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: регистрационная стойка — слева карточка ввода по шагам, справа живой лист документа */
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --sunk:#F5F7F9; --ink:#17202A; --muted:#5A6672; --line:#D3DAE1;
+  --accent:#1D4F91; --accent-ink:#FFFFFF; --accent-soft:#E2EBF6;
+  --mark:#FFEFA8; --mark-ink:#3A2F00; --miss:#B42318; --miss-soft:#FCE6E3; --ok:#1E7A46; --ok-soft:#E1F2E7;
+  --paper:#FFFFFF; --paper-ink:#121212; --paper-line:#9AA3AD; --added:#1D4F91;
+  --f-ui:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-doc:"PT Serif", "Times New Roman", Times, serif;
+  --f-data:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161C; --surface:#19212A; --sunk:#151C24; --ink:#E5EAF0; --muted:#9AA6B3; --line:#2B3642;
+  --accent:#86ACE3; --accent-ink:#0E1A2B; --accent-soft:#1E2D43;
+  --mark:#5B4B10; --mark-ink:#FFF4C9; --miss:#F19084; --miss-soft:#3B1E1B; --ok:#73C795; --ok-soft:#173022;
+  --paper:#1D252E; --paper-ink:#E6EBF0; --paper-line:#4A5663; --added:#86ACE3; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#11161C; --surface:#19212A; --sunk:#151C24; --ink:#E5EAF0; --muted:#9AA6B3; --line:#2B3642;
+  --accent:#86ACE3; --accent-ink:#0E1A2B; --accent-soft:#1E2D43;
+  --mark:#5B4B10; --mark-ink:#FFF4C9; --miss:#F19084; --miss-soft:#3B1E1B; --ok:#73C795; --ok-soft:#173022;
+  --paper:#1D252E; --paper-ink:#E6EBF0; --paper-line:#4A5663; --added:#86ACE3; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--f-ui);font-size:14px;line-height:1.45;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:0 32px}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:18px 14px;max-width:1500px;margin-inline:auto}
+.brand{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:0}
+.brand h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.brand .sub{color:var(--muted);font-size:13px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:7px 12px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent);padding-inline:8px}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn svg{width:16px;height:16px;flex:none}
+.sample-flag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--mark-ink);background:var(--mark);border-radius:999px;padding:2px 10px;width:fit-content}
+
+/* main grid */
+.wrap{display:grid;grid-template-columns:minmax(0,470px) minmax(0,1fr);gap:20px;max-width:1500px;margin-inline:auto;align-items:start}
+@media (max-width:1020px){.wrap{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0}
+.form-panel{position:sticky;top:max(12px, env(safe-area-inset-top, 0px));max-height:calc(100vh - 24px);display:flex;flex-direction:column}
+@media (max-width:1020px){.form-panel{position:static;max-height:none}}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.step{border:0;background:none;padding:12px 8px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-bottom:2px solid transparent;margin-bottom:-1px;min-width:0}
+.step .n{font-family:var(--f-data);font-size:11px;color:var(--muted)}
+.step .l{font-weight:600;font-size:14px}
+.step .s{font-size:12px;color:var(--muted)}
+.step .s.bad{color:var(--miss)}
+.step .s.good{color:var(--ok)}
+.step[aria-selected="true"]{border-bottom-color:var(--accent)}
+.step[aria-selected="true"] .l{color:var(--accent)}
+.step:first-child{padding-left:16px}
+
+.form-body{overflow:auto;padding:16px 16px 24px;display:flex;flex-direction:column;gap:22px}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h3{margin:0;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.sec h3 .for{font-weight:500;letter-spacing:.02em;text-transform:none;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px}
+.row{display:grid;gap:10px;grid-template-columns:repeat(var(--c,2),minmax(0,1fr))}
+@media (max-width:440px){.row{grid-template-columns:minmax(0,1fr)}}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>span{font-size:12.5px;color:var(--muted)}
+.fld>span b{color:var(--miss);font-weight:500}
+.fld input,.fld select,.fld textarea{width:100%;border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:7px 9px;min-width:0}
+.fld input:focus,.fld select:focus{background:var(--surface);border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.fld.need input,.fld.need select{border-color:var(--miss)}
+.fld .hint{font-size:12px;color:var(--muted)}
+.fld .hint.ok{color:var(--ok)}
+.fld .hint.bad{color:var(--miss)}
+.mono{font-family:var(--f-data);letter-spacing:.02em}
+.checks{display:flex;flex-wrap:wrap;gap:8px 16px}
+.chk{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--accent)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:fit-content}
+.seg label{position:relative;padding:6px 14px;cursor:pointer;background:var(--sunk);border-right:1px solid var(--line)}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+
+.list{display:flex;flex-direction:column;gap:8px}
+.item{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--sunk)}
+.item .head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted)}
+.item .fld input,.item .fld select{background:var(--surface)}
+.empty{font-size:13px;color:var(--muted)}
+.from-card{border:1px dashed var(--line);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:13px}
+.from-card dt{color:var(--muted)}
+.from-card dd{margin:0;overflow-wrap:anywhere}
+.from-card .missing{color:var(--miss)}
+details.emp{border:1px solid var(--line);border-radius:8px;padding:0 12px}
+details.emp summary{cursor:pointer;padding:10px 0;font-weight:500}
+details.emp[open]{padding-bottom:12px}
+details.emp .row{margin-bottom:10px}
+
+.photo-box{display:flex;gap:12px;align-items:center}
+.photo{width:72px;height:96px;border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;font-size:11px;color:var(--muted);background:var(--sunk) center/cover no-repeat;flex:none;text-align:center}
+.photo.has{border-style:solid;color:transparent}
+
+/* doc pane */
+.doc-panel{display:flex;flex-direction:column}
+.doc-tabs{display:flex;gap:4px;padding:8px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.doc-tab{border:0;background:none;padding:10px 14px;border-radius:8px 8px 0 0;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--muted)}
+.doc-tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--miss);flex:none}
+.dot.ok{background:var(--ok)}
+.doc-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-right:auto;min-width:0}
+.status .lbl{font-weight:600}
+.status .lbl.ok{color:var(--ok)}
+.status .lbl.bad{color:var(--miss)}
+.chip{border:1px solid transparent;background:var(--miss-soft);color:var(--miss);border-radius:999px;padding:1px 9px;font-size:12.5px;cursor:pointer}
+.chip:hover{border-color:var(--miss)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);background:var(--sunk)}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:22px;height:12px;border-radius:2px}
+.sw.v{background:var(--mark)}
+.sw.m{background:var(--miss-soft);outline:1px dashed var(--miss)}
+.sw.x{border-bottom:2px dotted var(--added);height:9px;width:22px}
+.note{padding:10px 16px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
+.note strong{color:var(--ink);font-weight:600}
+
+.stage{padding:20px;overflow-x:auto;background:var(--sunk);border-radius:0 0 12px 12px}
+.paper{background:var(--paper);color:var(--paper-ink);font-family:var(--f-doc);font-size:12.5px;line-height:1.38;margin-inline:auto;max-width:900px;min-width:640px;padding:36px 34px 44px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 8px 24px rgba(20,30,45,.08);border-radius:2px}
+.paper.single{max-width:760px;min-width:560px}
+.paper p{margin:0 0 1px;min-height:1em}
+.paper p.c{text-align:center}
+.paper p.j{text-align:justify;hyphens:auto}
+.paper p.r{text-align:right}
+.paper p.b{font-weight:700}
+.paper p.gap{min-height:.7em}
+.paper p.h{font-size:14px;margin-top:6px}
+.paper .tabline{display:flex;justify-content:space-between;gap:12px}
+.paper table.cols{width:100%;border-collapse:collapse;table-layout:fixed}
+.paper table.cols>tbody>tr>td{vertical-align:top;border:1px solid var(--paper-line);padding:8px 10px}
+.paper table.grid{width:100%;border-collapse:collapse;margin:4px 0 8px}
+.paper table.grid td,.paper table.grid th{border:1px solid var(--paper-line);padding:4px 7px;text-align:left;vertical-align:top}
+.paper table.grid th{font-weight:700;background:color-mix(in srgb, var(--paper-line) 18%, transparent)}
+.paper table.grid td.k{width:38%;color:color-mix(in srgb, var(--paper-ink) 72%, transparent)}
+.paper .photo-slot{float:right;width:90px;height:120px;border:1px solid var(--paper-line);margin:0 0 8px 12px;display:grid;place-items:center;font-size:11px;text-align:center;background:center/cover no-repeat}
+.paper mark.v{background:var(--mark);color:var(--mark-ink);border-radius:2px;padding:0 1px}
+.paper mark.m{background:var(--miss-soft);color:var(--miss);outline:1px dashed var(--miss);border-radius:2px;padding:0 3px;font-family:var(--f-ui);font-size:.86em;cursor:pointer}
+.paper .x{text-decoration:underline dotted var(--added) 2px;text-underline-offset:3px}
+.paper .x-tag{font-family:var(--f-ui);font-size:10px;color:var(--added);border:1px solid currentColor;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px;white-space:nowrap}
+
+/* overlay */
+.ovl{position:fixed;inset:0;background:rgba(10,15,22,.45);display:grid;place-items:center;z-index:50;padding:max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px))}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;min-width:0}
+.modal header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.modal header h2{font-size:16px;margin:0 auto 0 0}
+.modal .body{padding:12px 16px;overflow:auto;min-width:0}
+.modal p{margin:0 0 10px;color:var(--muted);font-size:13px;max-width:65ch}
+.modal pre{margin:0;font-family:var(--f-data);font-size:12px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;white-space:pre}
+.toast{position:fixed;left:50%;bottom:max(20px, env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:13px;z-index:60;max-width:calc(100vw - 32px)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .18s ease-out}@keyframes up{from{transform:translate(-50%,8px);opacity:.4}}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <h1>Оформление приёма на работу</h1>
+    <div class="sub">Прототип модуля ОУП · одна карточка сотрудника → трудовой договор, приказ и личное дело</div>
+    <span class="sample-flag" id="sampleFlag">Заполнено вымышленными данными для примера</span>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnSample" type="button">Заполнить примером</button>
+    <button class="btn" id="btnClear" type="button">Очистить</button>
+    <button class="btn" id="btnJson" type="button">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 3H4a1 1 0 0 0-1 1v2.5L2 8l1 1.5V12a1 1 0 0 0 1 1h1M11 3h1a1 1 0 0 1 1 1v2.5L14 8l-1 1.5V12a1 1 0 0 1-1 1h-1"/></svg>
+      Данные для модуля
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ===== FORM ===== -->
+  <section class="panel form-panel" aria-label="Карточка сотрудника">
+    <div class="steps" role="tablist">
+      <button class="step" role="tab" data-step="1" aria-selected="true" type="button"><span class="n">01</span><span class="l">Сотрудник</span><span class="s" id="st1"></span></button>
+      <button class="step" role="tab" data-step="2" aria-selected="false" type="button"><span class="n">02</span><span class="l">Назначение</span><span class="s" id="st2"></span></button>
+      <button class="step" role="tab" data-step="3" aria-selected="false" type="button"><span class="n">03</span><span class="l">Условия договора</span><span class="s" id="st3"></span></button>
+    </div>
+
+    <!-- step 1 -->
+    <div class="form-body" data-pane="1">
+      <div class="sec">
+        <h3>ФИО и ИИН <span class="for">все документы</span></h3>
+        <div class="row" style="--c:3">
+          <label class="fld" data-f="last"><span>Фамилия</span><input id="f_last" data-k="emp.last" autocomplete="off"></label>
+          <label class="fld" data-f="first"><span>Имя</span><input id="f_first" data-k="emp.first" autocomplete="off"></label>
+          <label class="fld" data-f="middle"><span>Отчество</span><input id="f_middle" data-k="emp.middle" autocomplete="off"></label>
+        </div>
+        <label class="fld" data-f="iin"><span>ИИН</span><input id="f_iin" class="mono" data-k="emp.iin" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="12 цифр"><span class="hint" id="iinHint">Дата рождения и пол подставятся из ИИН</span></label>
+        <div class="row">
+          <label class="fld" data-f="birth"><span>Дата рождения</span><input id="f_birth" type="date" data-k="emp.birth"></label>
+          <div class="fld" data-f="gender"><span>Пол</span>
+            <div class="seg" role="radiogroup" aria-label="Пол">
+              <label><input type="radio" name="gender" id="f_gender_m" value="м" data-k="emp.gender">Мужской</label>
+              <label><input type="radio" name="gender" id="f_gender_f" value="ж" data-k="emp.gender">Женский</label>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <label class="fld" data-f="cit"><span>Гражданство</span>
+            <select id="f_cit" data-k="emp.cit"><option value="kz">Республика Казахстан</option><option value="other">Другое</option></select></label>
+          <div></div>
+        </div>
+        <div class="row" id="citOther" hidden>
+          <label class="fld"><span>Гражданство (рус., род. п.)</span><input id="f_cit_ru" data-k="emp.cit_ru" placeholder="Республики Узбекистан"></label>
+          <label class="fld"><span>Гражданство (каз.)</span><input id="f_cit_kz" data-k="emp.cit_kz" placeholder="Өзбекстан Республикасының"></label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Фото <span class="for">личное дело</span></h3>
+        <div class="photo-box" data-f="photo">
+          <div class="photo" id="photoPrev">3×4</div>
+          <div class="fld"><input id="f_photo" type="file" accept="image/png,image/jpeg"><span class="hint">JPG или PNG, попадёт в личную карточку</span>
+            <button class="btn ghost sm" id="photoDel" type="button" hidden>Убрать фото</button></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Удостоверение личности <span class="for">договор · личное дело</span></h3>
+        <div class="row" style="--c:3">
+          <label class="fld" data-f="id_num"><span>Номер</span><input id="f_id_num" class="mono" data-k="emp.id_num" inputmode="numeric" autocomplete="off"></label>
+          <label class="fld" data-f="id_date"><span>Дата выдачи</span><input id="f_id_date" type="date" data-k="emp.id_date"></label>
+          <label class="fld"><span>Кем выдано</span><select id="f_id_issuer" data-k="emp.id_issuer"><option value="mvd">МВД РК</option><option value="mu">Министерство юстиции РК</option></select></label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Адрес и телефон <span class="for">договор · личное дело</span></h3>
+        <div class="row">
+          <label class="fld" data-f="city"><span>Город</span><input id="f_city" data-k="emp.city"></label>
+          <label class="fld" data-f="street"><span>Улица / мкр</span><input id="f_street" data-k="emp.street"></label>
+        </div>
+        <div class="row" style="--c:3">
+          <label class="fld" data-f="house"><span>Дом</span><input id="f_house" data-k="emp.house"></label>
+          <label class="fld"><span>Квартира</span><input id="f_apt" data-k="emp.apt"></label>
+          <label class="fld" data-f="phone"><span>Телефон</span><input id="f_phone" class="mono" data-k="emp.phone" inputmode="tel" placeholder="+7 7__ ___ __ __"></label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Семья <span class="for">личное дело</span></h3>
+        <label class="fld" data-f="marital"><span>Семейное положение</span><select id="f_marital" data-k="emp.marital"></select></label>
+        <div class="list" id="kidsList"></div>
+        <button class="btn sm" id="addKid" type="button" style="width:fit-content">+ Добавить ребёнка</button>
+      </div>
+
+      <div class="sec">
+        <h3>Образование <span class="for">личное дело</span></h3>
+        <div class="list" id="eduList"></div>
+        <button class="btn sm" id="addEdu" type="button" style="width:fit-content">+ Добавить образование</button>
+      </div>
+
+      <div class="sec">
+        <h3>Учёт и социальный статус <span class="for">личное дело</span></h3>
+        <label class="fld" data-f="military"><span>Воинский учёт</span>
+          <select id="f_military" data-k="emp.military">
+            <option value="">— выберите —</option>
+            <option>Военнообязанный</option><option>Невоеннообязанный</option><option>Призывник</option><option>Снят с учёта</option>
+          </select></label>
+        <div class="row">
+          <label class="fld"><span>Инвалидность</span><select id="f_disab" data-k="emp.disab"><option value="">Нет</option><option>I группа</option><option>II группа</option><option>III группа</option></select></label>
+          <div></div>
+        </div>
+        <div class="checks">
+          <label class="chk"><input type="checkbox" id="f_pens" data-k="emp.pens">Пенсионер</label>
+          <label class="chk"><input type="checkbox" id="f_stud" data-k="emp.stud">Обучающийся</label>
+          <label class="chk"><input type="checkbox" id="f_large" data-k="emp.large">Многодетная семья</label>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h3>Документы PDF <span class="for">личное дело</span></h3>
+        <div class="list" id="filesList"></div>
+        <label class="btn sm" style="width:fit-content">+ Прикрепить PDF<input id="f_files" type="file" accept="application/pdf" multiple hidden></label>
+      </div>
+    </div>
+
+    <!-- step 2 -->
+    <div class="form-body" data-pane="2" hidden>
+      <div class="sec">
+        <h3>Должность <span class="for">приказ · договор</span></h3>
+        <div class="fld"><span>Категория персонала</span>
+          <div class="seg" role="radiogroup" aria-label="Категория">
+            <label><input type="radio" name="cat" id="f_cat_pps" value="pps" data-k="appt.cat">ППС</label>
+            <label><input type="radio" name="cat" id="f_cat_aup" value="aup" data-k="appt.cat">АУП</label>
+            <label><input type="radio" name="cat" id="f_cat_uvp" value="uvp" data-k="appt.cat">УВП</label>
+          </div>
+          <span class="hint">От категории зависят должности, график и дни отпуска по умолчанию</span>
+        </div>
+        <label class="fld" data-f="parent"><span>Департамент, управление, факультет</span><select id="f_parent" data-k="appt.parent"></select></label>
+        <label class="fld" data-f="unit"><span>Отдел, кафедра</span><select id="f_unit" data-k="appt.unit"></select></label>
+        <label class="fld" data-f="pos"><span>Должность</span><select id="f_pos" data-k="appt.pos"></select></label>
+        <p class="hint" style="margin:0;font-size:12px;color:var(--muted)">Справочник демонстрационный. В модуле он берётся из штатного расписания вместе с казахскими формами названий.</p>
+      </div>
+
+      <div class="sec">
+        <h3>Приём <span class="for">приказ · договор</span></h3>
+        <div class="row">
+          <label class="fld" data-f="start"><span>Дата приёма на работу</span><input id="f_start" type="date" data-k="appt.start"></label>
+          <label class="fld"><span>Испытательный срок</span>
+            <select id="f_prob" data-k="appt.prob"><option value="0">Без испытательного срока</option><option value="1">1 месяц</option><option value="2">2 месяца</option><option value="3">3 месяца</option></select></label>
+        </div>
+        <label class="chk"><input type="checkbox" id="f_repl_on" data-k="appt.repl_on">На время замещения работника</label>
+        <label class="fld" data-f="repl" id="replWrap" hidden><span>Замещаемый работник</span><select id="f_repl" data-k="appt.repl"></select></label>
+      </div>
+
+      <div class="sec">
+        <h3>Приказ</h3>
+        <div class="row">
+          <label class="fld" data-f="order_num"><span>Номер приказа</span><input id="f_order_num" class="mono" data-k="appt.order_num"></label>
+          <label class="fld" data-f="order_date"><span>Дата приказа</span><input id="f_order_date" type="date" data-k="appt.order_date"></label>
+        </div>
+        <label class="fld" data-f="fio_acc"><span>ФИО в приказе (кого?)</span><input id="f_fio_acc" data-k="appt.fio_acc"><span class="hint" id="accHint">Склоняется автоматически, можно поправить вручную</span></label>
+      </div>
+    </div>
+
+    <!-- step 3 -->
+    <div class="form-body" data-pane="3" hidden>
+      <div class="sec">
+        <h3>Договор</h3>
+        <div class="row">
+          <label class="fld" data-f="num"><span>Номер договора</span><input id="f_num" class="mono" data-k="contract.num"></label>
+          <label class="fld" data-f="cdate"><span>Дата договора</span><input id="f_cdate" type="date" data-k="contract.date"></label>
+        </div>
+        <label class="fld"><span>Срок трудового договора</span>
+          <select id="f_term" data-k="contract.term">
+            <option value="1">1 год</option><option value="2">2 года</option><option value="3">3 года</option>
+            <option value="indef">Неопределённый срок</option><option value="repl">На время замещения</option>
+          </select><span class="hint" id="termHint"></span></label>
+      </div>
+
+      <div class="sec">
+        <h3>Оплата и режим</h3>
+        <div class="row">
+          <label class="fld" data-f="salary"><span>Должностной оклад, ₸</span><input id="f_salary" class="mono" data-k="contract.salary" inputmode="numeric"></label>
+          <label class="fld" data-f="vac"><span>Дней трудового отпуска</span><input id="f_vac" class="mono" type="number" min="1" max="99" data-k="contract.vac"></label>
+        </div>
+        <label class="fld"><span>График работы (подпункт 3.1)</span>
+          <select id="f_sched" data-k="contract.sched">
+            <option value="pps">Пятидневка, 8 часов (как в образце)</option>
+            <option value="aup">АУП: пятидневка, 08:30–17:30</option>
+            <option value="shift">Сменный, по графику</option>
+          </select></label>
+        <div class="fld"><span>Вид работы (пункт 1.7)</span>
+          <div class="seg" role="radiogroup" aria-label="Вид работы">
+            <label><input type="radio" name="kind" id="f_kind_main" value="main" data-k="contract.kind">Основная</label>
+            <label><input type="radio" name="kind" id="f_kind_sovm" value="sovm" data-k="contract.kind">Совместительство</label>
+          </div></div>
+      </div>
+
+      <div class="sec">
+        <h3>Из карточки сотрудника</h3>
+        <dl class="from-card" id="fromCard"></dl>
+        <p class="hint" style="margin:0;font-size:12px;color:var(--muted)">В таблице ОУП эти данные перечислены и для договора, и для личного дела. Здесь они вводятся один раз, на шаге 01.</p>
+      </div>
+
+      <details class="emp">
+        <summary>Реквизиты работодателя</summary>
+        <div class="row" style="--c:1"><label class="fld"><span>Наименование (рус.)</span><input id="e_name_ru" data-k="employer.name_ru"></label></div>
+        <div class="row" style="--c:1"><label class="fld"><span>Наименование (каз.)</span><input id="e_name_kz" data-k="employer.name_kz"></label></div>
+        <div class="row"><label class="fld"><span>БИН</span><input id="e_bin" class="mono" data-k="employer.bin"></label>
+          <label class="fld"><span>Подписывает</span><input id="e_head" data-k="employer.head"></label></div>
+        <div class="row" style="--c:1"><label class="fld"><span>Адрес (рус.)</span><input id="e_addr_ru" data-k="employer.addr_ru" placeholder="укажите юридический адрес"></label></div>
+        <div class="row" style="--c:1"><label class="fld"><span>Адрес (каз.)</span><input id="e_addr_kz" data-k="employer.addr_kz" placeholder="заңды мекенжайы"></label></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== DOCUMENTS ===== -->
+  <section class="panel doc-panel" aria-label="Документы">
+    <div class="doc-tabs" role="tablist">
+      <button class="doc-tab" role="tab" data-doc="contract" aria-selected="true" type="button"><span class="dot" id="dot_contract"></span>Трудовой договор</button>
+      <button class="doc-tab" role="tab" data-doc="order" aria-selected="false" type="button"><span class="dot" id="dot_order"></span>Приказ о приёме</button>
+      <button class="doc-tab" role="tab" data-doc="card" aria-selected="false" type="button"><span class="dot" id="dot_card"></span>Личное дело</button>
+    </div>
+    <div class="doc-bar">
+      <div class="status" id="docStatus"></div>
+      <button class="btn primary" id="btnDocx" type="button">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12.5h10"/></svg>
+        Скачать .docx</button>
+    </div>
+    <div class="legend">
+      <i><span class="sw v"></span>данные из карточки</i>
+      <i><span class="sw m"></span>не заполнено (нажмите, чтобы перейти к полю)</i>
+      <i><span class="sw x"></span>текста нет в образце ТД</i>
+    </div>
+    <div class="note" id="docNote"></div>
+    <div class="stage"><div class="paper" id="paper"></div></div>
+  </section>
+</main>
+
+<div class="ovl" id="jsonOvl" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="jsonTitle">
+    <header><h2 id="jsonTitle">Данные для модуля</h2>
+      <button class="btn sm" id="jsonCopy" type="button">Копировать</button>
+      <button class="btn sm" id="jsonSave" type="button">Скачать .json</button>
+      <button class="btn ghost sm" id="jsonClose" type="button">Закрыть</button></header>
+    <div class="body">
+      <p>Одна запись о приёме: карточка сотрудника, назначение и условия договора. Так данные могут храниться в модуле, а все три документа собираются из них по шаблонам.</p>
+      <pre id="jsonPre"></pre>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/dist/index.iife.js"></script>
+<script>
+"use strict";
+const TPL = {"kz":[{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"№{{num}} Еңбек шарты"},{"a":"j","b":0,"t":"  "},{"a":"l","b":0,"t":"Астана қ.\t{{contract_date_kz}}","tab":1},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"«Қ. Құлажанов атындағы Қазақ Технология және Бизнес Университеті» акционерлік қоғамы (бұдан әрі – Жұмыс беруші) Жарғы және 08.07.2025 жылғы №188-25-К Бұйрық негізінде әрекет ететін Президент Е.Т. Кулажанов. арқылы, БИН 030240001575 куәлік, бір тараптан, және {{fio}}, {{birth_date}} жылы туған, бұдан әрі-Жұмыскер), {{citizen_kz}}, жеке куәлігі №{{id_num}}, {{id_issuer_kz}} {{id_date}} жылы берген, ЖСН {{iin}}, екінші тараптан, бірлесіп тараптар деп аталады, ал бөлек болғанда жоғарыда көрсетілетіндей немесе Тарап, Қазақстан Республикасының заңнамасын, оның ішінде Еңбек кодексін (бұдан әрі – Кодекс) басшылыққа алып, төмендегілер туралы осы Еңбек шартын (бұдан әрі – Шарт) жасасты:"},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"1. ШАРТТЫҢ МӘНІ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"1.1. Жұмыс беруші Жұмыскерді {{position_full_kz}} лауазымына қабылдайды. "},{"a":"j","b":0,"t":"1.2. Жұмыскер осы Шартта белгіленген тәртіпте және талаптарда: тиісті лауазым бойынша жұмыстарды орындауға және еңбек тәртібін сақтауға, ал Жұмыс беруші осы Шартта белгіленген тәртіпте және талаптарда Жұмыскерге еңбек жағдайын қамтамасыз етуге, штаттық кестеге сәйкес дер кезінде және толық көлемде еңбекақы төлеуге және осы Шарт пен Қазақстан Республикасының еңбек заңнамасында қарастырылған басқа да төлемдерді жүзеге асыруға міндеттенеді. "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"1.3. Жұмысты атқару орны: «Қ. Құлажанов атындағы Қазақ технология және бизнес университеті» АҚ."},{"a":"j","b":0,"t":"1.4. Жұмыскердің міндеттері белгіленген заңнамалық тәртіппен қолданыстағы заңнамамен, осы Шартпен, лауазымдық нұсқаулықпен, ішкі тәртіп Ережелерімен, Жұмыс берушінің басқа да актілерімен анықталған. "},{"a":"j","b":0,"t":"1.5. Жұмыстың басталу күні {{start_kz}}."},{"a":"j","b":0,"t":"1.6. Жұмыскерді жұмысқа қабылдау Жұмыс берушінің осы Шарт негізінде шығарылған бұйрығымен ресімделеді."},{"a":"j","b":0,"t":"1.7. Осы Шарт бойынша жұмыс Жұмыскердің еңбек қызметінің негізгі орыны (негізгі жұмысы)  болып табылады. ","c":"main"},{"a":"j","b":0,"c":"sovm","x":1,"t":"1.7. Осы Шарт бойынша жұмыс Жұмыскер үшін қоса атқарылатын жұмыс (қоса атқару) болып табылады."},{"a":"j","b":0,"t":"1.8. Жұмыскердің еңбек жағдайларының сипаттамасы: қалыпты еңбек жағдайы, яғни Шарт бойынша жұмыс ауыр жұмысқа жатпайды және (немесе) зиян келтіріп және (немесе) қиын жағдайда орындалмайды."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"2. ШАРТТЫҢ ӘРЕКЕТ ЕТУ "},{"a":"c","b":1,"t":"ЖӘНЕ СЫНАҚ МЕРЗІМІ"},{"a":"l","b":0,"t":""},{"a":"j","b":0,"t":"2.1. {{term_kz}}","x":0},{"a":"j","b":0,"t":"- басталды: {{start_kz}}"},{"a":"j","b":0,"t":"- аяқталды: {{end_kz}}","c":"term_end"},{"a":"j","b":0,"t":"2.2. Еңбек шартының қолданыс мерзімі өткен жағдайда, тараптардың ешқайсысы соңғы жұмыс (ауысым) күнінің ішінде еңбек қатынасын тоқтату туралы жазбаша хабардар етпесе, осы Кодекстің 50-бабының 2-тармағында көзделген жағдайларды қоспағанда, ол бұрын жасалған мерзімге ұзартылған болып есептеледі."},{"a":"j","b":0,"t":"2.3. Тапсырылған жұмысқа Жұмыскердің біліктілік сәйкестігін тексеру мақсатында ұзақтығы {{prob_kz}} сынақ мерзімі белгіленді.","c":"prob"},{"a":"j","b":0,"t":"- басталды: {{start_kz}}","c":"prob"},{"a":"j","b":0,"t":"- аяқталды: {{prob_end_kz}}","c":"prob"},{"a":"j","b":0,"t":"2.4. Егер сынақ мерзімі өтіп кетіп, Тараптардың ешқайсысы Шартты бұзу туралы хабардар етпесе, Жұмыскер сынақ мерзімінен өткен болып есептеледі. ","c":"prob"},{"a":"j","b":0,"t":"","c":"prob"},{"a":"j","b":0,"t":"2.5. Жұмыскер іс жүзінде жұмыста болмаған кезеңде сынақ мерзімі тоқтатыла тұрады. Мұндай жағдайда Жұмыскер жұмыста болмаған кезеңге сынақ мерзімі ұзартылады. ","c":"prob"},{"a":"j","b":0,"t":"","c":"prob"},{"a":"j","b":0,"t":"2.6. Сынақ мерзімі кезеңінде Жұмыскер жұмысының теріс нәтижесі болған кезде Жұмыс беруші  бұл Жұмыскерде сынақ мерзімінен өтпеді деп тану үшін негіз болған себептерді көрсете отырып, оны жазбаша түрде хабардар етіп, онымен Шартты бұзуға құқылы.","c":"prob"},{"a":"l","b":0,"t":"","c":"prob"},{"a":"l","b":0,"t":"2.7. Жұмыс беруші сынақ мерзімі аяқталғанға дейін Қызметкерді басқа лауазымға ауыстырған жағдайда Қызметкер сынақтан өткен болып есептеледі.","c":"prob"},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"3. ЖҰМЫС УАҚЫТЫНЫҢ ЖӘНЕ "},{"a":"c","b":1,"t":"ДЕМАЛЫС УАҚЫТЫНЫҢ РЕЖИМІ"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"3.1. Жұмыскерге ұзақтығы 40 сағат қалыпты жұмыс уақыты белгіленеді, атап айтқанда:","c":"sch_week"},{"a":"j","b":0,"t":"3.1.1. Екі – сенбі, жексенбі күндері демалыс болатын бес күндік жұмыс аптасы;","c":"sch_week"},{"a":"j","b":0,"t":"3.1.2. Бес күндік жұмыс аптасы – күніне 8 сағат,","c":"sch_pps"},{"a":"j","b":0,"c":"sch_aup","x":1,"t":"3.1.2. Сегіз сағаттық жұмыс күні – 08.30-дан 17.30-ға дейін."},{"a":"j","b":0,"t":"3.1.3. Демалу мен тамақ ішуге үзіліс – 12.30-дан 13.30-ға дейін.","c":"sch_week"},{"a":"j","b":0,"c":"sch_shift","x":1,"t":"3.1. Жұмыскердің жұмыс уақытының режимі кестеге сәйкес белгіленеді (кесте бойынша)."},{"a":"j","b":0,"t":"Заңнамада белгіленген демалыс және мереке күндері жұмыс жүргізілмейді. Кодекстің 86-бабында көзделген жағдайларды қоспағанда, демалыс және мереке күндері Жұмыс берушінің бастамасы бойынша Жұмыскердің жазбаша келісімімен, жол беріледі. Демалыс және мереке күндері Жұмыскердің бастамасы бойынша жұмыс Жұмыс берушінің акті негізінде жол беріледі. Демалыс және мереке күндері Жұмыскердің тілегі бойынша жұмыс істеген кезде басқа демалыс күні беріледі немесе Кодекстің 109-бабында көрсетілген көлемде ақы төленеді."},{"a":"j","b":0,"t":"3.2. Жұмыскерге жыл сайын ұзақтығы {{vac_days}} ({{vac_days_kz}}) күнтізбелік күн, еңбек демалысы күндерінде келетін мереке күндерін есепке алмай, ақы төленетін демалыс беріледі. "},{"a":"j","b":0,"t":"3.3. Жыл сайынғы ақылы еңбек демалысын ұсыну тәртібі мен кезектілігі белгіленген қолданыстағы заңнамалық тәртіппен қабылданған Жұмыс берушінің актілерімен анықталады."},{"a":"j","b":0,"t":"3.4. Күтпеген жерден жұмыста бола алмайтын жағдайда (сырқаттану, күтпеген жағдай, және с.с.) Жұмыскер бір жұмыс күні ішінде персоналды басқару бөлімін немесе өзінің тікелей басшысын (немесе оны ауыстыратын адамды) жұмыста болмауының себебі және болжамды ұзақтығы туралы хабардар етуге тиіс."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"4. ЕҢБЕККЕ АҚЫ ТӨЛЕУДІҢ МӨЛШЕРІ ЖӘНЕ ӨЗГЕ ДЕ ШАРТТАРЫ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"4.1. Жұмыс беруші ай сайын Жұмыскерге бекітілген штаттық кестеге сәйкес {{salary}} ({{salary_kz}}) теңге көлемінде жалақы төлейді. Жалақы нақты жұмыс атқарылған уақытқа төлейді. Жалақы төлеу тәртібі Жұмыс берушінің актісімен айқындалады. Жұмыскердің Жұмыс берушінің актісінде көзделген материалдық көтермелеу, төлем және өтемақы алуға құқығы бар."},{"a":"j","b":0,"t":"Функционалдық міндеттерді мінсіз және бастамашыл орындағаны үшін, \"ҚазТБУ\" АҚ-ның қызметкерлеріне еңбекақы төлеудің 2026-2027 оқу жылына арналған жаңа жүйесі туралы Ережеге сәйкес, ай сайынғы жалақыға Президенттік үстемеақы (сыйақы) төленуі мүмкін."},{"a":"j","b":0,"t":"4.2. Жұмыскердің ресми медициналық құжатпен расталған уақытша еңбекке қабілетсіз кезеңдерін Жұмыс беруші ҚР заңнамасының талаптарына сәйкес төлейді. Жұмыскердің кінәсінен жұмыстың бос тұрып қалуы жағдайында, бос тұрып қалған уақытқа Жұмыс беруші төлемейді. Жалақы ай сайын кемінде бір рет жұмыс істеген айдан кейінгі айдың 10-күнінен кешіктірмей төлейді. "},{"a":"j","b":0,"t":"4.3. Жалақы Жұмыскердің банктегі карточкалық шотына, Жұмыскер өзінің карточкалық шотының реквизиттері туралы мәліметтер берген жағдайда аудару арқылы төленеді. Жұмыскер Шарт жасасқан кезден бастап күнтізбелік 10 күн ішінде өзінің карточкалық шотының реквизиттерін беруге міндеттенеді."},{"a":"j","b":0,"t":"4.4. Жыл сайынғы еңбек демалысын төлеу ол басталғанға дейін 3 (үш) жұмыс күнінен кешіктірілмей, ал еңбек демалысы графиктен тыс берілген жағдайда – ол берілген күннен бастап 3 (үш) жұмыс күнінен кешіктірмей жүргізіледі."},{"a":"j","b":0,"t":"4.5. Шарт тоқтатылған кезде Жұмыскерге тиесілі соманы төлеуді Жұмыс беруші ол тоқтатылған күннен кейін кешіктірмей жүргізеді."},{"a":"j","b":0,"t":"4.6. Жұмыстан шеттетілген кезеңде Жұмыскерге жалақы сақталмайды және уақытша еңбекке жарамсыздығы бойынша жәрдемақы Жұмыс берушінің қаражаты есебінен төленбейді. Жұмыскердің жалақысы оны Жұмыс беруші жұмыстан заңсыз шеттеткен жағдайда сақталады."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"5. ЖҰМЫСКЕРДІҢ ҚҰҚЫҚТАРЫ ЖӘНЕ МІНДЕТТЕРІ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"5.1. Жұмыскердің:"},{"a":"j","b":0,"t":"5.1.1. Кодексте көзделген тәртіппен және жағдайларда Шарт жасасуға, оны өзгертуге, толықтыруға және бұзуға;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"5.1.2. Жұмыс берушіден Шарттың, Ұжымдық шарттың талаптарын орындауды талап етуге;"},{"a":"j","b":0,"t":"5.1.3. еңбек қауіпсіздігіне және оның қорғалуына; "},{"a":"j","b":0,"t":"5.1.4. еңбек жағдайларының және оның қорғалуының жайы туралы толық және дәйекті ақпарат алуға;"},{"a":"j","b":0,"t":"5.1.5. Шарттың, Ұжымдық шарттың талаптарына сәйкес жалақының дер кезінде және толық көлемінде төленуіне;"},{"a":"j","b":0,"t":"5.1.6. демалуға, оның ішінде жыл сайынғы ақы төленетін еңбек демалысына;"},{"a":"j","b":0,"t":"5.1.7. егер заңнамада өзгеше көзделмесе, өздерінің еңбек құқықтары берілуі және қорғалуы үшін  кәсіптік одақ құруға, сондай-ақ ондағы мүшелікке құқықты қоса алғанда, бірлестікке;"},{"a":"j","b":0,"t":"5.1.8. өздерінің өкілдері арқылы ұжымдық келіссөздерге және Ұжымдық шарт жобасын әзірлеуге қатысуға, сондай-ақ қол қойылған Ұжымдық шартпен танысуға;"},{"a":"j","b":0,"t":"5.1.9. еңбек міндеттерін атқаруға байланысты денсаулыққа келтірілген зиянды өтеткізуге;"},{"a":"j","b":0,"t":"5.1.10. міндетті әлеуметтік сақтандыруға;"},{"a":"j","b":0,"t":"5.1.11. еңбек (қызметтік) міндеттерді орындаған кезде жазатайым оқиғалардан сақтандырылуы;"},{"a":"j","b":0,"t":"5.1.12. кепілдіктерге және өтемдік төлемдерге; "},{"a":"j","b":0,"t":"5.1.13. заңға қайшы келмейтін барлық тәсілдермен өз құқықтарын және заңды мүдделерін қорғауға; "},{"a":"j","b":0,"t":"5.1.14. қандай да бір кемсітушіліксіз теңдей еңбек үшін теңдей ақы төленуіне;"},{"a":"j","b":0,"t":"5.1.15. жеке еңбек дауын шешуге дәйекті түрде келісу комиссиясына, Кодексте көзделген тәртіппен сотқа жүгінуге; "},{"a":"j","b":0,"t":"5.1.16. еңбек қауіпсіздігі мен оның қорғалуы талаптарына сәйкес жабдықталған жұмыс орынына;"},{"a":"j","b":0,"t":"5.1.17. денсаулығына немесе өміріне қауіп төндіретін жағдай туындаған кезде бұл туралы тікелей басшысын немесе Жұмыс берушінің өкілін хабардар етіп жұмысты орындаудан бас тартуға;"},{"a":"j","b":0,"t":"5.1.18. еңбек жөніндегі уәкілетті мемлекеттік органға және (немесе) еңбек инспекциясы жөніндегі жергілікті органға еңбек қауіпсіздігі мен оның қорғалу жағдайларына зерттеу жүргізу туралы жүгінуге, сондай-ақ еңбек қауіпсіздігі мен оның қорғалу жағдайын жақсартуға байланысты мәселелерді тексеруге және қарауға өкілдік етіп қатысуға;"},{"a":"j","b":0,"t":"5.1.19. біліктілікке, еңбектің күрделілігіне, орындалған жұмыстың саны мен сапасына, сондай-ақ еңбек жағдайларына сәйкес еңбекақы төленуіне;"},{"a":"j","b":0,"t":"5.1.20. Кодексте және заңнамада белгіленген тәртіппен ереуілге шығу құқығын қоса алғанда, жеке және ұжымдық еңбек дауларын шешуге;"},{"a":"j","b":0,"t":"5.1.21. Жұмыс берушіде сақтаулы жеке-дара деректердің сақталуын қамтамасыз етуге;"},{"a":"j","b":0,"t":"5.1.22. Кодексте, заңнамада, Шартта, Ұжымдық шартта, Тараптардың өзге де келісімдерінде көзделген өзге де құқықтарды жүзеге асыруға құқығы бар."},{"a":"j","b":0,"t":"5.2. Жұмыскер: "},{"a":"j","b":0,"t":"5.2.1. келісімдерге, Шартқа, Ұжымдық шартқа (бар болған кезде) Жұмыс берушінің актілеріне сәйкес еңбек міндеттерін орындауға;"},{"a":"j","b":0,"t":"5.2.2. еңбек тәртібін сақтауға;"},{"a":"j","b":0,"t":"5.2.3. еңбек қауіпсіздігі мен оны қорғау, өрт қауіпсіздігі, өнеркәсіп қауіпсіздігі және жұмыс орынындағы өндірістік санитария жөніндегі талаптарды сақтауға;"},{"a":"j","b":0,"t":"5.2.4. Жұмыс берушілер мен жұмыскерлердің мүлкіне ұқыпты қарауға;"},{"a":"j","b":0,"t":"5.2.5. Жұмыс берушіге адамдардың өмірі мен денсаулығына қатер төндіретін жағдайлардың туындауы, Жұмыс берушілер мен жұмыскерлер мүлкінің сақталуы, сондай-ақ бос тұрып қалудың туындауы туралы Жұмыс берушіге хабарлауға;"},{"a":"j","b":0,"t":"5.2.6. еңбек міндеттерін орындаумен байланысты өзіне белгілі болған мемлекеттік құпиялар, қызметтік, коммерциялық немесе заңмен қорғалатын құпиялар болып табылатын мәліметтерді жария етпеуге; "},{"a":"j","b":0,"t":"5.2.7. Кодексте, заңнамада, Тараптардың өзге де келісімдерінде белгіленген шектерде келтірілген залалдарды Жұмыс берушіге өтеуге;"},{"a":"j","b":0,"t":"5.2.8. заңнамада, Кодексте, Шартта және Тараптардың өзге де келісімдерінде көзделген өзге де міндеттерді орындауға міндетті;"},{"a":"j","b":0,"t":"5.3. Жұмыскер Шарт бойынша өзінің құқықтарын жүзеге асыру және міндеттерін орындау кезінде Жұмыс берушінің мүддесіне орай әрекет етуге тиіс. Жұмыскер Жұмыс берушіге қатысты өз құқықтарын адал жүзеге асыруға және міндеттерін шын ниетімен атқаруға міндеттенеді."},{"a":"j","b":0,"t":"5.4. Қызметкер өз міндеттерін мінсіз және бастамашыл түрде орындауға міндетті."},{"a":"j","b":0,"t":"5.5. ҚР заңнамасында және Жұмыс беруші актілерінде көзделген басқа да міндеттерді орындауға міндетті. Басшының (жеке меншік нысанындағы ЖОО) өкіміне сәйкес кәсіби бейімделуге және университетке де, колледжге де студенттер жинауға белсенді түрде қатысуға міндетті."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"6. ЖҰМЫС БЕРУШІНІҢ ҚҰҚЫҚТАРЫ МЕН МІНДЕТТЕРІ"},{"a":"j","b":0,"t":"6.1. Жұмыс берушінің:"},{"a":"j","b":0,"t":"6.1.1. жұмысқа қабылдау кезінде таңдау еркіндігіне;"},{"a":"j","b":0,"t":"6.1.2. Кодексте, Шартта белгіленген тәртіппен және негіздерде Шартты өзгертуге, толықтыруға, тоқтатуға және бұзуға;"},{"a":"j","b":0,"t":"6.1.3. Кодекстің 77, 78-баптарына сәйкес, Жұмыскерді жұмыстан тыс уақытта жұмысқа тартуға;"},{"a":"j","b":0,"t":"6.1.4. Жұмыскерден Шарттың, Ұжымдық шарттың талаптарын, еңбек тәртібі қағидаларын және Жұмыс берушінің басқа да актілерін орындауды талап етуге;"},{"a":"j","b":0,"t":"6.1.5. Жұмыскерді көтермелеуге, тәртіптік жаза қолдануға, Кодексте және заңнамада көзделген жағдайларда және тәртіппен Жұмыскерді материалдық және өзге де жауапкершілікке тартуға;"},{"a":"j","b":0,"t":"6.1.6. Қызметкер өз міндеттерін мінсіз және бастамашыл орындауды қамтамасыз етпеген жағдайда, қызметкерді Президенттік-ректорлық үстемеақыға (сыйақыға) ішінара формада ұсыну."},{"a":"j","b":0,"t":"6.1.7. еңбек міндеттерін орындау кезінде Жұмыскер келтірген залалды өтеткізуге;"},{"a":"j","b":0,"t":"6.1.8. еңбек саласында өзінің құқықтары мен заңды мүдделерін қорғау мақсатында сотқа жүгінуге;"},{"a":"j","b":0,"t":"6.1.9. Жұмыскерге сынақ мерзімін белгілеуге;"},{"a":"j","b":0,"t":"6.1.10. Жұмыскерге кәсіптік дайындықты, қайта дайындықты және Еңбек Кодексіне сәйкес Жұмыскердің біліктілігін арттыруды қамтамасыз етуге;"},{"a":"j","b":0,"t":"6.1.11. Кодекске сәйкес Жұмыскердің оқуына байланысты өз шығындарын өтеткізуге;"},{"a":"j","b":0,"t":"6.1.12. жеке еңбек дауын шешу үшін дәйектілікпен келісу комиссиясына, Кодексте көзделген тәртіппен сотқа жүгінуге;"},{"a":"j","b":0,"t":"6.1.13. Кодексте, заңнамада, Шартта және Тараптардың өзге де келісімдерінде көзделген өзге де құқықтарды жүзеге асыруға құқығы бар."},{"a":"j","b":0,"t":"6.2. Жұмыс беруші:"},{"a":"j","b":0,"t":"6.2.1. заңнама, келісімдер, Шарт, Ұжымдық шарт, өздері шығарған актілер талаптарын сақтауға;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.2. жұмысқа қабылдау кезінде Кодексте белгіленген тәртіппен және жағдайларда еңбек шартын жасасуға; "},{"a":"j","b":0,"t":"6.2.3. жұмысқа қабылдау кезінде Кодекстің 32-бабына сәйкес Шарт жасасу үшін қажетті құжаттарды талап етуге міндетті. Жұмыс беруші,  заңнамада көзделген жағдайларды қоспағанда,  өзге құжаттарды талап етуге құқылы емес. Шартқа қол қойғанға дейін Жұмыскер өзі берген мәліметтерді растау үшін көрсетілген құжаттарды беруге міндеттенеді. Құжаттардың төлнұсқаларын Жұмыс берушіде сақтауға не заңнамада белгіленген рәсімдерді орындау үшін  оларды уақытша қалдыруға Жұмыскер келіскен жағдайда Жұмыс беруші құжаттарды қайтару туралы Жұмыскерге жазбаша міндеттеме береді;"},{"a":"j","b":0,"t":"6.2.4. Жұмыскерге Шартта белгіленген жұмысты беруге;"},{"a":"j","b":0,"t":"6.2.5. Жұмыскерге заңнамада, Шартта, Ұжымдық шартта, Жұмыс берушінің актілерінде көзделген  жалақыны және өзге де төлемдерді дер кезінде және толық көлемінде төлеуге; "},{"a":"j","b":0,"t":"6.2.6. Жұмыскерді еңбек тәртібінің қағидаларымен, Жұмыс берушінің  Жұмыскердің жұмысына (еңбек функциясына) тікелей қатысы бар өзге де актілерімен және Ұжымдық шартпен (бар болған кезде) таныстыруға;"},{"a":"j","b":0,"t":"6.2.7. Кодексте белгіленген тәртіппен ұжымдық келіссөздер жүргізуге, Ұжымдық шарт жасасуға;"},{"a":"j","b":0,"t":"6.2.8. Жұмыскерге заңнамаға, Шартқа, Ұжымдық шартқа сәйкес жұмыс жағдайын қамтамасыз етуге;"},{"a":"j","b":0,"t":"6.2.9. Жұмыскерді жабдықпен, құрал-саймандармен, техникалық құжаттамамен және еңбек міндеттерін өз қаражаты есебінен орындау үшін қажетті өзге де құралдармен қамтамасыз етуге;"},{"a":"j","b":0,"t":"6.2.10. жұмыспен қамту мәселелері жөніндегі уәкілетті органға халықты жұмыспен қамту туралы заңнамаға сәйкес ақпарат беруге;"},{"a":"j","b":0,"t":"6.2.11. мемлекеттік еңбек инспекторларының ұйғарымдарын орындауға; "},{"a":"j","b":0,"t":"6.2.12. егер жұмысты одан әрі жалғастыру Жұмыскердің және өзге адамдардың өмірі мен денсаулығына қатер төндіретін болса, жұмысты тоқтата тұруға; "},{"a":"j","b":0,"t":"6.2.13. Жұмыскерді міндетті әлеуметтік сақтандыруды жүзеге асыруға; "},{"a":"j","b":0,"t":"6.2.14. Жұмыскер еңбек (қызметтік) міндеттерін орындаған кезде оны жазатайым жағдайлардан сақтандыруға;"},{"a":"j","b":0,"t":"6.2.15. Жұмыскерге жыл сайынғы ақы төленетін еңбек демалысын беруге;"},{"a":"j","b":0,"t":"6.2.16. Жұмыскердің еңбек қызметін растайтын құжаттардың және оларды зейнетақымен қамтамасыз етуге ақша ұсталғаны және аударылғаны туралы мәліметтердің сақталуын және олардың мемлекеттік архивке өткізілуін қамтамасыз етуге;"},{"a":"j","b":0,"t":"6.2.17. Жұмыскерді еңбектің зиянды және (немесе) қауіпті жағдайлары және кәсіби аурулар мүмкіндігі туралы ескертуге; "},{"a":"j","b":0,"t":"6.2.18. жұмыс орындарында және техникалық процестерде тәуекелдерді болдырмау жөнінде шара қолдануға, өндірістік және ғылыми-техникалық прогресті ескере отырып профилактикалық жұмыстар жүргізуге;"},{"a":"j","b":0,"t":"6.2.19. Жұмыскер еңбек (қызметтік) міндеттерін орындаған кезде оның өмірі мен денсаулығына  келтірілген зиянды өтеуге;"},{"a":"j","b":0,"t":"6.2.20. еңбек жөніндегі уәкілетті мемлекеттік органның және еңбек инспекциясы жөніндегі  жергілікті органның лауазымды тұлғаларын, жұмыскерлердің өкілдерін, еңбекті қорғау жөніндегі техникалық инспекторларды қауіпсіздіктің, еңбек жағдайы мен оны қорғаудың және заңнаманың сақталуының жай-күйіне тексеру жүргізу үшін, сондай-ақ еңбек қызметіне және кәсіби ауруларға байланысты жазатайым жағдайларды тексеру үшін кедергісіз кіргізуге;"},{"a":"j","b":0,"t":"6.2.21.  Жұмыскердің жеке-дара деректерін жинауды, өңдеуді және қорғауды жеке-дара деректер және оларды қорғау туралы заңнамаға сәйкес жүзеге асыруға;"},{"a":"j","b":0,"t":"6.2.22. еңбек қауіпсіздігі және оны қорғау жөніндегі ішкі бақылауды жүзеге асыруға;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.23. заңнамада, Кодексте, Шартта және Тараптардың өзге де келісімдерінде көзделген өзге де міндеттерді орындауға міндетті."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"7. ШАРТТЫ ЖАСАСУ, ӨЗГЕРТУ ЖӘНЕ ТОҚТАТУ (БҰЗУ) ТӘРТІБІ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"7.1. Шарт Тараптар арасындағы екіжақты келісім болып табылады, оның негізінде Жұмыс беруші мен Жұмыскер арасындағы еңбек және еңбекке байланысты өзге де қатынастар туындайды және реттеледі."},{"a":"j","b":0,"t":"7.2. Шарт қолданыла бастаған Датада Шарт жасалған болып есептеледі."},{"a":"j","b":0,"t":"7.3. Жұмыс беруші мен Жұмыскер Шарттың талаптарын адал орындауға келіседі және заңнамада, Тараптар келісімінде көзделген жағдайларды қоспағанда, оның талаптарына біржақты енгізілген өзгерістердің, толықтырулардың Тараптар үшін заңдық күші болмайды деп белгілейді."},{"a":"j","b":0,"t":"7.4. Шартқа өзгерістер енгізу тәртібі: "},{"a":"j","b":0,"t":"Шарттың қолданыс мерзімі ішінде Тараптардың келісімімен Жұмыскердің еңбек ақысының көлемі, оның лауазымы, ҚР заңнамасына сәйкес Шарттың қолданыс мерзімі және еңбектің басқа да талаптары өзгеруі мүмкін, ол туралы Шартқа қосымша келісім жасалады."},{"a":"j","b":0,"t":"Шартқа барлық өзгерістер мен толықтырулар Тараптардың жазбаша келісімімен ғана енгізіледі және ол оның ажырамас бөлігі болып табылады."},{"a":"j","b":0,"t":"7.5. Шартты тоқтату тәртібі"},{"a":"j","b":0,"t":"Осы Шарт ҚР еңбек заңнамасында көзделген негіздер бойынша тоқтатылады."},{"a":"j","b":0,"t":"Шарт бұзылған кезде Жұмыскердің бастамасы бойынша:"},{"a":"j","b":0,"t":"- егер ҚР еңбек заңнамасында өзгеше көзделмесе, жұмыскер Шартты тоқтату туралы оны тоқтатын датадан кемінде бір ай бұрын Жұмыс берушіге ескертеді; "},{"a":"j","b":0,"t":"- ескерту мерзімі ішінде Жұмыс берушінің шешімін алғанға дейін Жұмыскер, ҚР еңбек заңнамасында айқындалған жағдайларды қоспағанда, дәлелсіз себептермен еңбек міндеттерін өз бетінше тоқтата алмайды. Олай болмаған жағдайда Жұмыс беруші ҚР еңбек заңнамасына сәйкес оны теріс әрекет ретінде Шартты бұзу құқығын өзінде қалдырады;"},{"a":"j","b":0,"t":"- ескерту мерзімі ішінде Жұмыскер Шартты бұзу туралы өтінішін кері қайтарып алуға құқылы. Жұмыскер Шартты бұзу туралы бұйрықпен танысқаннан кейін Шартты бұзу туралы өтінішін кері қайтарып ала алмайды."},{"a":"j","b":0,"t":"7.6. Шартты тоқтату датасы, ҚР заңнамасында көзделген жағдайларды қоспағанда,Жұмыскердің соңғы жұмыс күні болып табылады."},{"a":"j","b":0,"t":"7.7. Шартты тоқтату Жұмыс берушінің актімен ресімделеді, оның көшірмесі қол қойғызып тапсырылады немесе үш күн мерзімде хабардар етілетін хатпен жіберіледі. "},{"a":"j","b":0,"t":"Жұмыскер Шарттың тоқтатылуы туралы бұйрықпен танысудан бас тартқан жағдайда бұйрықта тиісті белгі жасалады. Жұмыскердің бұйрықпен танысудан бас тартуы Жұмыскерді бұйрықпен таныстыру кезінде сол жерде көріп тұрған Жұмыс берушінің қызметкерлерінің (екеуден кем емес) қойған қолымен расталады. "},{"a":"j","b":0,"t":"7.8. Жұмыскер Шартты тоқтату/бұзу датасынан кешіктірмей Жұмыс берушінің уәкілетті тұлғасына (бөлім, бөлімше бастығына) қабылдау-тапсыру актісімен: "},{"a":"j","b":0,"t":"- Жұмыскерге Жұмыс беруші лауазымдық міндеттерін орындау үшін берген немесе жұмыс барысында Жұмыс берушіден алған материалдық құндылықтарды, негізгі құралдарды, жабдықты, құрал-саймандарды;"},{"a":"j","b":0,"t":"- экономикалық, қаржы, коммерциялық, заңдық және техникалық құжаттарды, лауазымдық міндеттерін орындау үшін Жұмыскерге берілген немесе Жұмыс берушіде Жұмыскер жұмыс істеген кезеңде қағаз жеткізгіште және электрондық түрде ол әзірлеген ақпаратты (оның ішінде компьютерлік бағдарламалар, деректер базасы, электрондық құжаттар файлдары және с.с.);"},{"a":"j","b":0,"t":"- лауазымдық міндеттерін орындау кезінде Жұмыс берушінің атынан әрекет жасау үшін Жұмыскерге берілген сенімхаттарды (оның ішінде шарттар жасасу, үшінші тұлғалар алдында Жұмыс берушінің мүддесін білдіру және с.с.) әзірлеуге және тапсыруға міндетті. "},{"a":"j","b":0,"t":"7.9. Өзіне толық материалдық жауапкершілік алу туралы жазбаша шарт негізінде Жұмыскерге берілген мүліктің және басқа да құндылықтардың сақталуын қамтамасыз етпеген Жұмыскерді Жұмыс берушінің жұмыстан шеттетуге құқығы бар."},{"a":"j","b":0,"t":"7.10. Жұмыскерді жұмыстан шеттету Жұмыс берушінің шеттету үшін негіз болып табылатын себептер анықталғанға және (немесе) жойылғанға дейін Жұмыс беруші жасаған актімен жүзеге асырылады."},{"a":"j","b":0,"t":"7.11. Шарт Кодекстің 49-бабында көзделген негіздер бойынша ғана тоқтатылуы мүмкін, атап айтқанда:"},{"a":"j","b":0,"t":"7.11.1. Тараптардың келісімімен Шартты бұзу;"},{"a":"j","b":0,"t":"7.11.2. Шарт мерзімінің аяқталуы;"},{"a":"j","b":0,"t":"7.11.3. Жұмыс берушінің бастамасы бойынша Шартты бұзу;"},{"a":"j","b":0,"t":"7.11.4. жұмыскердің басқа жұмыс берушіге ауысуына байланысты;"},{"a":"j","b":0,"t":"7.11.5. Жұмыскердің бастамасы бойынша Шартты бұзу;"},{"a":"j","b":0,"t":"7.11.6. Тараптардың еркінен тыс мән-жайлар;"},{"a":"j","b":0,"t":"7.11.7. Жұмыскердің еңбек қатынастарын жалғастырудан бастартуы;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.11.8. Жұмыскердің сайланбалы жұмысқа (лауазымға) ауысуы немесе заңнамада көзделгеннен басқа жағдайларда, оның еңбек қатынастарын жалғастыруға мүмкіндік бермейтін лауазымға тағайындалуы;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.11.9. Шарт жасасу талаптарының бұзылуы;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.12. Шартты тоқтату туралы Жұмыс беруші актінің көшірмесі Жұмыскерге тапсырылады не Жұмыс беруші актісі шығарылған күннен бастап 3 (үш) жұмыс күні ішінде хабардар ету хатымен оған жіберіледі."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"8. КЕПІЛДІКТЕР ЖӘНЕ ӨТЕМДЕР"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"8.1. Осы Шартты бұзған кезде осы шартты тоқтату күні жыл сайынғы пайдаланылмаған еңбек демалысы үшін жұмыскерге өтем төленеді."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"8.2. Кепілдіктер және іссапарға байланысты өтемдер Қазақстан Республикасының  қолданыстағы еңбек заңнамасына сәйкес белгіленеді және төленеді."},{"a":"j","b":0,"t":"8.3. Жұмыскерге өзге де кепілдіктерге және Қазақстан Республикасының заңнамасында көзделген өтемдік төлемдерге кепілдік беріледі."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"9. ТАРАПТАРДЫҢ ЖАУАПКЕРШІЛІГІ ЖӘНЕ ДАУЛАРДЫ ШЕШУ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"9.1. Шартта көзделген міндеттемелерді орындамағаны немесе тиісті дәрежеде орындамағаны үшін Тараптар заңнамаға, Шартқа және Тараптардың өзге де келісімдеріне сәйкес жауапты болады."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.2. Шарттың басқа Тарапқа зиян (залал) келтірген Тарапы оны Кодекске және заңнамаға сәйкес өтейді. "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.3. Зиян (залал) келтірілгеннен кейін Шарттың тоқтатылуы Шарт Тараптарын келтірілген зиянды (залалды) басқа Тарапқа өтеу жөніндегі материалдық және өзге де жауапкершіліктен босатылуына әкеп соқпайды."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.4. Басқа Тарапқа келтірген зиян (залал) үшін Шарт Тарапының материалдық жауапкершілігі кінәлінің құқыққа қайшы ұстанымының (әрекет,  әрекетсіздік) нәтижесінде және, егер Кодексте және заңнамада көзделмеген болса, кінәлінің құқыққа қайшы ұстанымы арасындағы себепші болған байланыс және келтірілген зиян (залал) үшін туындайды."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.5. Жұмыскердің тәртіптік теріс қылық жасағаны үшін Жұмыс беруші немесе бірінші басшы Қазақстан Республикасының заңдарында көзделген жағдайларда тәртіптік жазаның мына түрлерін қолдануға құқылы: "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.5.1. ескерту жасау;"},{"a":"j","b":0,"t":"9.5.2. сөгіс;"},{"a":"j","b":0,"t":"9.5.3. қатаң сөгіс;"},{"a":"j","b":0,"t":"9.5.4. Кодекстің 52-бабының 1-тармағының 8), 9), 10), 11), 12), 13), 14), 15), 16), 17) және 18) тармақтарында көзделгеннегіздер бойынша Жұмыс берушінің бастамасымен Шартты бұзу."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.6. Шарттан туындайтын немесе оған байланысты барлық даулар және келіспеушіліктер Тараптар арасында келіссөздер жүргізу арқылы реттелуге жатады."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.7. Еңбек дауларын келісу комиссиясы және (немесе) соттар заңнамада регламенттелген тәртіппен шешеді."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"10. ҚОРЫТЫНДЫ ЕРЕЖЕЛЕР"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"10.1. Шарт, сондай-ақ Шартты орындауға байланысты туындайтын барлық құүқықтық қатынастар Қазақстан Республикасының заңнамасына сәйкес реттеледі және түсіндірілуге жатады."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.2. Заңнамада көзделген жағдайларды қоспағанда, Шарттың мазмұнын үшінші тұлғаларға жария етуге жатпайды."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.3. Шартта регламенттелген тәртіппен жасалған қосымшалар, толықтырулар, өзгерістер оның ажырамас бөлігі болып табылады."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.4. Осы Шарт бірдей заңды күші бар, Тараптардың әрқайсысына бір-бір данада, мемлекеттік және орыс тілдерінде дайындалды."},{"a":"c","b":1,"t":"11. РЕКВИЗИТТЕР ЖӘНЕ ТАРАПТАРДЫҢ ҚОЛЫ"},{"a":"l","b":1,"t":"Жұмыс беруші:","x":1},{"a":"l","b":0,"t":"{{emp_name_kz}}","x":1},{"a":"l","b":0,"t":"БСН {{emp_bin}}","x":1},{"a":"l","b":0,"t":"Мекенжайы: {{emp_addr_kz}}","x":1},{"a":"l","b":0,"t":"Президент ____________ {{emp_head_short}}","x":1},{"a":"l","b":0,"t":"","x":1},{"a":"l","b":1,"t":"Жұмыскер:","x":1},{"a":"l","b":0,"t":"{{fio}}","x":1},{"a":"l","b":0,"t":"Мекенжайы: {{address}}","x":1},{"a":"l","b":0,"t":"Жеке куәлік №{{id_num}}, {{id_date}} ж. берген {{id_issuer_kz}}","x":1},{"a":"l","b":0,"t":"ЖСН {{iin}}","x":1},{"a":"l","b":0,"t":"Тел.: {{phone}}","x":1},{"a":"l","b":0,"t":"Қолы ____________","x":1},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"ШАРТТЫ ТОҚТАТУ ТУРАЛЫ БЕЛГІ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"Осы Шарт ҚР Еңбек Кодексінде көзделген негізде «___» ________20__ж. бастап тоқтатылды."},{"a":"j","b":0,"t":""},{"a":"l","b":0,"t":"_______________________________________________"},{"a":"j","b":0,"t":"(ҚР Еңбек Кодексінің бабын, тармағын, тармақшасын көрсету)"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"Бұйрық №________ «_____»________________20___ж."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"__________________________________________________"},{"a":"j","b":0,"t":" Қолы Жұмыскер"},{"a":"l","b":0,"t":""}],"ru":[{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"Трудовой договор №{{num}}"},{"a":"l","b":0,"t":""},{"a":"l","b":0,"t":"г. Астана\t{{contract_date_ru}}","tab":1},{"a":"l","b":0,"t":""},{"a":"j","b":0,"t":"Акционерное общество «Казахский Университет Технологии и Бизнеса имени К. Кулажанова» (далее – Работодатель) в лице Президента Е. Т. Кулажанова, действующего на основании Устава и Приказа № 188-25-К от 08.07.2025 г., БИН 030240001575, с одной стороны, и {{fio}}, {{birth_date}} года рождения (далее - Работник), {{citizen_ru}}, удостоверение личности, №{{id_num}}, выданного {{id_issuer_ru}} от {{id_date}} года, ИИН {{iin}}, далее совместно именуемые Стороны, а по отдельности как указано выше или Сторона, руководствуясь законодательством  Республики Казахстан, в том числе  Трудовым Кодексом (далее – Кодекс), заключили настоящий Трудовой договор (далее – Договор) о нижеследующем:"},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"1. ПРЕДМЕТ ДОГОВОРА"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"1.1. Работодатель принимает Работника на должность {{position_full_ru}}."},{"a":"j","b":0,"t":"1.2. Работник обязуется в порядке и на условиях, определенных настоящим Договором: выполнять работу по соответствующей должности и соблюдать трудовой распорядок, а Работодатель обязуется в порядке и на условиях, определенных настоящим Договором: обеспечивать Работнику условия труда, своевременно и в полном объеме выплачивать Работнику заработную плату согласно штатному расписанию и осуществлять иные выплаты предусмотренные трудовым законодательством Республики Казахстан и настоящим Договором. "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"1.3. Место выполнения работы: АО «Казахский университет технологии и бизнеса имени К. Кулажанова»."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"1.4. Обязанности Работника определены действующим законодательством, настоящим Договором, должностной инструкцией, Правилами внутреннего трудового распорядка, иными актами Работодателя, принятыми в установленном  законодательством порядке."},{"a":"j","b":0,"t":"1.5. Дата начала работы {{start_ru}} года."},{"a":"j","b":0,"t":"1.6. Прием Работника на работу оформляется приказом Работодателя, издаваемым на основании настоящего Договора."},{"a":"j","b":0,"t":"1.7. Работа по данному Договору является основным местом трудовой деятельности Работника (основная работа). ","c":"main"},{"a":"j","b":0,"c":"sovm","x":1,"t":"1.7. Работа по данному Договору является работой по совместительству."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"1.8. Характеристика условий труда Работника: нормальные условия труда, т.е. работа по Договору не относится к тяжелой и (или) не выполняется во вредных и (или) опасных условиях."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"2. СРОК ДОГОВОРА"},{"a":"c","b":1,"t":"И ИСПЫТАТЕЛЬНЫЙ СРОК"},{"a":"l","b":0,"t":""},{"a":"l","b":0,"t":"2.1. {{term_ru}}"},{"a":"j","b":0,"t":"- начало: с {{start_ru}} года."},{"a":"j","b":0,"t":"- окончание: {{end_ru}}","c":"term_end"},{"a":"j","b":0,"t":"2.2. При истечении срока Договора, если ни одна из сторон в течение последнего рабочего дня (смены) письменно не уведомила о прекращении трудовых отношений,"},{"a":"j","b":0,"t":"предусмотренное в пункте 2 статьи 50 данного Кодекса, он может быть продлен Сторонами на неопределенный или определенный срок не менее одного года. "},{"a":"l","b":0,"t":"2.3. В целях проверки соответствия квалификации Работника поручаемой работе устанавливается испытательный срок продолжительностью {{prob_ru}}.","c":"prob"},{"a":"l","b":0,"t":"- начало: {{start_ru}} года.","c":"prob"},{"a":"l","b":0,"t":"- окончание {{prob_end_ru}} года.","c":"prob"},{"a":"j","b":0,"t":"2.4. Если срок испытания истек и ни одна из Сторон не уведомила о расторжении Договора, то Работник считается прошедшим испытательный срок.","c":"prob"},{"a":"j","b":0,"t":"2.5. Испытательный срок приостанавливается на период, когда работник фактически отсутствовал на работе. В данном случае срок испытания продлевается на период отсутствия Работника.","c":"prob"},{"a":"j","b":0,"t":"","c":"prob"},{"a":"j","b":0,"t":"2.6. При отрицательном результате работы Работника в период испытательного срока Работодатель вправе расторгнуть с ним Договор, уведомив его в письменной форме, с указанием причин, послуживших основанием для признания этого Работника не прошедшим испытательного срока.","c":"prob"},{"a":"j","b":0,"t":"","c":"prob"},{"a":"j","b":0,"t":"2.7. В случае перевода Работника до истечения испытательного срока на другую должность, Работник также считается прошедшим испытательный срок.","c":"prob"},{"a":"c","b":0,"t":""},{"a":"c","b":1,"t":"3. РЕЖИМ РАБОЧЕГО ВРЕМЕНИ "},{"a":"c","b":1,"t":"И ВРЕМЕНИ ОТДЫХА"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"3.1. Работнику устанавливается рабочее время нормальной продолжительности 40 часов в неделю, а именно:","c":"sch_week"},{"a":"j","b":0,"t":"3.1.1. Пятидневная рабочая неделя с двумя выходными днями - суббота и воскресенье;","c":"sch_week"},{"a":"l","b":0,"t":"3.1.2. Пятидневная рабочая неделя – пять рабочих дней 8 часов;","c":"sch_pps"},{"a":"l","b":0,"c":"sch_aup","x":0,"t":"3.1.2. Восьмичасовой рабочий день - с 08.30 до 17.30."},{"a":"l","b":0,"t":"3.1.3. Перерыв для отдыха и питания - с 12.30 до 13.30.","c":"sch_week"},{"a":"l","b":0,"c":"sch_shift","x":0,"t":"3.1.Режим рабочего времени Работника устанавливается согласно графику (по графику)."},{"a":"j","b":0,"t":"В выходные и праздничные дни, установленные законодательством, работа не производится. Работа в выходные и праздничные дни по инициативе Работодателя допускается с письменного согласия Работника, за исключением случаев, предусмотренных статьей 86 Кодекса. Работа в выходные и праздничные дни по инициативе Работника допускается на основании акта Работодателя. При работе в выходные и праздничные дни по желанию Работника предоставляется другой день отдыха или производится оплата в размере, указанном в статье 109 Кодекса."},{"a":"j","b":0,"t":"3.2. Работнику предоставляется оплачиваемый ежегодный трудовой отпуск продолжительностью {{vac_days}} ({{vac_days_ru}}) календарных дней без учета праздничных дней, приходящихся на дни трудового отпуска."},{"a":"l","b":0,"t":"3.3. Порядок и очередность предоставления оплачиваемого ежегодного трудового отпуска определяются актами Работодателя, принятыми в установленном действующим законодательством порядке."},{"a":"j","b":0,"t":"3.4. В случае непредвиденного отсутствия на работе (болезнь, непредвиденные обстоятельства и т.п.) Работник обязан в течение одного рабочего дня поставить в известность отдел управление персоналом или своего непосредственного руководителя (или лицо, его"},{"a":"j","b":0,"t":"замещающее) о причинах и предполагаемой продолжительности отсутствия."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"4. РАЗМЕР И ИНЫЕ УСЛОВИЯ "},{"a":"c","b":1,"t":"ОПЛАТЫ ТРУДА"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"4.1. Работодатель ежемесячно выплачивает Работнику заработную плату в размере {{salary}} ({{salary_ru}}) тенге, согласно утвержденному Штатному расписанию. Заработная плата выплачивается за фактически отработанное время. Порядок выплаты заработной платы определяется актами Работодателя. Работник имеет право на материальное поощрение, выплаты и компенсации, предусмотренные актами Работодателя."},{"a":"j","b":0,"t":"За безупречное и инициативное выполнение функциональных обязанностей к ежемесячной заработной плате может быть выплачена Президентская надбавка (премия), согласно Положению о новой системе оплаты труда работников АО «КазУТБ» на 2026-2027 учебный год."},{"a":"j","b":0,"t":"4.2. Периоды временной нетрудоспособности Работника, подтвержденные официальными медицинскими документами, оплачиваются Работодателем согласно требованиям законодательства РК. В случае допущения простоя работы по вине Работника, время простоя Работодателем не оплачивается.  Заработная плата выплачивается не менее одного раза в месяц, в срок не позднее 10 числа месяца, следующего за отработанным месяцем."},{"a":"j","b":0,"t":"4.3. Заработная плата выплачивается путем перечисления на карточный счет Работника в банке, при условии предоставления Работником сведений о реквизитах своего карточного счета. Работник обязуется предоставить реквизиты своего карточного счета в течение 10 календарных дней с момента заключения Договора."},{"a":"j","b":0,"t":"4.4. Оплата ежегодного трудового отпуска производится не позднее чем за 3 (три) рабочих дня до его начала, а в случае предоставления трудового отпуска вне графика – не позднее 3 (трех) рабочих дней со дня его предоставления."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"4.5. При прекращении Договора выплата сумм, причитающихся Работнику от Работодателя, производится не позднее 3 (трех) рабочих дней после его прекращения."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"4.6. На период отстранения от работы Работнику не сохраняется заработная плата и не выплачивается за счет средств Работодателя пособие по временной нетрудоспособности. Заработная плата сохраняется за Работником в случае его незаконного отстранения Работодателем от работы."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"5. ПРАВА И ОБЯЗАННОСТИ  РАБОТНИКА"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"5.1. Работник имеет право на:"},{"a":"j","b":0,"t":"5.1.1. заключение, изменение, дополнение и расторжение Договора в порядке и на условиях, предусмотренных Кодексом;"},{"a":"j","b":0,"t":"5.1.2. требование от Работодателя выполнения условий Договора, Коллективного договора;"},{"a":"j","b":0,"t":"5.1.3. безопасность и охрану труда;"},{"a":"j","b":0,"t":"5.1.4. получение полной и достоверной информации о состоянии условий труда и охраны труда;"},{"a":"j","b":0,"t":"5.1.5. своевременную и в полном объеме выплату заработной платы в соответствии с условиями Договора, Коллективного договора;"},{"a":"j","b":0,"t":"5.1.6. отдых, в том числе оплачиваемый ежегодный трудовой отпуск;"},{"a":"j","b":0,"t":"5.1.7. объединение, включая право на создание профессионального союза, а также членство в нем, для предоставления и защиты своих трудовых прав, если иное не предусмотрено законодательством;"},{"a":"j","b":0,"t":"5.1.8. участие через своих представителей в коллективных переговорах и разработке проекта Коллективного договора, а также знакомиться с подписанным Коллективным договором;"},{"a":"j","b":0,"t":"5.1.9. возмещение вреда, причиненного здоровью в связи с исполнением трудовых обязанностей;"},{"a":"j","b":0,"t":"5.1.10. обязательное социальное страхование;"},{"a":"j","b":0,"t":"5.1.11. страхование от несчастных случаев при исполнении трудовых (служебных) обязанностей;"},{"a":"j","b":0,"t":"5.1.12. гарантии и компенсационные выплаты;"},{"a":"j","b":0,"t":"5.1.13. защиту своих прав и законных интересов всеми не противоречащими законодательству способами;"},{"a":"j","b":0,"t":"5.1.14. равную оплату за равный труд без какой-либо дискриминации;"},{"a":"j","b":0,"t":"5.1.15. обращение за разрешением индивидуального трудового спора  последовательно в согласительную комиссию, суд в порядке, предусмотренном Кодексом;"},{"a":"j","b":0,"t":"5.1.16. рабочее место, оборудованное в соответствии с требованиями безопасности и охраны труда;"},{"a":"j","b":0,"t":"5.1.17. отказ от выполнения работы при возникновении ситуации, создающей угрозу его здоровью или жизни, с извещением об этом непосредственного руководителя или представителя Работодателя;"},{"a":"j","b":0,"t":"5.1.18. обращение в уполномоченный государственный орган по труду и (или) в местный орган по инспекции труда о проведении обследования условий безопасности и охраны труда на рабочем месте, а также на представительное участие в проверке и рассмотрении вопросов, связанных с улучшением условий, безопасности и охраны труда;"},{"a":"j","b":0,"t":"5.1.19. оплату труда в соответствии с квалификацией, сложностью труда, количеством и качеством выполненной работы, а также условиями труда;"},{"a":"j","b":0,"t":"5.1.20. разрешение индивидуальных и коллективных трудовых споров, включая право на забастовку, в порядке, установленном Кодексом и законодательством;"},{"a":"j","b":0,"t":"5.1.21. обеспечение защиты персональных данных, хранящихся у Работодателя;"},{"a":"j","b":0,"t":"5.1.22. осуществлять иные права, предусмотренные Кодексом, законодательством, Договором и иными соглашениями Сторон."},{"a":"j","b":0,"t":"5.2. Работник обязан:"},{"a":"j","b":0,"t":"5.2.1. выполнять трудовые обязанности в соответствии с соглашениями, Договором, Коллективным договором (при наличии), актами Работодателя;"},{"a":"j","b":0,"t":"5.2.2. соблюдать трудовую дисциплину;"},{"a":"j","b":0,"t":"5.2.3. соблюдать требования по безопасности и охране труда, пожарной безопасности, промышленной безопасности и производственной санитарии на рабочем месте;"},{"a":"j","b":0,"t":"5.2.4. бережно относиться к имуществу Работодателя и работников;"},{"a":"j","b":0,"t":"5.2.5. сообщать Работодателю о возникшей ситуации, представляющей угрозу жизни и здоровью людей, сохранности имущества Работодателя и работников, а также о возникновении простоя;"},{"a":"j","b":0,"t":"5.2.6. не разглашать сведений, составляющих государственные секреты, служебную, коммерческую или иную охраняемую законодательством тайну, ставших ему известными в связи с выполнением трудовых обязанностей;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"5.2.7. возмещать Работодателю причиненный ущерб в пределах, установленных Кодексом, законодательством, иными соглашениями Сторон;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"5.2.8. исполнять иные обязанности, предусмотренные законодательством, Кодексом, Договором и иными соглашениями Сторон."},{"a":"j","b":0,"t":"5.3. При осуществлении своих прав и исполнении обязанностей по Договору Работник должен действовать в интересах Работодателя.  Работник обязуется осуществлять свои права и исполнять обязанности в отношении Работодателя  честно и добросовестно."},{"a":"j","b":0,"t":"5.4. Работник обязан исполнять свои обязанности безупречно и инициативно."},{"a":"j","b":0,"t":"5.5. Выполнять другие обязанности, предусмотренные законодательством РК и актами Работодателя. Согласно распоряжению руководителя (ВУЗ с частной формой собственности) работник обязан активно участвовать в профессиональной ориентации и наборе студентов как в университет, так и колледж."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"6. ПРАВА И ОБЯЗАННОСТИ РАБОТОДАТЕЛЯ"},{"a":"l","b":0,"t":""},{"a":"j","b":0,"t":"6.1. Работодатель имеет право:"},{"a":"j","b":0,"t":"6.1.1. на свободу выбора при приеме на работу;"},{"a":"j","b":0,"t":"6.1.2. изменять, дополнять, прекращать и расторгать Договор с Работником в порядке и по основаниям, которые установлены Кодексом, Договором;"},{"a":"j","b":0,"t":"6.1.3. привлекать Работника к сверхурочным работам в соответствии со статьями 77, 78 Кодекса;"},{"a":"j","b":0,"t":"6.1.4. требовать от Работника выполнения условий Договора, Коллективного договора, правил трудового распорядка и других актов Работодателя;"},{"a":"j","b":0,"t":"6.1.5. поощрять Работника, налагать дисциплинарные взыскания, привлекать Работника к материальной и иной ответственности в случаях и порядке, предусмотренных Кодексом и законодательством;"},{"a":"j","b":0,"t":"6.1.6. При необеспечении работником безупречного и инициативного исполнения своих обязанностей, представлять работника частичной форме Президентско-ректорской надбавки (премии)."},{"a":"j","b":0,"t":"6.1.7.на возмещение ущерба, нанесенного Работником при исполнении трудовых обязанностей;"},{"a":"j","b":0,"t":"6.1.8. обращаться в суд в целях защиты своих прав и законных интересов в сфере труда;"},{"a":"j","b":0,"t":"6.1.9. устанавливать Работнику испытательный срок;"},{"a":"j","b":0,"t":"6.1.10. обеспечивать Работнику профессиональную подготовку, переподготовку и повышение квалификации Работника в соответствии с Трудовым Кодексом;"},{"a":"j","b":0,"t":"6.1.11. на возмещение своих затрат, связанных с обучением Работника, в соответствии с Кодексом;"},{"a":"j","b":0,"t":"6.1.12. на обращение за разрешением индивидуального трудового спора последовательно в согласительную комиссию, суд в порядке, предусмотренном Кодексом;"},{"a":"j","b":0,"t":"6.1.13. осуществлять иные права, предусмотренные Кодексом, законодательством, Договором и иными соглашениями Сторон."},{"a":"j","b":0,"t":"6.2. Работодатель обязан:"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.1. соблюдать требования законодательства, соглашений, Договора, Коллективного договора, изданных им актов;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.2. при приеме на работу заключать трудовой договор с Работником в порядке и на условиях, установленных Кодексом;"},{"a":"j","b":0,"t":"6.2.3. требовать при приеме на работу документы, необходимые для заключения Договора в соответствии со статьей 32 Кодекса. Работодатель не вправе требовать иные документы за исключением случаев, предусмотренных законодательством. До подписания Договора Работник обязуется предоставить указанные документы для подтверждения предоставленных им сведений. В случае согласия Работника на хранение подлинников документов у Работодателя либо временного их оставления для выполнения установленных законодательством процедур Работодатель выдает Работнику письменное обязательство о возврате документов;"},{"a":"j","b":0,"t":"6.2.4. предоставить Работнику работу, обусловленную Договором;"},{"a":"j","b":0,"t":"6.2.5. своевременно и в полном размере выплачивать Работнику заработную плату и иные выплаты, предусмотренные законодательством, Договором, Коллективным договором, актами Работодателя;"},{"a":"j","b":0,"t":"6.2.6. знакомить Работника с правилами трудового распорядка, иными актами Работодателя, имеющими непосредственное отношение к работе (трудовой функции) Работника, и Коллективным договором (при наличии);"},{"a":"j","b":0,"t":"6.2.7. вести коллективные переговоры и в порядке, установленном Кодексом, заключать Коллективный договор;"},{"a":"j","b":0,"t":"6.2.8. обеспечивать Работнику условия труда в соответствии с законодательством, Договором, Коллективным договором;"},{"a":"j","b":0,"t":"6.2.9. обеспечивать Работника оборудованием, инструментами, технической документацией и иными средствами, необходимыми для исполнения трудовых обязанностей за счет собственных средств;"},{"a":"j","b":0,"t":"6.2.10. предоставлять информацию уполномоченному органу по вопросам занятости в соответствии с требованиями законодательства о занятости населения;"},{"a":"j","b":0,"t":"6.2.11. выполнять предписания государственных инспекторов труда;"},{"a":"j","b":0,"t":"6.2.12. приостанавливать работу, если ее продолжение создает угрозу жизни, здоровью Работника и иных лиц;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.13. осуществлять обязательное социальное страхование Работника;"},{"a":"j","b":0,"t":"6.2.14. страховать Работника от несчастных случаев при исполнении им трудовых (служебных) обязанностей;"},{"a":"j","b":0,"t":"6.2.15. предоставлять Работнику ежегодный оплачиваемый трудовой отпуск;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.16. обеспечить сохранность и сдачу в государственный архив документов, подтверждающих трудовую деятельность Работника, и сведения об удержании и отчислении денег на их пенсионное обеспечение;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.17. предупреждать Работника о вредных и (или) опасных условиях труда и возможности профессионального заболевания;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.18. принимать меры по предотвращению рисков на рабочих местах и в технологических процессах, проводить профилактические работы с учетом производственного и научно-технического прогресса;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.19. возмещать вред, причиненный жизни и здоровью Работника, при исполнении им трудовых (служебных) обязанностей в соответствии с законодательством;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.20. беспрепятственно допускать должностных лиц уполномоченного государственного органа по труду и местного органа по инспекции труда, представителей работников, технических инспекторов по охране труда для проведения проверок состояния безопасности, условий и охраны труда и соблюдения законодательства, а также для расследования несчастных случаев, связанных с трудовой деятельностью, и профессиональных заболеваний;"},{"a":"j","b":0,"t":"6.2.21. осуществлять сбор, обработку и защиту персональных данных Работника в соответствии с законодательством о персональных данных и их защите;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.22. осуществлять внутренний контроль по безопасности и охране труда;"},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"6.2.23. исполнять иные обязанности, предусмотренные законодательством, Кодексом, Договором и иными соглашениями Сторон."},{"a":"c","b":0,"t":" "},{"a":"c","b":1,"t":"7. ПОРЯДОК ЗАКЛЮЧЕНИЯ, ИЗМЕНЕНИЯ И ПРЕКРАЩЕНИЯ (РАСТОРЖЕНИЯ) ДОГОВОРА"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"7.1. Договор является двусторонним соглашением между Сторонами, на основании которого возникают и регулируются трудовые и иные, связанные с трудовыми, отношения между Работодателем и Работником."},{"a":"j","b":0,"t":"7.2. Договор считается заключенным в Дату начала действия Договора. На основании заключенного Договора Работодатель издает акт (приказ) о приеме на работу."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.3. Работодатель и Работник договорились, что будут добросовестно выполнять условия Договора и устанавливают, что изменения, дополнения, внесенные в его условия в одностороннем порядке не будут иметь юридической силы для Сторон, за исключением случаев, предусмотренных законодательством, соглашением Сторон."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.4. Порядок внесения изменений в Договор:"},{"a":"j","b":0,"t":"В течение срока действия Договора по соглашению Сторон могут быть изменены размер оплаты труда Работника, его должность, срок действия Договора и другие условия труда в соответствии с законодательством РК, о чем составляется дополнительное соглашение к Договору."},{"a":"j","b":0,"t":"Все изменения и дополнения в Договор вносятся только по соглашению Сторон в письменном виде и являются его неотъемлемыми частями."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.5. Порядок прекращения Договора"},{"a":"j","b":0,"t":"Настоящий Договор прекращается по основаниям, предусмотренным трудовым законодательством РК."},{"a":"j","b":0,"t":"При расторжении Договора по инициативе Работника:"},{"a":"j","b":0,"t":"-работник письменно предупреждает об этом Работодателя не позднее, чем за один месяц до даты прекращения Договора, если иное не предусмотрено трудовым законодательством РК;"},{"a":"j","b":0,"t":"-в течение срока предупреждения до получения решения Работодателя Работник не может самовольно прекратить исполнение трудовых обязанностей без уважительной причины кроме случаев, определенных трудовым законодательством РК. В противном случае Работодатель оставляет за собой право расторгнуть Договор с Работником по отрицательным мотивам в соответствии с трудовым законодательством РК;"},{"a":"j","b":0,"t":"-в течение срока предупреждения Работник вправе отозвать заявление о расторжении Договора. Работник не может отозвать заявление о расторжении Договора после ознакомления с приказом о расторжении Договора."},{"a":"j","b":0,"t":"7.6. Датой прекращения Договора является последний день работы Работника, за исключением случаев, предусмотренных законодательством РК."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.7. Прекращение Договора оформляется актом Работодателя, копия которого вручается Работнику под роспись или направляется письмом с уведомлением в трехдневный срок."},{"a":"j","b":0,"t":"При отказе Работника от ознакомления с приказом о прекращении Договора, в приказе делается соответствующая отметка. Отказ Работника от ознакомления с приказом подтверждается подписями сотрудников Работодателя (не менее двух), присутствующих при ознакомлении Работника с приказом."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.8. Работник обязан не позднее даты прекращения/расторжения Договора подготовить и сдать по акту приема-передачи уполномоченному лицу Работодателя (начальнику отдела, подразделения):"},{"a":"j","b":0,"t":"-материальные ценности, основные средства, оборудование, инструменты, переданные Работнику Работодателем для выполнения должностных обязанностей или полученные в ходе работы у Работодателя;"},{"a":"j","b":0,"t":"-экономические, финансовые, коммерческие, юридические и технические документы и информацию на бумажном носителе и в электронном виде (в т.ч. компьютерные программы, базы данных, файлы электронных документов и т.п.), переданные Работнику для выполнения должностных обязанностей или разработанные Работником в период его работы у Работодателя;"},{"a":"j","b":0,"t":"- доверенности, выданные Работнику для совершения от имени Работодателя действий при выполнении должностных обязанностей (в т.ч. заключения договоров, представления интересов Работодателя перед третьими лицами и т.п.)."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.9. Работодатель имеет право отстранить от работы Работника, не обеспечившего сохранность имущества и других ценностей, переданных Работнику на основании письменного договора о принятии на себя полной материальной ответственности."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.10. Отстранение Работника от работы осуществляется актом Работодателя на срок до выяснения и (или) устранения причин, послуживших основанием для отстранения."},{"a":"j","b":0,"t":"7.11. Договор может быть прекращен только по основаниям, предусмотренным статьей 49 Кодекса, а именно:"},{"a":"j","b":0,"t":"7.11.1. расторжение Договора по соглашению Сторон; "},{"a":"j","b":0,"t":"7.11.2. истечение срока Договора;"},{"a":"j","b":0,"t":"7.11.3. расторжение Договора по инициативе Работодателя; "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.11.4. в связи с переводом работника к другому работодателю; "},{"a":"j","b":0,"t":"7.11.5. расторжение Договора по инициативе Работника; "},{"a":"j","b":0,"t":"7.11.6. обстоятельства, не зависящие от воли Сторон; "},{"a":"j","b":0,"t":"7.11.7. отказ Работника от продолжения трудовых отношений; "},{"a":"j","b":0,"t":"7.11.8. переход Работника на выборную работу (должность) или назначение его на должность, исключающую возможность продолжения трудовых отношений, кроме случаев, предусмотренных законодательством; "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.11.9. нарушение условий заключения Договора; "},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"7.12. Копия акта Работодателя о прекращении Договора вручается Работнику либо направляется ему письмом с уведомлением в течение 3 (трех) рабочих дней со дня издания акта Работодателя."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"8. ГАРАНТИИ И КОМПЕНСАЦИИ"},{"a":"c","b":0,"t":""},{"a":"j","b":0,"t":"8.1. Работнику выплачивается компенсация за неиспользованный ежегодный трудовой отпуск при расторжении настоящего договора в день прекращения настоящего договора."},{"a":"j","b":0,"t":"8.2. Гарантии и компенсации, связанные со служебными командировками, устанавливаются и выплачиваются согласно действующему трудовому законодательству Республики Казахстан."},{"a":"j","b":0,"t":"8.3. Работнику гарантируются иные гарантии и компенсационные выплаты, предусмотренные законодательством Республики Казахстан."},{"a":"l","b":0,"t":""},{"a":"c","b":1,"t":"9. ОТВЕТСТВЕННОСТЬ СТОРОН И РАЗРЕШЕНИЕ СПОРОВ"},{"a":"j","b":0,"t":"9.1. За неисполнение или ненадлежащее исполнение обязательств, предусмотренных Договором, Стороны несут ответственность в соответствии с законодательством, Договором и иными соглашениями Сторон."},{"a":"j","b":0,"t":"9.2. Сторона Договора, причинившая ущерб (вред) другой Стороне, возмещает его в соответствии с Кодексом и законодательством."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.3. Прекращение Договора после причинения ущерба (вреда) не влечет за собой освобождения Стороны Договора от материальной и иной ответственности по возмещению причиненного ущерба (вреда) другой Стороне."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.4. Материальная ответственность Стороны Договора за ущерб (вред), причиненный ею другой Стороне Договора, наступает за ущерб (вред), причиненный в результате виновного противоправного поведения (действия или бездействия) и причинной связи между виновным противоправным поведением и причиненным ущербом (вредом), если иное не предусмотрено Кодексом и законодательством."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.5. За совершение Работником дисциплинарного проступка Работодатель или первый руководитель национального управляющего холдинга в случаях, предусмотренных законами Республики Казахстан, вправе применить следующие виды дисциплинарных взысканий:"},{"a":"j","b":0,"t":"9.5.1. замечание;"},{"a":"j","b":0,"t":"9.5.2. выговор;"},{"a":"j","b":0,"t":"9.5.3. строгий выговор;"},{"a":"j","b":0,"t":"9.5.4. расторжение Договора по инициативе Работодателя по основаниям, предусмотренным подпунктами 8), 9), 10), 11), 12), 13), 14), 15), 16), 17) и 18) пункта 1 статьи 52 Кодекса."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.6. Все споры и разногласия, возникающие из Договора или в связи с ним, подлежат урегулированию путем проведения переговоров между Сторонами."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"9.7. Трудовые споры рассматриваются согласительными комиссиями и (или) судами в порядке, регламентированном законодательством."},{"a":"j","b":0,"t":""},{"a":"c","b":1,"t":"10. ЗАКЛЮЧИТЕЛЬНЫЕ ПОЛОЖЕНИЯ"},{"a":"l","b":0,"t":""},{"a":"j","b":0,"t":"10.1. Договор, а также все правоотношения, возникающие в связи с исполнением Договора, регулируются и подлежат толкованию в соответствии с законодательством Республики Казахстан."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.2. Содержание Договора не подлежит разглашению третьим лицам за исключением случаев, предусмотренных законодательством."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.3. Приложения, дополнения, изменения, совершенные в порядке, регламентированном Договором, являются его неотъемлемой частью."},{"a":"j","b":0,"t":""},{"a":"j","b":0,"t":"10.4. Настоящий Договор составлен на государственном и русском языках, в 2 (двух) экземплярах, каждый имеет одинаковую юридическую силу, по одному экземпляру для каждой из Сторон."},{"a":"c","b":1,"t":"11. РЕКВИЗИТЫ И ПОДПИСИ СТОРОН"},{"a":"l","b":1,"t":"Работодатель:","x":1},{"a":"l","b":0,"t":"{{emp_name_ru}}","x":1},{"a":"l","b":0,"t":"БИН {{emp_bin}}","x":1},{"a":"l","b":0,"t":"Адрес: {{emp_addr_ru}}","x":1},{"a":"l","b":0,"t":"Президент ____________ {{emp_head_short}}","x":1},{"a":"l","b":0,"t":"","x":1},{"a":"l","b":1,"t":"Работник:","x":1},{"a":"l","b":0,"t":"{{fio}}","x":1},{"a":"l","b":0,"t":"Адрес: {{address}}","x":1},{"a":"l","b":0,"t":"Удостоверение личности №{{id_num}}, выдано {{id_issuer_ru}} {{id_date}} г.","x":1},{"a":"l","b":0,"t":"ИИН {{iin}}","x":1},{"a":"l","b":0,"t":"Тел.: {{phone}}","x":1},{"a":"l","b":0,"t":"Подпись ____________","x":1},{"a":"c","b":0,"t":""},{"a":"l","b":1,"t":"ОТМЕТКА О ПРЕКРАЩЕНИИ ДОГОВОРА"},{"a":"l","b":0,"t":""},{"a":"l","b":0,"t":"Настоящий договор  прекращен «___» ________20__г. по основанию, предусмотренному Трудового кодекса Республики Казахстан."},{"a":"l","b":0,"t":"_______________________________________________"},{"a":"l","b":0,"t":"(указать подпункт, пункт, статью Трудового Кодекса Республики Казахстан) "},{"a":"l","b":0,"t":""},{"a":"l","b":0,"t":"Приказ №________ от «_____» ________________20___г."},{"a":"l","b":0,"t":""},{"a":"l","b":0,"t":"_______________________________________________"},{"a":"l","b":0,"t":"подпись Работник  "},{"a":"l","b":0,"t":""}]};
+
+/* ---------- справочники (демо) ---------- */
+const UNITS = [
+  {id:"fit", ru:"Факультет инжиниринга и информационных технологий", ru_gen:"факультета инжиниринга и информационных технологий", kz:"Инжиниринг және ақпараттық технологиялар факультеті", kz_gen:"Инжиниринг және ақпараттық технологиялар факультетінің", kids:[
+    {id:"it", ru:"Кафедра «Информационные технологии»", ru_gen:"кафедры «Информационные технологии»", kz_gen:"«Ақпараттық технологиялар» кафедрасының"},
+    {id:"vt", ru:"Кафедра «Вычислительная техника и программное обеспечение»", ru_gen:"кафедры «Вычислительная техника и программное обеспечение»", kz_gen:"«Есептеу техникасы және бағдарламалық қамтамасыз ету» кафедрасының"}]},
+  {id:"feb", ru:"Факультет экономики и бизнеса", ru_gen:"факультета экономики и бизнеса", kz_gen:"Экономика және бизнес факультетінің", kids:[
+    {id:"ec", ru:"Кафедра «Экономика»", ru_gen:"кафедры «Экономика»", kz_gen:"«Экономика» кафедрасының"},
+    {id:"fin", ru:"Кафедра «Финансы и учёт»", ru_gen:"кафедры «Финансы и учёт»", kz_gen:"«Қаржы және есеп» кафедрасының"}]},
+  {id:"uit", ru:"Управление информационных технологий", ru_gen:"Управления информационных технологий", kz_gen:"Ақпараттық технологиялар басқармасының", kids:[
+    {id:"net", ru:"Отдел сетевой инфраструктуры", ru_gen:"отдела сетевой инфраструктуры", kz_gen:"Желілік инфрақұрылым бөлімінің"},
+    {id:"dev", ru:"Отдел разработки программного обеспечения", ru_gen:"отдела разработки программного обеспечения", kz_gen:"Бағдарламалық қамтамасыз етуді әзірлеу бөлімінің"}]},
+  {id:"ai", ru:"Центр искусственного интеллекта и аналитики данных", ru_gen:"Центра искусственного интеллекта и аналитики данных", kz_gen:"Жасанды интеллект және деректерді талдау орталығының", kids:[]},
+  {id:"hr", ru:"Отдел управления персоналом", ru_gen:"Отдела управления персоналом", kz_gen:"Персоналды басқару бөлімінің", kids:[]},
+];
+const POSITIONS = [
+  {id:"prof", cat:"pps", ru:"Профессор", ru_gen:"профессора", kz:"профессоры"},
+  {id:"assoc", cat:"pps", ru:"Ассоциированный профессор", ru_gen:"ассоциированного профессора", kz:"қауымдастырылған профессоры"},
+  {id:"senior", cat:"pps", ru:"Старший преподаватель", ru_gen:"старшего преподавателя", kz:"аға оқытушысы"},
+  {id:"teacher", cat:"pps", ru:"Преподаватель", ru_gen:"преподавателя", kz:"оқытушысы"},
+  {id:"head_dep", cat:"pps", ru:"Заведующий кафедрой", ru_gen:"заведующего кафедрой", kz:"меңгерушісі"},
+  {id:"director", cat:"aup", ru:"Директор", ru_gen:"директора", kz:"директоры"},
+  {id:"head", cat:"aup", ru:"Руководитель", ru_gen:"руководителя", kz:"басшысы"},
+  {id:"chief", cat:"aup", ru:"Начальник", ru_gen:"начальника", kz:"бастығы"},
+  {id:"main_spec", cat:"aup", ru:"Главный специалист", ru_gen:"главного специалиста", kz:"бас маманы"},
+  {id:"lead_spec", cat:"aup", ru:"Ведущий специалист", ru_gen:"ведущего специалиста", kz:"жетекші маманы"},
+  {id:"dev", cat:"aup", ru:"Инженер-программист", ru_gen:"инженера-программиста", kz:"инженер-бағдарламашысы"},
+  {id:"manager", cat:"aup", ru:"Менеджер", ru_gen:"менеджера", kz:"менеджері"},
+  {id:"lab", cat:"uvp", ru:"Лаборант", ru_gen:"лаборанта", kz:"зертханашысы"},
+  {id:"method", cat:"uvp", ru:"Методист", ru_gen:"методиста", kz:"әдіскері"},
+  {id:"advisor", cat:"uvp", ru:"Эдвайзер", ru_gen:"эдвайзера", kz:"эдвайзері"},
+];
+const STAFF = [ // для «на время замещения» — в модуле это список сотрудников в отпуске/декрете
+  {id:"s1", fio:"Иманова Сауле Ериковна", note:"отпуск по уходу за ребёнком"},
+  {id:"s2", fio:"Петренко Олег Викторович", note:"длительный больничный"},
+  {id:"s3", fio:"Жумабаева Динара Маратовна", note:"отпуск по уходу за ребёнком"},
+];
+const CAT_DEFAULTS = {pps:{vac:56, sched:"pps"}, aup:{vac:24, sched:"aup"}, uvp:{vac:24, sched:"aup"}};
+const EDU_LEVELS = ["Среднее специальное","Бакалавриат","Магистратура","Докторантура (PhD)","Высшее (специалитет)"];
+const FILE_TYPES = ["Удостоверение личности","Диплом","Приложение к диплому","Справка о несудимости","Медицинская справка","Военный билет","Свидетельство о рождении ребёнка","Иное"];
+const ISSUER = {mvd:{ru:"МВД РК", kz:"ҚР ІІМ"}, mu:{ru:"Министерство юстиции РК", kz:"ҚР Әділет министрлігі"}};
+
+/* ---------- state ---------- */
+const EMPLOYER = {name_ru:"АО «Казахский университет технологии и бизнеса имени К. Кулажанова»", name_kz:"«Қ. Құлажанов атындағы Қазақ технология және бизнес университеті» АҚ", bin:"030240001575", head:"Е.Т. Кулажанов", addr_ru:"", addr_kz:""};
+function blank(){
+  return {
+    emp:{last:"",first:"",middle:"",iin:"",birth:"",gender:"",cit:"kz",cit_ru:"",cit_kz:"",id_num:"",id_date:"",id_issuer:"mvd",city:"Астана",street:"",house:"",apt:"",phone:"",marital:"",military:"",disab:"",pens:false,stud:false,large:false},
+    kids:[], edu:[], files:[], photo:null,
+    appt:{cat:"pps",parent:"",unit:"",pos:"",start:"",prob:"3",repl_on:false,repl:"",order_num:"",order_date:"",fio_acc:"",fio_acc_auto:true},
+    contract:{num:"",date:"",term:"1",salary:"",sched:"pps",kind:"main",vac:"56"},
+    employer:{...EMPLOYER},
+  };
+}
+let S = blank();
+let sampleMode = false;
+
+function makeIin(prefix){ // prefix: 7 digits (дата + век/пол) → валидный ИИН с подобранным порядковым номером
+  for(let n=1;n<9999;n++){const s=prefix+String(n).padStart(4,"0"); const c=iinCheck(s); if(c!==null) return s+c;}
+  return prefix+"00000";
+}
+function sample(){
+  const s = blank();
+  Object.assign(s.emp,{last:"Сейткали",first:"Айгерим",middle:"Нурлановна",iin:makeIin("9405124"),birth:"1994-05-12",gender:"ж",id_num:"051234987",id_date:"2021-03-15",street:"пр. Туран",house:"24",apt:"118",phone:"+7 701 555 12 34",marital:"Замужем",military:"Невоеннообязанный"});
+  s.kids=[{fio:"Сейткали Алихан Ерланович",birth:"2019-08-02"}];
+  s.edu=[{level:"Бакалавриат",inst:"Евразийский национальный университет им. Л.Н. Гумилёва",year:"2015",spec:"Информационные системы",diploma:"ЖБ-Б 1234567"},
+         {level:"Магистратура",inst:"КазУТБ им. К. Кулажанова",year:"2017",spec:"Информационные системы",diploma:"ЖООК 0098765"}];
+  Object.assign(s.appt,{cat:"pps",parent:"fit",unit:"it",pos:"senior",start:"2026-11-02",prob:"3",order_num:"412-К",order_date:"2026-10-30"});
+  Object.assign(s.contract,{num:"318",date:"2026-10-30",term:"1",salary:"385000",sched:"pps",kind:"main",vac:"56"});
+  return s;
+}
+
+/* ---------- ИИН ---------- */
+function iinCheck(s11){
+  const d=s11.split("").map(Number);
+  let c=[1,2,3,4,5,6,7,8,9,10,11].reduce((a,w,i)=>a+w*d[i],0)%11;
+  if(c===10){c=[3,4,5,6,7,8,9,10,11,1,2].reduce((a,w,i)=>a+w*d[i],0)%11; if(c===10) return null;}
+  return c;
+}
+function parseIin(s){
+  if(!/^\d{12}$/.test(s)) return {ok:false, msg: s.length? `Введено ${s.replace(/\D/g,"").length} из 12 цифр`:""};
+  const c=iinCheck(s.slice(0,11));
+  if(c===null||c!==+s[11]) return {ok:false,msg:"Контрольная цифра не сходится — проверьте ИИН"};
+  const g=+s[6]; if(g<1||g>6) return {ok:false,msg:"7-я цифра ИИН должна быть от 1 до 6"};
+  const cent={1:1800,2:1800,3:1900,4:1900,5:2000,6:2000}[g];
+  const y=cent+ +s.slice(0,2), m=+s.slice(2,4), dd=+s.slice(4,6);
+  const dt=new Date(Date.UTC(y,m-1,dd));
+  if(dt.getUTCMonth()!==m-1||dt.getUTCDate()!==dd) return {ok:false,msg:"В ИИН некорректная дата рождения"};
+  return {ok:true, birth:`${y}-${String(m).padStart(2,"0")}-${String(dd).padStart(2,"0")}`, gender: g%2?"м":"ж"};
+}
+
+/* ---------- числа и даты прописью ---------- */
+const RU_M=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const KZ_M_ABL=["қаңтардан","ақпаннан","наурыздан","сәуірден","мамырдан","маусымнан","шілдеден","тамыздан","қыркүйектен","қазаннан","қарашадан","желтоқсаннан"];
+const KZ_M=["қаңтар","ақпан","наурыз","сәуір","мамыр","маусым","шілде","тамыз","қыркүйек","қазан","қараша","желтоқсан"];
+function pd(iso){ if(!iso) return null; const [y,m,d]=iso.split("-").map(Number); return {y,m,d}; }
+const z2=n=>String(n).padStart(2,"0");
+const dShort=iso=>{const p=pd(iso); return p?`${z2(p.d)}.${z2(p.m)}.${p.y}`:"";};
+const dRu=iso=>{const p=pd(iso); return p?`${z2(p.d)} ${RU_M[p.m-1]} ${p.y}`:"";};
+const dRuQ=iso=>{const p=pd(iso); return p?`«${z2(p.d)}» ${RU_M[p.m-1]} ${p.y} г.`:"";};
+const dKz=iso=>{const p=pd(iso); return p?`${p.y} жылғы ${z2(p.d)} ${KZ_M[p.m-1]}`:"";};
+const dKzFrom=iso=>{const p=pd(iso); return p?`${p.y} жылғы ${z2(p.d)} ${KZ_M_ABL[p.m-1]}`:"";};
+const dKzQ=iso=>{const p=pd(iso); return p?`«${z2(p.d)}» ${KZ_M[p.m-1]} ${p.y} ж.`:"";};
+const dKzQY=iso=>{const p=pd(iso); return p?`${p.y} жылғы «${z2(p.d)}» ${KZ_M[p.m-1]}`:"";};
+function addPeriod(iso, months){ // дата окончания: начало + N месяцев − 1 день
+  const p=pd(iso); if(!p) return "";
+  const dt=new Date(Date.UTC(p.y,p.m-1+months,p.d)); dt.setUTCDate(dt.getUTCDate()-1);
+  return dt.toISOString().slice(0,10);
+}
+function ruWords(n){
+  n=Math.floor(+n); if(!isFinite(n)) return ""; if(n===0) return "ноль";
+  const u=["","один","два","три","четыре","пять","шесть","семь","восемь","девять"], uf=["","одна","две","три","четыре","пять","шесть","семь","восемь","девять"];
+  const t=["десять","одиннадцать","двенадцать","тринадцать","четырнадцать","пятнадцать","шестнадцать","семнадцать","восемнадцать","девятнадцать"];
+  const d=["","","двадцать","тридцать","сорок","пятьдесят","шестьдесят","семьдесят","восемьдесят","девяносто"];
+  const h=["","сто","двести","триста","четыреста","пятьсот","шестьсот","семьсот","восемьсот","девятьсот"];
+  const tri=(x,fem)=>{const r=[]; r.push(h[Math.floor(x/100)]); const y=x%100; if(y>=10&&y<20) r.push(t[y-10]); else {r.push(d[Math.floor(y/10)]); r.push((fem?uf:u)[y%10]);} return r.filter(Boolean).join(" ");};
+  const form=(x,f1,f2,f5)=>{const y=x%100; if(y>=11&&y<=14) return f5; const k=x%10; return k===1?f1:(k>=2&&k<=4?f2:f5);};
+  const parts=[]; const mil=Math.floor(n/1e6), th=Math.floor(n/1000)%1000, rest=n%1000;
+  if(mil) parts.push(tri(mil,false)+" "+form(mil,"миллион","миллиона","миллионов"));
+  if(th) parts.push(tri(th,true)+" "+form(th,"тысяча","тысячи","тысяч"));
+  if(rest) parts.push(tri(rest,false));
+  return parts.join(" ");
+}
+function kzWords(n){
+  n=Math.floor(+n); if(!isFinite(n)) return ""; if(n===0) return "нөл";
+  const u=["","бір","екі","үш","төрт","бес","алты","жеті","сегіз","тоғыз"];
+  const d=["","он","жиырма","отыз","қырық","елу","алпыс","жетпіс","сексен","тоқсан"];
+  const tri=x=>{const r=[]; const hh=Math.floor(x/100); if(hh) r.push(hh===1?"жүз":u[hh]+" жүз"); r.push(d[Math.floor(x%100/10)]); r.push(u[x%10]); return r.filter(Boolean).join(" ");};
+  const parts=[]; const mil=Math.floor(n/1e6), th=Math.floor(n/1000)%1000, rest=n%1000;
+  if(mil) parts.push(tri(mil)+" миллион");
+  if(th) parts.push((th===1?"бір":tri(th))+" мың");
+  if(rest) parts.push(tri(rest));
+  return parts.join(" ");
+}
+const money=n=>String(Math.floor(+n)).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+const RU_MONTHS_N={1:"один месяц",2:"два месяца",3:"три месяца"}, KZ_MONTHS_N={1:"бір ай",2:"екі ай",3:"үш ай"};
+const RU_YEARS={1:"один год",2:"два года",3:"три года"}, KZ_YEARS={1:"бір жылға",2:"екі жылға",3:"үш жылға"};
+
+/* ---------- склонение ФИО (вин. падеж) ---------- */
+function capLike(src, out){ return src && src[0]===src[0].toUpperCase() ? out[0].toUpperCase()+out.slice(1) : out; }
+function accWord(w, g, part){
+  if(!w) return w; const l=w.toLowerCase(); let r=l;
+  const cons=/[бвгджзклмнпрстфхцчшщ]$/;
+  if(/(улы|ұлы|кызы|қызы)$/.test(l)) return w;
+  if(g==="м"){
+    if(part==="last"){ if(/(ов|ев|ёв|ин|ын)$/.test(l)) r=l+"а"; else if(/(ий|ой)$/.test(l)) r=l.slice(0,-2)+"ого"; else if(/ый$/.test(l)) r=l.slice(0,-2)+"ого"; else if(cons.test(l)) r=l+"а"; }
+    else if(part==="middle"){ if(/ич$/.test(l)) r=l+"а"; }
+    else { if(/й$/.test(l)||/ь$/.test(l)) r=l.slice(0,-1)+"я"; else if(/я$/.test(l)) r=l.slice(0,-1)+"ю"; else if(/а$/.test(l)) r=l.slice(0,-1)+"у"; else if(cons.test(l)) r=l+"а"; }
+  } else if(g==="ж"){
+    if(part==="last"){ if(/(ова|ева|ёва|ина|ына)$/.test(l)) r=l.slice(0,-1)+"у"; else if(/ая$/.test(l)) r=l.slice(0,-2)+"ую"; }
+    else if(part==="middle"){ if(/на$/.test(l)) r=l.slice(0,-1)+"у"; }
+    else { if(/я$/.test(l)) r=l.slice(0,-1)+"ю"; else if(/а$/.test(l)) r=l.slice(0,-1)+"у"; }
+  }
+  return capLike(w, r);
+}
+function fioAcc(e){
+  if(!e.gender) return [e.last,e.first,e.middle].filter(Boolean).join(" ");
+  return [accWord(e.last,e.gender,"last"),accWord(e.first,e.gender,"first"),accWord(e.middle,e.gender,"middle")].filter(Boolean).join(" ");
+}
+
+/* ---------- контекст для шаблонов ---------- */
+function findParent(id){ return UNITS.find(u=>u.id===id); }
+function findUnit(pid,id){ const p=findParent(pid); return p&&p.kids.find(k=>k.id===id); }
+function findPos(id){ return POSITIONS.find(p=>p.id===id); }
+function ctx(){
+  const e=S.emp, a=S.appt, c=S.contract, em=S.employer;
+  const fio=[e.last,e.first,e.middle].map(x=>x.trim()).filter(Boolean).join(" ");
+  const fio_short = e.last ? `${e.last.trim()} ${e.first?e.first.trim()[0]+".":""}${e.middle?e.middle.trim()[0]+".":""}` : "";
+  const par=findParent(a.parent), un=findUnit(a.parent,a.unit), pos=findPos(a.pos);
+  const posRu = pos&&par ? [pos.ru_gen, un&&un.ru_gen, par.ru_gen].filter(Boolean).join(" ") : "";
+  const posKz = pos&&par ? [par.kz_gen, un&&un.kz_gen, pos.kz].filter(Boolean).join(" ") : "";
+  const repl = STAFF.find(s=>s.id===a.repl);
+  const replFio = repl ? repl.fio : "";
+  const term=c.term; const years=+term||0;
+  let term_ru="", term_kz="", end_ru="", end_kz="", ord_term_ru="", ord_term_kz="";
+  if(years){ term_ru=`Настоящий договор заключен на ${RU_YEARS[years]}`; term_kz=`Осы шарт ${KZ_YEARS[years]} жасалды.`;
+    const end=addPeriod(a.start, 12*years); end_ru = end? dRu(end)+" года.":""; end_kz = end? dKz(end):"";
+    ord_term_ru=`сроком на ${RU_YEARS[years]}`; ord_term_kz=`${KZ_YEARS[years].replace("ға","")} мерзімге`; }
+  else if(term==="indef"){ term_ru="Настоящий договор заключен на неопределенный срок"; term_kz="Осы шарт белгіленбеген мерзімге жасалды.";
+    ord_term_ru="на неопределенный срок"; ord_term_kz="белгіленбеген мерзімге"; }
+  else if(term==="repl"){ term_ru = replFio?`Настоящий договор заключен на время исполнения обязанностей временно отсутствующего работника (${replFio})`:"";
+    term_kz = replFio?`Осы шарт уақытша жоқ жұмыскердің (${replFio}) міндеттерін атқару уақытына жасалды.`:"";
+    end_ru="до выхода основного работника на работу."; end_kz="негізгі жұмыскер жұмысқа шыққанға дейін";
+    ord_term_ru = replFio?`на время отсутствия основного работника (${replFio})`:""; ord_term_kz = replFio?`уақытша жоқ жұмыскердің (${replFio}) орнына, ол жұмысқа шыққанға дейінгі мерзімге`:""; }
+  const pm=+a.prob;
+  const prob_end=pm?addPeriod(a.start,pm):"";
+  const vac=+c.vac||0, sal=+String(c.salary).replace(/\D/g,"")||0;
+  const cit_ru = e.cit==="kz" ? "Республики Казахстан" : e.cit_ru.trim();
+  const cit_kz = e.cit==="kz" ? "Қазақстан Республикасының" : e.cit_kz.trim();
+  const addr = [e.city&&("г. "+e.city.trim()), e.street.trim(), e.house&&("д. "+e.house.trim()), e.apt&&("кв. "+e.apt.trim())].filter(Boolean).join(", ");
+  const iinP=parseIin(e.iin);
+  return {
+    fio, fio_short, fio_acc:a.fio_acc.trim(),
+    birth_date:dShort(e.birth), iin: iinP.ok? e.iin : "",
+    citizen_ru: cit_ru ? (e.gender==="ж"?"гражданка ":e.gender==="м"?"гражданин ":"гражданин (ка) ")+cit_ru : "",
+    citizen_kz: cit_kz ? cit_kz+" азаматы" : "",
+    id_num:e.id_num.trim(), id_date:dShort(e.id_date), id_issuer_ru:ISSUER[e.id_issuer].ru, id_issuer_kz:ISSUER[e.id_issuer].kz,
+    address: (e.street&&e.house)?addr:"", phone:e.phone.trim(),
+    num:c.num.trim(), contract_date_ru:dRuQ(c.date), contract_date_kz:dKzQ(c.date), contract_date_short:dShort(c.date),
+    position_full_ru:posRu, position_full_kz:posKz,
+    start_ru:dRu(a.start), start_kz:dKz(a.start), start_kz_q:dKzQY(a.start), start_kz_from:dKzFrom(a.start),
+    term_ru, term_kz, end_ru, end_kz,
+    prob_ru: pm?RU_MONTHS_N[pm]:"", prob_kz: pm?KZ_MONTHS_N[pm]:"", prob_end_ru:dRu(prob_end), prob_end_kz:dKz(prob_end),
+    vac_days: vac?String(vac):"", vac_days_ru: vac?ruWords(vac):"", vac_days_kz: vac?kzWords(vac):"",
+    salary: sal?money(sal):"", salary_ru: sal?ruWords(sal):"", salary_kz: sal?kzWords(sal):"",
+    emp_name_ru:em.name_ru, emp_name_kz:em.name_kz, emp_bin:em.bin, emp_head_short:em.head, emp_addr_ru:em.addr_ru, emp_addr_kz:em.addr_kz,
+    order_num:a.order_num.trim(), order_date_ru:dRuQ(a.order_date), order_date_kz:dKzQ(a.order_date),
+    ord_term_ru, ord_term_kz,
+    ord_prob_ru: pm?`, с испытательным сроком ${RU_MONTHS_N[pm]}`:"", ord_prob_kz: pm?`, ${KZ_MONTHS_N[pm]} сынақ мерзімімен`:"",
+    ord_kind_ru: c.kind==="sovm"?"по совместительству":"по основному месту работы",
+    ord_kind_kz: c.kind==="sovm"?"қоса атқару бойынша":"негізгі",
+    _flags:{prob:pm>0, main:c.kind!=="sovm", sovm:c.kind==="sovm", sch_pps:c.sched==="pps", sch_aup:c.sched==="aup", sch_shift:c.sched==="shift", sch_week:c.sched!=="shift", term_end:term!=="indef"},
+  };
+}
+
+/* подписи для незаполненных переменных и куда вести пользователя */
+const TOK = {
+  fio:["ФИО","f_last"], fio_short:["ФИО","f_last"], fio_acc:["ФИО в приказе","f_fio_acc"], birth_date:["дата рождения","f_birth"], iin:["ИИН","f_iin"],
+  citizen_ru:["гражданство","f_cit"], citizen_kz:["гражданство","f_cit"], id_num:["№ удостоверения","f_id_num"], id_date:["дата выдачи","f_id_date"],
+  address:["адрес","f_street"], phone:["телефон","f_phone"], num:["№ договора","f_num"], contract_date_ru:["дата договора","f_cdate"], contract_date_kz:["дата договора","f_cdate"], contract_date_short:["дата договора","f_cdate"],
+  position_full_ru:["должность","f_pos"], position_full_kz:["должность","f_pos"], start_ru:["дата приёма","f_start"], start_kz:["дата приёма","f_start"], start_kz_q:["дата приёма","f_start"], start_kz_from:["дата приёма","f_start"],
+  term_ru:["срок договора","f_term"], term_kz:["срок договора","f_term"], end_ru:["дата окончания","f_start"], end_kz:["дата окончания","f_start"],
+  prob_ru:["испытательный срок","f_prob"], prob_kz:["испытательный срок","f_prob"], prob_end_ru:["конец испытания","f_start"], prob_end_kz:["конец испытания","f_start"],
+  vac_days:["дни отпуска","f_vac"], vac_days_ru:["дни отпуска","f_vac"], vac_days_kz:["дни отпуска","f_vac"], salary:["оклад","f_salary"], salary_ru:["оклад","f_salary"], salary_kz:["оклад","f_salary"],
+  emp_addr_ru:["адрес работодателя","e_addr_ru"], emp_addr_kz:["адрес работодателя","e_addr_kz"], emp_name_ru:["работодатель","e_name_ru"], emp_name_kz:["работодатель","e_name_kz"], emp_bin:["БИН","e_bin"], emp_head_short:["подписант","e_head"],
+  order_num:["№ приказа","f_order_num"], order_date_ru:["дата приказа","f_order_date"], order_date_kz:["дата приказа","f_order_date"],
+  ord_term_ru:["замещаемый работник","f_repl"], ord_term_kz:["замещаемый работник","f_repl"],
+};
+
+/* ---------- обязательные поля по документам ---------- */
+const REQ = {
+  contract:[["f_last","Фамилия",1,()=>S.emp.last],["f_first","Имя",1,()=>S.emp.first],["f_birth","Дата рождения",1,()=>S.emp.birth],["f_iin","ИИН",1,()=>parseIin(S.emp.iin).ok],
+    ["f_id_num","№ удостоверения",1,()=>S.emp.id_num],["f_id_date","Дата выдачи удостоверения",1,()=>S.emp.id_date],["f_street","Адрес",1,()=>S.emp.street&&S.emp.house],["f_phone","Телефон",1,()=>S.emp.phone],
+    ["f_pos","Должность",2,()=>S.appt.pos&&S.appt.parent],["f_start","Дата приёма",2,()=>S.appt.start],["f_repl","Замещаемый работник",2,()=>S.contract.term!=="repl"||S.appt.repl],
+    ["f_num","№ договора",3,()=>S.contract.num],["f_cdate","Дата договора",3,()=>S.contract.date],["f_salary","Оклад",3,()=>+String(S.contract.salary).replace(/\D/g,"")>0],["f_vac","Дни отпуска",3,()=>+S.contract.vac>0],
+    ["e_addr_ru","Адрес работодателя",3,()=>S.employer.addr_ru&&S.employer.addr_kz]],
+  order:[["f_last","Фамилия",1,()=>S.emp.last],["f_first","Имя",1,()=>S.emp.first],["f_pos","Должность",2,()=>S.appt.pos&&S.appt.parent],["f_start","Дата приёма",2,()=>S.appt.start],
+    ["f_repl","Замещаемый работник",2,()=>!S.appt.repl_on||S.appt.repl],["f_order_num","№ приказа",2,()=>S.appt.order_num],["f_order_date","Дата приказа",2,()=>S.appt.order_date],["f_fio_acc","ФИО в приказе",2,()=>S.appt.fio_acc],
+    ["f_salary","Оклад",3,()=>+String(S.contract.salary).replace(/\D/g,"")>0],["f_num","№ договора",3,()=>S.contract.num],["f_cdate","Дата договора",3,()=>S.contract.date]],
+  card:[["f_last","Фамилия",1,()=>S.emp.last],["f_first","Имя",1,()=>S.emp.first],["f_birth","Дата рождения",1,()=>S.emp.birth],["f_gender_m","Пол",1,()=>S.emp.gender],["f_iin","ИИН",1,()=>parseIin(S.emp.iin).ok],
+    ["f_photo","Фото",1,()=>S.photo],["f_id_num","№ удостоверения",1,()=>S.emp.id_num],["f_id_date","Дата выдачи удостоверения",1,()=>S.emp.id_date],["f_street","Адрес",1,()=>S.emp.street&&S.emp.house],
+    ["f_marital","Семейное положение",1,()=>S.emp.marital],["addEdu","Образование",1,()=>S.edu.some(x=>x.level&&x.inst)],["f_military","Воинский учёт",1,()=>S.emp.military],
+    ["f_pos","Должность",2,()=>S.appt.pos&&S.appt.parent],["f_start","Дата приёма",2,()=>S.appt.start]],
+};
+const missing=doc=>REQ[doc].filter(r=>!r[3]());
+
+/* ---------- модель документа: блоки ---------- */
+// p: {k:'p', a, b, t, x, h}   tab: {k:'tab', l, r, b}   cols: {k:'cols', cols:[[..],[..]]}
+// grid: {k:'grid', head:[..]|null, rows:[[..]], kv:bool}   photo: {k:'photo'}
+function contractBlocks(C){
+  const f=C._flags;
+  const col=lang=>TPL[lang].filter(p=>!p.c||f[p.c]).map(p=> p.tab ? {k:"tab", l:p.t.split("\t")[0], r:p.t.split("\t")[1]} : {k:"p", a:p.a, b:p.b, t:p.t, x:p.x});
+  return [{k:"cols", cols:[col("kz"), col("ru")]}];
+}
+function orderBlocks(C){
+  const X=1; // весь текст приказа — черновой шаблон (образца приказа нет)
+  const kz=[
+    {k:"p",a:"c",b:1,t:"«Қ. Құлажанов атындағы Қазақ технология және бизнес университеті» акционерлік қоғамы"},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",b:1,t:"БҰЙРЫҚ",h:1},{k:"p",a:"c",t:""},
+    {k:"tab",l:"{{order_date_kz}}",r:"№{{order_num}}"},{k:"p",a:"c",t:"Астана қ."},{k:"p",a:"c",t:""},
+    {k:"p",a:"l",b:1,t:"Жұмысқа қабылдау туралы"},{k:"p",a:"c",t:""},
+    {k:"p",a:"j",t:"Қазақстан Республикасы Еңбек кодексінің 33-бабына сәйкес БҰЙЫРАМЫН:",x:X},
+    {k:"p",a:"j",t:"1. {{fio}} {{start_kz_from}} бастап {{position_full_kz}} лауазымына {{ord_term_kz}}{{ord_prob_kz}}, штаттық кестеге сәйкес {{salary}} ({{salary_kz}}) теңге лауазымдық жалақымен {{ord_kind_kz}} жұмысқа қабылдансын.",x:X},
+    {k:"p",a:"j",t:"2. Персоналды басқару бөлімі Жұмыскерді лауазымдық нұсқаулықпен және Ішкі еңбек тәртібі қағидаларымен таныстырсын.",x:X},
+    {k:"p",a:"c",t:""},
+    {k:"p",a:"j",t:"Негіздеме: Жұмыскердің өтініші, {{contract_date_short}} ж. №{{num}} еңбек шарты.",x:X},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",t:""},
+    {k:"tab",l:"Президент",r:"{{emp_head_short}}",b:1},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",t:""},
+    {k:"p",a:"l",t:"Бұйрықпен таныстым:"},{k:"p",a:"l",t:"____________ {{fio_short}}"},{k:"p",a:"l",t:"«___» ____________ 20__ ж."},
+  ];
+  const ru=[
+    {k:"p",a:"c",b:1,t:"Акционерное общество «Казахский университет технологии и бизнеса имени К. Кулажанова»"},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",b:1,t:"ПРИКАЗ",h:1},{k:"p",a:"c",t:""},
+    {k:"tab",l:"{{order_date_ru}}",r:"№{{order_num}}"},{k:"p",a:"c",t:"г. Астана"},{k:"p",a:"c",t:""},
+    {k:"p",a:"l",b:1,t:"О приеме на работу"},{k:"p",a:"c",t:""},
+    {k:"p",a:"j",t:"В соответствии со статьей 33 Трудового кодекса Республики Казахстан ПРИКАЗЫВАЮ:",x:X},
+    {k:"p",a:"j",t:"1. Принять {{fio_acc}} на должность {{position_full_ru}} с {{start_ru}} года {{ord_term_ru}}{{ord_prob_ru}}, с должностным окладом согласно штатному расписанию {{salary}} ({{salary_ru}}) тенге, {{ord_kind_ru}}.",x:X},
+    {k:"p",a:"j",t:"2. Отделу управления персоналом ознакомить Работника с должностной инструкцией и Правилами внутреннего трудового распорядка.",x:X},
+    {k:"p",a:"c",t:""},
+    {k:"p",a:"j",t:"Основание: заявление Работника, трудовой договор №{{num}} от {{contract_date_short}} г.",x:X},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",t:""},
+    {k:"tab",l:"Президент",r:"{{emp_head_short}}",b:1},
+    {k:"p",a:"c",t:""},{k:"p",a:"c",t:""},
+    {k:"p",a:"l",t:"С приказом ознакомлен(а):"},{k:"p",a:"l",t:"____________ {{fio_short}}"},{k:"p",a:"l",t:"«___» ____________ 20__ г."},
+  ];
+  if(!S.appt.repl_on && S.contract.term==="repl"){} // срок «на время замещения» берётся из договора
+  return [{k:"cols", cols:[kz, ru]}];
+}
+function cardBlocks(C){
+  const e=S.emp, a=S.appt, c=S.contract;
+  const lit=v=>v?"{{="+String(v).replace(/[{}]/g,"")+"}}":"";
+  const pos=findPos(a.pos), par=findParent(a.parent), un=findUnit(a.parent,a.unit);
+  const kv=(rows)=>({k:"grid", kv:true, rows:rows.map(([k,v])=>[k, v===undefined||v===""||v===null ? "{{?"+k+"}}" : lit(v)])});
+  const yes=b=>b?"Да":"Нет";
+  const catName={pps:"Профессорско-преподавательский состав",aup:"Административно-управленческий персонал",uvp:"Учебно-вспомогательный персонал"}[a.cat];
+  const today=new Date().toISOString().slice(0,10);
+  const repl=STAFF.find(s=>s.id===a.repl);
+  const blocks=[
+    {k:"photo"},
+    {k:"p",a:"c",b:1,t:"АО «Казахский университет технологии и бизнеса имени К. Кулажанова»"},
+    {k:"p",a:"c",t:"Отдел управления персоналом"},{k:"p",a:"c",t:""},
+    {k:"p",a:"c",b:1,t:"ЛИЧНАЯ КАРТОЧКА РАБОТНИКА",h:1},
+    {k:"p",a:"c",t:"Дата заполнения: "+dShort(today)},{k:"p",a:"c",t:""},
+    {k:"p",a:"l",b:1,t:"1. Общие сведения"},
+    kv([["Фамилия",e.last],["Имя",e.first],["Отчество",e.middle||"—"],["Дата рождения",dShort(e.birth)],["Пол",e.gender==="м"?"Мужской":e.gender==="ж"?"Женский":""],["ИИН",parseIin(e.iin).ok?e.iin:""],
+        ["Гражданство",e.cit==="kz"?"Республика Казахстан":e.cit_ru],["Семейное положение",e.marital]]),
+    {k:"p",a:"l",b:1,t:"2. Документ, удостоверяющий личность"},
+    kv([["Вид документа","Удостоверение личности"],["Номер",e.id_num],["Дата выдачи",dShort(e.id_date)],["Кем выдан",ISSUER[e.id_issuer].ru]]),
+    {k:"p",a:"l",b:1,t:"3. Адрес проживания и контакты"},
+    kv([["Адрес",C.address],["Телефон",e.phone]]),
+    {k:"p",a:"l",b:1,t:"4. Образование"},
+    S.edu.length ? {k:"grid", head:["Уровень","Учебное заведение","Год окончания","Специальность","Диплом №"], rows:S.edu.map(x=>[lit(x.level),lit(x.inst),lit(x.year),lit(x.spec),lit(x.diploma)])} : {k:"p",a:"l",t:"{{?Образование}}"},
+    {k:"p",a:"l",b:1,t:"5. Дети"},
+    S.kids.length ? {k:"grid", head:["ФИО","Дата рождения"], rows:S.kids.map(x=>[lit(x.fio),dShort(x.birth)])} : {k:"p",a:"l",t:"Нет"},
+    {k:"p",a:"l",b:1,t:"6. Воинский учёт и социальный статус"},
+    kv([["Воинский учёт",e.military],["Пенсионер",yes(e.pens)],["Инвалидность",e.disab||"Нет"],["Обучающийся",yes(e.stud)],["Многодетная семья",yes(e.large)]]),
+    {k:"p",a:"l",b:1,t:"7. Приём на работу"},
+    kv([["Дата приёма",dShort(a.start)],["Категория",catName],["Департамент, управление, факультет",par&&par.ru],["Отдел, кафедра",un?un.ru:"—"],["Должность",pos&&pos.ru],
+        ["Испытательный срок",+a.prob?RU_MONTHS_N[+a.prob]:"Без испытательного срока"],["На время замещения",a.repl_on?(repl?repl.fio:""):"—"],
+        ["Приказ",a.order_num&&a.order_date?`№${a.order_num} от ${dShort(a.order_date)}`:""],["Трудовой договор",c.num&&c.date?`№${c.num} от ${dShort(c.date)}`:""],
+        ["Вид работы",c.kind==="sovm"?"Совместительство":"Основная"]]),
+    {k:"p",a:"l",b:1,t:"8. Прилагаемые документы"},
+    S.files.length ? {k:"grid", head:["№","Вид документа","Файл"], rows:S.files.map((x,i)=>[String(i+1),lit(x.type),lit(x.name)])} : {k:"p",a:"l",t:"Документы не прикреплены"},
+    {k:"p",a:"l",t:""},{k:"p",a:"l",t:""},
+    {k:"tab",l:"Работник ____________ {{fio_short}}",r:"Специалист ОУП ____________"},
+  ];
+  return blocks;
+}
+
+/* ---------- разбор переменных ---------- */
+function runs(text, C){
+  const out=[]; const re=/\{\{(\??[^}]+)\}\}/g; let last=0, m;
+  while((m=re.exec(text))){
+    if(m.index>last) out.push({t:text.slice(last,m.index)});
+    const key=m[1];
+    if(key[0]==="?"){ out.push({miss:true, label:key.slice(1), go:null}); }
+    else if(key[0]==="="){ out.push({t:key.slice(1), v:true}); }
+    else { const v=C[key]; if(v) out.push({t:v, v:true}); else { const tk=TOK[key]||[key,null]; out.push({miss:true,label:tk[0],go:tk[1]}); } }
+    last=re.lastIndex;
+  }
+  if(last<text.length) out.push({t:text.slice(last)});
+  return out;
+}
+
+/* ---------- HTML ---------- */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function runsHtml(rs){ return rs.map(r=> r.miss ? `<mark class="m" ${r.go?`data-go="${r.go}"`:""} title="Не заполнено">${esc(r.label)}</mark>` : r.v ? `<mark class="v">${esc(r.t)}</mark>` : esc(r.t)).join(""); }
+function blocksHtml(bs, C){
+  return bs.map(b=>{
+    if(b.k==="p"){ const cls=[b.a, b.b?"b":"", b.h?"h":"", !b.t.trim()?"gap":""].join(" ");
+      const inner=runsHtml(runs(b.t,C)); return `<p class="${cls}">${b.x?`<span class="x">${inner}</span>`:inner}</p>`; }
+    if(b.k==="tab") return `<p class="tabline${b.b?" b":""}" style="${b.b?"font-weight:700":""}"><span>${runsHtml(runs(b.l,C))}</span><span>${runsHtml(runs(b.r,C))}</span></p>`;
+    if(b.k==="cols") return `<table class="cols"><tbody><tr>${b.cols.map(c=>`<td>${blocksHtml(c,C)}</td>`).join("")}</tr></tbody></table>`;
+    if(b.k==="grid"){ const head=b.head?`<thead><tr>${b.head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead>`:"";
+      const rows=b.rows.map(r=>`<tr>${r.map((cell,i)=>`<td class="${b.kv&&i===0?"k":""}">${b.kv&&i===0?esc(cell):runsHtml(runs(cell,C))}</td>`).join("")}</tr>`).join("");
+      return `<table class="grid">${head}<tbody>${rows}</tbody></table>`; }
+    if(b.k==="photo") return `<div class="photo-slot" style="${S.photo?`background-image:url(${S.photo.url});color:transparent`:""}">Фото<br>3×4</div>`;
+    return "";
+  }).join("");
+}
+
+/* ---------- DOCX ---------- */
+function docxFrom(bs, C, opts){
+  const D=window.docx; if(!D) throw new Error("no-docx");
+  const {Paragraph,TextRun,Table,TableRow,TableCell,WidthType,AlignmentType,TabStopType,TableLayoutType,ImageRun,ShadingType,BorderStyle}=D;
+  const AL={c:AlignmentType.CENTER,j:AlignmentType.JUSTIFIED,l:AlignmentType.LEFT,r:AlignmentType.RIGHT};
+  const tr=(rs,bold)=>rs.map(r=>new TextRun({text: r.miss?"______________":r.t, bold:!!bold}));
+  const para=(b,width)=>{
+    if(b.k==="tab") return new Paragraph({tabStops:[{type:TabStopType.RIGHT, position:width}], spacing:{after:0}, children:[...tr(runs(b.l,C),b.b), new TextRun({children:[new D.Tab()],bold:!!b.b}), ...tr(runs(b.r,C),b.b)]});
+    return new Paragraph({alignment:AL[b.a]||AlignmentType.LEFT, spacing:{after:0}, children: tr(runs(b.t,C), b.b).map(x=>x)});
+  };
+  const cell=(children,w,shade)=>new TableCell({width:{size:w,type:WidthType.DXA}, shading: shade?{type:ShadingType.CLEAR, color:"auto", fill:"EDEFF2"}:undefined,
+      margins:{top:40,bottom:40,left:90,right:90}, children});
+  const conv=(list,width)=>{
+    const out=[];
+    for(const b of list){
+      if(b.k==="p"){ if(b.h) out.push(new Paragraph({alignment:AL[b.a], spacing:{after:0}, children:runs(b.t,C).map(r=>new TextRun({text:r.miss?"______":r.t,bold:true,size:24}))})); else out.push(para(b,width)); }
+      else if(b.k==="tab") out.push(para(b,width));
+      else if(b.k==="cols"){
+        const total=11228, w=total/2;
+        out.push(new Table({width:{size:total,type:WidthType.DXA}, indent:{size:-1168,type:WidthType.DXA}, layout:TableLayoutType.FIXED, columnWidths:[w,w],
+          rows:[new TableRow({children:b.cols.map(c=>cell(conv(c, w-180),w))})]}));
+      }
+      else if(b.k==="grid"){
+        const n=(b.head||b.rows[0]||[1]).length; const ws = b.kv ? [Math.round(width*.38), width-Math.round(width*.38)] : Array(n).fill(Math.floor(width/n));
+        const rows=[];
+        if(b.head) rows.push(new TableRow({tableHeader:true, children:b.head.map((h,i)=>cell([new Paragraph({children:[new TextRun({text:h,bold:true})]})],ws[i],true))}));
+        b.rows.forEach(r=>rows.push(new TableRow({children:r.map((v,i)=>cell([new Paragraph({children: (b.kv&&i===0)?[new TextRun({text:v})]:tr(runs(v,C))})],ws[i])) })));
+        out.push(new Table({width:{size:width,type:WidthType.DXA}, columnWidths:ws, layout:TableLayoutType.FIXED, rows}));
+        out.push(new Paragraph({spacing:{after:0},children:[]}));
+      }
+      else if(b.k==="photo"){
+        if(S.photo) out.push(new Paragraph({alignment:AlignmentType.RIGHT, children:[new ImageRun({type:S.photo.type, data:S.photo.buf, transformation:{width:113,height:151}})]}));
+        else out.push(new Paragraph({alignment:AlignmentType.RIGHT, children:[new TextRun({text:"[ место для фото 3×4 ]", italics:true})]}));
+      }
+    }
+    return out;
+  };
+  const pageW=11906-1701-851;
+  const doc=new D.Document({
+    creator:"Модуль ОУП (прототип)", title:opts.title,
+    styles:{default:{document:{run:{font:"Times New Roman", size:opts.size||20}, paragraph:{spacing:{after:0,line:240}}}}},
+    sections:[{properties:{page:{size:{width:11906,height:16838}, margin:{top:993,right:851,bottom:794,left:1701}}}, children:conv(bs,pageW)}],
+  });
+  return D.Packer.toBlob(doc);
+}
+
+/* ---------- документы ---------- */
+const DOCS = {
+  contract:{name:"Трудовой договор", build:contractBlocks, single:false, size:20,
+    note:()=>`<strong>Текст — как в «Образце ТД».</strong> Подставлены пустые поля и значения, которые зависят от сотрудника: должность, срок, испытание, график (п. 3.1), основная работа или совместительство (п. 1.7), отпуск, оклад прописью. Раздел 11 в образце пустой — сюда добавлены реквизиты сторон из карточки.`,
+    file:C=>`Трудовой договор №${C.num||"__"} ${S.emp.last||""}.docx`},
+  order:{name:"Приказ о приёме", build:orderBlocks, single:false, size:22,
+    note:()=>`<strong>Образца приказа не было</strong>, поэтому текст — типовой черновик на двух языках. Пришлите шаблон приказа КазУТБ, и он заменит этот.`,
+    file:C=>`Приказ №${C.order_num||"__"} о приёме ${S.emp.last||""}.docx`},
+  card:{name:"Личное дело", build:cardBlocks, single:true, size:22,
+    note:()=>`<strong>Личная карточка работника</strong> собирается из полей таблицы ОУП «для формирования личного дела»: фото, семья, образование, воинский учёт, социальный статус и опись PDF-документов.`,
+    file:C=>`Личная карточка ${S.emp.last||""} ${S.emp.first||""}.docx`},
+};
+let curDoc="contract", curStep="1";
+
+/* ---------- UI: справочники в селектах ---------- */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function fillSelect(sel, items, val, placeholder){
+  sel.innerHTML=(placeholder?`<option value="">${esc(placeholder)}</option>`:"")+items.map(i=>`<option value="${esc(i.v)}">${esc(i.t)}</option>`).join("");
+  sel.value = items.some(i=>i.v===val)?val:"";
+}
+function syncSelects(){
+  fillSelect($("#f_parent"), UNITS.map(u=>({v:u.id,t:u.ru})), S.appt.parent, "— выберите —");
+  const par=findParent(S.appt.parent);
+  const kids=par?par.kids:[];
+  fillSelect($("#f_unit"), kids.map(k=>({v:k.id,t:k.ru})), S.appt.unit, kids.length?"— выберите —":"Нет подразделений");
+  $("#f_unit").disabled=!kids.length;
+  fillSelect($("#f_pos"), POSITIONS.filter(p=>p.cat===S.appt.cat).map(p=>({v:p.id,t:p.ru})), S.appt.pos, "— выберите —");
+  if(!POSITIONS.some(p=>p.id===S.appt.pos&&p.cat===S.appt.cat)) S.appt.pos="";
+  if(par && !kids.some(k=>k.id===S.appt.unit)) S.appt.unit="";
+  fillSelect($("#f_repl"), STAFF.map(s=>({v:s.id,t:`${s.fio} — ${s.note}`})), S.appt.repl, "— выберите сотрудника —");
+  const g=S.emp.gender;
+  const ms = g==="ж" ? ["Замужем","Не замужем","Разведена","Вдова"] : g==="м" ? ["Женат","Холост","Разведён","Вдовец"] : ["Женат / замужем","Холост / не замужем","Разведён(а)","Вдовец / вдова"];
+  fillSelect($("#f_marital"), ms.map(m=>({v:m,t:m})), S.emp.marital, "— выберите —");
+  if(!ms.includes(S.emp.marital)) S.emp.marital="";
+}
+
+function getPath(p){ const [o,k]=p.split("."); return S[o][k]; }
+function setPath(p,v){ const [o,k]=p.split("."); S[o][k]=v; }
+function pushToForm(){
+  syncSelects();
+  $$("[data-k]").forEach(el=>{
+    const v=getPath(el.dataset.k);
+    if(el.type==="checkbox") el.checked=!!v;
+    else if(el.type==="radio") el.checked = el.value===v;
+    else el.value = v==null?"":v;
+  });
+  renderLists(); renderPhoto();
+}
+
+/* ---------- списки: дети, образование, файлы ---------- */
+function renderLists(){
+  $("#kidsList").innerHTML = S.kids.length ? S.kids.map((k,i)=>`
+    <div class="item"><div class="head">Ребёнок ${i+1}<button class="btn ghost sm" data-del="kids" data-i="${i}" type="button">Удалить</button></div>
+    <div class="row"><label class="fld"><span>ФИО</span><input id="kid_fio_${i}" data-list="kids" data-i="${i}" data-f="fio" value="${esc(k.fio)}"></label>
+    <label class="fld"><span>Дата рождения</span><input id="kid_birth_${i}" type="date" data-list="kids" data-i="${i}" data-f="birth" value="${esc(k.birth)}"></label></div></div>`).join("") : `<div class="empty">Детей нет — если есть, добавьте.</div>`;
+  $("#eduList").innerHTML = S.edu.length ? S.edu.map((x,i)=>`
+    <div class="item"><div class="head">Образование ${i+1}<button class="btn ghost sm" data-del="edu" data-i="${i}" type="button">Удалить</button></div>
+    <div class="row"><label class="fld"><span>Уровень</span><select id="edu_level_${i}" data-list="edu" data-i="${i}" data-f="level"><option value="">—</option>${EDU_LEVELS.map(l=>`<option${l===x.level?" selected":""}>${l}</option>`).join("")}</select></label>
+    <label class="fld"><span>Год окончания</span><input id="edu_year_${i}" class="mono" inputmode="numeric" maxlength="4" data-list="edu" data-i="${i}" data-f="year" value="${esc(x.year)}"></label></div>
+    <label class="fld"><span>Учебное заведение</span><input id="edu_inst_${i}" data-list="edu" data-i="${i}" data-f="inst" value="${esc(x.inst)}"></label>
+    <div class="row"><label class="fld"><span>Специальность</span><input id="edu_spec_${i}" data-list="edu" data-i="${i}" data-f="spec" value="${esc(x.spec)}"></label>
+    <label class="fld"><span>Диплом №</span><input id="edu_dip_${i}" class="mono" data-list="edu" data-i="${i}" data-f="diploma" value="${esc(x.diploma)}"></label></div></div>`).join("") : `<div class="empty">Добавьте хотя бы одну запись об образовании.</div>`;
+  $("#filesList").innerHTML = S.files.length ? S.files.map((x,i)=>`
+    <div class="item"><div class="head"><span class="mono" style="overflow-wrap:anywhere">${esc(x.name)} · ${(x.size/1024).toFixed(0)} КБ</span><button class="btn ghost sm" data-del="files" data-i="${i}" type="button">Удалить</button></div>
+    <label class="fld"><span>Вид документа</span><select id="file_type_${i}" data-list="files" data-i="${i}" data-f="type">${FILE_TYPES.map(t=>`<option${t===x.type?" selected":""}>${t}</option>`).join("")}</select></label></div>`).join("") : `<div class="empty">Скан удостоверения, диплома и других документов в PDF.</div>`;
+}
+function renderPhoto(){
+  const b=$("#photoPrev");
+  if(S.photo){ b.style.backgroundImage=`url(${S.photo.url})`; b.classList.add("has"); $("#photoDel").hidden=false; }
+  else { b.style.backgroundImage=""; b.classList.remove("has"); $("#photoDel").hidden=true; }
+}
+
+/* ---------- render ---------- */
+function render(){
+  const C=ctx();
+  // ИИН подсказка
+  const ip=parseIin(S.emp.iin), h=$("#iinHint");
+  if(!S.emp.iin){ h.textContent="Дата рождения и пол подставятся из ИИН"; h.className="hint"; }
+  else if(ip.ok){ const conflict = S.emp.birth && S.emp.birth!==ip.birth; h.textContent = conflict ? "ИИН верный, но дата рождения в нём другая: "+dShort(ip.birth) : "ИИН верный · "+dShort(ip.birth)+" · "+(ip.gender==="м"?"мужской":"женский"); h.className="hint "+(conflict?"bad":"ok"); }
+  else { h.textContent=ip.msg; h.className="hint bad"; }
+  $("#citOther").hidden = S.emp.cit!=="other";
+  $("#replWrap").hidden = !S.appt.repl_on;
+  // срок
+  const th=$("#termHint"); const years=+S.contract.term;
+  th.textContent = years&&S.appt.start ? `с ${dShort(S.appt.start)} по ${dShort(addPeriod(S.appt.start,12*years))}` : S.contract.term==="repl" ? "до выхода основного работника" : "";
+  $("#accHint").textContent = S.appt.fio_acc_auto ? "Склоняется автоматически, можно поправить вручную" : "Изменено вручную · очистите поле, чтобы склонять автоматически";
+  // from card
+  const fc=[["ФИО",C.fio],["Адрес",C.address],["Удостоверение",S.emp.id_num?`№${S.emp.id_num}${S.emp.id_date?" от "+dShort(S.emp.id_date):""}, ${ISSUER[S.emp.id_issuer].ru}`:""],["ИИН",C.iin],["Телефон",C.phone]];
+  $("#fromCard").innerHTML=fc.map(([k,v])=>`<dt>${k}</dt><dd class="${v?"":"missing"}">${v?esc(v):"не заполнено"}</dd>`).join("");
+  // missing per doc / per step
+  const all={}; for(const d in DOCS){ all[d]=missing(d); $("#dot_"+d).classList.toggle("ok", !all[d].length); }
+  const stepMiss={1:new Set(),2:new Set(),3:new Set()};
+  for(const d in all) all[d].forEach(r=>stepMiss[r[2]].add(r[0]));
+  for(const s of [1,2,3]){ const n=stepMiss[s].size, el=$("#st"+s); el.textContent = n? `не хватает: ${n}` : "заполнено"; el.className="s "+(n?"bad":"good"); }
+  $$(".fld[data-f]").forEach(f=>f.classList.remove("need"));
+  // status bar
+  const m=all[curDoc];
+  $("#docStatus").innerHTML = m.length
+    ? `<span class="lbl bad">Не хватает ${m.length} ${m.length===1?"поля":m.length<5?"полей":"полей"}:</span>`+m.map(r=>`<button class="chip" data-go="${r[0]}" type="button">${esc(r[1])}</button>`).join("")
+    : `<span class="lbl ok">Документ готов к выгрузке</span>`;
+  $("#docNote").innerHTML=DOCS[curDoc].note();
+  const paper=$("#paper"); paper.classList.toggle("single", DOCS[curDoc].single);
+  paper.innerHTML=blocksHtml(DOCS[curDoc].build(C), C);
+  $("#sampleFlag").hidden=!sampleMode;
+}
+
+/* ---------- навигация ---------- */
+function showStep(s){
+  curStep=String(s);
+  $$(".step").forEach(b=>b.setAttribute("aria-selected", b.dataset.step===curStep));
+  $$("[data-pane]").forEach(p=>p.hidden = p.dataset.pane!==curStep);
+}
+function goField(id){
+  const el=document.getElementById(id); if(!el) return;
+  const pane=el.closest("[data-pane]"); if(pane) showStep(pane.dataset.pane);
+  const det=el.closest("details"); if(det) det.open=true;
+  const fld=el.closest(".fld")||el.closest("[data-f]"); if(fld) fld.classList.add("need");
+  el.scrollIntoView({block:"center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  setTimeout(()=>{ try{ el.focus({preventScroll:true}); }catch(_){} }, 250);
+}
+
+/* ---------- события ---------- */
+function onField(el){
+  const k=el.dataset.k; if(!k) return;
+  sampleMode=false;
+  let v = el.type==="checkbox" ? el.checked : el.value;
+  if(k==="emp.iin"){ v=v.replace(/\D/g,"").slice(0,12); el.value=v;
+    const p=parseIin(v); if(p.ok){ if(!S.emp.birth){ S.emp.birth=p.birth; $("#f_birth").value=p.birth; } if(!S.emp.gender){ S.emp.gender=p.gender; } } }
+  if(k==="contract.salary"){ const d=v.replace(/\D/g,""); v=d; el.value=d?money(d):""; }
+  if(k==="appt.fio_acc"){ S.appt.fio_acc_auto = v.trim()===""; }
+  setPath(k,v);
+  if(k==="appt.cat"){ const d=CAT_DEFAULTS[v]; S.contract.vac=String(d.vac); S.contract.sched=d.sched; }
+  if(k==="appt.repl_on"){ if(v) S.contract.term="repl"; else if(S.contract.term==="repl") S.contract.term="1"; }
+  if(k==="contract.term"){ S.appt.repl_on = v==="repl"; }
+  if(k==="contract.date" && !S.appt.order_date){ S.appt.order_date=v; }
+  if(S.appt.fio_acc_auto && (k.startsWith("emp.")||k==="appt.fio_acc")){ S.appt.fio_acc=fioAcc(S.emp); if(k!=="appt.fio_acc") $("#f_fio_acc").value=S.appt.fio_acc; }
+  if(["appt.cat","appt.parent","emp.gender","emp.iin","appt.repl_on","contract.term","contract.date"].includes(k) || k==="appt.fio_acc") pushToForm();
+  render();
+}
+document.addEventListener("input", e=>{
+  const el=e.target;
+  if(el.dataset.list){ sampleMode=false; S[el.dataset.list][+el.dataset.i][el.dataset.f]=el.value; render(); return; }
+  if(el.dataset.k && el.type!=="radio" && el.type!=="checkbox" && el.tagName!=="SELECT") onField(el);
+});
+document.addEventListener("change", e=>{
+  const el=e.target;
+  if(el.dataset.list){ S[el.dataset.list][+el.dataset.i][el.dataset.f]=el.value; render(); return; }
+  if(el.dataset.k && (el.type==="radio"||el.tagName==="SELECT"||el.type==="checkbox")) onField(el);
+});
+document.addEventListener("click", e=>{
+  const go=e.target.closest("[data-go]"); if(go){ goField(go.dataset.go); return; }
+  const del=e.target.closest("[data-del]"); if(del){ S[del.dataset.del].splice(+del.dataset.i,1); renderLists(); render(); return; }
+  const st=e.target.closest(".step"); if(st){ showStep(st.dataset.step); return; }
+  const dt=e.target.closest(".doc-tab"); if(dt){ curDoc=dt.dataset.doc; $$(".doc-tab").forEach(b=>b.setAttribute("aria-selected", b===dt)); render(); return; }
+});
+$("#addKid").onclick=()=>{ S.kids.push({fio:"",birth:""}); renderLists(); render(); document.getElementById("kid_fio_"+(S.kids.length-1)).focus(); };
+$("#addEdu").onclick=()=>{ S.edu.push({level:"",inst:"",year:"",spec:"",diploma:""}); renderLists(); render(); document.getElementById("edu_level_"+(S.edu.length-1)).focus(); };
+$("#f_files").onchange=e=>{ for(const f of e.target.files){ if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)){ toast(`«${f.name}» не PDF — пропущен`); continue; } S.files.push({name:f.name,size:f.size,type:/удост|udost|id/i.test(f.name)?"Удостоверение личности":/диплом|diplom/i.test(f.name)?"Диплом":"Иное"}); } e.target.value=""; renderLists(); render(); };
+$("#f_photo").onchange=async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const type=/png$/i.test(f.type)?"png":"jpg";
+  const buf=await f.arrayBuffer();
+  if(S.photo) URL.revokeObjectURL(S.photo.url);
+  S.photo={type, buf, url:URL.createObjectURL(f), name:f.name};
+  e.target.value=""; renderPhoto(); render();
+};
+$("#photoDel").onclick=()=>{ if(S.photo) URL.revokeObjectURL(S.photo.url); S.photo=null; renderPhoto(); render(); };
+$("#btnSample").onclick=()=>{ S=sample(); S.appt.fio_acc=fioAcc(S.emp); sampleMode=true; pushToForm(); render(); toast("Заполнено примером — данные вымышленные"); };
+$("#btnClear").onclick=()=>{ S=blank(); sampleMode=false; pushToForm(); showStep(1); render(); toast("Форма очищена"); };
+
+/* ---------- сохранение файлов ---------- */
+let dlCap=null, dlReady=(async()=>{ try{ if(window.claude&&window.claude.use){ dlCap=await window.claude.use("downloads"); } }catch(_){ dlCap=null; } })();
+async function saveFile(name, blob){
+  await Promise.race([dlReady, new Promise(r=>setTimeout(r,1500))]);
+  if(dlCap){
+    try{ await dlCap.save({filename:name, data:blob}); toast("Файл сохранён: "+name); }
+    catch(err){ const c=err&&err.code; toast(c==="declined"?"Сохранение отменено":c==="rate_limited"?"Подождите — окно сохранения уже открыто":"Не удалось сохранить файл в этом окне"); }
+    return;
+  }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast("Файл сохранён: "+name);
+}
+async function buildDocx(docKey){ const C=ctx(); const d=DOCS[docKey]; return {blob: await docxFrom(d.build(C), C, {title:d.name, size:d.size}), name:d.file(C).replace(/\s+/g," ").replace(/ \./,".")}; }
+$("#btnDocx").onclick=async()=>{
+  const btn=$("#btnDocx"); btn.disabled=true;
+  try{ const {blob,name}=await buildDocx(curDoc); await saveFile(name, blob); }
+  catch(err){ toast(err&&err.message==="no-docx"?"Библиотека для Word не загрузилась — обновите страницу":"Не удалось собрать документ"); console.error(err); }
+  finally{ btn.disabled=false; }
+};
+window.__buildDocx = async k=>{ const {blob}=await buildDocx(k); const b=new Uint8Array(await blob.arrayBuffer()); let s=""; for(let i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); };
+
+/* ---------- JSON ---------- */
+function record(){
+  const C=ctx(), par=findParent(S.appt.parent), un=findUnit(S.appt.parent,S.appt.unit), pos=findPos(S.appt.pos);
+  return {
+    employee:{ last_name:S.emp.last, first_name:S.emp.first, middle_name:S.emp.middle, iin:S.emp.iin, birth_date:S.emp.birth, gender:S.emp.gender,
+      citizenship: S.emp.cit==="kz"?"KZ":{ru:S.emp.cit_ru,kz:S.emp.cit_kz}, photo: S.photo?S.photo.name:null,
+      id_card:{number:S.emp.id_num, issued_at:S.emp.id_date, issuer:S.emp.id_issuer},
+      address:{city:S.emp.city, street:S.emp.street, house:S.emp.house, apartment:S.emp.apt}, phone:S.emp.phone,
+      marital_status:S.emp.marital, children:S.kids, education:S.edu, military_status:S.emp.military,
+      pensioner:S.emp.pens, disability:S.emp.disab||null, student:S.emp.stud, large_family:S.emp.large,
+      attachments:S.files.map(f=>({file:f.name, type:f.type, size:f.size})) },
+    appointment:{ staff_category:S.appt.cat, department_id:S.appt.parent||null, department:par?par.ru:null, unit_id:S.appt.unit||null, unit:un?un.ru:null,
+      position_id:S.appt.pos||null, position:pos?pos.ru:null, start_date:S.appt.start, probation_months:+S.appt.prob,
+      replaces_employee_id:S.appt.repl_on?S.appt.repl||null:null, order:{number:S.appt.order_num, date:S.appt.order_date, fio_accusative:S.appt.fio_acc} },
+    contract:{ number:S.contract.num, date:S.contract.date, term:S.contract.term, end_date: +S.contract.term?addPeriod(S.appt.start,12*+S.contract.term)||null:null,
+      salary:+S.contract.salary||null, schedule:S.contract.sched, employment:S.contract.kind, vacation_days:+S.contract.vac||null },
+    readiness:Object.fromEntries(Object.keys(DOCS).map(d=>[d, missing(d).map(r=>r[1])])),
+  };
+}
+$("#btnJson").onclick=()=>{ $("#jsonPre").textContent=JSON.stringify(record(),null,2); $("#jsonOvl").hidden=false; $("#jsonClose").focus(); };
+$("#jsonClose").onclick=()=>{ $("#jsonOvl").hidden=true; $("#btnJson").focus(); };
+$("#jsonOvl").addEventListener("click", e=>{ if(e.target.id==="jsonOvl") $("#jsonClose").click(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#jsonOvl").hidden) $("#jsonClose").click(); });
+$("#jsonCopy").onclick=async()=>{ const t=$("#jsonPre").textContent; try{ await navigator.clipboard.writeText(t); toast("JSON скопирован"); } catch(_){ const r=document.createRange(); r.selectNodeContents($("#jsonPre")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Текст выделен — нажмите Ctrl+C"); } };
+$("#jsonSave").onclick=()=>saveFile(`priem_${S.emp.last||"sotrudnik"}.json`, new Blob([$("#jsonPre").textContent],{type:"application/json"}));
+
+let tTimer; function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(tTimer); tTimer=setTimeout(()=>t.hidden=true, 2600); }
+
+/* ---------- старт ---------- */
+S=sample(); S.appt.fio_acc=fioAcc(S.emp); sampleMode=true;
+pushToForm(); showStep(1); render();
+
+</script>
+</body></html>
