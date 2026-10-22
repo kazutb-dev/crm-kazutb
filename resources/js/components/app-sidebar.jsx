@@ -43,7 +43,7 @@ import {
     Megaphone,
     MapPinned,
     Sparkles,
-    UserPlus,
+    Contact,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -528,18 +528,10 @@ export function AppSidebar() {
     })();
 
 
-    // «Приём на работу» is open to the hr role and administrators; the PERCo pages stay admin-only.
-    const hiringItems = isAdminRole || isHrRole ? [
-        {
-            title: 'Приём на работу',
-            href: route('hr.hiring.index'),
-            icon: UserPlus,
-            active: route().current('hr.hiring.*'),
-        },
-    ] : [];
+    // «Отдел кадров» (the hiring module) is a standalone item above all sections: the hr role and administrators.
+    const showHrDepartment = (isAdminRole || isHrRole) && !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !showOnlyKpiMenus;
 
     const hr = isAdminRole ? [
-        ...hiringItems,
         {
             title: 'Панель HR',
             href: route('hr.dashboard'),
@@ -582,7 +574,7 @@ export function AppSidebar() {
             icon: SlidersHorizontal,
             active: route().current('hr.perco.settings'),
         },
-    ] : hiringItems;
+    ] : [];
 
     const library = isAdminRole ? [
         {
@@ -818,7 +810,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
-        hr: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hr.some((item) => item.active),
+        hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && templateItems.some((item) => item.active),
@@ -922,7 +914,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
+        hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         templates: canAccessTemplatesSection && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
@@ -1045,6 +1037,21 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent ref={sidebarContentRef} className="pb-2">
+                {showHrDepartment && (
+                    <SidebarGroup className="border-b border-sidebar-border/80 pb-3">
+                        <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton asChild size="lg" isActive={route().current('hr.hiring.*')} tooltip="Отдел кадров">
+                                    <Link href={route('hr.hiring.index')}>
+                                        <Contact />
+                                        <span className="font-semibold">Отдел кадров</span>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroup>
+                )}
+
                 {!showOnlyCertificatesMenus && !TEMP_HIDE_MAIN_MENUS && !showOnlyKpiMenus && (
                     renderGroup('main', 'Основное', navigation)
                 )}
@@ -1082,7 +1089,7 @@ export function AppSidebar() {
                     renderGroup('calendarShared', 'Календарь', nonAdminCalendarItems)
                 )}
 
-                {!showOnlyCertificatesMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
+                {!showOnlyCertificatesMenus && isAdminRole && !showOnlyKpiMenus && (
                     renderGroup('hr', 'HR и учет', hr)
                 )}
 

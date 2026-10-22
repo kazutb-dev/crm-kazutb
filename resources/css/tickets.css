@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
 
 .tickets-root,
 .tickets-root * {
@@ -14,7 +13,7 @@
     --teal: #11b0b2;
     --teal-dark: #0e8e9d;
     min-height: 100vh;
-    font-family: 'Open Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     color: var(--text);
     background:
         radial-gradient(circle at 8% 4%, rgba(10, 183, 176, 0.08), transparent 42%),

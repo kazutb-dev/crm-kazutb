@@ -16,17 +16,13 @@ export default function Register() {
         });
     };
 
-    const headingFont = { fontFamily: '"Literata", ui-serif, Georgia, Times, serif' };
+    const headingFont = { fontFamily: 'var(--font-sans)' };
 
     return (
         <>
-            <Head title="Register">
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-                <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500..900&family=Manrope:wght@400..800&display=swap" rel="stylesheet" />
-            </Head>
+            <Head title="Register" />
 
-            <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0b1a2e] p-4 font-['Manrope'] sm:p-6" style={{ fontFamily: '"Manrope", ui-sans-serif, system-ui, sans-serif' }}>
+            <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0b1a2e] p-4 sm:p-6" style={{ fontFamily: 'var(--font-sans)' }}>
                 <div className="pointer-events-none absolute inset-0 bg-[url('/assets/images/bg-poster.png')] bg-cover bg-center opacity-55 blur-[2px] scale-[1.03]" />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#203653]/95 via-[#2b4265]/82 to-[#18b8b3]/26" />
                 <div className="pointer-events-none absolute inset-0 bg-black/10 backdrop-blur-[2px]" />

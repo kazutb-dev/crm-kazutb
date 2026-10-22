@@ -2,7 +2,7 @@ import { Combobox, ComboboxButton, ComboboxInput, ComboboxOption, ComboboxOption
 import axios from 'axios';
 import { ChevronsUpDown, PencilLine, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { inputClassName, VerifiedBadge } from './ui';
+import { inputClassName, MissingMark, VerifiedBadge } from './ui';
 
 const SEARCH_DELAY_MS = 250;
 
@@ -12,7 +12,7 @@ const keyOf = (item) => (item ? (item.id ? `id:${item.id}` : `manual:${item.name
  * Catalog entry or free text: search the catalog (`searchUrl(query)` → { items }), pick an entry, or choose
  * «Ввести вручную: …». The case forms the documents need are shown under the field; for a typed-in value
  * they are entered here (the RU genitive is suggested by the server), with «Добавить в справочник» for
- * people who may extend the catalog.
+ * people who may extend the catalog. A catalog entry with all forms filled shows them folded into one line.
  *
  * value: { id, name_ru, verified, add_to_catalog, …forms }
  */
@@ -34,6 +34,7 @@ export default function CatalogCombobox({
     const [query, setQuery] = useState('');
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [formsOpen, setFormsOpen] = useState(false);
     const requestRef = useRef(0);
     // Forms the catalog already had when the entry was picked are read-only (the server takes them from the
     // catalog); the missing ones can be typed in.
@@ -75,6 +76,8 @@ export default function CatalogCombobox({
     }
     const locked = lockRef.current.locked;
     const hasGaps = forms.some((form) => !locked[form.key]);
+    const formsComplete = forms.every((form) => String(value?.[form.key] ?? '').trim() !== '');
+    const folded = hasValue && !isManual && formsComplete && !formsOpen;
 
     const select = (item) => {
         if (!item) {
@@ -106,7 +109,7 @@ export default function CatalogCombobox({
 
     return (
         <div className="space-y-2">
-            <label htmlFor={id} className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+            <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">{label}<MissingMark id={id} /></label>
             <Combobox value={hasValue ? value : null} onChange={select} by={(a, b) => keyOf(a) === keyOf(b)} disabled={disabled} immediate>
                 <div className="relative">
                     <ComboboxInput
@@ -161,18 +164,32 @@ export default function CatalogCombobox({
             </Combobox>
             {error && <p className="text-xs text-rose-600">{error}</p>}
 
-            {hasValue && (
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            {folded && (
+                <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    Из справочника, формы для документов заполнены
+                    <VerifiedBadge verified={value.verified} />
+                    <button type="button" onClick={() => setFormsOpen(true)} className="font-medium text-teal-700 hover:underline">
+                        {hasGaps ? 'Изменить формы' : 'Показать формы'}
+                    </button>
+                </p>
+            )}
+
+            {hasValue && !folded && (
+                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span className="font-medium text-slate-700">Формы для текста документов.</span>
                         {isManual ? 'Введено вручную: сохранится в записи о приёме.' : 'Из справочника.'}
                         {!isManual && <VerifiedBadge verified={value.verified} />}
+                        {!isManual && formsComplete && (
+                            <button type="button" onClick={() => setFormsOpen(false)} className="ml-auto font-medium text-teal-700 hover:underline">Скрыть</button>
+                        )}
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
                         {forms.map((form) => {
                             const formValue = value[form.key] ?? '';
                             return (
                                 <div key={form.key}>
-                                    <label htmlFor={`${id}-${form.key}`} className="mb-1 block text-xs text-slate-500">{form.label}</label>
+                                    <label htmlFor={`${id}-${form.key}`} className="mb-1 block text-xs font-medium text-slate-600">{form.label}<MissingMark id={`${id}-${form.key}`} /></label>
                                     <input
                                         id={`${id}-${form.key}`}
                                         value={formValue}

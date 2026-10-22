@@ -15,8 +15,13 @@ export default {
     	extend: {
     		fontFamily: {
     			sans: [
-    				'Figtree',
+    				'Google Sans',
                     ...defaultTheme.fontFamily.sans
+                ],
+    			mono: [
+    				'Google Sans Code',
+    				'Google Sans',
+                    ...defaultTheme.fontFamily.mono
                 ]
     		},
     		borderRadius: {

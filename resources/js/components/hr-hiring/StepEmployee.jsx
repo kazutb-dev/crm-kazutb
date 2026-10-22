@@ -3,7 +3,7 @@ import { FileUp, ImageUp, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { fieldId, parseIin } from './logic';
-import { buttonClassName, Field, formatBytes, inputClassName, Notice, Section, SelectInput, TextInput, validationErrors } from './ui';
+import { buttonClassName, ChoiceGroup, Field, formatBytes, inputClassName, Notice, Section, SelectInput, TextInput, validationErrors } from './ui';
 
 export default function StepEmployee({ state, set, errors, options, abilities, hiringId, photoUrl, onPhotoChange, attachments, onAttachmentsChange }) {
     const e = state.employee;
@@ -16,8 +16,12 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
     const updateRow = (key, index, patch) => setList(key, (e[key] ?? []).map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
     return (
-        <div className="space-y-6">
-            <Section title="ФИО и ИИН" feeds="все документы">
+        <div className="space-y-4">
+            <Section
+                title="Личные данные"
+                description="Дата рождения и пол подставятся из ИИН автоматически."
+                feeds={['contract', 'order', 'card']}
+            >
                 <div className="grid gap-3 sm:grid-cols-3">
                     {[['last_name', 'Фамилия'], ['first_name', 'Имя'], ['middle_name', 'Отчество']].map(([key, label]) => (
                         <Field key={key} id={fieldId(`employee.${key}`)} label={label} error={err(`employee.${key}`)}>
@@ -25,12 +29,12 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                         </Field>
                     ))}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto]">
                     <Field
                         id={fieldId('employee.iin')}
                         label="ИИН"
                         error={err('employee.iin') ?? (e.iin && !iin.valid ? iin.error : null)}
-                        hint={iin.valid ? 'ИИН верный' : 'Дата рождения и пол подставятся из ИИН'}
+                        hint={iin.valid ? 'ИИН верный' : null}
                     >
                         <TextInput
                             id={fieldId('employee.iin')}
@@ -46,14 +50,13 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                         <TextInput id={fieldId('employee.birth_date')} type="date" value={e.birth_date} onChange={(value) => set('employee.birth_date', value)} />
                     </Field>
                     <Field id={fieldId('employee.gender')} label="Пол" error={err('employee.gender')}>
-                        <div id={fieldId('employee.gender')} tabIndex={-1} className="flex h-[38px] items-center gap-4 text-sm">
-                            {[['m', 'Мужской'], ['f', 'Женский']].map(([value, label]) => (
-                                <label key={value} className="flex items-center gap-1.5">
-                                    <input type="radio" name="gender" checked={e.gender === value} onChange={() => set('employee.gender', value)} className="text-teal-600 focus:ring-teal-500" />
-                                    {label}
-                                </label>
-                            ))}
-                        </div>
+                        <ChoiceGroup
+                            id={fieldId('employee.gender')}
+                            label="Пол"
+                            value={e.gender}
+                            onChange={(value) => set('employee.gender', value)}
+                            options={[{ value: 'm', label: 'Мужской' }, { value: 'f', label: 'Женский' }]}
+                        />
                     </Field>
                 </div>
                 {iinMismatch && <Notice tone="warning">Дата рождения или пол не совпадают с ИИН ({iin.birthDate.split('-').reverse().join('.')}, {iin.gender === 'm' ? 'мужской' : 'женский'}).</Notice>}
@@ -81,7 +84,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
 
             <PhotoSection hiringId={hiringId} photoUrl={photoUrl} onPhotoChange={onPhotoChange} />
 
-            <Section title="Удостоверение личности" feeds="договор · личное дело">
+            <Section title="Удостоверение личности" feeds={['contract', 'card']}>
                 <div className="grid gap-3 sm:grid-cols-3">
                     <Field id={fieldId('employee.id_card_number')} label="Номер" error={err('employee.id_card_number')}>
                         <TextInput id={fieldId('employee.id_card_number')} value={e.id_card_number} onChange={(value) => set('employee.id_card_number', value)} className="font-mono" maxLength={20} />
@@ -95,7 +98,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 </div>
             </Section>
 
-            <Section title="Адрес и телефон" feeds="договор · личное дело">
+            <Section title="Адрес и телефон" description="Адрес проживания — так, как он будет написан в договоре." feeds={['contract', 'card']}>
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                     <Field id={fieldId('employee.city')} label="Город" error={err('employee.city')}>
                         <TextInput id={fieldId('employee.city')} value={e.city} onChange={(value) => set('employee.city', value)} maxLength={100} />
@@ -117,16 +120,21 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 </div>
             </Section>
 
-            <Section title="Семья" feeds="личное дело">
+            <Section title="Семья" feeds={['card']}>
                 <Field id={fieldId('employee.marital_status')} label="Семейное положение" className="sm:max-w-xs">
-                    <SelectInput id={fieldId('employee.marital_status')} value={e.marital_status} onChange={(value) => set('employee.marital_status', value)} options={maritalOptions} placeholder="—" />
+                    <SelectInput id={fieldId('employee.marital_status')} value={e.marital_status} onChange={(value) => set('employee.marital_status', value)} options={maritalOptions} placeholder="Выберите" />
                 </Field>
                 <div className="space-y-2">
+                    {(e.children ?? []).length > 0 && <p className="text-sm font-medium text-slate-700">Дети</p>}
                     {(e.children ?? []).map((child, index) => (
-                        <div key={child.id ?? `new-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
-                            <TextInput id={fieldId(`employee.children.${index}.full_name`)} value={child.full_name} onChange={(value) => updateRow('children', index, { full_name: value })} placeholder="ФИО ребёнка" />
-                            <TextInput type="date" value={child.birth_date} onChange={(value) => updateRow('children', index, { birth_date: value })} aria-label="Дата рождения ребёнка" />
-                            <button type="button" onClick={() => setList('children', e.children.filter((_, i) => i !== index))} className={buttonClassName.danger} title="Удалить">
+                        <div key={child.id ?? `new-${index}`} className="grid items-end gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
+                            <Field id={fieldId(`employee.children.${index}.full_name`)} label="ФИО ребёнка">
+                                <TextInput id={fieldId(`employee.children.${index}.full_name`)} value={child.full_name} onChange={(value) => updateRow('children', index, { full_name: value })} />
+                            </Field>
+                            <Field id={fieldId(`employee.children.${index}.birth_date`)} label="Дата рождения">
+                                <TextInput id={fieldId(`employee.children.${index}.birth_date`)} type="date" value={child.birth_date} onChange={(value) => updateRow('children', index, { birth_date: value })} />
+                            </Field>
+                            <button type="button" onClick={() => setList('children', e.children.filter((_, i) => i !== index))} className={`${buttonClassName.danger} h-[42px]`} title="Удалить ребёнка" aria-label="Удалить ребёнка">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
@@ -137,40 +145,54 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 </div>
             </Section>
 
-            <Section title="Образование" feeds="личное дело" id={fieldId('employee.educations')}>
-                {(e.educations ?? []).length === 0 && <p className="text-sm text-slate-500">Добавьте хотя бы одну запись об образовании.</p>}
-                {(e.educations ?? []).map((row, index) => (
-                    <div key={row.id ?? `new-${index}`} className="space-y-2 rounded-xl border border-slate-200 p-3">
-                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
-                            <SelectInput value={row.level} onChange={(value) => updateRow('educations', index, { level: value })} options={options.education_levels} placeholder="Уровень" />
-                            <TextInput value={row.graduation_year ?? ''} onChange={(value) => updateRow('educations', index, { graduation_year: value.replace(/\D/g, '').slice(0, 4) })} placeholder="Год" inputMode="numeric" />
-                            <button type="button" onClick={() => setList('educations', e.educations.filter((_, i) => i !== index))} className={buttonClassName.danger} title="Удалить">
-                                <Trash2 className="h-4 w-4" />
-                            </button>
+            <Section title="Образование" description="Нужна хотя бы одна запись: уровень и учебное заведение." feeds={['card']} id={fieldId('employee.educations')}>
+                {(e.educations ?? []).map((row, index) => {
+                    const rowId = (key) => fieldId(`employee.educations.${index}.${key}`);
+                    return (
+                        <div key={row.id ?? `new-${index}`} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-medium text-slate-700">Образование {index + 1}</p>
+                                <button type="button" onClick={() => setList('educations', e.educations.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 hover:underline">
+                                    <Trash2 className="h-3.5 w-3.5" /> Удалить
+                                </button>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                                <Field id={rowId('level')} label="Уровень">
+                                    <SelectInput id={rowId('level')} value={row.level} onChange={(value) => updateRow('educations', index, { level: value })} options={options.education_levels} placeholder="Выберите" />
+                                </Field>
+                                <Field id={rowId('graduation_year')} label="Год окончания" error={errors[`employee.educations.${index}.graduation_year`]}>
+                                    <TextInput id={rowId('graduation_year')} value={row.graduation_year ?? ''} onChange={(value) => updateRow('educations', index, { graduation_year: value.replace(/\D/g, '').slice(0, 4) })} placeholder="2018" inputMode="numeric" />
+                                </Field>
+                            </div>
+                            <Field id={rowId('institution')} label="Учебное заведение">
+                                <TextInput id={rowId('institution')} value={row.institution} onChange={(value) => updateRow('educations', index, { institution: value })} />
+                            </Field>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <Field id={rowId('specialty')} label="Специальность">
+                                    <TextInput id={rowId('specialty')} value={row.specialty} onChange={(value) => updateRow('educations', index, { specialty: value })} />
+                                </Field>
+                                <Field id={rowId('diploma_number')} label="Номер диплома">
+                                    <TextInput id={rowId('diploma_number')} value={row.diploma_number} onChange={(value) => updateRow('educations', index, { diploma_number: value })} className="font-mono" />
+                                </Field>
+                            </div>
                         </div>
-                        <TextInput value={row.institution} onChange={(value) => updateRow('educations', index, { institution: value })} placeholder="Учебное заведение" />
-                        <div className="grid gap-2 sm:grid-cols-2">
-                            <TextInput value={row.specialty} onChange={(value) => updateRow('educations', index, { specialty: value })} placeholder="Специальность" />
-                            <TextInput value={row.diploma_number} onChange={(value) => updateRow('educations', index, { diploma_number: value })} placeholder="Диплом №" className="font-mono" />
-                        </div>
-                        {errors[`employee.educations.${index}.graduation_year`] && <p className="text-xs text-rose-600">{errors[`employee.educations.${index}.graduation_year`]}</p>}
-                    </div>
-                ))}
+                    );
+                })}
                 <button type="button" onClick={() => setList('educations', [...(e.educations ?? []), { id: null, level: null, institution: '', graduation_year: '', specialty: '', diploma_number: '' }])} className={buttonClassName.ghost}>
                     <Plus className="h-4 w-4" /> Добавить образование
                 </button>
             </Section>
 
-            <Section title="Учёт и социальный статус" feeds="личное дело">
+            <Section title="Воинский учёт и социальный статус" feeds={['card']}>
                 <Field id={fieldId('employee.military_status')} label="Воинский учёт" className="sm:max-w-xs">
-                    <SelectInput id={fieldId('employee.military_status')} value={e.military_status} onChange={(value) => set('employee.military_status', value)} options={options.military} placeholder="—" />
+                    <SelectInput id={fieldId('employee.military_status')} value={e.military_status} onChange={(value) => set('employee.military_status', value)} options={options.military} placeholder="Выберите" />
                 </Field>
                 {abilities.sensitive ? (
                     <div className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_1fr]">
                         <Field id={fieldId('employee.disability')} label="Инвалидность">
                             <SelectInput id={fieldId('employee.disability')} value={e.disability ?? 'none'} onChange={(value) => set('employee.disability', value ?? 'none')} options={options.disabilities} />
                         </Field>
-                        <div className="flex flex-wrap items-end gap-4 pb-2 text-sm">
+                        <div className="flex flex-wrap items-end gap-x-5 gap-y-2 pb-3 text-sm text-slate-800">
                             {[['is_pensioner', 'Пенсионер'], ['is_student', 'Обучающийся'], ['is_large_family', 'Многодетная семья']].map(([key, label]) => (
                                 <label key={key} className="flex items-center gap-1.5">
                                     <input type="checkbox" checked={Boolean(e[key])} onChange={(event) => set(`employee.${key}`, event.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
@@ -215,7 +237,7 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
     };
 
     return (
-        <Section title="Фото 3×4" feeds="личное дело" id={fieldId('employee.photo')}>
+        <Section title="Фото 3×4" description="JPG или PNG до 5 МБ." feeds={['card']} id={fieldId('employee.photo')}>
             <div className="flex items-center gap-4">
                 <div className="flex h-28 w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                     {photoUrl ? <img src={photoUrl} alt="Фото сотрудника" className="h-full w-full object-cover" /> : <ImageUp className="h-6 w-6 text-slate-300" />}
@@ -226,8 +248,7 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
                         {busy ? 'Загрузка…' : photoUrl ? 'Заменить фото' : 'Загрузить фото'}
                         <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(event) => upload(event.target.files?.[0])} />
                     </label>
-                    {photoUrl && <button type="button" onClick={remove} className="block text-xs text-rose-700 hover:underline">Удалить фото</button>}
-                    <p className="text-xs text-slate-500">JPG или PNG до 5 МБ, попадёт в личную карточку.</p>
+                    {photoUrl && <button type="button" onClick={remove} className="block text-xs font-medium text-rose-700 hover:underline">Удалить фото</button>}
                 </div>
             </div>
         </Section>
@@ -268,10 +289,13 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
     };
 
     return (
-        <Section title="Документы PDF" feeds="личное дело" id="hr-attachments">
-            {attachments.length === 0 ? (
-                <p className="text-sm text-slate-500">Сканы удостоверения, диплома и других документов в PDF.</p>
-            ) : (
+        <Section
+            title="Сканы документов"
+            description="Удостоверение, диплом и другие документы в PDF."
+            note="Хранятся в личном деле сотрудника и в документы не попадают."
+            id="hr-attachments"
+        >
+            {attachments.length > 0 && (
                 <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
                     {attachments.map((attachment) => (
                         <li key={attachment.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
@@ -291,10 +315,13 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
                     ))}
                 </ul>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-                <select value={docType} onChange={(event) => setDocType(event.target.value)} className={`${inputClassName} w-auto`} aria-label="Вид документа">
-                    {options.attachment_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-                </select>
+            <div className="flex flex-wrap items-end gap-2">
+                <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Вид документа</span>
+                    <select value={docType} onChange={(event) => setDocType(event.target.value)} className={`${inputClassName} w-auto`}>
+                        {options.attachment_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+                    </select>
+                </label>
                 <label className={`${buttonClassName.secondary} cursor-pointer`}>
                     <FileUp className="h-4 w-4" />
                     {busy ? 'Загрузка…' : 'Прикрепить PDF'}

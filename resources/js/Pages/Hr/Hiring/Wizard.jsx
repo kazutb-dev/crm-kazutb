@@ -3,8 +3,8 @@ import PreviewPanel from '@/components/hr-hiring/PreviewPanel';
 import StepAppointment from '@/components/hr-hiring/StepAppointment';
 import StepContract from '@/components/hr-hiring/StepContract';
 import StepEmployee from '@/components/hr-hiring/StepEmployee';
-import { fieldElementId, fullNameAccusative, missingFields, parseIin } from '@/components/hr-hiring/logic';
-import { StatusBadge, validationErrors } from '@/components/hr-hiring/ui';
+import { fieldElementId, fieldId, fullNameAccusative, missingFields, parseIin } from '@/components/hr-hiring/logic';
+import { buttonClassName, MissingFieldsContext, StatusBadge, validationErrors } from '@/components/hr-hiring/ui';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, Check, CircleAlert, FolderOpen, LoaderCircle } from 'lucide-react';
@@ -13,10 +13,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 const SAVE_DELAY_MS = 1200;
 
 const STEPS = [
-    { value: 1, label: 'Сотрудник' },
-    { value: 2, label: 'Назначение' },
-    { value: 3, label: 'Условия договора' },
+    { value: 1, label: 'Сотрудник', hint: 'Кто принимается на работу: личные данные, удостоверение, адрес, семья, образование.' },
+    { value: 2, label: 'Назначение', hint: 'На какую должность и в какое подразделение, с какой даты, номер приказа.' },
+    { value: 3, label: 'Условия договора', hint: 'Номер и срок договора, оклад, отпуск и режим работы.' },
 ];
+
+const blank = (value) => String(value ?? '').trim() === '';
 
 const EMPLOYEE_KEYS = [
     'last_name', 'first_name', 'middle_name', 'iin', 'birth_date', 'gender', 'citizenship', 'citizenship_ru', 'citizenship_kz',
@@ -207,6 +209,11 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
         markDirty();
     };
 
+    const changeStep = (target) => {
+        setStep(target);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const goTo = ({ step: target, field }) => {
         setStep(target);
         window.setTimeout(() => {
@@ -237,6 +244,23 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
         return Object.fromEntries(Object.entries(counts).map(([key, fields]) => [key, fields.size]));
     }, [missingByType]);
 
+    /** DOM ids of the empty fields the documents need: their labels get a marker. */
+    const missingIds = useMemo(() => {
+        const ids = new Set();
+        const e = state.employee;
+        const c = state.contract;
+        Object.values(missingByType).flat().forEach(({ field }) => {
+            if (field === 'employee.address') {
+                ['city', 'street', 'house'].filter((key) => blank(e[key])).forEach((key) => ids.add(fieldId(`employee.${key}`)));
+            } else if (field === 'contract.break') {
+                ['break_start', 'break_end'].filter((key) => blank(c[key])).forEach((key) => ids.add(fieldId(`contract.${key}`)));
+            } else {
+                ids.add(fieldElementId(field));
+            }
+        });
+        return ids;
+    }, [missingByType, state.employee, state.contract]);
+
     const warnings = useMemo(() => {
         const list = [...(checks?.[docType]?.warnings ?? [])];
         const iin = parseIin(state.employee.iin);
@@ -250,94 +274,111 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
     const autoAccusative = fullNameAccusative(state.employee.last_name, state.employee.first_name, state.employee.middle_name, state.employee.gender);
     const stepProps = { state, set, errors, options, abilities, hiringId: hiring.id };
 
+    const current = STEPS[step - 1];
+
     return (
-        <AuthenticatedLayout
-            header={(
+        <AuthenticatedLayout>
+            <Head title={`${fullName || 'Новый приём'} — приём на работу`} />
+            <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
                 <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">HR и учет · Приём на работу</p>
-                        <h2 className="flex flex-wrap items-center gap-3 text-2xl font-semibold text-slate-900">
+                    <div className="min-w-0">
+                        <Link href={route('hr.hiring.index')} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+                            <ArrowLeft className="h-4 w-4" /> Все приёмы
+                        </Link>
+                        <h2 className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold text-slate-900">
                             {fullName || 'Новый приём'}
                             <StatusBadge status={hiring.status} label={hiring.status_label} />
                         </h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                         <SaveIndicator saveState={saveState} />
-                        <Link href={route('hr.hiring.show', hiring.id)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                        <Link href={route('hr.hiring.show', hiring.id)} className={buttonClassName.secondary}>
                             <FolderOpen className="h-4 w-4" /> Карточка приёма
                         </Link>
-                        <Link href={route('hr.hiring.index')} className="text-slate-600 hover:text-slate-900">К списку</Link>
                     </div>
                 </div>
-            )}
-        >
-            <Head title={`${fullName || 'Новый приём'} — приём на работу`} />
-            <div className="grid w-full gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                <section className="rounded-3xl border border-slate-200 bg-white shadow-sm" aria-label="Данные приёма">
-                    <div role="tablist" className="grid grid-cols-3 border-b border-slate-200">
-                        {STEPS.map((item) => (
+
+                <nav role="tablist" aria-label="Шаги оформления" className="grid grid-cols-3 gap-2">
+                    {STEPS.map((item) => {
+                        const active = step === item.value;
+                        const count = stepCounts[item.value];
+                        return (
                             <button
                                 key={item.value}
                                 type="button"
                                 role="tab"
-                                aria-selected={step === item.value}
-                                onClick={() => setStep(item.value)}
-                                className={`flex flex-col items-start gap-0.5 border-b-2 px-4 py-3 text-left transition sm:px-6 ${step === item.value ? 'border-teal-600 bg-teal-50/40' : 'border-transparent hover:bg-slate-50'}`}
+                                aria-selected={active}
+                                onClick={() => changeStep(item.value)}
+                                className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-2.5 text-center transition sm:flex-row sm:gap-3 sm:px-4 sm:py-3 sm:text-left ${active ? 'border-teal-500 bg-white shadow-sm ring-1 ring-teal-500/30' : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white'}`}
                             >
-                                <span className="font-mono text-xs text-slate-400">0{item.value}</span>
-                                <span className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                                    {item.label}
-                                    {stepCounts[item.value] > 0
-                                        ? <span className="rounded-full bg-amber-100 px-1.5 text-[11px] font-medium text-amber-800">{stepCounts[item.value]}</span>
-                                        : <Check className="h-4 w-4 text-emerald-600" />}
+                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${active ? 'bg-teal-600 text-white' : count === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                    {count === 0 && !active ? <Check className="h-4 w-4" /> : item.value}
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-xs font-semibold text-slate-900 sm:text-sm">{item.label}</span>
+                                    <span className={`hidden text-xs sm:block ${count > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                        {count > 0 ? `Нужно заполнить: ${count}` : 'Всё заполнено'}
+                                    </span>
                                 </span>
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
+                </nav>
 
-                    <div className="p-5 sm:p-6">
-                        {step === 1 && (
-                            <StepEmployee
-                                {...stepProps}
-                                photoUrl={photoUrl}
-                                onPhotoChange={setPhotoUrl}
-                                attachments={attachments}
-                                onAttachmentsChange={setAttachments}
-                            />
-                        )}
-                        {step === 2 && <StepAppointment {...stepProps} autoAccusative={autoAccusative} onAccusativeReset={resetAccusative} />}
-                        {step === 3 && <StepContract {...stepProps} onGoTo={goTo} />}
-                    </div>
+                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
+                    <section aria-label="Данные приёма" className="min-w-0 space-y-4">
+                        <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+                            <span>{current.hint}</span>
+                            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                                <span className="h-2 w-2 rounded-full bg-amber-400" /> — нужно для документов
+                            </span>
+                        </p>
 
-                    <div className="flex items-center justify-between border-t border-slate-100 px-5 py-4 sm:px-6">
-                        <button type="button" disabled={step === 1} onClick={() => setStep(step - 1)} className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 disabled:invisible">
-                            <ArrowLeft className="h-4 w-4" /> Назад
-                        </button>
-                        {step < 3 ? (
-                            <button type="button" onClick={() => setStep(step + 1)} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
-                                Далее: {STEPS[step].label} <ArrowRight className="h-4 w-4" />
+                        <MissingFieldsContext.Provider value={missingIds}>
+                            {step === 1 && (
+                                <StepEmployee
+                                    {...stepProps}
+                                    photoUrl={photoUrl}
+                                    onPhotoChange={setPhotoUrl}
+                                    attachments={attachments}
+                                    onAttachmentsChange={setAttachments}
+                                />
+                            )}
+                            {step === 2 && <StepAppointment {...stepProps} autoAccusative={autoAccusative} onAccusativeReset={resetAccusative} />}
+                            {step === 3 && <StepContract {...stepProps} onGoTo={goTo} />}
+                        </MissingFieldsContext.Provider>
+
+                        <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+                            <button type="button" disabled={step === 1} onClick={() => changeStep(step - 1)} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 disabled:invisible">
+                                <ArrowLeft className="h-4 w-4" /> Назад
                             </button>
-                        ) : (
-                            <Link href={route('hr.hiring.show', hiring.id)} className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">
-                                К документам приёма <ArrowRight className="h-4 w-4" />
-                            </Link>
-                        )}
-                    </div>
-                </section>
+                            <span className="hidden text-xs text-slate-500 sm:block">Шаг {step} из {STEPS.length}</span>
+                            {step < STEPS.length ? (
+                                <button type="button" onClick={() => changeStep(step + 1)} className={buttonClassName.primary}>
+                                    Далее: {STEPS[step].label} <ArrowRight className="h-4 w-4" />
+                                </button>
+                            ) : (
+                                <Link href={route('hr.hiring.show', hiring.id)} className={buttonClassName.primary}>
+                                    Готово — к документам приёма <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            )}
+                        </div>
+                    </section>
 
-                <PreviewPanel
-                    hiringId={hiring.id}
-                    docType={docType}
-                    onDocTypeChange={setDocType}
-                    missingByType={missingByType}
-                    warnings={warnings}
-                    onMissingClick={goTo}
-                    previewAvailable={previewAvailable}
-                    flushSave={flushSave}
-                    savedVersion={savedVersion}
-                    documents={documents}
-                    onDocumentsChange={setDocuments}
-                />
+                    <PreviewPanel
+                        hiringId={hiring.id}
+                        docType={docType}
+                        onDocTypeChange={setDocType}
+                        missingByType={missingByType}
+                        warnings={warnings}
+                        onMissingClick={goTo}
+                        previewAvailable={previewAvailable}
+                        flushSave={flushSave}
+                        savedVersion={savedVersion}
+                        documents={documents}
+                        onDocumentsChange={setDocuments}
+                    />
+                </div>
             </div>
         </AuthenticatedLayout>
     );
