@@ -39,7 +39,7 @@ export default function Show({ hiring, history = [], options, abilities }) {
             header={(
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div className="space-y-1">
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">HR и учет · Приём на работу · #{hiring.id}</p>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">Отдел кадров · Приём на работу · #{hiring.id}</p>
                         <h2 className="flex flex-wrap items-center gap-3 text-2xl font-semibold text-slate-900">
                             {fullName}
                             <StatusBadge status={hiring.status} label={hiring.status_label} />

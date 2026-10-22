@@ -30,7 +30,7 @@ export default function Settings(props) {
             header={(
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div className="space-y-1">
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">HR и учет · Приём на работу</p>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">Отдел кадров · Приём на работу</p>
                         <h2 className="text-2xl font-semibold text-slate-900">Настройки модуля</h2>
                     </div>
                     <Link href={route('hr.hiring.index')} className={buttonClassName.secondary}>К списку приёмов</Link>

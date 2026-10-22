@@ -51,7 +51,7 @@ export default function Index({ hirings, filters, units = [], statuses = [] }) {
             header={(
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div className="space-y-1">
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">HR и учет</p>
+                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">Отдел кадров</p>
                         <h2 className="text-2xl font-semibold text-slate-900">Приём на работу</h2>
                         <p className="max-w-3xl text-sm text-slate-600">
                             Сотрудник и условия вводятся один раз — из них собираются трудовой договор, приказ о приёме и личная карточка.
