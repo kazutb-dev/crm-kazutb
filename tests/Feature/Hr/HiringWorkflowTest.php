@@ -233,6 +233,8 @@ class HiringWorkflowTest extends TestCase
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.units', ['parent' => $faculty->id]))
             ->assertJsonPath('items.0.name_ru', 'Кафедра Менеджмент')->assertJsonCount(1, 'items');
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.units', ['q' => 'Совет']))->assertJsonCount(0, 'items');
+        $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.units', ['parent' => 0, 'q' => 'Кафедра']))
+            ->assertJsonCount(0, 'items', 'a typed-in top unit has no catalog units under it');
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.positions', ['category' => 'pps', 'q' => 'преподав']))
             ->assertJsonPath('items.0.name_kz_poss', 'аға оқытушысы');
         $this->actingAs($this->hr)->getJson(route('hr.hiring.lookup.staff', ['q' => 'Айтмаган']))

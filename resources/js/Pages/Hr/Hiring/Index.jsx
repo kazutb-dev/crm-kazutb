@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { DocumentPills, buttonClassName, inputClassName, StatusBadge } from '@/components/hr-hiring/ui';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, FileSignature, FlaskConical, Search, Settings2, Trash2, UserPlus, X } from 'lucide-react';
+import { ChevronRight, FileSignature, FlaskConical, LoaderCircle, Search, Settings2, Trash2, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const SEARCH_DELAY_MS = 450;
@@ -59,8 +59,17 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
         apply(next);
     };
 
-    const create = () => router.post(route('hr.hiring.store'));
-    const createDemo = () => router.post(route('hr.hiring.demo.store'));
+    // A double click must not create two drafts: one request at a time.
+    const [creating, setCreating] = useState(null);
+    const post = (kind, url) => {
+        if (creating) {
+            return;
+        }
+        setCreating(kind);
+        router.post(url, {}, { onFinish: () => setCreating(null) });
+    };
+    const create = () => post('hiring', route('hr.hiring.store'));
+    const createDemo = () => post('demo', route('hr.hiring.demo.store'));
 
     /** Drafts only: files go at once, the record after 30 days (see HiringCleanup). */
     const removeDraft = (row) => {
@@ -85,12 +94,12 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                             <Settings2 className="h-4 w-4" /> Настройки
                         </Link>
                         {abilities.rights && (
-                            <button type="button" onClick={createDemo} className={buttonClassName.secondary} title="Черновик с выдуманными данными для проверки документов (видят только администраторы)">
-                                <FlaskConical className="h-4 w-4" /> Демо-приём
+                            <button type="button" onClick={createDemo} disabled={creating !== null} className={buttonClassName.secondary} title="Черновик с выдуманными данными для проверки документов (видят только администраторы)">
+                                {creating === 'demo' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />} Демо-приём
                             </button>
                         )}
-                        <button type="button" onClick={create} className={`${buttonClassName.primary} px-5`}>
-                            <UserPlus className="h-4 w-4" /> Новый приём
+                        <button type="button" onClick={create} disabled={creating !== null} className={`${buttonClassName.primary} px-5`}>
+                            {creating === 'hiring' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Новый приём
                         </button>
                     </div>
                 </div>
@@ -158,7 +167,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                     </form>
 
                     {rows.length === 0 ? (
-                        <EmptyState noHirings={(counts.all ?? 0) === 0 && !hasFilters} onCreate={create} onReset={resetFilters} />
+                        <EmptyState noHirings={(counts.all ?? 0) === 0 && !hasFilters} onCreate={create} creating={creating !== null} onReset={resetFilters} />
                     ) : (
                         <>
                             <table className="hidden min-w-full text-sm md:table">
@@ -287,7 +296,7 @@ function Numbers({ row }) {
     );
 }
 
-function EmptyState({ noHirings, onCreate, onReset }) {
+function EmptyState({ noHirings, onCreate, creating, onReset }) {
     if (!noHirings) {
         return (
             <div className="px-6 py-14 text-center">
@@ -311,7 +320,7 @@ function EmptyState({ noHirings, onCreate, onReset }) {
                     </li>
                 ))}
             </ol>
-            <button type="button" onClick={onCreate} className={`${buttonClassName.primary} mt-6 px-5`}>
+            <button type="button" onClick={onCreate} disabled={creating} className={`${buttonClassName.primary} mt-6 px-5`}>
                 <UserPlus className="h-4 w-4" /> Оформить первый приём
             </button>
         </div>

@@ -69,6 +69,9 @@ export default function PreviewPanel({
         runRef.current++;
     }, [docType]);
 
+    // Leaving the page stops the status polling of a preview still being built.
+    useEffect(() => () => { runRef.current++; }, []);
+
     useEffect(() => {
         if (!auto || !previewAvailable || savedVersion === 0) {
             return undefined;

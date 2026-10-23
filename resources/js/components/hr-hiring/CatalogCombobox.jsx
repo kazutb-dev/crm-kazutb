@@ -39,6 +39,9 @@ export default function CatalogCombobox({
     // Forms the catalog already had when the entry was picked are read-only (the server takes them from the
     // catalog); the missing ones can be typed in.
     const lockRef = useRef({ key: null, locked: {} });
+    // The latest value for the async genitive suggestion (the user may have typed or picked something meanwhile).
+    const valueRef = useRef(value);
+    valueRef.current = value;
 
     // The URL (not the builder function) drives the search, so a new builder on every render does not refetch.
     const url = disabled ? null : searchUrl(query.trim());
@@ -88,7 +91,12 @@ export default function CatalogCombobox({
             forms.forEach((form) => { next[form.key] = ''; });
             onChange(next);
             axios.post(route('hr.hiring.lookup.inflect'), { kind: inflectKind, name: item.name_ru })
-                .then((response) => onChange({ ...next, name_ru_gen: response.data.name_ru_gen ?? '' }))
+                .then((response) => {
+                    const latest = valueRef.current;
+                    if (!latest?.id && latest?.name_ru === item.name_ru && String(latest.name_ru_gen ?? '').trim() === '') {
+                        onChange({ ...latest, name_ru_gen: response.data.name_ru_gen ?? '' });
+                    }
+                })
                 .catch(() => {});
         } else {
             const next = { id: item.id, name_ru: item.name_ru, verified: item.verified, add_to_catalog: false };
