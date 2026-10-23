@@ -372,7 +372,8 @@ function RightsTab({ members, capabilities }) {
     return (
         <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <Notice>
-                Модуль открыт роли «Отдел кадров» и администраторам. Роль назначается в разделе «Пользователи». Здесь — отдельные права модуля;
+                Модуль открыт роли «Отдел кадров» и администраторам. Любому другому пользователю его открывает право «Доступ к модулю» —
+                роль при этом не меняется, модуль просто добавляется в его меню. Остальные права действуют только вместе с доступом;
                 у администраторов они есть всегда.
             </Notice>
             <form onSubmit={search} className="flex flex-wrap gap-2">
@@ -395,10 +396,20 @@ function RightsTab({ members, capabilities }) {
                             <tr key={user.id}>
                                 <td className="py-2 pr-4">
                                     <span className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" />{user.name}</span>
-                                    <span className="block text-xs text-slate-500">{user.email} · роль: {user.role}{user.can_use_module === false && ' (нет доступа к модулю)'}</span>
+                                    <span className="block text-xs text-slate-500">{user.email} · роль: {user.role}{user.can_use_module === false && ' (модуль закрыт)'}</span>
                                 </td>
                                 {Object.keys(capabilities).map((capability) => {
                                     const granted = (user.rights ?? []).includes(capability);
+                                    if (capability === 'hr.access' && user.role_access) {
+                                        return (
+                                            <td key={capability} className="px-3 py-2">
+                                                <label className="flex items-center gap-2" title="Модуль открыт ролью пользователя">
+                                                    <input type="checkbox" checked disabled className="rounded border-slate-300 text-teal-600 opacity-60" />
+                                                    <span className="text-xs text-slate-600">по роли</span>
+                                                </label>
+                                            </td>
+                                        );
+                                    }
                                     return (
                                         <td key={capability} className="px-3 py-2">
                                             <label className="flex items-center gap-2">
@@ -410,7 +421,7 @@ function RightsTab({ members, capabilities }) {
                                 })}
                             </tr>
                         ))}
-                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="py-6 text-center text-slate-500">Сотрудников с ролью «Отдел кадров» пока нет. Найдите пользователя выше.</td></tr>}
+                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="py-6 text-center text-slate-500">Сотрудников с доступом к модулю пока нет. Найдите пользователя выше.</td></tr>}
                     </tbody>
                 </table>
             </div>

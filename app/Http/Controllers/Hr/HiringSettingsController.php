@@ -262,6 +262,7 @@ class HiringSettingsController extends Controller
                 'email' => $user->email,
                 'role' => $user->resolvedRoleSlug(),
                 'can_use_module' => $this->access->canUseModule($user),
+                'role_access' => $this->access->hasModuleRole($user),
             ])->values()]);
     }
 
@@ -273,7 +274,7 @@ class HiringSettingsController extends Controller
         $this->access->grant($subject, $data['capability'], $request->user());
         $this->audit->module(HrAuditLogger::RIGHTS_CHANGED, 'User', $subject->id, 'Выдано право: '.HrAccess::CAPABILITIES[$data['capability']], ['capability' => $data['capability'], 'granted' => true], $request->user());
 
-        $warning = $this->access->canUseModule($subject) ? null : ' У пользователя нет роли «Отдел кадров» — право начнёт действовать после её назначения.';
+        $warning = $this->access->canUseModule($subject) ? null : ' Модуль этому пользователю пока закрыт — право начнёт действовать, когда выдадите «Доступ к модулю».';
 
         return Redirect::back()->with('success', 'Право выдано.'.($warning ?? ''));
     }
