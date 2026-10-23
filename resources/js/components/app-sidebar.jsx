@@ -145,6 +145,8 @@ export function AppSidebar() {
         || roleSlug === 'kpi_admin';
     const isTeacherRole = roleSlug === 'teacher';
     const isHrRole = roleSlug === 'hr';
+    // hr role, administrators, or anyone granted «Доступ к модулю» in the module settings.
+    const canUseHiring = isAdminRole || isHrRole || Boolean(auth.canUseHiring);
     const isHodRole = ['hod', 'department_head'].includes(roleSlug);
     const isDeanRole = roleSlug === 'dean';
     const isDepartmentRole = roleSlug === 'department';
@@ -530,8 +532,8 @@ export function AppSidebar() {
     })();
 
 
-    // «Приём на работу» is a section of its own, open to the hr role and administrators.
-    const hiringItems = isAdminRole || isHrRole ? [
+    // «Приём на работу» is a section of its own: the hr role, administrators and the hr.access right.
+    const hiringItems = canUseHiring ? [
         {
             title: 'Приём на работу',
             href: route('hr.hiring.index'),
@@ -819,7 +821,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.some((item) => item.active),
         questionnaire: !showOnlyKpiMenus && questionnaire.some((item) => item.active),
         calendarShared: !isAdminRole && (canAccessCalendar || sharedAccessCount > 0) && nonAdminCalendarItems.some((item) => item.active),
-        hiring: (isAdminRole || isHrRole) && !showOnlyKpiMenus && hiringItems.some((item) => item.active),
+        hiring: canUseHiring && !showOnlyKpiMenus && hiringItems.some((item) => item.active),
         hr: isAdminRole && !showOnlyKpiMenus && hr.some((item) => item.active),
         library: isAdminRole && !showOnlyKpiMenus && library.some((item) => item.active),
         calendarAdmin: isAdminRole && !showOnlyKpiMenus && adminCalendarItems.some((item) => item.active),
@@ -924,7 +926,7 @@ export function AppSidebar() {
         languageTesting: languageTestingItems.length > 0 && !showOnlyKpiMenus && !showOnlyAcademicMobilityMenus,
         questionnaire: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarShared: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && !isAdminRole && (canAccessCalendar || sharedAccessCount > 0),
-        hiring: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus,
+        hiring: canUseHiring && !showOnlyKpiMenus,
         hr: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         library: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
         calendarAdmin: !showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && isAdminRole && !showOnlyKpiMenus,
@@ -1053,7 +1055,7 @@ export function AppSidebar() {
                     renderGroup('main', 'Основное', navigation)
                 )}
 
-                {!showOnlyCertificatesMenus && !showOnlyAcademicMobilityMenus && (isAdminRole || isHrRole) && !showOnlyKpiMenus && (
+                {canUseHiring && !showOnlyKpiMenus && (
                     renderGroup('hiring', 'Отдел кадров', hiringItems)
                 )}
 
