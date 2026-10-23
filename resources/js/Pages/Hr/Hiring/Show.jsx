@@ -4,7 +4,7 @@ import { DOCUMENT_TYPES, formatMoney } from '@/components/hr-hiring/logic';
 import { buttonClassName, DocumentStatusBadge, formatBytes, inputClassName, Notice, StatusBadge } from '@/components/hr-hiring/ui';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CircleAlert, Download, FilePenLine, FileSignature, History, LoaderCircle, Paperclip, Pencil, ScanLine, Trash2, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const date = (value) => (value ? value.split('-').reverse().join('.') : '—');
 const text = (value) => (value === null || value === undefined || String(value).trim() === '' ? '—' : value);
@@ -28,9 +28,19 @@ export default function Show({ hiring, history = [], options, abilities }) {
         });
     };
 
+    const [busy, setBusy] = useState(false);
+
     const remove = () => {
-        if (window.confirm('Удалить черновик приёма? Он пропадёт из списка.')) {
-            router.delete(route('hr.hiring.destroy', hiring.id));
+        if (!busy && window.confirm('Удалить черновик приёма? Сформированные документы, фото и сканы удалятся сразу.')) {
+            setBusy(true);
+            router.delete(route('hr.hiring.destroy', hiring.id), { onFinish: () => setBusy(false) });
+        }
+    };
+
+    const rehire = () => {
+        if (!busy && window.confirm(`Оформить новый приём для «${fullName}»? Личные данные возьмутся из этого приёма.`)) {
+            setBusy(true);
+            router.post(route('hr.hiring.rehire', hiring.id), {}, { onFinish: () => setBusy(false) });
         }
     };
 
@@ -48,11 +58,11 @@ export default function Show({ hiring, history = [], options, abilities }) {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Link href={route('hr.hiring.index')} className={buttonClassName.secondary}>К списку</Link>
-                        <button type="button" onClick={() => router.post(route('hr.hiring.rehire', hiring.id))} className={buttonClassName.secondary}>
+                        <button type="button" onClick={rehire} disabled={busy} className={buttonClassName.secondary}>
                             <UserPlus className="h-4 w-4" /> Новый приём этого сотрудника
                         </button>
                         {hiring.status === 'draft' && (
-                            <button type="button" onClick={remove} className={buttonClassName.danger}><Trash2 className="h-4 w-4" /> Удалить черновик</button>
+                            <button type="button" onClick={remove} disabled={busy} className={`${buttonClassName.danger} disabled:opacity-60`}><Trash2 className="h-4 w-4" /> Удалить черновик</button>
                         )}
                         <Link href={route('hr.hiring.edit', hiring.id)} className={buttonClassName.primary}><Pencil className="h-4 w-4" /> Редактировать</Link>
                     </div>
@@ -191,6 +201,13 @@ export default function Show({ hiring, history = [], options, abilities }) {
 
 function SignDialog({ hiringId, document, onClose }) {
     const form = useForm({ scan: null });
+
+    // Every document starts with an empty file: a scan picked for one version and cancelled must not go to another.
+    useEffect(() => {
+        form.reset();
+        form.clearErrors();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [document?.id]);
 
     const submit = (event) => {
         event.preventDefault();

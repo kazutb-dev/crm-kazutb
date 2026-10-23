@@ -119,7 +119,7 @@ function NumberingCard({ numbering }) {
             <div className="flex flex-wrap items-end gap-3">
                 <div>
                     <label htmlFor="numbering-year" className="mb-1 block text-xs font-medium text-slate-600">Год</label>
-                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', Number(event.target.value))} className={`${inputClassName} w-28`} />
+                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputClassName} w-28`} />
                 </div>
                 <div>
                     <label htmlFor="numbering-last" className="mb-1 block text-xs font-medium text-slate-600">Последний номер приказа вне системы</label>
@@ -138,14 +138,25 @@ function NumberingCard({ numbering }) {
 function TemplatesTab({ templates }) {
     const form = useForm({ type: 'contract', file: null, comment: '', activate: false });
     const problems = (form.errors.file ?? '').split('\n').filter(Boolean);
+    // A new key empties the file input after an upload (form.reset only clears the data).
+    const [fileKey, setFileKey] = useState(0);
 
     const submit = (event) => {
         event.preventDefault();
         form.post(route('hr.hiring.settings.templates.store'), {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => form.reset('file', 'comment', 'activate'),
+            onSuccess: () => {
+                form.reset('file', 'comment', 'activate');
+                setFileKey((key) => key + 1);
+            },
         });
+    };
+
+    const activate = (template) => {
+        if (window.confirm(`Сделать активной версию ${template.version}? Новые документы будут формироваться по ней.`)) {
+            router.post(route('hr.hiring.settings.templates.activate', template.id), {}, { preserveScroll: true });
+        }
     };
 
     return (
@@ -168,7 +179,7 @@ function TemplatesTab({ templates }) {
                                     <span className="flex items-center gap-2">
                                         <a href={template.download_url} className={buttonClassName.ghost}><Download className="h-4 w-4" />скачать</a>
                                         {!template.is_active && (
-                                            <button type="button" onClick={() => router.post(route('hr.hiring.settings.templates.activate', template.id), {}, { preserveScroll: true })} className={buttonClassName.ghost}>
+                                            <button type="button" onClick={() => activate(template)} className={buttonClassName.ghost}>
                                                 Сделать активной
                                             </button>
                                         )}
@@ -185,11 +196,12 @@ function TemplatesTab({ templates }) {
                     Скачайте текущую версию, измените её в Word и загрузите. Система проверит теги; шаблон с ошибками не принимается.
                     Список тегов — в инструкции ОУП (docs/hr-module/README-ОУП.md).
                 </p>
-                <select value={form.data.type} onChange={(event) => form.setData('type', event.target.value)} className={inputClassName}>
+                <select value={form.data.type} onChange={(event) => form.setData('type', event.target.value)} className={inputClassName} aria-label="Документ">
                     {DOCUMENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                 </select>
-                <input type="file" accept=".docx" onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)} className="block w-full text-sm" />
-                <input value={form.data.comment} onChange={(event) => form.setData('comment', event.target.value)} placeholder="Комментарий (что изменено)" className={inputClassName} maxLength={255} />
+                <input key={fileKey} type="file" accept=".docx" onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)} className="block w-full text-sm" aria-label="Файл шаблона .docx" />
+                {form.errors.type && <p className="text-xs text-rose-600">{form.errors.type}</p>}
+                <input value={form.data.comment} onChange={(event) => form.setData('comment', event.target.value)} placeholder="Комментарий (что изменено)" className={inputClassName} maxLength={255} aria-label="Комментарий" />
                 <label className="flex items-center gap-2 text-sm text-slate-700">
                     <input type="checkbox" checked={form.data.activate} onChange={(event) => form.setData('activate', event.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
                     Сразу сделать активной
@@ -307,13 +319,13 @@ function NewPosition({ categories }) {
         <form onSubmit={submit} className="space-y-2 rounded-2xl border border-dashed border-slate-300 p-4">
             <p className="text-sm font-medium text-slate-800">Новая должность</p>
             <div className="grid gap-2 md:grid-cols-[minmax(0,1.3fr)_6rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
-                <input value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} placeholder="Название" className={inputClassName} />
-                <select value={form.data.staff_category} onChange={(event) => form.setData('staff_category', event.target.value)} className={inputClassName}>
+                <input value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} placeholder="Название" className={inputClassName} aria-label="Название должности" />
+                <select value={form.data.staff_category} onChange={(event) => form.setData('staff_category', event.target.value)} className={inputClassName} aria-label="Категория">
                     {Object.entries(categories).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
-                <input value={form.data.name_ru_gen} onChange={(event) => form.setData('name_ru_gen', event.target.value)} placeholder="Род. падеж (рус.)" className={inputClassName} />
-                <input value={form.data.name_kz_poss} onChange={(event) => form.setData('name_kz_poss', event.target.value)} placeholder="Форма на казахском" className={inputClassName} />
-                <button type="submit" disabled={form.processing} className={buttonClassName.primary}>Добавить</button>
+                <input value={form.data.name_ru_gen} onChange={(event) => form.setData('name_ru_gen', event.target.value)} placeholder="Род. падеж (рус.)" className={inputClassName} aria-label="Родительный падеж (рус.)" />
+                <input value={form.data.name_kz_poss} onChange={(event) => form.setData('name_kz_poss', event.target.value)} placeholder="Форма на казахском" className={inputClassName} aria-label="Форма на казахском" />
+                <button type="submit" disabled={form.processing || form.data.name.trim() === ''} className={buttonClassName.primary}>Добавить</button>
             </div>
             {Object.values(form.errors).map((message) => <p key={message} className="text-xs text-rose-600">{message}</p>)}
         </form>
@@ -323,21 +335,36 @@ function NewPosition({ categories }) {
 function RightsTab({ members, capabilities }) {
     const [query, setQuery] = useState('');
     const [found, setFound] = useState([]);
+    const [searchState, setSearchState] = useState({ status: 'idle', message: '' });
+    const [saving, setSaving] = useState(null);
 
     const search = async (event) => {
         event.preventDefault();
         if (query.trim().length < 2) {
+            setSearchState({ status: 'error', message: 'Введите хотя бы 2 символа.' });
             return;
         }
-        const { data } = await axios.get(route('hr.hiring.settings.users', { q: query.trim() }));
-        setFound(data.items ?? []);
+        setSearchState({ status: 'loading', message: '' });
+        try {
+            const { data } = await axios.get(route('hr.hiring.settings.users', { q: query.trim() }));
+            const items = data.items ?? [];
+            setFound(items);
+            setSearchState(items.length ? { status: 'idle', message: '' } : { status: 'error', message: 'Никого не нашли. Проверьте ФИО или e-mail.' });
+        } catch {
+            setSearchState({ status: 'error', message: 'Поиск не удался. Попробуйте ещё раз.' });
+        }
     };
 
     const toggle = (userId, capability, granted) => {
+        if (saving) {
+            return;
+        }
         const payload = { user_id: userId, capability };
+        const options = { preserveScroll: true, onFinish: () => setSaving(null) };
+        setSaving(`${userId}:${capability}`);
         granted
-            ? router.delete(route('hr.hiring.settings.rights.revoke'), { data: payload, preserveScroll: true })
-            : router.post(route('hr.hiring.settings.rights.grant'), payload, { preserveScroll: true });
+            ? router.delete(route('hr.hiring.settings.rights.revoke'), { data: payload, ...options })
+            : router.post(route('hr.hiring.settings.rights.grant'), payload, options);
     };
 
     const rows = [...members, ...found.filter((user) => !members.some((member) => member.id === user.id)).map((user) => ({ ...user, rights: [] }))];
@@ -350,9 +377,10 @@ function RightsTab({ members, capabilities }) {
             </Notice>
             <form onSubmit={search} className="flex flex-wrap gap-2">
                 <div className="w-full max-w-md">
-                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти пользователя: ФИО или e-mail" className={inputClassName} />
+                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти пользователя: ФИО или e-mail" className={inputClassName} aria-label="Найти пользователя" />
                 </div>
-                <button type="submit" className={buttonClassName.secondary}><Search className="h-4 w-4" /> Найти</button>
+                <button type="submit" disabled={searchState.status === 'loading'} className={buttonClassName.secondary}><Search className="h-4 w-4" /> Найти</button>
+                {searchState.message && <p className="w-full text-xs text-rose-600">{searchState.message}</p>}
             </form>
             <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -374,7 +402,7 @@ function RightsTab({ members, capabilities }) {
                                     return (
                                         <td key={capability} className="px-3 py-2">
                                             <label className="flex items-center gap-2">
-                                                <input type="checkbox" checked={granted} onChange={() => toggle(user.id, capability, granted)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                                                <input type="checkbox" checked={granted} disabled={saving !== null} onChange={() => toggle(user.id, capability, granted)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 disabled:opacity-60" />
                                                 <span className="text-xs text-slate-600">{granted ? 'выдано' : 'нет'}</span>
                                             </label>
                                         </td>
@@ -382,7 +410,7 @@ function RightsTab({ members, capabilities }) {
                                 })}
                             </tr>
                         ))}
-                        {rows.length === 0 && <tr><td colSpan={3} className="py-6 text-center text-slate-500">Сотрудников с ролью «Отдел кадров» пока нет. Найдите пользователя выше.</td></tr>}
+                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="py-6 text-center text-slate-500">Сотрудников с ролью «Отдел кадров» пока нет. Найдите пользователя выше.</td></tr>}
                     </tbody>
                 </table>
             </div>

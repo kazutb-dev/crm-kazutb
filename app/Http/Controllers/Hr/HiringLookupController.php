@@ -37,7 +37,8 @@ class HiringLookupController extends Controller
 
         $query = OrgUnit::query()->where('is_active', true)->whereNotIn('unit_type', self::NOT_HIRING_UNITS);
 
-        if (! empty($data['parent'])) {
+        // parent=0: the top-level unit was typed in by hand, so there is nothing in the catalog under it.
+        if (isset($data['parent'])) {
             $query->whereIn('id', $this->descendantIds((int) $data['parent']));
         }
         if (! empty($data['q'])) {

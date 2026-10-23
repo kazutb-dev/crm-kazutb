@@ -129,7 +129,6 @@ class HiringController extends Controller
         ]);
     }
 
-    /** Only a draft without signed documents can be deleted. */
     /** Only a draft without signed documents can be deleted; its files go at once, the record after 30 days. */
     public function destroy(Request $request, HrHiring $hiring, HiringCleanup $cleanup): RedirectResponse
     {
