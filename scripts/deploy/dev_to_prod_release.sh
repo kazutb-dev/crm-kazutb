@@ -18,6 +18,7 @@ DRY_RUN=0
 ASSUME_YES=0
 NO_MIGRATE=0
 SKIP_BUILD=0
+FAST=0
 FORCE_PROTECTED_DELETE=0
 RELEASE_FAILPOINT="${RELEASE_FAILPOINT:-}"
 
@@ -27,11 +28,16 @@ for arg in "$@"; do
         --yes) ASSUME_YES=1 ;;
         --no-migrate) NO_MIGRATE=1 ;;
         --skip-build) SKIP_BUILD=1 ;;
+        --fast) FAST=1 ;;
         --force-protected-delete) FORCE_PROTECTED_DELETE=1 ;;
         -h|--help)
             cat <<USAGE
 Usage:
-  ${PROD_ROOT}/scripts/deploy/dev_to_prod_release.sh [--dry-run] [--yes] [--no-migrate] [--skip-build] [--force-protected-delete]
+  ${PROD_ROOT}/scripts/deploy/dev_to_prod_release.sh [--dry-run] [--yes] [--no-migrate] [--skip-build] [--fast] [--force-protected-delete]
+
+  --fast  skip the full PROD backup when the release has no migrations (a rollback tag is still
+          created; with migrations the backup runs anyway), and skip npm ci / composer install
+          when package-lock.json / composer.lock did not change.
 USAGE
             exit 0
             ;;
@@ -167,7 +173,31 @@ if [[ "$DRY_RUN" != "1" && "$ASSUME_YES" != "1" ]]; then
     confirm_word "Apply release changes to PROD main? type YES: " "YES" || fail "Release canceled"
 fi
 
-run_cmd "'${CHECKPOINT_SCRIPT}' $([[ "$DRY_RUN" == "1" ]] && echo --dry-run || true)"
+# --fast: a full snapshot (~10 GB) is only needed when the database can change.
+SKIP_BACKUP=0
+if [[ "$FAST" == "1" ]]; then
+    release_migrations="$(git -C "$PROD_ROOT" diff --name-only origin/main origin/dev -- 'database/migrations/*.php' || true)"
+    # If the status cannot be read, assume pending migrations and keep the backup.
+    if migrate_status_out="$(cd "$PROD_ROOT" && php artisan migrate:status 2>/dev/null)"; then
+        prod_pending="$(grep -c 'Pending' <<< "$migrate_status_out" || true)"
+    else
+        prod_pending="unknown"
+    fi
+    if [[ -z "$release_migrations" && "$prod_pending" == "0" ]]; then
+        SKIP_BACKUP=1
+    else
+        warn "--fast: this release changes the database (migrations) — taking the full backup anyway"
+    fi
+fi
+
+if [[ "$SKIP_BACKUP" == "1" ]]; then
+    log "--fast: no migrations in this release — full backup skipped, rollback tag only"
+    fast_tag="pre-deploy-$(date +%Y%m%d-%H%M%S)"
+    run_cmd "git -C '${PROD_ROOT}' tag '${fast_tag}'"
+    run_cmd "git -C '${PROD_ROOT}' push origin '${fast_tag}'"
+else
+    run_cmd "'${CHECKPOINT_SCRIPT}' $([[ "$DRY_RUN" == "1" ]] && echo --dry-run || true)"
+fi
 
 if [[ "$DRY_RUN" == "1" ]]; then
     log "Dry-run completed. No release actions executed."
@@ -223,10 +253,22 @@ git -C "$PROD_ROOT" fetch origin --quiet
 git -C "$PROD_ROOT" reset --hard "$MERGED_HEAD"
 ROLLBACK_NEEDED=1
 
-(cd "$PROD_ROOT" && composer install --no-dev --optimize-autoloader)
+lock_unchanged() {
+    [[ "$FAST" == "1" ]] && git -C "$PROD_ROOT" diff --quiet "$PROD_OLD_HEAD" "$MERGED_HEAD" -- "$1"
+}
+
+if lock_unchanged composer.lock && [[ -d "$PROD_ROOT/vendor" ]]; then
+    log "--fast: composer.lock unchanged — composer install skipped"
+else
+    (cd "$PROD_ROOT" && composer install --no-dev --optimize-autoloader)
+fi
 if [[ "$SKIP_BUILD" != "1" ]]; then
     [[ -f "$PROD_ROOT/package-lock.json" ]] || fail "package-lock.json missing; refusing npm install in release"
-    (cd "$PROD_ROOT" && npm ci)
+    if lock_unchanged package-lock.json && [[ -d "$PROD_ROOT/node_modules" ]]; then
+        log "--fast: package-lock.json unchanged — npm ci skipped"
+    else
+        (cd "$PROD_ROOT" && npm ci)
+    fi
     (cd "$PROD_ROOT" && npm run build)
 fi
 
@@ -277,6 +319,7 @@ report_file="${report_dir}/deploy_${TIMESTAMP}.txt"
 report_json_file="${report_dir}/deploy_${TIMESTAMP}.json"
 checkpoint_tag="$(git -C "$PROD_ROOT" tag --list 'pre-deploy-*' --sort=-creatordate | head -n1)"
 backup_dir="$(ls -1dt "${PROD_ROOT}"/backups/prod_backup_*_full_snapshot 2>/dev/null | head -n1 || true)"
+[[ "$SKIP_BACKUP" == "1" ]] && backup_dir="skipped (--fast, no migrations)"
 
 {
     echo "timestamp=$(date -Iseconds)"

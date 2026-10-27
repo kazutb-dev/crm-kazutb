@@ -348,7 +348,7 @@ Usage:
 Core commands:
   safety
   health [prod|dev|all] [--json]
-  release [--dry-run] [--yes] [--no-migrate] [--skip-build] [--force-protected-delete]
+  release [--dry-run] [--yes] [--no-migrate] [--skip-build] [--fast] [--force-protected-delete]
   backup-prod [--dry-run]
   rollback --tag TAG [--dry-run] [--yes]
   prod-to-dev [--dry-run] [--yes] [--skip-db] [--skip-files] [--skip-build] [--skip-migrate] [--no-auto-recover] [--fix-dev-app-key]
