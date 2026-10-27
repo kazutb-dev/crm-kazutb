@@ -1,12 +1,12 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { EmptyState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { Search, ShieldCheck, ShieldOff, ShieldPlus, Trash2, UserPlus, X } from 'lucide-react';
+import { Building2, Search, ShieldCheck, ShieldOff, ShieldPlus, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 function formatDate(value) {
     if (!value) return '—';
@@ -17,7 +17,6 @@ function formatDate(value) {
 
 /** Строка в выпадающем списке сотрудника при поиске */
 function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms, grantedDivisions, structuralDivisions, onGrant, onGrantAll }) {
-    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [selectedPerm, setSelectedPerm] = useState(permissions_list[0] ?? '');
     const [selectedDivision, setSelectedDivision] = useState('');
     const isStructural = selectedPerm === 'structural_queue';
@@ -28,18 +27,19 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
     const hasAll = permissions_list.every((p) => grantedPerms.has(p));
 
     return (
-        <div className="space-y-1 rounded-md border px-3 py-2">
-            <div className="flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-sm">{user.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">
+        <div className="space-y-2 border-b border-slate-200 px-4 py-3 last:border-0">
+            <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-[200px] flex-1">
+                    <div className="truncate text-sm font-medium text-slate-900">{user.name}</div>
+                    <div className="truncate text-xs text-slate-500">
                         {user.email}
                         {user.ad_department ? ` · ${user.ad_department}` : ''}
                         {user.ad_title ? ` · ${user.ad_title}` : ''}
                     </div>
                 </div>
                 <select
-                    className="h-8 rounded-md border border-input bg-background/70 px-2 text-xs shadow-sm"
+                    className={`${qdFieldClass} h-9 w-auto max-w-[240px]`}
+                    aria-label="Модуль"
                     value={selectedPerm}
                     onChange={(e) => { setSelectedPerm(e.target.value); setSelectedDivision(''); }}
                 >
@@ -49,7 +49,8 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
                 </select>
                 {isStructural && (
                     <select
-                        className="h-8 rounded-md border border-input bg-background/70 px-2 text-xs shadow-sm max-w-[200px]"
+                        className={`${qdFieldClass} h-9 w-auto max-w-[220px]`}
+                        aria-label="Подразделение"
                         value={selectedDivision}
                         onChange={(e) => setSelectedDivision(e.target.value)}
                     >
@@ -59,33 +60,34 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
                         ))}
                     </select>
                 )}
-                <Button
-                    size="sm"
-                    variant={alreadyHas ? 'outline' : 'default'}
-                    disabled={alreadyHas || (isStructural && selectedDivision === '')}
-                    onClick={() => onGrant(user.id, selectedPerm, isStructural ? Number(selectedDivision) : null)}
-                >
-                    <UserPlus className="h-3 w-3" />
-                    {alreadyHas ? 'Выдан' : 'Выдать'}
-                </Button>
-                <Button
-                    size="sm"
-                    variant={hasAll ? 'outline' : 'secondary'}
-                    disabled={hasAll}
-                    onClick={() => onGrantAll(user.id)}
-                    title="Выдать доступ ко всем модулям (кроме структурных)"
-                >
-                    <ShieldPlus className="h-3 w-3" />
-                    Все
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        size="sm"
+                        variant={alreadyHas ? 'outline' : 'default'}
+                        disabled={alreadyHas || (isStructural && selectedDivision === '')}
+                        onClick={() => onGrant(user.id, selectedPerm, isStructural ? Number(selectedDivision) : null)}
+                    >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        {alreadyHas ? 'Выдан' : 'Выдать'}
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant={hasAll ? 'outline' : 'secondary'}
+                        disabled={hasAll}
+                        onClick={() => onGrantAll(user.id)}
+                        title="Выдать доступ ко всем модулям (кроме структурных)"
+                    >
+                        <ShieldPlus className="h-3.5 w-3.5" />
+                        Все
+                    </Button>
+                </div>
             </div>
-            {/* Показываем уже выданные гранты */}
             {grantedPerms.size > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
+                <div className="flex flex-wrap gap-1">
                     {permissions_list.filter((p) => grantedPerms.has(p)).map((p) => (
-                        <span key={p} className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                        <Badge key={p} variant="secondary" className="text-[11px]">
                             {permission_labels[p] ?? p}
-                        </span>
+                        </Badge>
                     ))}
                 </div>
             )}
@@ -94,6 +96,7 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
 }
 
 export default function Access({ grants = [], users = [], search = '', permissions_list = [], permission_labels = {}, structural_divisions = [] }) {
+    const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [searchInput, setSearchInput] = useState(search);
     const [localQuery, setLocalQuery] = useState('');
     const searchRef = useRef(null);
@@ -199,35 +202,104 @@ export default function Access({ grants = [], users = [], search = '', permissio
         });
     };
 
-    return (
-        <AuthenticatedLayout>
-            <Head title="Доступ к KPI-модулям" />
+    const activeGrantsCount = grants.filter((grant) => grant.is_active).length;
 
-            <div className="admin-page-wrap space-y-4">
+    return (
+        <AuthenticatedLayout
+            header={(
                 <PageHeader
-                    eyebrow="KPI"
+                    eyebrow="KPI · Доступ"
                     title="Доступ к KPI-модулям"
                     description="Выдача модульного доступа сотрудникам и контроль по структурным подразделениям."
                     meta={<StatusBadge tone="info">Module access</StatusBadge>}
                 />
+            )}
+        >
+            <Head title="Доступ к KPI-модулям" />
 
-                <FilterBar>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                        <div className="text-base font-semibold text-foreground">Выдать доступ</div>
-                        <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
-                    </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Выдано доступов" value={grants.length} tone="teal" icon={ShieldCheck} hint={`Активных: ${activeGrantsCount}`} />
+                    <StatTile label="Сотрудников с доступом" value={grouped.length} tone="navy" icon={Users} />
+                    <StatTile label="Модулей" value={permissions_list.length} tone="info" icon={ShieldPlus} />
+                    <StatTile label="Подразделений проверки" value={structural_divisions.length} tone="gold" icon={Building2} />
+                </StatGrid>
 
-                    <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">
-                            Найдите сотрудника по имени, email или подразделению и выдайте доступ к нужному модулю KPI.
-                        </p>
+                <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between gap-2">
+                                <span className="flex items-center gap-2"><UserPlus className="h-4 w-4" />Выдать доступ</span>
+                                <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-slate-600">
+                                Найдите сотрудника по имени, email или подразделению и выдайте доступ к нужному модулю KPI.
+                            </p>
 
-                        <div className="space-y-2 rounded-md border p-3">
-                            <div className="text-xs font-medium text-muted-foreground">
+                            <label className="block max-w-xl space-y-2">
+                                <span className="qd-field-label block">Сотрудник</span>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        ref={searchRef}
+                                        className="pl-9 pr-9"
+                                        value={searchInput}
+                                        onChange={handleSearchChange}
+                                        placeholder="Имя, email или подразделение…"
+                                        autoComplete="off"
+                                    />
+                                    {searchInput && (
+                                        <button
+                                            type="button"
+                                            onClick={clearSearch}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#102945]"
+                                            aria-label="Очистить поиск"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </label>
+
+                            {searchInput.trim() !== '' && (
+                                <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+                                    {filteredUsers.length === 0 ? (
+                                        <p className="py-6 text-center text-sm text-slate-500">Сотрудники не найдены</p>
+                                    ) : (
+                                        filteredUsers.map((user) => (
+                                            <UserSearchRow
+                                                key={user.id}
+                                                user={user}
+                                                permissions_list={permissions_list}
+                                                permission_labels={permission_labels}
+                                                grantedPerms={grantsByUser.get(user.id) ?? new Set()}
+                                                grantedDivisions={grantedDivisionsByUser.get(user.id) ?? new Map()}
+                                                structuralDivisions={structural_divisions}
+                                                onGrant={grantAccess}
+                                                onGrantAll={grantAll}
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                Подразделения проверки
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <p className="text-xs text-slate-500">
                                 Подразделения из индикаторов KPI (для структурной проверки)
-                            </div>
+                            </p>
                             {structural_divisions.length === 0 ? (
-                                <p className="text-xs text-muted-foreground">В индикаторах пока не настроены подразделения проверки.</p>
+                                <Notice tone="warning">В индикаторах пока не настроены подразделения проверки.</Notice>
                             ) : (
                                 <div className="flex flex-wrap gap-1.5">
                                     {structural_divisions.map((division) => (
@@ -235,116 +307,76 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                     ))}
                                 </div>
                             )}
-                        </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                        <div className="relative max-w-md">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                ref={searchRef}
-                                className="pl-9 pr-9"
-                                value={searchInput}
-                                onChange={handleSearchChange}
-                                placeholder="Имя, email или подразделение…"
-                                autoComplete="off"
-                            />
-                            {searchInput && (
-                                <button
-                                    type="button"
-                                    onClick={clearSearch}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Список результатов */}
-                        {searchInput.trim() !== '' && (
-                            <div className="space-y-2 max-h-80 overflow-y-auto rounded-md border p-2">
-                                {filteredUsers.length === 0 ? (
-                                    <p className="py-4 text-center text-sm text-muted-foreground">Сотрудники не найдены</p>
-                                ) : (
-                                    filteredUsers.map((user) => (
-                                        <UserSearchRow
-                                            key={user.id}
-                                            user={user}
-                                            permissions_list={permissions_list}
-                                            permission_labels={permission_labels}
-                                            grantedPerms={grantsByUser.get(user.id) ?? new Set()}
-                                            grantedDivisions={grantedDivisionsByUser.get(user.id) ?? new Map()}
-                                            structuralDivisions={structural_divisions}
-                                            onGrant={grantAccess}
-                                            onGrantAll={grantAll}
-                                        />
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </FilterBar>
-
-                <DataTable>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
-                        <div className="text-base font-semibold text-foreground">Выданные доступы ({grants.length})</div>
-                        <StatusBadge tone="default">Access grants</StatusBadge>
-                    </div>
-
-                    <div className="p-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Выданные доступы ({grants.length})</span>
+                            <StatusBadge tone="default">Access grants</StatusBadge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className={grouped.length === 0 ? '' : 'p-0'}>
                         {grouped.length === 0 ? (
-                            <div className="admin-empty-state">Нет выданных доступов.</div>
+                            <EmptyState
+                                title="Нет выданных доступов"
+                                description="Найдите сотрудника в блоке «Выдать доступ» и назначьте ему модуль KPI."
+                            />
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="min-w-[700px]">
-                                    <thead>
+                                <table className="w-full min-w-[900px] text-sm">
+                                    <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th>Сотрудник</th>
-                                            <th>Должность / Подразделение</th>
-                                            <th>Модуль / Подразделение</th>
-                                            <th>Статус</th>
-                                            <th>Выдан</th>
-                                            <th>Кем выдан</th>
-                                            <th className="text-right">Действия</th>
+                                            <th className="px-5 py-3 text-left">Сотрудник</th>
+                                            <th className="px-5 py-3 text-left">Должность / Подразделение</th>
+                                            <th className="px-5 py-3 text-left">Модуль / Подразделение</th>
+                                            <th className="px-5 py-3 text-left">Статус</th>
+                                            <th className="px-5 py-3 text-left">Выдан</th>
+                                            <th className="px-5 py-3 text-left">Кем выдан</th>
+                                            <th className="px-5 py-3 text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {grouped.flatMap(({ user, grants: userGrants }) =>
                                             userGrants.map((grant, idx) => (
-                                                <tr key={grant.id} className="border-b align-top last:border-0">
+                                                <tr key={grant.id} className={`align-top ${idx === userGrants.length - 1 ? 'border-b border-slate-200' : ''} last:border-0`}>
                                                     {idx === 0 && (
-                                                        <td className="py-3 pe-3 font-medium" rowSpan={userGrants.length}>
-                                                            <div>{user?.name ?? '—'}</div>
-                                                            <div className="text-xs text-muted-foreground">{user?.email ?? ''}</div>
+                                                        <td className="px-5 py-3" rowSpan={userGrants.length}>
+                                                            <div className="font-medium text-slate-900">{user?.name ?? '—'}</div>
+                                                            <div className="text-xs text-slate-500">{user?.email ?? ''}</div>
                                                         </td>
                                                     )}
                                                     {idx === 0 && (
-                                                        <td className="py-3 pe-3 text-muted-foreground" rowSpan={userGrants.length}>
+                                                        <td className="px-5 py-3 text-slate-600" rowSpan={userGrants.length}>
                                                             <div>{user?.ad_title ?? '—'}</div>
-                                                            <div className="text-xs">{user?.ad_department ?? ''}</div>
+                                                            <div className="text-xs text-slate-500">{user?.ad_department ?? ''}</div>
                                                         </td>
                                                     )}
-                                                    <td className="py-3 pe-3">
+                                                    <td className="px-5 py-3">
                                                         <Badge variant="secondary">
                                                             {permission_labels[grant.permission] ?? grant.permission}
                                                         </Badge>
                                                         {grant.division && (
-                                                            <div className="mt-1 text-xs text-muted-foreground">{grant.division.name}</div>
+                                                            <div className="mt-1 text-xs text-slate-500">{grant.division.name}</div>
                                                         )}
                                                     </td>
-                                                    <td className="py-3 pe-3">
+                                                    <td className="px-5 py-3">
                                                         {grant.is_active ? (
-                                                            <Badge>Активен</Badge>
+                                                            <StatusBadge tone="success">Активен</StatusBadge>
                                                         ) : (
-                                                            <Badge variant="outline">Деактивирован</Badge>
+                                                            <StatusBadge tone="default">Деактивирован</StatusBadge>
                                                         )}
                                                     </td>
-                                                    <td className="py-3 pe-3 text-muted-foreground">
+                                                    <td className="px-5 py-3 tabular-nums text-slate-600">
                                                         {formatDate(grant.granted_at)}
                                                     </td>
-                                                    <td className="py-3 pe-3 text-muted-foreground">
+                                                    <td className="px-5 py-3 text-slate-600">
                                                         {grant.grantedBy?.name ?? '—'}
                                                     </td>
-                                                    <td className="py-3 text-right">
-                                                        <div className="admin-row-actions">
+                                                    <td className="px-5 py-3 text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline"
@@ -373,8 +405,8 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                 </table>
                             </div>
                         )}
-                    </div>
-                </DataTable>
+                    </CardContent>
+                </Card>
             </div>
             <ConfirmDialog
                 open={confirmState.open}

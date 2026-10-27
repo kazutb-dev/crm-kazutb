@@ -1,6 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useMemo, useState } from 'react';
+import { FormGrid, Notice, PageHeader } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { router, usePage } from '@inertiajs/react';
+import { CircleCheck, FileText, MessageSquareText, Paperclip, Send, UserRound } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 const DOCUMENT_OPTIONS = [
     'Заявление',
@@ -144,142 +152,164 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
         });
     };
 
+    const attachedCount = Object.keys(files).length;
+
     return (
         <AuthenticatedLayout
             header={(
-                <div className="space-y-2">
-                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">Академическая мобильность</p>
-                    <h2 className="text-2xl font-semibold text-slate-900">Подайте заявку и прикрепите необходимые документы</h2>
-                    <p className="max-w-3xl text-sm text-slate-600">
-                        ФИО и email заполняются автоматически. Прикрепляйте файлы в формате PDF, JPG, PNG, DOC, DOCX или TXT.
-                    </p>
-                </div>
+                <PageHeader
+                    eyebrow="Академическая мобильность"
+                    title="Подайте заявку и прикрепите необходимые документы"
+                    description="ФИО и email заполняются автоматически. Прикрепляйте файлы в формате PDF, JPG, PNG, DOC, DOCX или TXT."
+                    meta={<Badge variant={attachedCount > 0 ? 'success' : 'secondary'}>Прикреплено: {attachedCount} из {documentList.length}</Badge>}
+                />
             )}
         >
-            <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-                <form onSubmit={submit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="admin-page-wrap">
+                <form onSubmit={submit} className="mx-auto max-w-5xl space-y-6">
                     {resubmission?.enabled ? (
-                        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                            <p className="font-semibold">Предыдущая заявка была отклонена</p>
-                            <p className="mt-1">Вы можете подать заявку повторно после исправления замечаний.</p>
+                        <Notice tone="warning" title="Предыдущая заявка была отклонена">
+                            <p>Вы можете подать заявку повторно после исправления замечаний.</p>
                             {resubmission.previous_review_notes ? (
-                                <div className="mt-2 rounded-xl border border-amber-200 bg-white p-3 text-amber-800">
+                                <p className="mt-2 border-l-2 border-amber-400 pl-3 text-slate-800">
                                     Комментарий сотрудника: {resubmission.previous_review_notes}
-                                </div>
+                                </p>
                             ) : null}
-                        </div>
+                        </Notice>
                     ) : null}
 
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">ФИО</label>
-                            <input
-                                type="text"
-                                value={user?.name ?? props.auth?.user?.name ?? ''}
-                                className="w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-slate-700"
-                                disabled
-                                readOnly
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Email</label>
-                            <input
-                                type="email"
-                                value={user?.email ?? props.auth?.user?.email ?? ''}
-                                className="w-full rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-slate-700"
-                                disabled
-                                readOnly
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label htmlFor="phone" className="text-sm font-medium text-slate-700">Телефон</label>
-                            <input
-                                id="phone"
-                                type="tel"
-                                value={form.phone}
-                                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label htmlFor="student_group" className="text-sm font-medium text-slate-700">Группа</label>
-                            <input
-                                id="student_group"
-                                type="text"
-                                value={form.student_group}
-                                onChange={(event) => setForm((current) => ({ ...current, student_group: event.target.value }))}
-                                className="w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="mt-8 space-y-4">
-                        <div>
-                            <h3 className="text-lg font-semibold text-slate-900">Прикрепите документы</h3>
-                            <p className="mt-1 text-sm text-slate-600">Выберите тип документа и загрузите файл. Можно прикрепить несколько документов.</p>
-                        </div>
-
-                        <div className="grid gap-4">
-                            {documentList.map((document) => (
-                                <div key={document} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                        <div>
-                                            <p className="font-medium text-slate-900">{document}</p>
-                                            <p className="text-sm text-slate-600">Загрузите файл для этого документа.</p>
-                                        </div>
-                                        <div className="w-full md:max-w-md">
-                                            <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 transition hover:border-teal-400 hover:bg-teal-50">
-                                                <span>{files[document] ? files[document].name : 'Выбрать файл'}</span>
-                                                <input
-                                                    type="file"
-                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-                                                    className="sr-only"
-                                                    onChange={(event) => handleFileChange(document, event.target.files?.[0] ?? null)}
-                                                />
-                                            </label>
-                                            {files[document] && (
-                                                <p className="mt-1 text-xs text-slate-500">Размер: {formatBytes(files[document].size)}</p>
-                                            )}
-                                            {fileErrors[document] && (
-                                                <p className="mt-1 text-xs font-medium text-rose-600">{fileErrors[document]}</p>
-                                            )}
-                                            {!fileErrors[document] && serverFileErrorsByDocument[document] && (
-                                                <p className="mt-1 text-xs font-medium text-rose-600">{serverFileErrorsByDocument[document]}</p>
-                                            )}
-                                        </div>
-                                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserRound className="shrink-0" />
+                                Данные заявителя
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <FormGrid className="gap-5">
+                                <div className="space-y-2">
+                                    <Label className="block">ФИО</Label>
+                                    <Input
+                                        type="text"
+                                        value={user?.name ?? props.auth?.user?.name ?? ''}
+                                        disabled
+                                        readOnly
+                                    />
                                 </div>
-                            ))}
-                        </div>
 
-                        {errors.document_files && (
-                            <p className="text-sm font-medium text-rose-600">{errors.document_files}</p>
-                        )}
-                    </div>
+                                <div className="space-y-2">
+                                    <Label className="block">Email</Label>
+                                    <Input
+                                        type="email"
+                                        value={user?.email ?? props.auth?.user?.email ?? ''}
+                                        disabled
+                                        readOnly
+                                    />
+                                </div>
 
-                    <div className="mt-8 space-y-2">
-                        <label htmlFor="notes" className="text-sm font-medium text-slate-700">Комментарий</label>
-                        <textarea
-                            id="notes"
-                            value={form.notes}
-                            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                            className="min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2.5"
-                            placeholder="Дополнительная информация"
-                        />
-                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone" className="block">Телефон</Label>
+                                    <Input
+                                        id="phone"
+                                        type="tel"
+                                        value={form.phone}
+                                        onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                                        required
+                                    />
+                                </div>
 
-                    <div className="mt-8 flex justify-end">
-                        <button
-                            type="submit"
-                            className="rounded-xl bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-700"
-                        >
+                                <div className="space-y-2">
+                                    <Label htmlFor="student_group" className="block">Группа</Label>
+                                    <Input
+                                        id="student_group"
+                                        type="text"
+                                        value={form.student_group}
+                                        onChange={(event) => setForm((current) => ({ ...current, student_group: event.target.value }))}
+                                        required
+                                    />
+                                </div>
+                            </FormGrid>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Paperclip className="shrink-0" />
+                                Прикрепите документы
+                            </CardTitle>
+                            <p className="text-sm text-slate-600">Выберите тип документа и загрузите файл. Можно прикрепить несколько документов.</p>
+                        </CardHeader>
+                        <CardContent className="py-2">
+                            <div className="divide-y divide-slate-200">
+                                {documentList.map((document) => {
+                                    const attached = Boolean(files[document]);
+                                    return (
+                                        <div key={document} className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+                                            <div className="flex items-start gap-3">
+                                                <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${attached ? 'bg-emerald-100 text-emerald-700' : 'bg-teal-50 text-teal-700'}`}>
+                                                    {attached ? <CircleCheck className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                                </span>
+                                                <div>
+                                                    <p className="font-medium text-slate-900">{document}</p>
+                                                    <p className="text-sm text-slate-500">Загрузите файл для этого документа.</p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:max-w-md">
+                                                <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-dashed px-3 py-2.5 text-sm transition-colors ${attached ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:bg-teal-50'}`}>
+                                                    <span className="truncate">{attached ? files[document].name : 'Выбрать файл'}</span>
+                                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.07em] text-teal-700">{attached ? 'Заменить' : 'Обзор'}</span>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+                                                        className="sr-only"
+                                                        onChange={(event) => handleFileChange(document, event.target.files?.[0] ?? null)}
+                                                    />
+                                                </label>
+                                                {attached && (
+                                                    <p className="mt-1 text-xs tabular-nums text-slate-500">Размер: {formatBytes(files[document].size)}</p>
+                                                )}
+                                                {fileErrors[document] && (
+                                                    <p className="mt-1 text-xs font-medium text-red-700">{fileErrors[document]}</p>
+                                                )}
+                                                {!fileErrors[document] && serverFileErrorsByDocument[document] && (
+                                                    <p className="mt-1 text-xs font-medium text-red-700">{serverFileErrorsByDocument[document]}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {errors.document_files && (
+                                <Notice tone="danger" className="mb-4">{errors.document_files}</Notice>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <MessageSquareText className="shrink-0" />
+                                Комментарий
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Label htmlFor="notes" className="sr-only">Комментарий</Label>
+                            <Textarea
+                                id="notes"
+                                value={form.notes}
+                                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                                placeholder="Дополнительная информация"
+                            />
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex justify-end">
+                        <Button type="submit" size="lg">
+                            <Send />
                             Отправить заявку
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

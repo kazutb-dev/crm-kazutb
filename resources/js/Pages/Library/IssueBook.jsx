@@ -2,6 +2,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { InfoField, LoadingState, Notice, PageHeader } from '@/components/platform';
+import { BookOpen, CalendarDays, History, Search, UserRound } from 'lucide-react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -171,32 +174,42 @@ export default function IssueBook({ recentLoans = [] }) {
         });
     };
 
+    const dropdownClassName = 'absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-[12px] border border-slate-200 bg-white py-1 shadow-[0_12px_32px_-12px_rgba(16,41,69,0.25)]';
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Библиотека"
+                    title="Выдать книгу"
+                    description="Найдите книгу в каталоге, выберите пользователя и оформите выдачу."
+                />
+            )}
+        >
             <Head title="Выдать книгу" />
 
-            <div className="admin-page-wrap">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Выдать книгу</CardTitle>
-                        <CardDescription>
-                            Найдите книгу в каталоге, выберите пользователя и оформите выдачу.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {flash.success && (
-                            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                                {flash.success}
-                            </div>
-                        )}
+            <div className="admin-page-wrap space-y-6">
+                {flash.success && (
+                    <Notice tone="success">{flash.success}</Notice>
+                )}
 
-                        <form className="grid grid-cols-1 gap-6 lg:grid-cols-2" onSubmit={submit}>
-                            <div className="space-y-4">
+                <form className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2" onSubmit={submit}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4" />
+                                Книга и получатель
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="relative space-y-2">
+                                <label className="qd-field-label block">Книга</label>
                                 <div className="relative">
-                                    <label className="mb-1 block text-sm font-medium">Книга</label>
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         placeholder="Введите название, автора или ISBN"
                                         value={bookQuery}
+                                        className="pl-9"
                                         onChange={(event) => {
                                             setBookQuery(event.target.value);
                                             setSelectedBook(null);
@@ -213,54 +226,55 @@ export default function IssueBook({ recentLoans = [] }) {
                                         onBlur={() => setTimeout(() => setBookDropdownOpen(false), 200)}
                                         autoComplete="off"
                                     />
-                                    {bookSearching && <div className="mt-1 text-xs text-muted-foreground">Поиск книг...</div>}
-                                    {bookDropdownOpen && bookResults.length > 0 && (
-                                        <ul className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-white shadow-lg">
-                                            {bookResults.map((book) => (
-                                                <li
-                                                    key={book.id}
-                                                    className={`px-3 py-2 text-sm ${
-                                                        (book.copies?.available ?? 0) < 1
-                                                            ? 'cursor-not-allowed bg-slate-50 text-slate-400'
-                                                            : 'cursor-pointer hover:bg-slate-100'
-                                                    }`}
-                                                    onMouseDown={() => selectBook(book)}
-                                                >
-                                                    <div className="font-medium">{book.title?.display ?? 'Без названия'}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {book.primaryAuthor ?? 'Автор не указан'}
-                                                        {book.isbn?.raw ? ` • ISBN ${book.isbn.raw}` : ''}
-                                                        {book.copies?.available !== undefined ? ` • Доступно: ${book.copies.available}` : ''}
-                                                        {book.copies?.loaned ? ` • Выдано: ${book.copies.loaned}` : ''}
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    {form.errors.book_id && <div className="mt-1 text-xs text-red-600">{form.errors.book_id}</div>}
                                 </div>
+                                {bookSearching && <LoadingState label="Поиск книг..." />}
+                                {bookDropdownOpen && bookResults.length > 0 && (
+                                    <ul className={dropdownClassName}>
+                                        {bookResults.map((book) => (
+                                            <li
+                                                key={book.id}
+                                                className={`px-3 py-2 text-sm ${
+                                                    (book.copies?.available ?? 0) < 1
+                                                        ? 'cursor-not-allowed bg-slate-50 text-slate-400'
+                                                        : 'cursor-pointer hover:bg-teal-50'
+                                                }`}
+                                                onMouseDown={() => selectBook(book)}
+                                            >
+                                                <div className="font-medium text-slate-900">{book.title?.display ?? 'Без названия'}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    {book.primaryAuthor ?? 'Автор не указан'}
+                                                    {book.isbn?.raw ? ` • ISBN ${book.isbn.raw}` : ''}
+                                                    {book.copies?.available !== undefined ? ` • Доступно: ${book.copies.available}` : ''}
+                                                    {book.copies?.loaned ? ` • Выдано: ${book.copies.loaned}` : ''}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {form.errors.book_id && <div className="text-xs text-red-700">{form.errors.book_id}</div>}
+                            </div>
 
-                                <div className="rounded-md border bg-slate-50 p-4 text-sm">
-                                    <div className="font-medium">Выбранная книга</div>
-                                    {selectedBook ? (
-                                        <div className="mt-2 space-y-1 text-muted-foreground">
-                                            <div>{selectedBook.title?.display}</div>
-                                            <div>{selectedBook.primaryAuthor ?? 'Автор не указан'}</div>
-                                            <div>
-                                                ISBN: {selectedBook.isbn?.raw ?? '-'} • Доступно: {selectedBook.copies?.available ?? 0}
-                                                {selectedBook.copies?.loaned ? ` • Выдано: ${selectedBook.copies.loaned}` : ''}
-                                            </div>
+                            <SelectionBox icon={BookOpen} title="Выбранная книга" empty="Книга еще не выбрана." filled={Boolean(selectedBook)}>
+                                {selectedBook && (
+                                    <>
+                                        <div className="font-medium text-slate-900">{selectedBook.title?.display}</div>
+                                        <div>{selectedBook.primaryAuthor ?? 'Автор не указан'}</div>
+                                        <div className="tabular-nums">
+                                            ISBN: {selectedBook.isbn?.raw ?? '-'} • Доступно: {selectedBook.copies?.available ?? 0}
+                                            {selectedBook.copies?.loaned ? ` • Выдано: ${selectedBook.copies.loaned}` : ''}
                                         </div>
-                                    ) : (
-                                        <div className="mt-2 text-muted-foreground">Книга еще не выбрана.</div>
-                                    )}
-                                </div>
+                                    </>
+                                )}
+                            </SelectionBox>
 
+                            <div className="relative space-y-2 border-t border-slate-200 pt-5">
+                                <label className="qd-field-label block">Пользователь</label>
                                 <div className="relative">
-                                    <label className="mb-1 block text-sm font-medium">Пользователь</label>
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         placeholder="Введите имя, логин или email"
                                         value={userQuery}
+                                        className="pl-9"
                                         onChange={(event) => {
                                             setUserQuery(event.target.value);
                                             setSelectedUser(null);
@@ -270,138 +284,146 @@ export default function IssueBook({ recentLoans = [] }) {
                                         onBlur={() => setTimeout(() => setUserDropdownOpen(false), 200)}
                                         autoComplete="off"
                                     />
-                                    {userSearching && <div className="mt-1 text-xs text-muted-foreground">Поиск пользователей...</div>}
-                                    {userDropdownOpen && userResults.length > 0 && (
-                                        <ul className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-white shadow-lg">
-                                            {userResults.map((user) => (
-                                                <li
-                                                    key={user.id}
-                                                    className="cursor-pointer px-3 py-2 text-sm hover:bg-slate-100"
-                                                    onMouseDown={() => selectUser(user)}
-                                                >
-                                                    <div className="font-medium">{user.name}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {user.ad_login ?? 'без логина'}
-                                                        {user.department ? ` • ${user.department}` : ''}
-                                                        {user.email ? ` • ${user.email}` : ''}
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    {form.errors.user_id && <div className="mt-1 text-xs text-red-600">{form.errors.user_id}</div>}
                                 </div>
-
-                                <div className="rounded-md border bg-slate-50 p-4 text-sm">
-                                    <div className="font-medium">Получатель книги</div>
-                                    {selectedUser ? (
-                                        <div className="mt-2 space-y-1 text-muted-foreground">
-                                            <div>{selectedUser.name}</div>
-                                            <div>{selectedUser.department ?? 'Подразделение не указано'}</div>
-                                            <div>{selectedUser.email ?? 'Email не указан'}</div>
-                                        </div>
-                                    ) : (
-                                        <div className="mt-2 text-muted-foreground">Пользователь еще не выбран.</div>
-                                    )}
-                                </div>
+                                {userSearching && <LoadingState label="Поиск пользователей..." />}
+                                {userDropdownOpen && userResults.length > 0 && (
+                                    <ul className={dropdownClassName}>
+                                        {userResults.map((user) => (
+                                            <li
+                                                key={user.id}
+                                                className="cursor-pointer px-3 py-2 text-sm hover:bg-teal-50"
+                                                onMouseDown={() => selectUser(user)}
+                                            >
+                                                <div className="font-medium text-slate-900">{user.name}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    {user.ad_login ?? 'без логина'}
+                                                    {user.department ? ` • ${user.department}` : ''}
+                                                    {user.email ? ` • ${user.email}` : ''}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {form.errors.user_id && <div className="text-xs text-red-700">{form.errors.user_id}</div>}
                             </div>
 
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Дата выдачи</label>
-                                        <Input
-                                            type="date"
-                                            value={form.data.issued_at}
-                                            onChange={(event) => form.setData('issued_at', event.target.value)}
-                                        />
-                                        {form.errors.issued_at && <div className="mt-1 text-xs text-red-600">{form.errors.issued_at}</div>}
-                                    </div>
+                            <SelectionBox icon={UserRound} title="Получатель книги" empty="Пользователь еще не выбран." filled={Boolean(selectedUser)}>
+                                {selectedUser && (
+                                    <>
+                                        <div className="font-medium text-slate-900">{selectedUser.name}</div>
+                                        <div>{selectedUser.department ?? 'Подразделение не указано'}</div>
+                                        <div>{selectedUser.email ?? 'Email не указан'}</div>
+                                    </>
+                                )}
+                            </SelectionBox>
+                        </CardContent>
+                    </Card>
 
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Вернуть до</label>
-                                        <Input
-                                            type="date"
-                                            value={form.data.due_at}
-                                            onChange={(event) => form.setData('due_at', event.target.value)}
-                                        />
-                                        {form.errors.due_at && <div className="mt-1 text-xs text-red-600">{form.errors.due_at}</div>}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">Примечание</label>
-                                    <textarea
-                                        className="min-h-32 w-full rounded-md border px-3 py-2 text-sm"
-                                        value={form.data.notes}
-                                        onChange={(event) => form.setData('notes', event.target.value)}
-                                        placeholder="Например: выдача для работы в читальном зале"
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4" />
+                                Сроки и итог
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">Дата выдачи</label>
+                                    <Input
+                                        type="date"
+                                        value={form.data.issued_at}
+                                        onChange={(event) => form.setData('issued_at', event.target.value)}
                                     />
-                                    {form.errors.notes && <div className="mt-1 text-xs text-red-600">{form.errors.notes}</div>}
+                                    {form.errors.issued_at && <div className="text-xs text-red-700">{form.errors.issued_at}</div>}
                                 </div>
 
-                                <div className="rounded-md border p-4 text-sm">
-                                    <div className="font-medium">Итог выдачи</div>
-                                    <div className="mt-2 space-y-1 text-muted-foreground">
-                                        <div>Книга: {form.data.book_title || 'не выбрана'}</div>
-                                        <div>Получатель: {selectedUser?.name || 'не выбран'}</div>
-                                        <div>Дата выдачи: {form.data.issued_at || '-'}</div>
-                                        <div>Вернуть до: {form.data.due_at || '-'}</div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <Button type="submit" disabled={form.processing || !selectedBook || !selectedUser}>
-                                        {form.processing ? 'Сохраняем...' : 'Оформить выдачу'}
-                                    </Button>
-                                    <Button type="button" variant="outline" disabled={form.processing} onClick={resetForm}>
-                                        Очистить
-                                    </Button>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">Вернуть до</label>
+                                    <Input
+                                        type="date"
+                                        value={form.data.due_at}
+                                        onChange={(event) => form.setData('due_at', event.target.value)}
+                                    />
+                                    {form.errors.due_at && <div className="text-xs text-red-700">{form.errors.due_at}</div>}
                                 </div>
                             </div>
-                        </form>
-                    </CardContent>
-                </Card>
+
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Примечание</label>
+                                <Textarea
+                                    className="min-h-32"
+                                    value={form.data.notes}
+                                    onChange={(event) => form.setData('notes', event.target.value)}
+                                    placeholder="Например: выдача для работы в читальном зале"
+                                />
+                                {form.errors.notes && <div className="text-xs text-red-700">{form.errors.notes}</div>}
+                            </div>
+
+                            <div className="space-y-3 border-t border-slate-200 pt-5">
+                                <p className="qd-field-label text-[#102945]">Итог выдачи</p>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <InfoField label="Книга">{form.data.book_title || 'не выбрана'}</InfoField>
+                                    <InfoField label="Получатель">{selectedUser?.name || 'не выбран'}</InfoField>
+                                    <InfoField label="Дата выдачи"><span className="tabular-nums">{form.data.issued_at || '-'}</span></InfoField>
+                                    <InfoField label="Вернуть до"><span className="tabular-nums">{form.data.due_at || '-'}</span></InfoField>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-5">
+                                <Button type="button" variant="outline" disabled={form.processing} onClick={resetForm}>
+                                    Очистить
+                                </Button>
+                                <Button type="submit" disabled={form.processing || !selectedBook || !selectedUser}>
+                                    {form.processing ? 'Сохраняем...' : 'Оформить выдачу'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </form>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Последние выдачи</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="h-4 w-4" />
+                            Последние выдачи
+                        </CardTitle>
                         <CardDescription>
                             Недавно оформленные выдачи книг из локальной базы приложения.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto rounded-md border">
+                    <CardContent className="p-0 sm:p-0">
+                        <div className="overflow-x-auto">
                             <table className="w-full min-w-[980px] text-sm">
-                                <thead className="bg-muted/50">
+                                <thead>
                                     <tr>
-                                        <th className="px-3 py-2 text-left font-medium">Книга</th>
-                                        <th className="px-3 py-2 text-left font-medium">Пользователь</th>
-                                        <th className="px-3 py-2 text-left font-medium">Дата выдачи</th>
-                                        <th className="px-3 py-2 text-left font-medium">Вернуть до</th>
-                                        <th className="px-3 py-2 text-left font-medium">Оформил</th>
+                                        <th className="px-4 py-3 text-left">Книга</th>
+                                        <th className="px-4 py-3 text-left">Пользователь</th>
+                                        <th className="px-4 py-3 text-left">Дата выдачи</th>
+                                        <th className="px-4 py-3 text-left">Вернуть до</th>
+                                        <th className="px-4 py-3 text-left">Оформил</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {recentLoans.map((loan) => (
-                                        <tr key={loan.id} className="border-t">
-                                            <td className="px-3 py-2 align-top">
-                                                <div className="font-medium">{loan.book_title}</div>
-                                                <div className="text-xs text-muted-foreground">{loan.book_author ?? 'Автор не указан'}</div>
+                                        <tr key={loan.id} className="border-t border-slate-200 hover:bg-slate-50">
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="font-medium text-slate-900">{loan.book_title}</div>
+                                                <div className="text-xs text-slate-500">{loan.book_author ?? 'Автор не указан'}</div>
                                             </td>
-                                            <td className="px-3 py-2 align-top">
-                                                <div>{loan.user?.name ?? '-'}</div>
-                                                <div className="text-xs text-muted-foreground">{loan.user?.department ?? loan.user?.email ?? '-'}</div>
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="text-slate-900">{loan.user?.name ?? '-'}</div>
+                                                <div className="text-xs text-slate-500">{loan.user?.department ?? loan.user?.email ?? '-'}</div>
                                             </td>
-                                            <td className="px-3 py-2 align-top">{loan.issued_at ?? '-'}</td>
-                                            <td className="px-3 py-2 align-top">{loan.due_at ?? '-'}</td>
-                                            <td className="px-3 py-2 align-top">{loan.issuer ?? '-'}</td>
+                                            <td className="px-4 py-3 align-top tabular-nums text-slate-700">{loan.issued_at ?? '-'}</td>
+                                            <td className="px-4 py-3 align-top tabular-nums text-slate-700">{loan.due_at ?? '-'}</td>
+                                            <td className="px-4 py-3 align-top text-slate-700">{loan.issuer ?? '-'}</td>
                                         </tr>
                                     ))}
 
                                     {recentLoans.length === 0 && (
-                                        <tr className="border-t">
-                                            <td className="px-3 py-6 text-center text-muted-foreground" colSpan={5}>
+                                        <tr className="border-t border-slate-200">
+                                            <td className="px-4 py-10 text-center text-slate-500" colSpan={5}>
                                                 Выдач пока нет.
                                             </td>
                                         </tr>
@@ -413,5 +435,23 @@ export default function IssueBook({ recentLoans = [] }) {
                 </Card>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function SelectionBox({ icon: Icon, title, empty, filled, children }) {
+    return (
+        <div className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${filled ? 'border-teal-200 bg-teal-50' : 'border-dashed border-slate-300 bg-white'}`}>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${filled ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+                <div className="qd-field-label text-slate-500">{title}</div>
+                {filled ? (
+                    <div className="mt-1.5 space-y-0.5 text-slate-600">{children}</div>
+                ) : (
+                    <div className="mt-1.5 text-slate-500">{empty}</div>
+                )}
+            </div>
+        </div>
     );
 }

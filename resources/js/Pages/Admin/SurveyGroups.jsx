@@ -1,5 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,9 +13,10 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { Link2, Pencil, Plus, Trash2, Users } from 'lucide-react';
+import { GraduationCap, Link2, Pencil, Plus, Trash2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const emptyGroupForm = {
@@ -143,72 +145,86 @@ export default function SurveyGroups({ groups = [], students = [] }) {
         });
     };
 
+    const boundStudentsCount = students.filter((student) => student.group_id).length;
+    const emptyGroupsCount = groups.filter((group) => !Number(group.students_count)).length;
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Группы"
+                    description="Управление академическими группами и привязками студентов."
+                    actions={(
+                        <Button type="button" onClick={openCreate}>
+                            <Plus className="h-4 w-4" />
+                            Новая группа
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Группы" />
 
-            <div className="admin-page-wrap">
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
-                    <div>
-                        <h1 className="text-base font-bold leading-tight text-[#102945]">Анкетирование - Группы</h1>
-                        <p className="mt-1 text-xs text-muted-foreground">KPI-стиль управления академическими группами и привязками студентов.</p>
-                    </div>
-                    <Button type="button" onClick={openCreate} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Новая группа
-                    </Button>
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                {flash?.success && <Notice tone="success">{flash.success}</Notice>}
 
-                {flash?.success && (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-                        {flash.success}
-                    </div>
-                )}
+                <StatGrid>
+                    <StatTile label="Групп" value={groups.length} tone="teal" icon={Users} />
+                    <StatTile label="Студентов" value={students.length} tone="navy" icon={GraduationCap} />
+                    <StatTile label="Привязаны к группе" value={boundStudentsCount} tone="success" icon={Link2} />
+                    <StatTile label="Группы без студентов" value={emptyGroupsCount} tone="warning" />
+                </StatGrid>
 
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle className="admin-table-title flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-[#067a75]" />
+                {groups.length === 0 ? (
+                    <EmptyState
+                        title="Группы пока не добавлены"
+                        description="Создайте первую группу, затем привяжите к ней студентов."
+                        action={(
+                            <Button type="button" onClick={openCreate}>
+                                <Plus className="h-4 w-4" />
+                                Новая группа
+                            </Button>
+                        )}
+                    />
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users />
                                 Список групп
-                            </span>
-                            <Badge variant="outline">{groups.length}</Badge>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {groups.length === 0 ? (
-                            <div className="admin-empty-state">Группы пока не добавлены.</div>
-                        ) : (
-                            <div className="admin-table-wrap">
-                                <table className="admin-data-table min-w-[760px]">
+                                <Badge variant="secondary" className="ml-1 tabular-nums">{groups.length}</Badge>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-[760px] w-full text-sm">
                                     <thead>
-                                        <tr>
-                                            <th className="ps-3">Название</th>
-                                            <th>Код</th>
-                                            <th>Описание</th>
-                                            <th className="text-right">Студентов</th>
-                                            <th className="text-right pe-3">Действия</th>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="px-5 py-3 text-left">Название</th>
+                                            <th className="px-5 py-3 text-left">Код</th>
+                                            <th className="px-5 py-3 text-left">Описание</th>
+                                            <th className="px-5 py-3 text-right">Студентов</th>
+                                            <th className="px-5 py-3 text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {groups.map((group) => (
-                                            <tr key={group.id}>
-                                                <td className="ps-3 font-medium">{group.name}</td>
-                                                <td>{group.code}</td>
-                                                <td className="text-sm text-muted-foreground">{group.description || '—'}</td>
-                                                <td className="text-right tabular-nums">
-                                                    <Badge variant="secondary">{group.students_count || 0}</Badge>
-                                                </td>
-                                                <td className="pe-3">
-                                                    <div className="admin-row-actions">
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => openBinding(group)} className="gap-1.5">
+                                            <tr key={group.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                <td className="px-5 py-3 font-medium text-slate-900">{group.name}</td>
+                                                <td className="px-5 py-3 font-mono text-xs text-slate-600">{group.code}</td>
+                                                <td className="px-5 py-3 text-slate-600">{group.description || '—'}</td>
+                                                <td className="px-5 py-3 text-right font-semibold tabular-nums text-[#102945]">{group.students_count || 0}</td>
+                                                <td className="px-5 py-3">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button type="button" variant="secondary" size="sm" onClick={() => openBinding(group)}>
                                                             <Link2 className="h-3.5 w-3.5" />
                                                             Привязка
                                                         </Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => openEdit(group)}>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => openEdit(group)} aria-label="Редактировать" title="Редактировать">
                                                             <Pencil className="h-3.5 w-3.5" />
                                                         </Button>
-                                                        <Button type="button" variant="destructive" size="sm" onClick={() => destroyGroup(group)}>
+                                                        <Button type="button" variant="destructive" size="sm" onClick={() => destroyGroup(group)} aria-label="Удалить" title="Удалить">
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
                                                     </div>
@@ -218,23 +234,24 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                                     </tbody>
                                 </table>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
                     <DialogContent className="sm:max-w-lg">
                         <DialogHeader>
                             <DialogTitle>{editingGroup ? 'Редактировать группу' : 'Создать группу'}</DialogTitle>
                             <DialogDescription>
-                                Заполните реквизиты группы. Форма работает в модальном окне, как в разделе KPI.
+                                Заполните реквизиты группы.
                             </DialogDescription>
                         </DialogHeader>
 
                         <form onSubmit={submitGroup} className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Название</label>
+                                <Label htmlFor="survey-group-name">Название</Label>
                                 <Input
+                                    id="survey-group-name"
                                     value={groupForm.data.name}
                                     onChange={(event) => groupForm.setData('name', event.target.value)}
                                     placeholder="Например: БПМ-20-1"
@@ -243,8 +260,9 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Код</label>
+                                <Label htmlFor="survey-group-code">Код</Label>
                                 <Input
+                                    id="survey-group-code"
                                     value={groupForm.data.code}
                                     onChange={(event) => groupForm.setData('code', event.target.value)}
                                     placeholder="Например: BPM-20-1"
@@ -253,8 +271,9 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Описание</label>
+                                <Label htmlFor="survey-group-description">Описание</Label>
                                 <Textarea
+                                    id="survey-group-description"
                                     rows={4}
                                     value={groupForm.data.description}
                                     onChange={(event) => groupForm.setData('description', event.target.value)}
@@ -285,9 +304,10 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                         <form onSubmit={submitBinding} className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Студент для привязки</label>
+                                    <Label htmlFor="survey-bind-student">Студент для привязки</Label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        id="survey-bind-student"
+                                        className={qdFieldClass}
                                         value={bindForm.data.student_id}
                                         onChange={(event) => bindForm.setData('student_id', event.target.value)}
                                     >
@@ -301,14 +321,18 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                                     {bindForm.errors.group_id && <p className="text-sm text-destructive">{bindForm.errors.group_id}</p>}
                                 </div>
 
-                                <div className="rounded-xl border border-border/70 bg-muted/30 p-3">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Уже в группе</p>
-                                    <p className="mt-1 text-sm font-medium">{groupStudents.length} студентов</p>
-                                    <div className="mt-2 max-h-32 space-y-1 overflow-y-auto pr-1 text-xs text-muted-foreground">
-                                        {groupStudents.length === 0 && <p>Пока нет привязанных студентов.</p>}
-                                        {groupStudents.map((student) => (
-                                            <p key={student.id}>{student.full_name}</p>
-                                        ))}
+                                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                    <div className="flex items-baseline justify-between gap-2">
+                                        <p className="qd-field-label text-slate-500">Уже в группе</p>
+                                        <p className="text-sm font-semibold tabular-nums text-[#102945]">{groupStudents.length} студентов</p>
+                                    </div>
+                                    <div className="mt-2 max-h-32 overflow-y-auto pr-1 text-sm text-slate-700">
+                                        {groupStudents.length === 0 && <p className="text-slate-500">Пока нет привязанных студентов.</p>}
+                                        <ul className="divide-y divide-slate-100">
+                                            {groupStudents.map((student) => (
+                                                <li key={student.id} className="py-1">{student.full_name}</li>
+                                            ))}
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

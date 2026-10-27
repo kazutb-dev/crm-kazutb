@@ -97,6 +97,8 @@
 }
 
 .qd-panel {
+  /* a flex child: without this, one wide table stretches the whole main block past the viewport */
+  min-width: 0;
   background: var(--qd-bg);
 }
 

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -138,148 +139,118 @@ export default function PercoEarly({ staff, divisions = [], filters = {}, summar
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <form className="flex items-center gap-2" onSubmit={handleSearch}>
-                    <Input
-                        ref={searchRef}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="ФИО, табельный номер…"
-                        className="h-8 w-64"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="mr-1 h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Ушедшие раньше"
+                    description="Кто ушёл с работы раньше времени: случаи раннего ухода по сотрудникам и подразделениям за выбранный период."
+                    meta={meta?.total != null ? <StatusBadge tone="default">Сотрудников в рейтинге: {meta.total}</StatusBadge> : null}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="HR / Ушедшие раньше" />
 
-            <div className="admin-page-wrap">
-                <div className="flex flex-wrap items-center gap-3">
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                            <label className="relative block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    ref={searchRef}
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ФИО, табельный номер…"
+                                    className="pl-9"
+                                />
+                            </label>
+                            <FormField label="Подразделение">
+                                <select value={division} onChange={handleDivisionChange} className={qdFieldClass}>
+                                    <option value="">Все подразделения</option>
+                                    {divisions.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Период">
+                                <select value={days} onChange={handleDaysChange} className={qdFieldClass}>
+                                    <option value="1">Сегодня</option>
+                                    <option value="-1">Вчера</option>
+                                    <option value="7">За 7 дней</option>
+                                    <option value="14">За 14 дней</option>
+                                    <option value="30">За 30 дней</option>
+                                    <option value="0">За все время</option>
+                                </select>
+                            </FormField>
+                            <FormField label="С даты">
+                                <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
+                            </FormField>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit">
+                                <Search className="h-4 w-4" />
+                                Найти
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                    <select
-                        value={days}
-                        onChange={handleDaysChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="1">Сегодня</option>
-                        <option value="-1">Вчера</option>
-                        <option value="7">За 7 дней</option>
-                        <option value="14">За 14 дней</option>
-                        <option value="30">За 30 дней</option>
-                        <option value="0">За все время</option>
-                    </select>
-
-                    <Input type="date" value={fromDate} onChange={handleFromDateChange} className="h-9 w-[160px]" />
-
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-
-                    {meta?.total != null && (
-                        <span className="ml-auto text-sm text-muted-foreground">
-                            Сотрудников в рейтинге: <strong>{meta.total}</strong>
-                        </span>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Событий раннего ухода</p>
-                                <p className="text-2xl font-semibold">{totalEvents}</p>
-                            </div>
-                            <History className="h-5 w-5 text-orange-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Сотрудников</p>
-                                <p className="text-2xl font-semibold">{totalPeople}</p>
-                            </div>
-                            <Users className="h-5 w-5 text-blue-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Суммарно, минут</p>
-                                <p className="text-2xl font-semibold">{totalEarlyMinutes}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-red-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Средний ранний уход, минут</p>
-                                <p className="text-2xl font-semibold">{avgEarlyMinutes}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-purple-600" />
-                        </CardContent>
-                    </Card>
-                </div>
+                <StatGrid>
+                    <StatTile label="Событий раннего ухода" value={totalEvents} icon={History} tone="copper" />
+                    <StatTile label="Сотрудников" value={totalPeople} icon={Users} tone="info" />
+                    <StatTile label="Суммарно, минут" value={totalEarlyMinutes} icon={Clock3} tone="danger" />
+                    <StatTile label="Средний ранний уход, минут" value={avgEarlyMinutes} icon={Clock3} tone="navy" />
+                </StatGrid>
 
                 {totalEvents === 0 && latestEarlyDateLabel && (
-                    <Card className="border-orange-200 bg-orange-50/60">
-                        <CardContent className="p-4 text-sm text-orange-900">
-                            За выбранный период данных о раннем уходе нет. Последняя доступная дата в PERCo: <strong>{latestEarlyDateLabel}</strong>.
-                        </CardContent>
-                    </Card>
+                    <Notice tone="warning">
+                        За выбранный период данных о раннем уходе нет. Последняя доступная дата в PERCo: <strong>{latestEarlyDateLabel}</strong>.
+                    </Notice>
                 )}
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <History className="h-4 w-4 text-orange-600" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="shrink-0" />
                             Dashboard раннего ухода: кто ушел раньше
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {items.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет данных.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1000px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium"><button type="button" onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('early_count')}>Кол-во случаев{sortIndicator('early_count')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('leave_time')}>Время ухода{sortIndicator('leave_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('last_early_date')}>Последний ранний уход{sortIndicator('last_early_date')}</button></th>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('early_count')}>Кол-во случаев{sortIndicator('early_count')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('leave_time')}>Время ухода{sortIndicator('leave_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_early_date')}>Последний ранний уход{sortIndicator('last_early_date')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedItems.map((row) => (
-                                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
-                                                <td className="py-3 pl-6 pr-3 font-medium">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 font-semibold">{row.early_count ?? 0}</td>
-                                                <td className="py-3 pr-3 font-semibold">{fmtTime(row.leave_time)}</td>
-                                                <td className="py-3 pr-3">{fmtDate(row.last_early_date)}</td>
+                                            <tr key={row.id} className="border-b border-slate-200 last:border-0">
+                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">{fullName(row)}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{row.early_count ?? 0}</td>
+                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{fmtTime(row.leave_time)}</td>
+                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.last_early_date)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -288,7 +259,7 @@ export default function PercoEarly({ staff, divisions = [], filters = {}, summar
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 p-4">
+                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}
@@ -305,14 +276,14 @@ export default function PercoEarly({ staff, divisions = [], filters = {}, summar
                 </Card>
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Подразделения с наибольшим ранним уходом</CardTitle>
+                    <CardHeader>
+                        <CardTitle>Подразделения с наибольшим ранним уходом</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {divisionStats.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Нет данных по подразделениям.</p>
+                            <p className="text-sm text-slate-500">Нет данных по подразделениям.</p>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {divisionStats.map((row, idx) => {
                                     const events = Number(row.early_events ?? 0);
                                     const people = Number(row.early_people ?? 0);
@@ -321,11 +292,11 @@ export default function PercoEarly({ staff, divisions = [], filters = {}, summar
                                     return (
                                         <div key={`${row.division}-${idx}`}>
                                             <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                                                <span className="truncate font-medium">{row.division || 'Без подразделения'}</span>
-                                                <span className="text-muted-foreground">{events} случаев • {people} сотрудников</span>
+                                                <span className="truncate font-medium text-slate-900">{row.division || 'Без подразделения'}</span>
+                                                <span className="text-slate-500">{events} случаев • {people} сотрудников</span>
                                             </div>
-                                            <div className="h-2 rounded bg-muted">
-                                                <div className="h-2 rounded bg-orange-500" style={{ width: `${width}%` }} />
+                                            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                                                <div className="h-2 rounded-full bg-orange-500" style={{ width: `${width}%` }} />
                                             </div>
                                         </div>
                                     );

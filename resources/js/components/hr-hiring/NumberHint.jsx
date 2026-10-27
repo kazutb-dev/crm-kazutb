@@ -24,19 +24,19 @@ export default function NumberHint({ kind, date, value, hiringId, onApply }) {
     }
 
     return (
-        <div className="mt-1 space-y-1 text-xs">
+        <div className="mt-1.5 space-y-1 text-xs">
             {hint.next !== value && (
                 <p className="text-slate-500">
                     Следующий свободный за {hint.year} г.: <span className="font-medium text-slate-700">{hint.next}</span>
                     {hint.external_last ? ` (учтён номер вне системы: ${hint.external_last}-К)` : ''}{' '}
-                    <button type="button" onClick={() => onApply(hint.next)} className="font-medium text-teal-700 hover:underline">подставить</button>
+                    <button type="button" onClick={() => onApply(hint.next)} className="font-semibold text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline">подставить</button>
                 </p>
             )}
             {hint.duplicate_hiring_id && (
-                <p className="flex items-center gap-1 text-amber-800">
+                <p className="flex items-center gap-1 rounded-[10px] border border-amber-200 bg-amber-50 px-2 py-1 text-amber-800">
                     <TriangleAlert className="h-3.5 w-3.5" />
                     Этот номер уже есть в {hint.year} г.:{' '}
-                    <a href={route('hr.hiring.show', hint.duplicate_hiring_id)} target="_blank" rel="noreferrer" className="underline">приём #{hint.duplicate_hiring_id}</a>
+                    <a href={route('hr.hiring.show', hint.duplicate_hiring_id)} target="_blank" rel="noreferrer" className="font-semibold underline">приём #{hint.duplicate_hiring_id}</a>
                 </p>
             )}
         </div>

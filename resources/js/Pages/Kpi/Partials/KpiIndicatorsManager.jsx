@@ -1,4 +1,5 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EmptyState, FilterBar, FormField, SectionHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { ListChecks, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 const entityLabels = {
@@ -115,20 +116,21 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
         <form className="space-y-4" onSubmit={onSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">Структурное подразделение (кто будет проверять)</label>
+                    <label className="qd-field-label block">Структурное подразделение (кто будет проверять)</label>
                     <Input value={checkerSearch} onChange={(e) => setCheckerSearch(e.target.value)} placeholder="Поиск подразделения" />
-                    <div className="max-h-44 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                    <div className="max-h-44 overflow-y-auto rounded-[10px] border border-slate-300 bg-white">
                         {filteredDivisions.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Подразделения не найдены.</p>
+                            <p className="px-3 py-2.5 text-sm text-slate-500">Подразделения не найдены.</p>
                         ) : (
                             filteredDivisions.map((div) => {
                                 const divisionId = String(div.id);
                                 const label = div.code ? `${div.code} — ${div.name}` : div.name;
 
                                 return (
-                                    <label key={div.id} className="flex items-center gap-2 text-sm">
+                                    <label key={div.id} className="flex cursor-pointer items-center gap-2.5 border-b border-slate-200 px-3 py-2 text-sm text-slate-800 last:border-0 hover:bg-teal-50/60">
                                         <input
                                             type="checkbox"
+                                            className="h-4 w-4 rounded border-slate-300 accent-teal-700"
                                             checked={selectedCheckerUnitIds.includes(divisionId)}
                                             onChange={(e) => toggleCheckerUnit(divisionId, e.target.checked)}
                                         />
@@ -138,33 +140,33 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
                             })
                         )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Можно выбрать одно или несколько подразделений.</p>
-                    {form.errors.checker_structural_unit_id && <p className="text-sm text-destructive">{form.errors.checker_structural_unit_id}</p>}
-                    {form.errors.checker_structural_unit_ids && <p className="text-sm text-destructive">{form.errors.checker_structural_unit_ids}</p>}
+                    <p className="text-xs text-slate-500">Можно выбрать одно или несколько подразделений. Выбрано: {selectedCheckerUnitIds.length}</p>
+                    {form.errors.checker_structural_unit_id && <p className="text-sm text-red-700">{form.errors.checker_structural_unit_id}</p>}
+                    {form.errors.checker_structural_unit_ids && <p className="text-sm text-red-700">{form.errors.checker_structural_unit_ids}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Уровень</label>
-                    <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={form.data.entity_type} onChange={(e) => form.setData('entity_type', e.target.value)}>
+                    <label className="qd-field-label block">Уровень</label>
+                    <select className={qdFieldClass} value={form.data.entity_type} onChange={(e) => form.setData('entity_type', e.target.value)}>
                         {(options.entityTypes ?? []).map((item) => (
                             <option key={item} value={item}>{entityLabels[item] ?? item}</option>
                         ))}
                     </select>
-                    {form.errors.entity_type && <p className="text-sm text-destructive">{form.errors.entity_type}</p>}
+                    {form.errors.entity_type && <p className="text-sm text-red-700">{form.errors.entity_type}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Секция</label>
-                    <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={form.data.section} onChange={(e) => form.setData('section', e.target.value)}>
+                    <label className="qd-field-label block">Секция</label>
+                    <select className={qdFieldClass} value={form.data.section} onChange={(e) => form.setData('section', e.target.value)}>
                         {(options.sections ?? []).map((item) => (
                             <option key={item} value={item}>{sectionLabels[item] ?? item}</option>
                         ))}
                     </select>
-                    {form.errors.section && <p className="text-sm text-destructive">{form.errors.section}</p>}
+                    {form.errors.section && <p className="text-sm text-red-700">{form.errors.section}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Код блока</label>
+                    <label className="qd-field-label block">Код блока</label>
                     <Input
                         value={form.data.block_code ?? ''}
                         onChange={(e) => {
@@ -178,7 +180,7 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Код показателя</label>
+                    <label className="qd-field-label block">Код показателя</label>
                     <Input
                         value={form.data.indicator_code ?? ''}
                         onChange={(e) => {
@@ -189,63 +191,63 @@ function IndicatorForm({ form, options, onSubmit, submitLabel }) {
                         }}
                         placeholder="01"
                     />
-                    {form.errors.code && <p className="text-sm text-destructive">{form.errors.code}</p>}
+                    {form.errors.code && <p className="text-sm text-red-700">{form.errors.code}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Название</label>
+                    <label className="qd-field-label block">Название</label>
                     <Input value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} placeholder="Публикации" />
-                    {form.errors.name && <p className="text-sm text-destructive">{form.errors.name}</p>}
+                    {form.errors.name && <p className="text-sm text-red-700">{form.errors.name}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Единица измерения</label>
+                    <label className="qd-field-label block">Единица измерения</label>
                     <Input value={form.data.unit} onChange={(e) => form.setData('unit', e.target.value)} placeholder="шт" />
-                    {form.errors.unit && <p className="text-sm text-destructive">{form.errors.unit}</p>}
+                    {form.errors.unit && <p className="text-sm text-red-700">{form.errors.unit}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Базовые баллы</label>
+                    <label className="qd-field-label block">Базовые баллы</label>
                     <Input type="number" step="0.01" min="0" value={form.data.base_points} onChange={(e) => form.setData('base_points', e.target.value)} />
-                    {form.errors.base_points && <p className="text-sm text-destructive">{form.errors.base_points}</p>}
+                    {form.errors.base_points && <p className="text-sm text-red-700">{form.errors.base_points}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Тип расчета</label>
-                    <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={form.data.calculation_type} onChange={(e) => form.setData('calculation_type', e.target.value)}>
+                    <label className="qd-field-label block">Тип расчета</label>
+                    <select className={qdFieldClass} value={form.data.calculation_type} onChange={(e) => form.setData('calculation_type', e.target.value)}>
                         {(options.calculationTypes ?? []).map((item) => (
                             <option key={item} value={item}>{calculationLabels[item] ?? item}</option>
                         ))}
                     </select>
-                    {form.errors.calculation_type && <p className="text-sm text-destructive">{form.errors.calculation_type}</p>}
+                    {form.errors.calculation_type && <p className="text-sm text-red-700">{form.errors.calculation_type}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Порядок сортировки</label>
+                    <label className="qd-field-label block">Порядок сортировки</label>
                     <Input type="number" min="0" value={form.data.sort_order} onChange={(e) => form.setData('sort_order', e.target.value)} />
-                    {form.errors.sort_order && <p className="text-sm text-destructive">{form.errors.sort_order}</p>}
+                    {form.errors.sort_order && <p className="text-sm text-red-700">{form.errors.sort_order}</p>}
                 </div>
             </div>
 
             <div className="space-y-2">
-                <label className="text-sm font-medium">Описание</label>
-                <textarea className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} placeholder="Описание KPI-индикатора" />
-                {form.errors.description && <p className="text-sm text-destructive">{form.errors.description}</p>}
+                <label className="qd-field-label block">Описание</label>
+                <textarea className={`${qdFieldClass} h-auto min-h-24 py-2`} value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} placeholder="Описание KPI-индикатора" />
+                {form.errors.description && <p className="text-sm text-red-700">{form.errors.description}</p>}
             </div>
 
             <div className="space-y-2">
-                <label className="text-sm font-medium">Правила начисления баллов</label>
-                <textarea className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm" value={form.data.scoring_rules || ''} onChange={(e) => form.setData('scoring_rules', e.target.value)} placeholder={'1 место - 70 б.\n2 место - 50 б.\n3 место - 30 б.'} />
-                {form.errors.scoring_rules && <p className="text-sm text-destructive">{form.errors.scoring_rules}</p>}
+                <label className="qd-field-label block">Правила начисления баллов</label>
+                <textarea className={`${qdFieldClass} h-auto min-h-20 py-2`} value={form.data.scoring_rules || ''} onChange={(e) => form.setData('scoring_rules', e.target.value)} placeholder={'1 место - 70 б.\n2 место - 50 б.\n3 место - 30 б.'} />
+                {form.errors.scoring_rules && <p className="text-sm text-red-700">{form.errors.scoring_rules}</p>}
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-                <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={Boolean(form.data.requires_file)} onChange={(e) => form.setData('requires_file', e.target.checked)} />
+            <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:border-slate-300">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-teal-700" checked={Boolean(form.data.requires_file)} onChange={(e) => form.setData('requires_file', e.target.checked)} />
                     Требуется файл-подтверждение
                 </label>
-                <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={Boolean(form.data.is_active)} onChange={(e) => form.setData('is_active', e.target.checked)} />
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 hover:border-slate-300">
+                    <input type="checkbox" className="h-4 w-4 rounded border-slate-300 accent-teal-700" checked={Boolean(form.data.is_active)} onChange={(e) => form.setData('is_active', e.target.checked)} />
                     Активен
                 </label>
             </div>
@@ -419,84 +421,99 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                 </DialogContent>
             </Dialog>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
-                    <CardTitle>Справочник KPI-индикаторов</CardTitle>
-                    {canManage && (
-                        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm">
-                                    <Plus className="h-4 w-4" />
-                                    Добавить KPI-индикатор
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-                                <DialogHeader>
-                                    <DialogTitle>Новый KPI-индикатор</DialogTitle>
-                                    <DialogDescription>Заполните справочник индикатора для нужного уровня.</DialogDescription>
-                                </DialogHeader>
-                                <IndicatorForm form={createForm} options={options} onSubmit={submitCreate} submitLabel="Сохранить" />
-                            </DialogContent>
-                        </Dialog>
-                    )}
-                </CardHeader>
-                <CardContent>
-                    <form className="flex flex-wrap items-end gap-3" onSubmit={applyFilters}>
-                        <div className="min-w-[220px] space-y-2">
-                            <label className="text-sm font-medium">Уровень</label>
-                            <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={filterForm.data.entity_type} onChange={(e) => filterForm.setData('entity_type', e.target.value)}>
+            <SectionHeader
+                title="Справочник KPI-индикаторов"
+                description="Индикаторы по уровням, секциям и проверяющим подразделениям."
+                compact
+                actions={canManage ? (
+                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4" />
+                                Добавить KPI-индикатор
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle>Новый KPI-индикатор</DialogTitle>
+                                <DialogDescription>Заполните справочник индикатора для нужного уровня.</DialogDescription>
+                            </DialogHeader>
+                            <IndicatorForm form={createForm} options={options} onSubmit={submitCreate} submitLabel="Сохранить" />
+                        </DialogContent>
+                    </Dialog>
+                ) : null}
+            />
+
+            <FilterBar>
+                <form className="space-y-4" onSubmit={applyFilters}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <FormField label="Уровень">
+                            <select className={qdFieldClass} value={filterForm.data.entity_type} onChange={(e) => filterForm.setData('entity_type', e.target.value)}>
                                 <option value="">Все</option>
                                 {(options.entityTypes ?? []).map((item) => (
                                     <option key={item} value={item}>{entityLabels[item] ?? item}</option>
                                 ))}
                             </select>
-                        </div>
+                        </FormField>
 
-                        <div className="min-w-[220px] space-y-2">
-                            <label className="text-sm font-medium">Статус</label>
-                            <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={filterForm.data.is_active} onChange={(e) => filterForm.setData('is_active', e.target.value)}>
+                        <FormField label="Статус">
+                            <select className={qdFieldClass} value={filterForm.data.is_active} onChange={(e) => filterForm.setData('is_active', e.target.value)}>
                                 <option value="">Все</option>
                                 <option value="1">Активные</option>
                                 <option value="0">Неактивные</option>
                             </select>
-                        </div>
+                        </FormField>
+                    </div>
 
-                        <Button type="submit">Применить</Button>
+                    <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                         <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                    </form>
-                </CardContent>
-            </Card>
+                        <Button type="submit">Применить</Button>
+                    </div>
+                </form>
+            </FilterBar>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Таблица индикаторов</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {items.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Индикаторы не найдены. Добавьте первую запись.</p>
-                    ) : (
+            {items.length === 0 ? (
+                <EmptyState
+                    title="Индикаторы не найдены"
+                    description="Измените фильтры или добавьте первую запись."
+                    action={canManage ? (
+                        <Button type="button" onClick={() => setCreateOpen(true)}>
+                            <Plus className="h-4 w-4" />
+                            Добавить KPI-индикатор
+                        </Button>
+                    ) : null}
+                />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ListChecks className="h-4 w-4" />
+                            Таблица индикаторов
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[1200px] text-sm">
-                                <thead>
-                                    <tr className="border-b text-left text-muted-foreground">
-                                        <th className="py-3 pe-3 font-medium">Уровень</th>
-                                        <th className="py-3 pe-3 font-medium">Секция</th>
-                                        <th className="py-3 pe-3 font-medium">Структурное подразделение (проверяющее)</th>
-                                        <th className="py-3 pe-3 font-medium">Код</th>
-                                        <th className="py-3 pe-3 font-medium">Название</th>
-                                        <th className="py-3 pe-3 font-medium">Баллы</th>
-                                        <th className="py-3 pe-3 font-medium">Правила баллов</th>
-                                        <th className="py-3 pe-3 font-medium">Описание</th>
-                                        <th className="py-3 pe-3 font-medium">Статус</th>
-                                        <th className="py-3 text-right font-medium">Действия</th>
+                                <thead className="border-b border-slate-200">
+                                    <tr className="text-left">
+                                        <th className="px-4 py-3">Уровень</th>
+                                        <th className="px-4 py-3">Секция</th>
+                                        <th className="px-4 py-3">Структурное подразделение (проверяющее)</th>
+                                        <th className="px-4 py-3">Код</th>
+                                        <th className="px-4 py-3">Название</th>
+                                        <th className="px-4 py-3 text-right">Баллы</th>
+                                        <th className="px-4 py-3">Правила баллов</th>
+                                        <th className="px-4 py-3">Описание</th>
+                                        <th className="px-4 py-3">Статус</th>
+                                        <th className="px-4 py-3 text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.map((indicator) => (
-                                        <tr key={indicator.id} className="border-b align-top last:border-0">
-                                            <td className="py-3 pe-3"><Badge variant="outline">{entityLabels[indicator.entity_type] ?? indicator.entity_type}</Badge></td>
-                                            <td className="py-3 pe-3">{sectionLabels[indicator.section] ?? indicator.section}</td>
-                                            <td className="py-3 pe-3">
+                                        <tr key={indicator.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
+                                            <td className="px-4 py-3"><Badge variant="outline">{entityLabels[indicator.entity_type] ?? indicator.entity_type}</Badge></td>
+                                            <td className="px-4 py-3 text-slate-700">{sectionLabels[indicator.section] ?? indicator.section}</td>
+                                            <td className="px-4 py-3 text-slate-700">
                                                 {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
                                                     ? indicator.structural_units
                                                         .map((unit) => unit?.name)
@@ -506,13 +523,13 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                                         ?? options.divisions?.find((div) => String(div.id) === String(indicator.checker_structural_unit_id))?.name
                                                         ?? 'Не указано')}
                                             </td>
-                                            <td className="py-3 pe-3 font-mono">{indicator.code}</td>
-                                            <td className="py-3 pe-3"><div className="font-medium">{indicator.name}</div><div className="text-xs text-muted-foreground">{indicator.unit || 'без единиц'}</div></td>
-                                            <td className="py-3 pe-3">{indicator.base_points}</td>
-                                            <td className="py-3 pe-3 whitespace-pre-line text-muted-foreground max-w-[180px]">{indicator.scoring_rules}</td>
-                                            <td className="py-3 pe-3">{indicator.description || '—'}</td>
-                                            <td className="py-3 pe-3">{indicator.is_active ? <Badge>Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}</td>
-                                            <td className="py-3 text-right">
+                                            <td className="px-4 py-3 font-mono text-xs text-slate-600">{indicator.code}</td>
+                                            <td className="px-4 py-3"><div className="font-medium text-slate-900">{indicator.name}</div><div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div></td>
+                                            <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
+                                            <td className="max-w-[180px] whitespace-pre-line px-4 py-3 text-slate-500">{indicator.scoring_rules}</td>
+                                            <td className="px-4 py-3 text-slate-600">{indicator.description || '—'}</td>
+                                            <td className="px-4 py-3">{indicator.is_active ? <StatusBadge tone="success">Активен</StatusBadge> : <StatusBadge tone="default">Неактивен</StatusBadge>}</td>
+                                            <td className="px-4 py-3 text-right">
                                                 <div className="flex justify-end gap-2">
                                                     {canManage && (
                                                         <>
@@ -533,26 +550,26 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                 </tbody>
                             </table>
                         </div>
-                    )}
+                    </CardContent>
+                </Card>
+            )}
 
-                    {links.length > 3 && (
-                        <div className="mt-6 flex flex-wrap gap-2">
-                            {links.map((link) => (
-                                <Button
-                                    key={`${link.url}-${link.label}`}
-                                    type="button"
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                    onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
-                                >
-                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                </Button>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            {links.length > 3 && (
+                <div className="flex flex-wrap justify-end gap-2">
+                    {links.map((link) => (
+                        <Button
+                            key={`${link.url}-${link.label}`}
+                            type="button"
+                            variant={link.active ? 'default' : 'outline'}
+                            size="sm"
+                            disabled={!link.url}
+                            onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
+                        >
+                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                        </Button>
+                    ))}
+                </div>
+            )}
         </div>
         <ConfirmDialog
             open={confirmState.open}

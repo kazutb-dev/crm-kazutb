@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { ChevronDown, GraduationCap, Layers3, Plus, Save, Search, Trash2, Users } from 'lucide-react';
+import { ChevronDown, GraduationCap, Layers3, Pencil, Plus, Save, Search, Trash2, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { usePersistedState } from '../shared/usePersistedState';
 
@@ -341,168 +342,51 @@ export default function Groups() {
 
     const studentsInOpenedGroup = studentsSheetGroup ? (studentsByGroup[studentsSheetGroup.id] || []) : [];
 
+    const quickChipItems = [
+        { key: 'all', label: 'Все группы' },
+        { key: 'active', label: 'Активные' },
+        { key: 'without_students', label: 'Без студентов' },
+        { key: 'less_than_10', label: 'Меньше 10 студентов' },
+        { key: 'full', label: 'Полные группы' },
+        { key: 'archived', label: 'Архивные' },
+    ];
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Группы"
+                    description="Управление академическими группами для опросов и назначений."
+                    meta={<Badge variant="secondary">Questionnaire</Badge>}
+                    actions={(
+                        <Button type="button" onClick={openCreateModal}>
+                            <Plus className="h-4 w-4" />
+                            Добавить группу
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Группы" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Группы</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Управление академическими группами для опросов и назначений.</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="w-fit">Questionnaire</Badge>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего групп" value={groups.length} tone="teal" icon={Layers3} />
+                    <StatTile label="Активные" value={activeCount} tone="success" hint="Статус active" />
+                    <StatTile label="Специальностей" value={specialities.length} tone="navy" icon={GraduationCap} />
+                    <StatTile label="Курсов · ОП" value={`${courses.length} · ${programs.length}`} tone="gold" hint={`Курсов: ${courses.length}, образовательных программ: ${programs.length}`} />
+                </StatGrid>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardContent className="flex items-center justify-between pt-6">
-                            <div>
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Всего групп</p>
-                                <p className="text-2xl font-semibold text-[#102945]">{groups.length}</p>
-                            </div>
-                            <Layers3 className="h-5 w-5 text-[#067a75]" />
-                        </CardContent>
-                    </Card>
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardContent className="flex items-center justify-between pt-6">
-                            <div>
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Активные</p>
-                                <p className="text-2xl font-semibold text-[#102945]">{activeCount}</p>
-                            </div>
-                            <Badge className="bg-emerald-600 text-white">active</Badge>
-                        </CardContent>
-                    </Card>
-                    <Card className="border-border/80 bg-white/90 shadow-sm md:col-span-2">
-                        <CardContent className="pt-6">
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-lg border border-border/70 px-3 py-2 text-sm">Курсов: <span className="font-semibold">{courses.length}</span></div>
-                                <div className="rounded-lg border border-border/70 px-3 py-2 text-sm">Специальностей: <span className="font-semibold">{specialities.length}</span></div>
-                                <div className="rounded-lg border border-border/70 px-3 py-2 text-sm">ОП: <span className="font-semibold">{programs.length}</span></div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
-                <div className="grid grid-cols-1 gap-6">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                    <GraduationCap className="h-4 w-4 text-[#067a75]" />
-                                    Список групп
-                                </CardTitle>
-                                <Button type="button" className="gap-2" onClick={openCreateModal}>
-                                    <Plus className="h-4 w-4" />
-                                    Добавить группу
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={filters.course}
-                                    onChange={(e) => setFilters((prev) => ({ ...prev, course: e.target.value }))}
-                                >
-                                    <option value="all">Все курсы</option>
-                                    <option value="1">1 курс</option>
-                                    <option value="2">2 курс</option>
-                                    <option value="3">3 курс</option>
-                                    <option value="4">4 курс</option>
-                                </select>
-
+                <FilterBar>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-1">
+                            <FormField label="Поиск">
                                 <div className="relative">
-                                    <button
-                                        type="button"
-                                        className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        onClick={() => setSpecialityDropdownOpen((prev) => !prev)}
-                                    >
-                                        <span className="truncate">{selectedSpecialitiesLabel}</span>
-                                        <ChevronDown className="ml-2 h-4 w-4 text-muted-foreground" />
-                                    </button>
-                                    {specialityDropdownOpen && (
-                                        <div className="absolute z-20 mt-2 w-full rounded-md border border-border bg-white p-2 shadow-lg">
-                                            <Input
-                                                placeholder="Поиск специальности"
-                                                value={specialitySearch}
-                                                onChange={(e) => setSpecialitySearch(e.target.value)}
-                                            />
-                                            <div className="mt-2 max-h-44 space-y-1 overflow-y-auto">
-                                                {filteredSpecialitiesForDropdown.length === 0 ? (
-                                                    <p className="px-2 py-1 text-xs text-muted-foreground">Ничего не найдено</p>
-                                                ) : (
-                                                    filteredSpecialitiesForDropdown.map((item) => (
-                                                        <label key={item.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-sm hover:bg-muted/40">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={filters.specialityIds.includes(item.id)}
-                                                                onChange={() => toggleSpeciality(item.id)}
-                                                            />
-                                                            {item.name}
-                                                        </label>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={filters.programId}
-                                    onChange={(e) => setFilters((prev) => ({ ...prev, programId: e.target.value }))}
-                                >
-                                    <option value="all">Все ОП</option>
-                                    {availablePrograms.map((item) => (
-                                        <option key={item.id} value={item.id}>{item.name}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={filters.departmentId ?? 'all'}
-                                    onChange={(e) => setFilters((prev) => ({ ...prev, departmentId: e.target.value }))}
-                                >
-                                    <option value="all">Все кафедры</option>
-                                    {departmentOptions.map((item) => (
-                                        <option key={item.id} value={item.id}>{item.name}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={filters.sizeRange}
-                                    onChange={(e) => setFilters((prev) => ({ ...prev, sizeRange: e.target.value }))}
-                                >
-                                    <option value="all">Любое кол-во</option>
-                                    <option value="0">0 студентов</option>
-                                    <option value="1-10">1-10 студентов</option>
-                                    <option value="11-20">11-20 студентов</option>
-                                    <option value="21-30">21-30 студентов</option>
-                                    <option value="30+">30+ студентов</option>
-                                </select>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                                <ChipButton active={filters.quickChip === 'all'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'all' }))}>Все группы</ChipButton>
-                                <ChipButton active={filters.quickChip === 'active'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'active' }))}>Активные</ChipButton>
-                                <ChipButton active={filters.quickChip === 'without_students'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'without_students' }))}>Без студентов</ChipButton>
-                                <ChipButton active={filters.quickChip === 'less_than_10'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'less_than_10' }))}>Меньше 10 студентов</ChipButton>
-                                <ChipButton active={filters.quickChip === 'full'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'full' }))}>Полные группы</ChipButton>
-                                <ChipButton active={filters.quickChip === 'archived'} onClick={() => setFilters((prev) => ({ ...prev, quickChip: 'archived' }))}>Архивные</ChipButton>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         className="pl-9"
                                         placeholder="Поиск группы"
@@ -510,79 +394,201 @@ export default function Groups() {
                                         onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
                                     />
                                 </div>
-                                <Button variant="outline" onClick={resetFilters}>Сбросить фильтры</Button>
-                            </div>
+                            </FormField>
+                        </div>
 
-                            <div className="rounded-lg border border-border/70 px-3 py-2 text-sm text-muted-foreground">
-                                Найдено: <span className="font-semibold text-[#102945]">{foundGroupsCount}</span> групп · Всего студентов в выбранных группах: <span className="font-semibold text-[#102945]">{totalStudentsInFilteredGroups}</span>
-                            </div>
+                        <FormField label="Курс">
+                            <select
+                                className={qdFieldClass}
+                                value={filters.course}
+                                onChange={(e) => setFilters((prev) => ({ ...prev, course: e.target.value }))}
+                            >
+                                <option value="all">Все курсы</option>
+                                <option value="1">1 курс</option>
+                                <option value="2">2 курс</option>
+                                <option value="3">3 курс</option>
+                                <option value="4">4 курс</option>
+                            </select>
+                        </FormField>
 
-                            {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
-                            ) : filteredGroups.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Группы по выбранным фильтрам не найдены.</p>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b text-muted-foreground">
-                                                <th className="px-3 py-2 text-left font-medium">Группа</th>
-                                                <th className="px-3 py-2 text-left font-medium">Курс</th>
-                                                <th className="px-3 py-2 text-left font-medium">Специальность</th>
-                                                <th className="px-3 py-2 text-left font-medium">ОП</th>
-                                                <th className="px-3 py-2 text-left font-medium">Кафедра</th>
-                                                <th className="px-3 py-2 text-left font-medium">Кол-во студентов</th>
-                                                <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                                <th className="px-3 py-2 text-right font-medium">Действия</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredGroups.map((group) => {
-                                                const groupStudents = studentsByGroup[group.id] || [];
-                                                return (
-                                                    <tr key={group.id} className="border-b last:border-b-0">
-                                                        <td className="px-3 py-2 font-medium text-[#102945]">
-                                                            <Link href={route('questionnaire.admin.groups.details', group.id)} className="hover:underline">
-                                                                {group.name}
-                                                            </Link>
-                                                        </td>
-                                                        <td className="px-3 py-2">{group.courseRef?.name || group.course || '—'}</td>
-                                                        <td className="px-3 py-2">{getSpecialityRef(group)?.name || group.speciality || '—'}</td>
-                                                        <td className="px-3 py-2">{group.educationalProgramRef?.name || group.educational_program || '—'}</td>
-                                                        <td className="px-3 py-2">{getSpecialityDepartment(group)?.name || '—'}</td>
-                                                        <td className="px-3 py-2">
-                                                            <button
-                                                                type="button"
-                                                                className="font-semibold text-[#067a75] hover:underline"
-                                                                onClick={() => setStudentsSheetGroup(group)}
-                                                            >
-                                                                {groupStudents.length}
-                                                            </button>
-                                                        </td>
-                                                        <td className="px-3 py-2">
-                                                            <Badge variant={group.status === 'active' ? 'default' : 'secondary'} className={group.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
-                                                                {group.status}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right">
-                                                            <div className="inline-flex gap-2">
-                                                                <Button type="button" variant="outline" size="sm" onClick={() => startEdit(group)}>Ред.</Button>
-                                                                <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => remove(group.id)}>
-                                                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                                                                    Удалить
-                                                                </Button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                        <div className="space-y-2">
+                            <span className="qd-field-label block">Специальность</span>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    className={`${qdFieldClass} flex items-center justify-between text-left`}
+                                    onClick={() => setSpecialityDropdownOpen((prev) => !prev)}
+                                >
+                                    <span className="truncate">{selectedSpecialitiesLabel}</span>
+                                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+                                </button>
+                                {specialityDropdownOpen && (
+                                    <div className="absolute z-20 mt-2 w-full min-w-[16rem] rounded-[12px] border border-slate-200 bg-white p-2 shadow-[0_8px_24px_0_rgba(25,28,29,0.08)]">
+                                        <Input
+                                            placeholder="Поиск специальности"
+                                            value={specialitySearch}
+                                            onChange={(e) => setSpecialitySearch(e.target.value)}
+                                        />
+                                        <div className="mt-2 max-h-44 space-y-0.5 overflow-y-auto">
+                                            {filteredSpecialitiesForDropdown.length === 0 ? (
+                                                <p className="px-2 py-1 text-xs text-slate-500">Ничего не найдено</p>
+                                            ) : (
+                                                filteredSpecialitiesForDropdown.map((item) => (
+                                                    <label key={item.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="accent-teal-700"
+                                                            checked={filters.specialityIds.includes(item.id)}
+                                                            onChange={() => toggleSpeciality(item.id)}
+                                                        />
+                                                        {item.name}
+                                                    </label>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <FormField label="Образовательная программа">
+                            <select
+                                className={qdFieldClass}
+                                value={filters.programId}
+                                onChange={(e) => setFilters((prev) => ({ ...prev, programId: e.target.value }))}
+                            >
+                                <option value="all">Все ОП</option>
+                                {availablePrograms.map((item) => (
+                                    <option key={item.id} value={item.id}>{item.name}</option>
+                                ))}
+                            </select>
+                        </FormField>
+
+                        <FormField label="Кафедра">
+                            <select
+                                className={qdFieldClass}
+                                value={filters.departmentId ?? 'all'}
+                                onChange={(e) => setFilters((prev) => ({ ...prev, departmentId: e.target.value }))}
+                            >
+                                <option value="all">Все кафедры</option>
+                                {departmentOptions.map((item) => (
+                                    <option key={item.id} value={item.id}>{item.name}</option>
+                                ))}
+                            </select>
+                        </FormField>
+
+                        <FormField label="Размер группы">
+                            <select
+                                className={qdFieldClass}
+                                value={filters.sizeRange}
+                                onChange={(e) => setFilters((prev) => ({ ...prev, sizeRange: e.target.value }))}
+                            >
+                                <option value="all">Любое кол-во</option>
+                                <option value="0">0 студентов</option>
+                                <option value="1-10">1-10 студентов</option>
+                                <option value="11-20">11-20 студентов</option>
+                                <option value="21-30">21-30 студентов</option>
+                                <option value="30+">30+ студентов</option>
+                            </select>
+                        </FormField>
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-slate-600">
+                            Найдено: <span className="font-semibold tabular-nums text-[#102945]">{foundGroupsCount}</span> групп · Всего студентов в выбранных группах: <span className="font-semibold tabular-nums text-[#102945]">{totalStudentsInFilteredGroups}</span>
+                        </p>
+                        <Button variant="outline" onClick={resetFilters}>Сбросить фильтры</Button>
+                    </div>
+                </FilterBar>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <GraduationCap />
+                            Список групп
+                        </CardTitle>
+                    </CardHeader>
+                    <div className="px-5 pt-3">
+                        <UnderlineTabs
+                            items={quickChipItems}
+                            value={filters.quickChip}
+                            onChange={(key) => setFilters((prev) => ({ ...prev, quickChip: key }))}
+                        />
+                    </div>
+                    <CardContent className="p-0">
+                        {loading ? (
+                            <div className="p-5"><LoadingState /></div>
+                        ) : filteredGroups.length === 0 ? (
+                            <div className="px-5 py-12 text-center">
+                                <p className="font-display text-lg font-bold text-[#102945]">Группы не найдены</p>
+                                <p className="mt-1 text-sm text-slate-600">Группы по выбранным фильтрам не найдены. Сбросьте фильтры или добавьте группу.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="px-5 py-3 text-left">Группа</th>
+                                            <th className="px-5 py-3 text-left">Курс</th>
+                                            <th className="px-5 py-3 text-left">Специальность</th>
+                                            <th className="px-5 py-3 text-left">ОП</th>
+                                            <th className="px-5 py-3 text-left">Кафедра</th>
+                                            <th className="px-5 py-3 text-right">Студентов</th>
+                                            <th className="px-5 py-3 text-left">Статус</th>
+                                            <th className="px-5 py-3 text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredGroups.map((group) => {
+                                            const groupStudents = studentsByGroup[group.id] || [];
+                                            return (
+                                                <tr key={group.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                    <td className="px-5 py-3 font-medium text-slate-900">
+                                                        <Link href={route('questionnaire.admin.groups.details', group.id)} className="text-[#102945] hover:text-teal-700 hover:underline">
+                                                            {group.name}
+                                                        </Link>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-slate-700">{group.courseRef?.name || group.course || '—'}</td>
+                                                    <td className="px-5 py-3 text-slate-700">{getSpecialityRef(group)?.name || group.speciality || '—'}</td>
+                                                    <td className="px-5 py-3 text-slate-700">{group.educationalProgramRef?.name || group.educational_program || '—'}</td>
+                                                    <td className="px-5 py-3 text-slate-700">{getSpecialityDepartment(group)?.name || '—'}</td>
+                                                    <td className="px-5 py-3 text-right">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex items-center gap-1 font-semibold tabular-nums text-teal-700 hover:underline"
+                                                            onClick={() => setStudentsSheetGroup(group)}
+                                                            title="Показать студентов группы"
+                                                        >
+                                                            <Users className="h-3.5 w-3.5" />
+                                                            {groupStudents.length}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-5 py-3">
+                                                        <StatusBadge tone={group.status === 'active' ? 'success' : 'default'}>
+                                                            {group.status}
+                                                        </StatusBadge>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-right">
+                                                        <div className="inline-flex gap-2">
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(group)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(group.id)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                Удалить
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog
@@ -602,30 +608,38 @@ export default function Groups() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-3" onSubmit={submit}>
-                        <Input placeholder="Название группы" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
-                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.course_id} onChange={(e) => setForm((prev) => ({ ...prev, course_id: e.target.value }))}>
-                            <option value="">Курс</option>
-                            {courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
-                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.speciality_id} onChange={(e) => setForm((prev) => ({ ...prev, speciality_id: e.target.value }))}>
-                            <option value="">Специальность</option>
-                            {specialities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
-                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.educational_program_id} onChange={(e) => setForm((prev) => ({ ...prev, educational_program_id: e.target.value }))}>
-                            <option value="">Образовательная программа</option>
-                            {formPrograms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                        </select>
-                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}>
-                            <option value="active">active</option>
-                            <option value="inactive">inactive</option>
-                        </select>
+                    <form className="space-y-4" onSubmit={submit}>
+                        <FormField label="Название группы">
+                            <Input placeholder="Название группы" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
+                        </FormField>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Курс">
+                                <select className={qdFieldClass} value={form.course_id} onChange={(e) => setForm((prev) => ({ ...prev, course_id: e.target.value }))}>
+                                    <option value="">Курс</option>
+                                    {courses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                                </select>
+                            </FormField>
+                            <FormField label="Статус">
+                                <select className={qdFieldClass} value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}>
+                                    <option value="active">active</option>
+                                    <option value="inactive">inactive</option>
+                                </select>
+                            </FormField>
+                        </div>
+                        <FormField label="Специальность">
+                            <select className={qdFieldClass} value={form.speciality_id} onChange={(e) => setForm((prev) => ({ ...prev, speciality_id: e.target.value }))}>
+                                <option value="">Специальность</option>
+                                {specialities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                            </select>
+                        </FormField>
+                        <FormField label="Образовательная программа">
+                            <select className={qdFieldClass} value={form.educational_program_id} onChange={(e) => setForm((prev) => ({ ...prev, educational_program_id: e.target.value }))}>
+                                <option value="">Образовательная программа</option>
+                                {formPrograms.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                            </select>
+                        </FormField>
 
-                        <div className="flex gap-2 pt-1">
-                            <Button type="submit" className="gap-2">
-                                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                {editingId ? 'Сохранить' : 'Создать'}
-                            </Button>
+                        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -636,14 +650,19 @@ export default function Groups() {
                             >
                                 Отмена
                             </Button>
+                            <Button type="submit">
+                                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                {editingId ? 'Сохранить' : 'Создать'}
+                            </Button>
                         </div>
                     </form>
                 </DialogContent>
             </Dialog>
 
             <Sheet open={Boolean(studentsSheetGroup)} onOpenChange={(open) => !open && setStudentsSheetGroup(null)}>
-                <SheetContent side="right" className="w-full sm:max-w-xl">
-                    <SheetHeader>
+                <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+                    <SheetHeader className="border-b border-slate-200 pb-4">
+                        <p className="qd-kicker">Состав группы</p>
                         <SheetTitle>Студенты группы {studentsSheetGroup?.name}</SheetTitle>
                         <SheetDescription>
                             Всего студентов: {studentsInOpenedGroup.length}
@@ -652,16 +671,19 @@ export default function Groups() {
 
                     <div className="mt-4">
                         {studentsInOpenedGroup.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">В группе пока нет студентов.</p>
+                            <Notice tone="info">В группе пока нет студентов.</Notice>
                         ) : (
-                            <div className="space-y-2">
-                                {studentsInOpenedGroup.map((student) => (
-                                    <div key={student.id} className="rounded-md border border-border/70 px-3 py-2">
-                                        <p className="font-medium text-[#102945]">{student.full_name}</p>
-                                        <p className="text-xs text-muted-foreground">{student.login || student.user?.ad_login || 'Без логина'}</p>
-                                    </div>
+                            <ol className="divide-y divide-slate-200">
+                                {studentsInOpenedGroup.map((student, index) => (
+                                    <li key={student.id} className="flex items-center gap-3 py-3">
+                                        <span className="w-6 shrink-0 text-right text-xs tabular-nums text-slate-400">{index + 1}</span>
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium text-slate-900">{student.full_name}</p>
+                                            <p className="font-mono text-xs text-slate-500">{student.login || student.user?.ad_login || 'Без логина'}</p>
+                                        </div>
+                                    </li>
                                 ))}
-                            </div>
+                            </ol>
                         )}
                     </div>
                 </SheetContent>
@@ -676,17 +698,5 @@ export default function Groups() {
                 }}
             />
         </AuthenticatedLayout>
-    );
-}
-
-function ChipButton({ active, children, onClick }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`rounded-full border px-3 py-1.5 text-sm transition ${active ? 'border-[#067a75] bg-[#f0f8f7] text-[#0f6f76]' : 'border-border bg-white text-muted-foreground hover:bg-muted/40'}`}
-        >
-            {children}
-        </button>
     );
 }

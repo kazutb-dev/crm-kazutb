@@ -1,11 +1,16 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import { InfoField, Notice, qdFieldClass } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Transition } from '@headlessui/react';
 import { Link, useForm } from '@inertiajs/react';
 import { useEffect, useMemo } from 'react';
+
+function FieldError({ message }) {
+    return message ? <p className="mt-1.5 text-sm text-red-700">{message}</p> : null;
+}
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
@@ -93,31 +98,27 @@ export default function UpdateProfileInformation({
 
     return (
         <section className={className}>
-            <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="font-display text-lg font-bold text-[#102945]">
                         Профиль и контакты
                     </h2>
 
-                    <p className="mt-1 text-sm leading-6 text-gray-500">
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
                         Обновляйте персональные данные, рабочие сведения и контактные поля.
                     </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                     {!editing && (
-                        <button
-                            type="button"
-                            onClick={onEdit}
-                            className="inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:text-gray-900"
-                        >
+                        <Button type="button" variant="outline" onClick={onEdit}>
                             Редактировать профиль
-                        </button>
+                        </Button>
                     )}
                     {editing && (
-                        <SecondaryButton type="button" onClick={onCancel}>
+                        <Button type="button" variant="outline" onClick={onCancel}>
                             Режим просмотра
-                        </SecondaryButton>
+                        </Button>
                     )}
                 </div>
             </header>
@@ -125,79 +126,65 @@ export default function UpdateProfileInformation({
             <form onSubmit={submit} className="mt-5 space-y-5">
                 {!editing && (
                     <div className="space-y-4">
-                        <div className="grid gap-3 md:grid-cols-2">
+                        <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
                             {[
                                 ['name', 'ФИО', profile.snapshot.name || 'Не указано'],
                                 ['email', 'Почта', profile.snapshot.email || 'Не указано'],
                             ].map(([key, label, value]) => (
-                                <div key={key} className="rounded-2xl bg-gray-50 p-3.5">
-                                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">{label}</div>
-                                    <div className="mt-2 text-sm font-semibold text-gray-900">{value}</div>
-                                </div>
+                                <InfoField key={key} label={label}>{value}</InfoField>
                             ))}
 
                             {!isStudent && (
-                                <div className="rounded-2xl bg-gray-50 p-3.5">
-                                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Степень</div>
-                                    <div className="mt-2 text-sm text-gray-900">
-                                        <div>
-                                            <span className="text-gray-500">Текущая степень: </span>
-                                            <span className="font-semibold">
-                                                {latestSystemPosition || 'Не указана'}
+                                <InfoField label="Степень">
+                                    <div>
+                                        <span className="font-normal text-slate-500">Текущая степень: </span>
+                                        <span className="font-semibold">
+                                            {latestSystemPosition || 'Не указана'}
+                                        </span>
+                                    </div>
+                                    {profile.pending_position_request && (
+                                        <div className="mt-1 text-sm">
+                                            <span className="text-amber-700">На рассмотрении: </span>
+                                            <span className="font-semibold text-amber-800">
+                                                {profile.pending_position_request.requested_position || 'Не указана'}
                                             </span>
                                         </div>
-                                        {profile.pending_position_request && (
-                                            <div className="mt-1">
-                                                <span className="text-amber-600">На рассмотрении: </span>
-                                                <span className="font-semibold text-amber-700">
-                                                    {profile.pending_position_request.requested_position || 'Не указана'}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {profile.snapshot.position_confirmed === null && (
-                                        <div className="mt-1 text-[11px] text-amber-500">Требует подтверждения</div>
                                     )}
-                                </div>
+                                    {profile.snapshot.position_confirmed === null && (
+                                        <Badge variant="warning" className="mt-1.5">Требует подтверждения</Badge>
+                                    )}
+                                </InfoField>
                             )}
 
                             {canEditAcademicBindings && !isStudent && (
                                 <>
-                                    <div className="rounded-2xl bg-gray-50 p-3.5">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Факультет</div>
-                                        <div className="mt-2 text-sm font-semibold text-gray-900">{profile.faculty?.name || 'Не указан'}</div>
-                                    </div>
-                                    <div className="rounded-2xl bg-gray-50 p-3.5">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">Кафедра</div>
-                                        <div className="mt-2 text-sm font-semibold text-gray-900">{profile.department?.name || 'Не указана'}</div>
-                                    </div>
+                                    <InfoField label="Факультет">{profile.faculty?.name || 'Не указан'}</InfoField>
+                                    <InfoField label="Кафедра">{profile.department?.name || 'Не указана'}</InfoField>
                                 </>
                             )}
 
-                                {profile.pending_academic_request && !isStudent && (
-                                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-amber-700">Pending academic request</div>
-                                        <div className="mt-2 text-sm text-amber-900">
-                                            {pendingAcademicFaculty?.name || 'Факультет не указан'} · {pendingAcademicDepartment?.name || 'Кафедра не указана'}
-                                        </div>
-                                        <div className="mt-1 text-xs text-amber-700">
+                            {profile.pending_academic_request && !isStudent && (
+                                <div className="md:col-span-2">
+                                    <Notice tone="warning" title="Pending academic request">
+                                        <p>{pendingAcademicFaculty?.name || 'Факультет не указан'} · {pendingAcademicDepartment?.name || 'Кафедра не указана'}</p>
+                                        <p className="mt-1 text-xs text-slate-500">
                                             Создано: {profile.pending_academic_request.created_at || '—'}
-                                        </div>
-                                    </div>
-                                )}
+                                        </p>
+                                    </Notice>
+                                </div>
+                            )}
                         </div>
-
                     </div>
                 )}
 
                 {editing && (
                     <div className="space-y-5">
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <InputLabel htmlFor="name" value="ФИО" />
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="block">ФИО</Label>
                                 <TextInput
                                     id="name"
-                                    className={`mt-1 block w-full ${identityEditable ? '' : 'cursor-not-allowed bg-gray-100'}`}
+                                    className={`block w-full ${identityEditable ? '' : 'cursor-not-allowed bg-slate-100 text-slate-600'}`}
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     readOnly={!identityEditable}
@@ -207,96 +194,89 @@ export default function UpdateProfileInformation({
                                     autoComplete="name"
                                 />
                                 {!identityEditable && (
-                                    <p className="mt-1 text-xs text-gray-400">
+                                    <p className="text-xs text-slate-500">
                                         ФИО синхронизируется из AD и не меняется через self-service.
                                     </p>
                                 )}
-                                <InputError className="mt-2" message={errors.name} />
+                                <FieldError message={errors.name} />
                             </div>
 
-                            <div>
-                                <InputLabel htmlFor="email" value="Почта" />
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="block">Почта</Label>
                                 <TextInput
                                     id="email"
                                     type="email"
-                                    className="mt-1 block w-full bg-gray-100 cursor-not-allowed"
+                                    className="block w-full cursor-not-allowed bg-slate-100 text-slate-600"
                                     value={data.email}
                                     readOnly
                                     tabIndex={-1}
                                     autoComplete="email"
                                 />
-                                <InputError className="mt-2" message={errors.email} />
+                                <FieldError message={errors.email} />
                             </div>
 
-
-
                             {!isStudent && (
-                                <div className="md:col-span-2">
-                                    <InputLabel value="Степень" />
+                                <div className="space-y-3 border-t border-slate-200 pt-5 md:col-span-2">
+                                    <Label className="block">Степень</Label>
 
-                                {/* Current position value shown to user */}
-                                <div className="mt-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                    {latestSystemPosition || (
-                                        <span className="text-gray-400">Не указана</span>
-                                    )}
-                                </div>
-
-                                <p className="mt-1 text-xs text-gray-400">
-                                    Текущая степень в профиле
-                                </p>
-
-                                <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                                    Изменения степени, факультета и кафедры больше не применяются напрямую. После сохранения будет создана governance request, а effective access изменится только после approval.
-                                </div>
-
-                                {profile.has_pending_position_request && (
-                                    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                                        Заявка на изменение степени уже на рассмотрении: {profile.pending_position_request?.requested_position || 'степень указана'}
+                                    {/* Current position value shown to user */}
+                                    <div className="flex flex-wrap items-baseline gap-x-2">
+                                        <span className="text-[0.9375rem] font-semibold text-slate-900">
+                                            {latestSystemPosition || (
+                                                <span className="font-normal text-slate-400">Не указана</span>
+                                            )}
+                                        </span>
+                                        <span className="text-xs text-slate-500">— текущая степень в профиле</span>
                                     </div>
-                                )}
 
                                     {profile.snapshot.ad_title && (
-                                        <p className="mt-1 text-xs text-gray-400">
+                                        <p className="text-xs text-slate-500">
                                             Значение из системы кадров: {profile.snapshot.ad_title}
                                         </p>
                                     )}
 
-                                {/* Confirmation buttons */}
+                                    <Notice tone="info">
+                                        Изменения степени, факультета и кафедры больше не применяются напрямую. После сохранения будет создана governance request, а effective access изменится только после approval.
+                                    </Notice>
+
+                                    {profile.has_pending_position_request && (
+                                        <Notice tone="warning">
+                                            Заявка на изменение степени уже на рассмотрении: {profile.pending_position_request?.requested_position || 'степень указана'}
+                                        </Notice>
+                                    )}
+
+                                    {/* Confirmation buttons */}
                                     {!profile.has_pending_position_request && (
-                                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                                            <span className="text-sm text-gray-600">Это ваша степень?</span>
-                                            <button
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="mr-1 text-sm text-slate-700">Это ваша степень?</span>
+                                            <Button
                                                 type="button"
+                                                size="sm"
+                                                variant={data.position_confirmed === true ? 'default' : 'outline'}
+                                                aria-pressed={data.position_confirmed === true}
                                                 onClick={() => setData((d) => ({ ...d, position_confirmed: true, position_id: '' }))}
-                                                className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
-                                                    data.position_confirmed === true
-                                                        ? 'border-emerald-600 bg-emerald-600 text-white'
-                                                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                                }`}
                                             >
                                                 Да, верно
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 type="button"
+                                                size="sm"
+                                                variant={data.position_confirmed === false ? 'destructive' : 'outline'}
+                                                aria-pressed={data.position_confirmed === false}
                                                 onClick={() => setData((d) => ({ ...d, position_confirmed: false }))}
-                                                className={`rounded-lg border px-3 py-1 text-sm font-medium transition ${
-                                                    data.position_confirmed === false
-                                                        ? 'border-rose-500 bg-rose-500 text-white'
-                                                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
-                                                }`}
                                             >
                                                 Нет, другая
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
 
-                                {/* Position select – only when "No" */}
+                                    {/* Position select – only when "No" */}
                                     {data.position_confirmed === false && (
-                                        <div className="mt-3">
-                                            <InputLabel htmlFor="position_id" value="Выберите степень из справочника" />
+                                        <div className="space-y-2">
+                                            <Label htmlFor="position_id" className="block">Выберите степень из справочника</Label>
                                             <select
                                                 id="position_id"
-                                                className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                                className={qdFieldClass}
                                                 value={data.position_id}
                                                 onChange={(e) => setData('position_id', e.target.value)}
                                                 disabled={profile.has_pending_position_request}
@@ -306,7 +286,7 @@ export default function UpdateProfileInformation({
                                                     <option key={p.id} value={String(p.id)}>{p.name}</option>
                                                 ))}
                                             </select>
-                                            <InputError className="mt-2" message={errors.position_id} />
+                                            <FieldError message={errors.position_id} />
                                         </div>
                                     )}
                                 </div>
@@ -314,12 +294,12 @@ export default function UpdateProfileInformation({
 
                             {canEditAcademicBindings && !isStudent && (
                                 <>
-                                    <div>
-                                        <InputLabel htmlFor="faculty_id" value="Факультет" />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="faculty_id" className="block">Факультет</Label>
 
                                         <select
                                             id="faculty_id"
-                                            className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                            className={qdFieldClass}
                                             value={data.faculty_id}
                                             onChange={(e) => {
                                                 const facultyId = e.target.value;
@@ -343,15 +323,15 @@ export default function UpdateProfileInformation({
                                             ))}
                                         </select>
 
-                                        <InputError className="mt-2" message={errors.faculty_id} />
+                                        <FieldError message={errors.faculty_id} />
                                     </div>
 
-                                    <div>
-                                        <InputLabel htmlFor="department_id" value="Кафедра" />
+                                    <div className="space-y-2">
+                                        <Label htmlFor="department_id" className="block">Кафедра</Label>
 
                                         <select
                                             id="department_id"
-                                            className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                            className={qdFieldClass}
                                             value={data.department_id}
                                             onChange={(e) => setData('department_id', e.target.value)}
                                         >
@@ -361,52 +341,46 @@ export default function UpdateProfileInformation({
                                             ))}
                                         </select>
 
-                                        <InputError className="mt-2" message={errors.department_id} />
+                                        <FieldError message={errors.department_id} />
                                     </div>
                                 </>
                             )}
 
                             {!isStudent && (
-                                <div className="md:col-span-2">
-                                    <InputLabel htmlFor="request_comment" value="Комментарий к заявке" />
-                                    <textarea
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="request_comment" className="block">Комментарий к заявке</Label>
+                                    <Textarea
                                         id="request_comment"
                                         rows={3}
-                                        className="mt-1 block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
                                         value={data.request_comment}
                                         onChange={(e) => setData('request_comment', e.target.value)}
                                         placeholder="Кратко опишите причину изменения должности / привязки"
                                     />
-                                    <InputError className="mt-2" message={errors.request_comment} />
+                                    <FieldError message={errors.request_comment} />
                                 </div>
                             )}
                         </div>
 
                         {mustVerifyEmail && !profile.email_verified_at && (
-                            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3.5 text-sm text-amber-800">
-                                <p>
-                                    Email не подтверждён.
-                                    <Link
-                                        href={route('verification.send')}
-                                        method="post"
-                                        as="button"
-                                        className="ml-1 font-semibold underline decoration-amber-300 underline-offset-2 hover:text-amber-900"
-                                    >
-                                        Отправить письмо подтверждения ещё раз.
-                                    </Link>
-                                </p>
+                            <Notice tone="warning" title="Email не подтверждён.">
+                                <Link
+                                    href={route('verification.send')}
+                                    method="post"
+                                    as="button"
+                                    className="font-semibold text-teal-700 underline underline-offset-2 hover:text-[#102945]"
+                                >
+                                    Отправить письмо подтверждения ещё раз.
+                                </Link>
 
                                 {status === 'verification-link-sent' && (
                                     <p className="mt-2 font-medium text-emerald-700">
                                         Новая ссылка для подтверждения отправлена.
                                     </p>
                                 )}
-                            </div>
+                            </Notice>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-3">
-                            <PrimaryButton disabled={processing}>Сохранить и отправить на согласование</PrimaryButton>
-
+                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
                             <Transition
                                 show={recentlySuccessful}
                                 enter="transition ease-in-out"
@@ -416,6 +390,13 @@ export default function UpdateProfileInformation({
                             >
                                 <p className="text-sm font-medium text-emerald-700">Сохранено.</p>
                             </Transition>
+
+                            {onCancel && (
+                                <Button type="button" variant="outline" onClick={onCancel}>
+                                    Отмена
+                                </Button>
+                            )}
+                            <Button type="submit" disabled={processing}>Сохранить и отправить на согласование</Button>
                         </div>
                     </div>
                 )}

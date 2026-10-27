@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Progress } from '@/components/ui/progress';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { Clock3, FileCheck2, RotateCcw, Save, Send } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, CircleCheck, ClipboardList, Clock3, FileCheck2, RotateCcw, Save, Send, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const draftKey = (surveyId, groupDisciplineId) => `questionnaire.student.draft.${surveyId}.${groupDisciplineId}`;
@@ -312,160 +313,196 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
         setSubmittedAt(null);
     };
 
+    const availableToSubmitCount = filteredItems.filter((item) => item.can_submit).length;
+
+    const setAnswerField = (questionId, field, value) => setAnswers((prev) => ({
+        ...prev,
+        [questionId]: {
+            ...prev[questionId],
+            [field]: value,
+        },
+    }));
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Личный кабинет анкетирования"
+                    description="Прогресс сохраняется автоматически. Можно вернуться и продолжить позже."
+                    meta={(
+                        <StatusBadge tone={draftSavedAt ? 'info' : 'default'}>
+                            <Clock3 className="mr-1 h-3.5 w-3.5" />
+                            Черновик: {draftSavedAt ? 'есть' : 'нет'}
+                        </StatusBadge>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Студент" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="space-y-4 pt-6">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                            <div>
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Анкетирование / Студент</p>
-                                <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Личный кабинет анкетирования</h1>
-                                <p className="mt-1 text-sm text-muted-foreground">Прогресс сохраняется автоматически. Можно вернуться и продолжить позже.</p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary">Дисциплин: {disciplineBuckets.length}</Badge>
-                                <Badge variant="outline">Назначений: {filteredItems.length}</Badge>
-                                <Badge variant="outline">Доступно к прохождению: {filteredItems.filter((item) => item.can_submit).length}</Badge>
-                                <Badge variant="outline" className="gap-1"><Clock3 className="h-3.5 w-3.5" />Черновик: {draftSavedAt ? 'есть' : 'нет'}</Badge>
-                            </div>
-                        </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Дисциплин" value={disciplineBuckets.length} tone="navy" icon={BookOpen} />
+                    <StatTile label="Назначений" value={filteredItems.length} tone="teal" icon={ClipboardList} />
+                    <StatTile label="Доступно к прохождению" value={availableToSubmitCount} tone="success" icon={CircleCheck} hint={availableToSubmitCount > 0 ? 'Выберите дисциплину слева и ответьте на вопросы' : null} />
+                    <StatTile label="Черновик" value={draftSavedAt ? 'есть' : 'нет'} tone="gold" icon={Clock3} hint={draftSavedAt ? `Сохранён в ${new Date(draftSavedAt).toLocaleTimeString()}` : 'Сохраняется автоматически'} />
+                </StatGrid>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <label className="text-sm text-muted-foreground">
-                                Курс
-                                <select
-                                    className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground"
-                                    value={courseFilter}
-                                    onChange={(e) => setCourseFilter(e.target.value)}
-                                >
-                                    <option value="all">Все курсы</option>
-                                    {availableCourses.map((course) => (
-                                        <option key={course} value={String(course)}>{course} курс</option>
-                                    ))}
-                                </select>
-                            </label>
+                <FilterBar>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <FormField label="Курс">
+                            <select
+                                className={qdFieldClass}
+                                value={courseFilter}
+                                onChange={(e) => setCourseFilter(e.target.value)}
+                            >
+                                <option value="all">Все курсы</option>
+                                {availableCourses.map((course) => (
+                                    <option key={course} value={String(course)}>{course} курс</option>
+                                ))}
+                            </select>
+                        </FormField>
 
-                            <label className="text-sm text-muted-foreground">
-                                Семестр
-                                <select
-                                    className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground"
-                                    value={semesterFilter}
-                                    onChange={(e) => setSemesterFilter(e.target.value)}
-                                >
-                                    <option value="all">Все семестры</option>
-                                    {availableSemesters.map((semester) => (
-                                        <option key={semester} value={semester}>{semester}</option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
+                        <FormField label="Семестр">
+                            <select
+                                className={qdFieldClass}
+                                value={semesterFilter}
+                                onChange={(e) => setSemesterFilter(e.target.value)}
+                            >
+                                <option value="all">Все семестры</option>
+                                {availableSemesters.map((semester) => (
+                                    <option key={semester} value={semester}>{semester}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                    </div>
+                </FilterBar>
 
-                        {selectedItem && (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Прогресс заполнения</span>
-                                    <span className="font-medium text-[#102945]">{answeredCount} / {questions.length}</span>
-                                </div>
-                                <Progress value={progressPercent} />
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
                 {submittedAt && (
-                    <Card className="border-emerald-200 bg-emerald-50/70 shadow-sm">
-                        <CardContent className="flex items-center gap-3 pt-6 text-sm text-emerald-800">
-                            <FileCheck2 className="h-5 w-5" />
-                            Анкета успешно отправлена {new Date(submittedAt).toLocaleString()}.
-                        </CardContent>
-                    </Card>
+                    <Notice tone="success" title="Анкета отправлена">
+                        Анкета успешно отправлена {new Date(submittedAt).toLocaleString()}.
+                    </Notice>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">Мои дисциплины</CardTitle>
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[320px_1fr]">
+                    <Card className="xl:sticky xl:top-5">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpen />
+                                Мои дисциплины
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0">
                             {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
+                                <div className="p-5"><LoadingState /></div>
                             ) : disciplineBuckets.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="px-5 py-6 text-sm text-slate-600">
                                     {visibleItems.length > 0
                                         ? 'По выбранным фильтрам дисциплины не найдены.'
                                         : 'Нет доступных дисциплин для анкетирования.'}
                                 </p>
                             ) : (
-                                <div className="space-y-2">
+                                <ul className="divide-y divide-slate-200">
                                     {disciplineBuckets.map((bucket) => {
                                         const active = selectedDisciplineId === bucket.id;
                                         const availableCount = bucket.items.filter((item) => item.can_submit).length;
                                         const hasSurvey = bucket.items.some((item) => item.survey_id);
 
                                         return (
-                                            <button
-                                                key={bucket.id}
-                                                type="button"
-                                                onClick={() => selectDiscipline(bucket)}
-                                                className={`w-full rounded-lg border px-3 py-3 text-left transition ${active ? 'border-[#067a75] bg-[#f0f8f7]' : 'border-border hover:bg-muted/40'}`}
-                                            >
-                                                <p className="font-medium text-[#102945]">{bucket.discipline.name}</p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    {availableCount > 0
-                                                        ? `Доступно анкет: ${availableCount}`
-                                                        : hasSurvey
-                                                            ? 'Есть анкета, но сейчас недоступна'
-                                                            : 'Анкетирование не назначено'}
-                                                </p>
-                                            </button>
+                                            <li key={bucket.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => selectDiscipline(bucket)}
+                                                    aria-current={active ? 'true' : undefined}
+                                                    className={`flex w-full items-start justify-between gap-3 border-l-[3px] px-5 py-3.5 text-left transition-colors ${active ? 'border-l-teal-600 bg-teal-50' : 'border-l-transparent hover:bg-slate-50'}`}
+                                                >
+                                                    <span className="min-w-0">
+                                                        <span className={`block font-medium ${active ? 'text-[#102945]' : 'text-slate-900'}`}>{bucket.discipline.name}</span>
+                                                        <span className={`mt-1 block text-xs ${availableCount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                                            {availableCount > 0
+                                                                ? `Доступно анкет: ${availableCount}`
+                                                                : hasSurvey
+                                                                    ? 'Есть анкета, но сейчас недоступна'
+                                                                    : 'Анкетирование не назначено'}
+                                                        </span>
+                                                    </span>
+                                                    {availableCount > 0 ? (
+                                                        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-600" aria-hidden="true" />
+                                                    ) : (
+                                                        <ChevronRight className={`mt-0.5 h-4 w-4 shrink-0 ${active ? 'text-teal-700' : 'text-slate-300'}`} aria-hidden="true" />
+                                                    )}
+                                                </button>
+                                            </li>
                                         );
                                     })}
-                                </div>
+                                </ul>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
+                    <Card>
+                        <CardHeader>
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#102945]">Форма анкеты</CardTitle>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button type="button" variant="outline" size="sm" className="gap-2" onClick={resetDraft} disabled={!canSubmitSelected}>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ClipboardList />
+                                    Форма анкеты
+                                </CardTitle>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                                        <Save className="h-3.5 w-3.5" />
+                                        Сохранено {draftSavedAt ? new Date(draftSavedAt).toLocaleTimeString() : 'авто'}
+                                    </span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={resetDraft} disabled={!canSubmitSelected}>
                                         <RotateCcw className="h-4 w-4" />
                                         Сбросить черновик
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" className="gap-2" disabled>
-                                        <Save className="h-4 w-4" />
-                                        Сохранено {draftSavedAt ? new Date(draftSavedAt).toLocaleTimeString() : 'авто'}
                                     </Button>
                                 </div>
                             </div>
                         </CardHeader>
                         <CardContent>
                             {!selectedItem ? (
-                                <p className="text-sm text-muted-foreground">Выберите дисциплину слева.</p>
+                                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <ClipboardList className="h-6 w-6" />
+                                    </div>
+                                    <p className="font-display text-lg font-bold text-[#102945]">Выберите дисциплину слева</p>
+                                    <p className="max-w-sm text-sm text-slate-600">Откройте дисциплину из списка «Мои дисциплины», чтобы увидеть вопросы анкеты.</p>
+                                </div>
                             ) : (
-                                <div className="space-y-4">
-                                    <div className="rounded-lg border border-border/80 bg-muted/20 p-3">
-                                        <p className="text-xs uppercase tracking-wide text-muted-foreground">Выбрано</p>
-                                        <p className="mt-1 text-sm font-semibold text-[#102945]">{selectedItem.discipline?.name}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">Преподаватель: {selectedItem.teacher?.name || 'Не указан'}</p>
-                                        <div className="mt-2">
-                                            <Badge variant={canSubmitSelected ? 'secondary' : 'outline'}>
+                                <div className="space-y-6">
+                                    <div className="space-y-3 border-b border-slate-200 pb-5">
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="qd-field-label text-slate-500">Выбрано</p>
+                                                <h2 className="mt-1 font-display text-xl font-bold leading-snug text-[#102945]">{selectedItem.discipline?.name}</h2>
+                                                <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600">
+                                                    <UserRound className="h-4 w-4 text-teal-700" />
+                                                    Преподаватель: {selectedItem.teacher?.name || 'Не указан'}
+                                                </p>
+                                            </div>
+                                            <Badge variant={canSubmitSelected ? 'success' : 'outline'}>
                                                 {selectedItem.survey_state_label || 'Статус анкетирования неизвестен'}
                                             </Badge>
                                         </div>
+
+                                        {canSubmitSelected && questions.length > 0 && (
+                                            <div className="space-y-2 pt-1">
+                                                <div className="flex items-center justify-between text-sm">
+                                                    <span className="text-slate-600">Прогресс заполнения</span>
+                                                    <span className="font-semibold tabular-nums text-[#102945]">{answeredCount} / {questions.length}</span>
+                                                </div>
+                                                <Progress value={progressPercent} />
+                                            </div>
+                                        )}
                                     </div>
 
                                     {(selectedDiscipline?.items?.length ?? 0) > 1 && (
-                                        <div className="space-y-2 rounded-lg border border-border/80 p-3">
-                                            <p className="text-xs uppercase tracking-wide text-muted-foreground">По этой дисциплине доступно несколько назначений</p>
+                                        <div className="space-y-2">
+                                            <p className="qd-field-label text-slate-500">По этой дисциплине доступно несколько назначений</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {selectedDiscipline.items.map((item) => {
                                                     const active = Number(item.group_discipline_id) === Number(selectedItem.group_discipline_id);
@@ -475,7 +512,8 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                             key={`${item.group_discipline_id}`}
                                                             type="button"
                                                             onClick={() => selectAssignment(item)}
-                                                            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${active ? 'border-[#067a75] bg-[#f0f8f7] text-[#0b5d63]' : 'border-border text-muted-foreground hover:bg-muted/40'}`}
+                                                            aria-pressed={active}
+                                                            className={`rounded-[10px] border px-3 py-1.5 text-sm font-medium transition-colors ${active ? 'border-teal-600 bg-teal-50 text-[#102945]' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-[#102945]'}`}
                                                         >
                                                             {(item.teacher?.name || 'Преподаватель')} · {item.survey_state_label || 'нет статуса'}
                                                         </button>
@@ -486,74 +524,94 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                     )}
 
                                     {!canSubmitSelected && (
-                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                        <Notice tone="warning">
                                             Для выбранной дисциплины сейчас нет доступного анкетирования. Статус: {selectedItem.survey_state_label || 'не определен'}.
-                                        </div>
+                                        </Notice>
                                     )}
 
-                                    {canSubmitSelected && questions.map((question, index) => (
-                                        <div key={question.id} className="rounded-lg border border-border/80 p-4">
-                                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Вопрос {index + 1}</p>
-                                            <p className="mt-1 text-sm font-medium text-[#102945]">{question.question_text}</p>
+                                    {canSubmitSelected && (
+                                        <ol className="space-y-4">
+                                            {questions.map((question, index) => {
+                                                const answered = isAnswered(question, answers[question.id]);
+                                                const isChoice = question.question_type === 'single_choice' || question.question_type === 'multiple_choice';
 
-                                            {(question.question_type === 'single_choice' || question.question_type === 'multiple_choice') && (
-                                                <select
-                                                    className="mt-3 w-full rounded-md border border-input px-3 py-2 text-sm"
-                                                    value={answers[question.id]?.option_id || ''}
-                                                    onChange={(e) => setAnswers((prev) => ({
-                                                        ...prev,
-                                                        [question.id]: {
-                                                            ...prev[question.id],
-                                                            option_id: e.target.value,
-                                                        },
-                                                    }))}
-                                                >
-                                                    <option value="">Выберите вариант</option>
-                                                    {(question.options || []).map((option) => (
-                                                        <option key={option.id} value={option.id}>{option.option_text}</option>
-                                                    ))}
-                                                </select>
-                                            )}
+                                                return (
+                                                    <li key={question.id} className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
+                                                        <div className="flex items-start gap-3">
+                                                            <span
+                                                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${answered ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}
+                                                                aria-hidden="true"
+                                                            >
+                                                                {answered ? <Check className="h-4 w-4" /> : index + 1}
+                                                            </span>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="qd-field-label text-slate-500">Вопрос {index + 1}</p>
+                                                                <p className="mt-1 text-[0.9375rem] font-medium leading-relaxed text-[#102945]">{question.question_text}</p>
 
-                                            {question.question_type === 'text' && (
-                                                <textarea
-                                                    className="mt-3 w-full rounded-md border border-input px-3 py-2 text-sm"
-                                                    rows={4}
-                                                    value={answers[question.id]?.text_answer || ''}
-                                                    onChange={(e) => setAnswers((prev) => ({
-                                                        ...prev,
-                                                        [question.id]: {
-                                                            ...prev[question.id],
-                                                            text_answer: e.target.value,
-                                                        },
-                                                    }))}
-                                                />
-                                            )}
+                                                                {isChoice && (
+                                                                    <div role="radiogroup" aria-label={question.question_text} className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                                        {(question.options || []).map((option) => {
+                                                                            const checked = String(answers[question.id]?.option_id || '') === String(option.id);
 
-                                            {question.question_type === 'numeric' && (
-                                                <input
-                                                    className="mt-3 w-full rounded-md border border-input px-3 py-2 text-sm"
-                                                    type="number"
-                                                    value={answers[question.id]?.numeric_answer || ''}
-                                                    onChange={(e) => setAnswers((prev) => ({
-                                                        ...prev,
-                                                        [question.id]: {
-                                                            ...prev[question.id],
-                                                            numeric_answer: e.target.value,
-                                                        },
-                                                    }))}
-                                                />
-                                            )}
-                                        </div>
-                                    ))}
+                                                                            return (
+                                                                                <label
+                                                                                    key={option.id}
+                                                                                    className={`flex cursor-pointer items-center gap-3 rounded-[10px] border px-3 py-2.5 text-sm transition-colors ${checked ? 'border-teal-600 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
+                                                                                >
+                                                                                    <input
+                                                                                        type="radio"
+                                                                                        className="h-4 w-4 accent-teal-700"
+                                                                                        name={`question-${question.id}`}
+                                                                                        value={option.id}
+                                                                                        checked={checked}
+                                                                                        onChange={(e) => setAnswerField(question.id, 'option_id', e.target.value)}
+                                                                                    />
+                                                                                    <span>{option.option_text}</span>
+                                                                                </label>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                )}
+
+                                                                {question.question_type === 'text' && (
+                                                                    <textarea
+                                                                        className={`${qdFieldClass} mt-3 h-auto py-2.5`}
+                                                                        rows={4}
+                                                                        placeholder="Ваш ответ"
+                                                                        value={answers[question.id]?.text_answer || ''}
+                                                                        onChange={(e) => setAnswerField(question.id, 'text_answer', e.target.value)}
+                                                                    />
+                                                                )}
+
+                                                                {question.question_type === 'numeric' && (
+                                                                    <input
+                                                                        className={`${qdFieldClass} mt-3 sm:max-w-[12rem]`}
+                                                                        type="number"
+                                                                        placeholder="Число"
+                                                                        value={answers[question.id]?.numeric_answer || ''}
+                                                                        onChange={(e) => setAnswerField(question.id, 'numeric_answer', e.target.value)}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ol>
+                                    )}
 
                                     {canSubmitSelected && (
-                                        <div className="sticky bottom-3 flex justify-end gap-2 rounded-xl border border-border/80 bg-white/95 p-3 backdrop-blur">
-                                            <Button type="button" variant="outline" onClick={resetDraft}>Очистить</Button>
-                                            <Button type="button" className="gap-2" onClick={submit}>
-                                                <Send className="h-4 w-4" />
-                                                Отправить анкету
-                                            </Button>
+                                        <div className="sticky bottom-3 flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-white p-3 shadow-[0_4px_16px_0_rgba(25,28,29,0.08)] sm:flex-row sm:items-center sm:justify-between">
+                                            <p className="px-1 text-sm text-slate-600">
+                                                Отвечено <span className="font-semibold tabular-nums text-[#102945]">{answeredCount} из {questions.length}</span>
+                                            </p>
+                                            <div className="flex justify-end gap-2">
+                                                <Button type="button" variant="outline" onClick={resetDraft}>Очистить</Button>
+                                                <Button type="button" onClick={submit}>
+                                                    <Send className="h-4 w-4" />
+                                                    Отправить анкету
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -565,9 +623,11 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
 
             <Dialog open={isSubmitSuccessModalOpen} onOpenChange={setIsSubmitSuccessModalOpen}>
                 <DialogContent className="sm:max-w-md">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                        <FileCheck2 className="h-7 w-7" />
+                    </div>
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-emerald-700">
-                            <FileCheck2 className="h-5 w-5" />
+                        <DialogTitle>
                             Анкета успешно отправлена
                         </DialogTitle>
                         <DialogDescription>

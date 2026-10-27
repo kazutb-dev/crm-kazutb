@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, FilterBar, FormField, Notice, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { BarChart3, Search, Star, UsersRound } from 'lucide-react';
+import { BarChart3, ClipboardList, Search, Star, UsersRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function Reports() {
@@ -50,85 +50,79 @@ export default function Reports() {
     }, [responses, search]);
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Отчеты"
+                    description="Сводка результатов анкетирования по преподавателям и дисциплинам."
+                    meta={<StatusBadge tone="info">{responses.length} ответов</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Анкетирование - Отчеты" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Отчеты</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Сводка результатов анкетирования по преподавателям и дисциплинам.</p>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего ответов" value={summary?.total_responses ?? 0} tone="teal" icon={UsersRound} />
+                    <StatTile label="Средний балл" value={summary?.average_score ?? '—'} tone="gold" icon={Star} />
+                    <StatTile label="В выборке" value={filteredResponses.length} tone="info" icon={BarChart3} hint={search.trim() ? 'С учётом поиска' : null} />
+                    <StatTile label="Анкет" value={new Set(responses.map((item) => item.survey_id)).size} tone="navy" icon={ClipboardList} />
+                </StatGrid>
+
+                {error && <Notice tone="danger" title="Ошибка загрузки">{error}</Notice>}
+
+                <FilterBar>
+                    <FormField label="Поиск">
+                        <div className="relative w-full sm:max-w-md">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input className="pl-9" placeholder="Поиск по анкете, студенту, дисциплине" value={search} onChange={(e) => setSearch(e.target.value)} />
                         </div>
-                        <Badge variant="secondary" className="w-fit">{responses.length} ответов</Badge>
-                    </CardContent>
-                </Card>
+                    </FormField>
+                </FilterBar>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Всего ответов" value={summary?.total_responses ?? 0} icon={<UsersRound className="h-5 w-5 text-[#067a75]" />} />
-                    <StatCard title="Средний балл" value={summary?.average_score ?? '—'} icon={<Star className="h-5 w-5 text-amber-500" />} />
-                    <StatCard title="В выборке" value={filteredResponses.length} icon={<BarChart3 className="h-5 w-5 text-[#067a75]" />} />
-                    <StatCard title="Анкет" value={new Set(responses.map((item) => item.survey_id)).size} />
-                </div>
-
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="text-base text-[#102945]">Последние ответы</CardTitle>
-                            <div className="relative w-full sm:w-80">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input className="pl-9" placeholder="Поиск по анкете, студенту, дисциплине" value={search} onChange={(e) => setSearch(e.target.value)} />
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {filteredResponses.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Ответов пока нет.</p>
-                        ) : (
+                {filteredResponses.length === 0 ? (
+                    <EmptyState
+                        title="Ответов пока нет"
+                        description={responses.length > 0 ? 'По запросу ничего не найдено — измените поиск.' : 'Ответы появятся, когда студенты начнут проходить анкеты.'}
+                    />
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BarChart3 />
+                                Последние ответы
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
                                     <thead>
-                                        <tr className="border-b text-muted-foreground">
-                                            <th className="px-3 py-2 text-left font-medium">Анкета</th>
-                                            <th className="px-3 py-2 text-left font-medium">Студент</th>
-                                            <th className="px-3 py-2 text-left font-medium">Преподаватель</th>
-                                            <th className="px-3 py-2 text-left font-medium">Дисциплина</th>
-                                            <th className="px-3 py-2 text-left font-medium">Создано</th>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="px-5 py-3 text-left">Анкета</th>
+                                            <th className="px-5 py-3 text-left">Студент</th>
+                                            <th className="px-5 py-3 text-left">Преподаватель</th>
+                                            <th className="px-5 py-3 text-left">Дисциплина</th>
+                                            <th className="px-5 py-3 text-right">Создано</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredResponses.map((row) => (
-                                            <tr key={row.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2 font-medium text-[#102945]">{row.survey?.title || row.survey_id}</td>
-                                                <td className="px-3 py-2">{row.student?.full_name || row.student_id}</td>
-                                                <td className="px-3 py-2">{row.teacher?.name || row.teacher?.display_name || row.teacher_id}</td>
-                                                <td className="px-3 py-2">{row.discipline?.name || row.discipline_id}</td>
-                                                <td className="px-3 py-2">{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td>
+                                            <tr key={row.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                <td className="px-5 py-3 font-medium text-slate-900">{row.survey?.title || row.survey_id}</td>
+                                                <td className="px-5 py-3 text-slate-700">{row.student?.full_name || row.student_id}</td>
+                                                <td className="px-5 py-3 text-slate-700">{row.teacher?.name || row.teacher?.display_name || row.teacher_id}</td>
+                                                <td className="px-5 py-3 text-slate-700">{row.discipline?.name || row.discipline_id}</td>
+                                                <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums text-slate-600">{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </AuthenticatedLayout>
-    );
-}
-
-function StatCard({ title, value, icon = null }) {
-    return (
-        <Card className="border-border/80 bg-white/90 shadow-sm">
-            <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
-                </div>
-                {icon}
-            </CardContent>
-        </Card>
     );
 }

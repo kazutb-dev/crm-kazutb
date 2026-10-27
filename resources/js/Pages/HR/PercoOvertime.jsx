@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -179,136 +180,106 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <form className="flex items-center gap-2" onSubmit={handleSearch}>
-                    <Input
-                        ref={searchRef}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="ФИО сотрудника..."
-                        className="h-8 w-64"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="mr-1 h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Переработка"
+                    description="Рабочие дни с переработкой: время прихода и ухода, отработанное время и переработка по сотрудникам."
+                    meta={meta?.total != null ? <StatusBadge tone="default">Записей с переработкой: {meta.total}</StatusBadge> : null}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="HR / Переработка" />
 
-            <div className="admin-page-wrap">
-                <div className="flex flex-wrap items-center gap-3">
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                            <label className="relative block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    ref={searchRef}
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ФИО сотрудника..."
+                                    className="pl-9"
+                                />
+                            </label>
+                            <FormField label="Подразделение">
+                                <select value={division} onChange={handleDivisionChange} className={qdFieldClass}>
+                                    <option value="">Все подразделения</option>
+                                    {divisions.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Период">
+                                <select value={days} onChange={handleDaysChange} className={qdFieldClass}>
+                                    <option value="1">Сегодня</option>
+                                    <option value="-1">Вчера</option>
+                                    <option value="7">За 7 дней</option>
+                                    <option value="14">За 14 дней</option>
+                                    <option value="30">За 30 дней</option>
+                                    <option value="0">За все время</option>
+                                </select>
+                            </FormField>
+                            <FormField label="С даты">
+                                <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
+                            </FormField>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit">
+                                <Search className="h-4 w-4" />
+                                Найти
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                    <select
-                        value={days}
-                        onChange={handleDaysChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="1">Сегодня</option>
-                        <option value="-1">Вчера</option>
-                        <option value="7">За 7 дней</option>
-                        <option value="14">За 14 дней</option>
-                        <option value="30">За 30 дней</option>
-                        <option value="0">За все время</option>
-                    </select>
-
-                    <Input type="date" value={fromDate} onChange={handleFromDateChange} className="h-9 w-[160px]" />
-
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-
-                    {meta?.total != null && (
-                        <span className="ml-auto text-sm text-muted-foreground">
-                            Записей с переработкой: <strong>{meta.total}</strong>
-                        </span>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Рабочих дней в периоде</p>
-                                <p className="text-2xl font-semibold">{overtimeDays}</p>
-                            </div>
-                            <Timer className="h-5 w-5 text-orange-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Сотрудников</p>
-                                <p className="text-2xl font-semibold">{overtimePeople}</p>
-                            </div>
-                            <Users className="h-5 w-5 text-blue-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Всего отработано</p>
-                                <p className="text-lg font-semibold">{totalWorkTime}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-emerald-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Суммарная переработка</p>
-                                <p className="text-lg font-semibold">{totalOvertime}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-red-600" />
-                        </CardContent>
-                    </Card>
-                </div>
+                <StatGrid>
+                    <StatTile label="Рабочих дней в периоде" value={overtimeDays} icon={Timer} tone="copper" />
+                    <StatTile label="Сотрудников" value={overtimePeople} icon={Users} tone="info" />
+                    <StatTile label="Всего отработано" value={<span className="text-2xl">{totalWorkTime}</span>} icon={Clock3} tone="success" />
+                    <StatTile label="Суммарная переработка" value={<span className="text-2xl">{totalOvertime}</span>} icon={Clock3} tone="danger" />
+                </StatGrid>
 
                 {overtimeDays === 0 && latestDateLabel && (
-                    <Card className="border-orange-200 bg-orange-50/60">
-                        <CardContent className="p-4 text-sm text-orange-900">
-                            За выбранный период нет данных по рабочему времени. Последняя доступная дата в PERCo: <strong>{latestDateLabel}</strong>.
-                        </CardContent>
-                    </Card>
+                    <Notice tone="warning">
+                        За выбранный период нет данных по рабочему времени. Последняя доступная дата в PERCo: <strong>{latestDateLabel}</strong>.
+                    </Notice>
                 )}
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Кто сколько работал</CardTitle>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Timer className="shrink-0" />Кто сколько работал</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {items.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет данных.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1100px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium"><button type="button" onClick={() => toggleSort('work_date')}>Дата{sortIndicator('work_date')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('first_enter_time')}>Пришел{sortIndicator('first_enter_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('last_exit_time')}>Ушел{sortIndicator('last_exit_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('work_time')}>Отработал{sortIndicator('work_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('overtime_time')}>Переработка{sortIndicator('overtime_time')}</button></th>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('work_date')}>Дата{sortIndicator('work_date')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Пришел{sortIndicator('first_enter_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_exit_time')}>Ушел{sortIndicator('last_exit_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('work_time')}>Отработал{sortIndicator('work_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('overtime_time')}>Переработка{sortIndicator('overtime_time')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -319,23 +290,23 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
                                                 return (
                                             <tr
                                                 key={`${row.id}-${row.work_date}`}
-                                                className="cursor-pointer border-b last:border-0 hover:bg-muted/30"
+                                                className="cursor-pointer border-b border-slate-200 last:border-0"
                                                 onClick={() => openDayEvents(row)}
                                                 title="Открыть историю проходов за день"
                                             >
-                                                <td className="py-3 pl-6 pr-3">{fmtDate(row.work_date)}</td>
-                                                <td className="py-3 pr-3 font-medium underline underline-offset-4">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 font-medium text-emerald-700">{fmtTimeList(row.enter_times, row.first_enter_time)}</td>
-                                                <td className="py-3 pr-3 font-medium text-red-600">
+                                                <td className="py-3 pl-6 pr-3 tabular-nums text-slate-700">{fmtDate(row.work_date)}</td>
+                                                <td className="py-3 pr-3 font-medium text-teal-700 underline underline-offset-4">{fullName(row)}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="py-3 pr-3 font-medium tabular-nums text-emerald-700">{fmtTimeList(row.enter_times, row.first_enter_time)}</td>
+                                                <td className="py-3 pr-3 font-medium tabular-nums text-red-600">
                                                     {fmtTimeList(row.exit_times, row.last_exit_time)}
                                                     {eventIssue && (
-                                                        <div className="text-[11px] font-normal text-amber-600">{eventIssue}</div>
+                                                        <div className="text-[11px] font-normal text-amber-700">{eventIssue}</div>
                                                     )}
                                                 </td>
-                                                <td className="py-3 pr-3 font-semibold">{fmtDuration(row.work_time)}</td>
-                                                <td className="py-3 pr-3 font-semibold text-red-600">{fmtDuration(row.overtime_time)}</td>
+                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{fmtDuration(row.work_time)}</td>
+                                                <td className="py-3 pr-6"><StatusBadge tone="danger" className="tabular-nums">{fmtDuration(row.overtime_time)}</StatusBadge></td>
                                             </tr>
                                                 );
                                             })()
@@ -346,7 +317,7 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 p-4">
+                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

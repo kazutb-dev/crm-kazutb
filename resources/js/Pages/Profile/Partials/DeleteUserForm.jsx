@@ -1,10 +1,16 @@
-import DangerButton from '@/Components/DangerButton';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import Modal from '@/Components/Modal';
-import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useForm } from '@inertiajs/react';
+import { Trash2, TriangleAlert } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 export default function DeleteUserForm({ className = '' }) {
@@ -46,66 +52,71 @@ export default function DeleteUserForm({ className = '' }) {
     };
 
     return (
-        <section className={`space-y-4 ${className}`}>
-            <header>
-                <h2 className="text-lg font-semibold text-rose-900">
-                    Удаление аккаунта
-                </h2>
+        <section className={`rounded-[14px] border border-red-200 bg-red-50 p-5 sm:p-6 ${className}`}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-100 text-red-700">
+                        <TriangleAlert className="h-5 w-5" />
+                    </span>
+                    <header>
+                        <h2 className="font-display text-lg font-bold text-red-800">
+                            Удаление аккаунта
+                        </h2>
 
-                <p className="mt-1 text-sm leading-6 text-rose-900/75">
-                    После удаления аккаунт и все связанные данные будут безвозвратно удалены. Сначала сохраните нужную информацию.
-                </p>
-            </header>
+                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-700">
+                            После удаления аккаунт и все связанные данные будут безвозвратно удалены. Сначала сохраните нужную информацию.
+                        </p>
+                    </header>
+                </div>
 
-            <DangerButton onClick={confirmUserDeletion} className="w-full sm:w-auto">
-                Удалить аккаунт
-            </DangerButton>
+                <Button type="button" variant="destructive" onClick={confirmUserDeletion} className="w-full shrink-0 sm:w-auto">
+                    <Trash2 />
+                    Удалить аккаунт
+                </Button>
+            </div>
 
-            <Modal show={confirmingUserDeletion} onClose={closeModal}>
-                <form onSubmit={deleteUser} className="p-5 sm:p-6">
-                    <h2 className="text-lg font-semibold text-gray-900">
-                        Вы действительно хотите удалить аккаунт?
-                    </h2>
+            <Dialog open={confirmingUserDeletion} onOpenChange={(open) => { if (!open) closeModal(); }}>
+                <DialogContent className="sm:max-w-lg">
+                    <form onSubmit={deleteUser} className="space-y-5">
+                        <DialogHeader>
+                            <DialogTitle>Вы действительно хотите удалить аккаунт?</DialogTitle>
+                            <DialogDescription>
+                                Для подтверждения введите пароль. После удаления восстановить данные будет невозможно.
+                            </DialogDescription>
+                        </DialogHeader>
 
-                    <p className="mt-1 text-sm leading-6 text-gray-600">
-                        Для подтверждения введите пароль. После удаления восстановить данные будет невозможно.
-                    </p>
+                        <div className="space-y-2">
+                            <Label htmlFor="password" className="sr-only">Пароль</Label>
 
-                    <div className="mt-5">
-                        <InputLabel
-                            htmlFor="password"
-                            value="Пароль"
-                            className="sr-only"
-                        />
+                            <TextInput
+                                id="password"
+                                type="password"
+                                name="password"
+                                ref={passwordInput}
+                                value={data.password}
+                                onChange={(e) =>
+                                    setData('password', e.target.value)
+                                }
+                                className="block w-full"
+                                isFocused
+                                placeholder="Введите пароль"
+                            />
 
-                        <TextInput
-                            id="password"
-                            type="password"
-                            name="password"
-                            ref={passwordInput}
-                            value={data.password}
-                            onChange={(e) =>
-                                setData('password', e.target.value)
-                            }
-                            className="mt-1 block w-full sm:w-3/4"
-                            isFocused
-                            placeholder="Введите пароль"
-                        />
+                            {errors.password && <p className="text-sm text-red-700">{errors.password}</p>}
+                        </div>
 
-                        <InputError message={errors.password} className="mt-2" />
-                    </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={closeModal}>
+                                Отмена
+                            </Button>
 
-                    <div className="mt-5 flex flex-wrap justify-end gap-3">
-                        <SecondaryButton onClick={closeModal}>
-                            Отмена
-                        </SecondaryButton>
-
-                        <DangerButton disabled={processing}>
-                            Удалить аккаунт
-                        </DangerButton>
-                    </div>
-                </form>
-            </Modal>
+                            <Button type="submit" variant="destructive" disabled={processing}>
+                                Удалить аккаунт
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </section>
     );
 }

@@ -1,11 +1,18 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EmptyState, FormField, Notice, PageHeader, SectionHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeft, Building2, Info, Plus, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Building2, CirclePlus, Plus, Trash2, UserRoundX, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+function FieldError({ message }) {
+    return message ? <p className="mt-1.5 text-xs text-red-700">{message}</p> : null;
+}
 
 export default function DepartmentRequestsDepartments({
     departments = [],
@@ -43,6 +50,8 @@ export default function DepartmentRequestsDepartments({
         });
         return map;
     }, [handlers]);
+
+    const withoutHandlers = departments.filter((department) => (handlersByDepartment.get(department.department_id) ?? []).length === 0).length;
 
     const addDepartment = (e) => {
         e.preventDefault();
@@ -86,184 +95,265 @@ export default function DepartmentRequestsDepartments({
 
     return (
         <AuthenticatedLayout
-            header={
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">Отделы для заявок</h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Список отделов, которые получают пользовательские заявки
-                        </p>
-                    </div>
-                    <Link href={route('dept-requests.index')}>
-                        <Button variant="outline" size="sm">
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            К форме заявки
+            header={(
+                <PageHeader
+                    eyebrow="Обращения"
+                    title="Отделы для заявок"
+                    description="Список отделов, которые получают пользовательские заявки, и ответственные за их обработку."
+                    actions={(
+                        <Button variant="outline" asChild>
+                            <Link href={route('dept-requests.index')}>
+                                <ArrowLeft />
+                                К форме заявки
+                            </Link>
                         </Button>
-                    </Link>
-                </div>
-            }
+                    )}
+                />
+            )}
         >
             <Head title="Отделы для заявок" />
 
             <div className="admin-page-wrap space-y-6">
-                {flash.success && (
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                        {flash.success}
-                    </div>
-                )}
-                {flash.error && (
-                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                        {flash.error}
-                    </div>
-                )}
+                {flash.success && <Notice tone="success">{flash.success}</Notice>}
+                {flash.error && <Notice tone="danger">{flash.error}</Notice>}
 
                 {!isAdmin && (
-                    <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                    <Notice tone="info">
                         Отправка заявок доступна в отделы ниже. Управление списком отделов и ответственными доступно только администраторам.
-                    </div>
+                    </Notice>
                 )}
 
+                <StatGrid className="xl:grid-cols-3">
+                    <StatTile label="Отделов-получателей" value={departments.length} icon={Building2} tone="teal" hint="Доступны в форме заявки" />
+                    <StatTile label="Назначений ответственных" value={handlers.length} icon={Users} tone="navy" hint="Пользователи, обрабатывающие заявки" />
+                    <StatTile
+                        label="Без ответственных"
+                        value={withoutHandlers}
+                        icon={UserRoundX}
+                        tone={withoutHandlers > 0 ? 'warning' : 'success'}
+                        hint={withoutHandlers > 0 ? 'Заявки в эти отделы некому обработать' : 'У каждого отдела есть ответственный'}
+                    />
+                </StatGrid>
+
+                <section>
+                    <SectionHeader title="Отделы-получатели" description="Подсказки видят пользователи при выборе отдела в форме заявки." />
+                    {departments.length === 0 ? (
+                        <EmptyState
+                            title="Отделов-получателей пока нет"
+                            description={isAdmin ? 'Добавьте существующий отдел или создайте новый в блоке «Управление» ниже.' : 'Администратор ещё не настроил отделы для заявок.'}
+                        />
+                    ) : (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {departments.map((department) => {
+                                const assignedHandlers = handlersByDepartment.get(department.department_id) ?? [];
+                                return (
+                                    <Card key={department.id}>
+                                        <CardHeader>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <CardTitle className="flex items-center gap-2">
+                                                    <Building2 className="shrink-0" />
+                                                    {department.name}
+                                                </CardTitle>
+                                                {isAdmin && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-red-700 hover:bg-red-50"
+                                                        title="Удалить из получателей"
+                                                        aria-label="Удалить из получателей"
+                                                        onClick={() => removeRecipientDepartment(department.id)}
+                                                    >
+                                                        <Trash2 />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="border-b border-slate-200 pb-3">
+                                                <span className="qd-field-label text-slate-500">Подсказка</span>
+                                                <p className="mt-1 text-sm leading-relaxed text-slate-700">{department.hint || 'Подсказка не указана.'}</p>
+                                            </div>
+
+                                            <div>
+                                                <span className="qd-field-label text-slate-500">Ответственные</span>
+                                                {assignedHandlers.length === 0 ? (
+                                                    <div className="mt-2"><Badge variant="warning">Не назначены</Badge></div>
+                                                ) : (
+                                                    <div className="mt-1 divide-y divide-slate-200">
+                                                        {assignedHandlers.map((handler) => (
+                                                            <div key={handler.id} className="flex items-center justify-between gap-2 py-2">
+                                                                <div className="min-w-0">
+                                                                    <p className="truncate text-sm font-medium text-slate-900">{handler.user}</p>
+                                                                    <p className="truncate text-xs text-slate-500">{handler.email}</p>
+                                                                </div>
+                                                                {isAdmin && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="text-red-700 hover:bg-red-50"
+                                                                        title="Снять ответственного"
+                                                                        aria-label="Снять ответственного"
+                                                                        onClick={() => removeHandler(handler.id)}
+                                                                    >
+                                                                        <Trash2 />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+                        </div>
+                    )}
+                </section>
+
                 {isAdmin && (
-                    <>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Plus className="h-5 w-5" />
-                                    Добавить отдел-получатель
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={addDepartment} className="grid gap-3 md:grid-cols-3">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Отдел</label>
-                                        <select
-                                            className="w-full rounded-md border px-3 py-2 text-sm"
-                                            value={addDepartmentForm.data.department_id}
-                                            onChange={(e) => addDepartmentForm.setData('department_id', e.target.value)}
-                                        >
-                                            <option value="">— Выберите отдел —</option>
-                                            {availableDepartments.map((department) => (
-                                                <option key={department.id} value={department.id}>{department.name}</option>
-                                            ))}
-                                        </select>
-                                        {addDepartmentForm.errors.department_id && (
-                                            <p className="mt-1 text-xs text-red-600">{addDepartmentForm.errors.department_id}</p>
-                                        )}
-                                    </div>
+                    <section className="space-y-4">
+                        <SectionHeader title="Управление" description="Доступно только администраторам." compact />
 
-                                    <div className="md:col-span-2">
-                                        <label className="mb-1 block text-sm font-medium">Подсказка</label>
-                                        <input
-                                            className="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Например: баги на сайте, разработка, интеграции"
-                                            value={addDepartmentForm.data.hint}
-                                            onChange={(e) => addDepartmentForm.setData('hint', e.target.value)}
-                                        />
-                                        {addDepartmentForm.errors.hint && (
-                                            <p className="mt-1 text-xs text-red-600">{addDepartmentForm.errors.hint}</p>
-                                        )}
-                                    </div>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Plus className="shrink-0" />
+                                        Добавить отдел-получатель
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={addDepartment} className="space-y-4">
+                                        <div>
+                                            <FormField label="Отдел">
+                                                <select
+                                                    className={qdFieldClass}
+                                                    value={addDepartmentForm.data.department_id}
+                                                    onChange={(e) => addDepartmentForm.setData('department_id', e.target.value)}
+                                                >
+                                                    <option value="">— Выберите отдел —</option>
+                                                    {availableDepartments.map((department) => (
+                                                        <option key={department.id} value={department.id}>{department.name}</option>
+                                                    ))}
+                                                </select>
+                                            </FormField>
+                                            <FieldError message={addDepartmentForm.errors.department_id} />
+                                        </div>
 
-                                    <div className="md:col-span-3">
-                                        <Button type="submit" disabled={addDepartmentForm.processing}>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Добавить отдел
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                        <div>
+                                            <FormField label="Подсказка">
+                                                <Input
+                                                    placeholder="Например: баги на сайте, разработка, интеграции"
+                                                    value={addDepartmentForm.data.hint}
+                                                    onChange={(e) => addDepartmentForm.setData('hint', e.target.value)}
+                                                />
+                                            </FormField>
+                                            <FieldError message={addDepartmentForm.errors.hint} />
+                                        </div>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Plus className="h-5 w-5" />
-                                    Создать отдел с нуля
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={createDepartmentFromScratch} className="grid gap-3 md:grid-cols-2">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Название отдела</label>
-                                        <input
-                                            className="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Например: Центр цифровых продуктов"
-                                            value={createDepartmentForm.data.department_name}
-                                            onChange={(e) => createDepartmentForm.setData('department_name', e.target.value)}
-                                        />
-                                        {createDepartmentForm.errors.department_name && (
-                                            <p className="mt-1 text-xs text-red-600">{createDepartmentForm.errors.department_name}</p>
-                                        )}
-                                    </div>
+                                        <div className="flex justify-end border-t border-slate-200 pt-4">
+                                            <Button type="submit" disabled={addDepartmentForm.processing}>
+                                                <Plus />
+                                                Добавить отдел
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
 
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Подсказка для пользователей</label>
-                                        <input
-                                            className="w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Например: интеграции, API, портал"
-                                            value={createDepartmentForm.data.hint}
-                                            onChange={(e) => createDepartmentForm.setData('hint', e.target.value)}
-                                        />
-                                        {createDepartmentForm.errors.hint && (
-                                            <p className="mt-1 text-xs text-red-600">{createDepartmentForm.errors.hint}</p>
-                                        )}
-                                    </div>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <CirclePlus className="shrink-0" />
+                                        Создать отдел с нуля
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={createDepartmentFromScratch} className="space-y-4">
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div>
+                                                <FormField label="Название отдела">
+                                                    <Input
+                                                        placeholder="Например: Центр цифровых продуктов"
+                                                        value={createDepartmentForm.data.department_name}
+                                                        onChange={(e) => createDepartmentForm.setData('department_name', e.target.value)}
+                                                    />
+                                                </FormField>
+                                                <FieldError message={createDepartmentForm.errors.department_name} />
+                                            </div>
 
-                                    <div className="md:col-span-2">
-                                        <label className="mb-1 block text-sm font-medium">Описание отдела (опционально)</label>
-                                        <textarea
-                                            className="min-h-20 w-full rounded-md border px-3 py-2 text-sm"
-                                            placeholder="Короткое описание роли отдела"
-                                            value={createDepartmentForm.data.department_description}
-                                            onChange={(e) => createDepartmentForm.setData('department_description', e.target.value)}
-                                        />
-                                        {createDepartmentForm.errors.department_description && (
-                                            <p className="mt-1 text-xs text-red-600">{createDepartmentForm.errors.department_description}</p>
-                                        )}
-                                    </div>
+                                            <div>
+                                                <FormField label="Подсказка для пользователей">
+                                                    <Input
+                                                        placeholder="Например: интеграции, API, портал"
+                                                        value={createDepartmentForm.data.hint}
+                                                        onChange={(e) => createDepartmentForm.setData('hint', e.target.value)}
+                                                    />
+                                                </FormField>
+                                                <FieldError message={createDepartmentForm.errors.hint} />
+                                            </div>
+                                        </div>
 
-                                    <div className="md:col-span-2">
-                                        <Button type="submit" disabled={createDepartmentForm.processing}>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Создать отдел и добавить в получатели
-                                        </Button>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                        <div>
+                                            <FormField label="Описание отдела (опционально)">
+                                                <Textarea
+                                                    className="min-h-20"
+                                                    placeholder="Короткое описание роли отдела"
+                                                    value={createDepartmentForm.data.department_description}
+                                                    onChange={(e) => createDepartmentForm.setData('department_description', e.target.value)}
+                                                />
+                                            </FormField>
+                                            <FieldError message={createDepartmentForm.errors.department_description} />
+                                        </div>
+
+                                        <div className="flex justify-end border-t border-slate-200 pt-4">
+                                            <Button type="submit" disabled={createDepartmentForm.processing}>
+                                                <Plus />
+                                                Создать отдел и добавить в получатели
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Users className="h-5 w-5" />
+                                    <Users className="shrink-0" />
                                     Привязать ответственного пользователя
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={addHandler} className="flex flex-wrap gap-3">
-                                    <select
-                                        className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
-                                        value={addHandlerForm.data.department_id}
-                                        onChange={(e) => addHandlerForm.setData('department_id', e.target.value)}
-                                    >
-                                        <option value="">— Отдел-получатель —</option>
-                                        {departments.map((department) => (
-                                            <option key={department.department_id} value={department.department_id}>
-                                                {department.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                <form onSubmit={addHandler} className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                                    <FormField label="Отдел-получатель">
+                                        <select
+                                            className={qdFieldClass}
+                                            value={addHandlerForm.data.department_id}
+                                            onChange={(e) => addHandlerForm.setData('department_id', e.target.value)}
+                                        >
+                                            <option value="">— Отдел-получатель —</option>
+                                            {departments.map((department) => (
+                                                <option key={department.department_id} value={department.department_id}>
+                                                    {department.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </FormField>
 
-                                    <select
-                                        className="min-w-56 flex-1 rounded-md border px-3 py-2 text-sm"
-                                        value={addHandlerForm.data.user_id}
-                                        onChange={(e) => addHandlerForm.setData('user_id', e.target.value)}
-                                    >
-                                        <option value="">— Пользователь —</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
-                                        ))}
-                                    </select>
+                                    <FormField label="Пользователь">
+                                        <select
+                                            className={qdFieldClass}
+                                            value={addHandlerForm.data.user_id}
+                                            onChange={(e) => addHandlerForm.setData('user_id', e.target.value)}
+                                        >
+                                            <option value="">— Пользователь —</option>
+                                            {users.map((user) => (
+                                                <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                                            ))}
+                                        </select>
+                                    </FormField>
 
                                     <Button type="submit" disabled={addHandlerForm.processing}>
                                         Назначить
@@ -271,73 +361,8 @@ export default function DepartmentRequestsDepartments({
                                 </form>
                             </CardContent>
                         </Card>
-                    </>
+                    </section>
                 )}
-
-                <div className="grid gap-4 md:grid-cols-2">
-                    {departments.map((department) => {
-                        const assignedHandlers = handlersByDepartment.get(department.department_id) ?? [];
-                        return (
-                            <Card key={department.id}>
-                                <CardHeader>
-                                    <CardTitle className="flex items-start justify-between gap-2 text-base">
-                                        <span className="inline-flex items-center gap-2">
-                                            <Building2 className="h-5 w-5" />
-                                            {department.name}
-                                        </span>
-                                        {isAdmin && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                                                onClick={() => removeRecipientDepartment(department.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <div className="rounded-md bg-muted/50 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
-                                        <span className="inline-flex items-center gap-1 font-medium text-foreground">
-                                            <Info className="h-4 w-4" />
-                                            Подсказка:
-                                        </span>
-                                        <p className="mt-1">{department.hint || 'Подсказка не указана.'}</p>
-                                    </div>
-
-                                    <div>
-                                        <p className="mb-2 text-xs font-medium text-muted-foreground">Ответственные:</p>
-                                        {assignedHandlers.length === 0 ? (
-                                            <Badge variant="outline" className="text-xs">Не назначены</Badge>
-                                        ) : (
-                                            <div className="space-y-2">
-                                                {assignedHandlers.map((handler) => (
-                                                    <div key={handler.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
-                                                        <div className="min-w-0">
-                                                            <p className="truncate text-sm font-medium">{handler.user}</p>
-                                                            <p className="truncate text-xs text-muted-foreground">{handler.email}</p>
-                                                        </div>
-                                                        {isAdmin && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                                                                onClick={() => removeHandler(handler.id)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
             </div>
 
             <ConfirmDialog

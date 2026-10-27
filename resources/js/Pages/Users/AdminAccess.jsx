@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, Notice, PageHeader, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Search, ShieldPlus, Users } from 'lucide-react';
+import { Search, ShieldCheck, ShieldPlus, Users } from 'lucide-react';
 import { useMemo } from 'react';
 
 const roleLabels = {
@@ -98,62 +99,81 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
 
     return (
         <AuthenticatedLayout
-            headerRight={(
-                <form className="admin-header-actions" onSubmit={submitSearch}>
-                    <Input
-                        value={form.data.search}
-                        onChange={(e) => form.setData('search', e.target.value)}
-                        placeholder="Поиск по ФИО, email, логину, отделу"
-                        className="h-8 w-72"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
+            header={(
+                <PageHeader
+                    eyebrow="Управление доступом"
+                    title="Права администратора"
+                    description="Кто сейчас администрирует платформу и кому выдать права admin. Опасные действия требуют указания причины."
+                    meta={requiresDangerousActionReason ? <StatusBadge tone="warning">Нужна причина действия</StatusBadge> : null}
+                />
             )}
         >
             <Head title="Права администратора" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form className="flex flex-wrap items-end gap-3" onSubmit={submitSearch}>
+                        <label className="relative block min-w-[16rem] flex-1 space-y-2">
+                            <span className="qd-field-label block">Поиск сотрудника</span>
+                            <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                            <Input
+                                value={form.data.search}
+                                onChange={(e) => form.setData('search', e.target.value)}
+                                placeholder="Поиск по ФИО, email, логину, отделу"
+                                className="pl-9"
+                            />
+                        </label>
+                        <Button type="submit">
+                            <Search className="h-4 w-4" />
+                            Найти
+                        </Button>
+                    </form>
+                </FilterBar>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <StatTile label="Администраторы" value={adminUsers.length} tone="teal" icon={ShieldCheck} hint={hasSearch ? 'По текущему поиску' : 'Все с ролью admin / superadmin'} />
+                    <StatTile label="Найдено сотрудников" value={hasSearch ? staffUsers.length : '—'} tone="navy" icon={Users} hint={hasSearch ? `Запрос: «${search}»` : 'Введите запрос, чтобы найти сотрудника'} />
+                    <StatTile label="Можно выдать admin" value={hasSearch ? staffUsers.filter((user) => user.can_grant_admin).length : '—'} tone="gold" icon={ShieldPlus} />
+                </div>
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5" />
+                            <ShieldCheck className="h-4 w-4" />
                             Список администраторов ({adminUsers.length})
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className={adminUsers.length === 0 ? '' : 'p-0'}>
                         {adminUsers.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Администраторы не найдены по текущему поиску.</p>
+                            <Notice tone="info">Администраторы не найдены по текущему поиску.</Notice>
                         ) : (
-                            <div className="admin-table-wrap">
-                                <table className="admin-data-table min-w-[760px]">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[760px] text-sm">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Сотрудник</th>
-                                            <th className="py-3 pe-3 font-medium">Email</th>
-                                            <th className="py-3 pe-3 font-medium">Отдел</th>
-                                            <th className="py-3 pe-3 font-medium">Роль</th>
-                                            <th className="py-3 pe-3 font-medium">Действие</th>
+                                        <tr className="border-b border-slate-200 text-left">
+                                            <th className="px-5 py-3">Сотрудник</th>
+                                            <th className="px-3 py-3">Email</th>
+                                            <th className="px-3 py-3">Отдел</th>
+                                            <th className="px-3 py-3">Роль</th>
+                                            <th className="px-5 py-3 text-right">Действие</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-slate-200">
                                         {adminUsers.map((user) => (
-                                            <tr key={user.id} className="border-b align-top">
-                                                <td className="py-3 pe-3 font-medium">{user.name ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.email ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.department ?? '-'}</td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge>
+                                            <tr key={user.id} className="align-top hover:bg-slate-50">
+                                                <td className="px-5 py-3 font-medium text-slate-900">{user.name ?? '-'}</td>
+                                                <td className="px-3 py-3 text-slate-700">{user.email ?? '-'}</td>
+                                                <td className="px-3 py-3 text-slate-700">{user.department ?? '-'}</td>
+                                                <td className="px-3 py-3">
+                                                    <Badge variant={user.role === 'superadmin' ? 'gold' : 'default'}>
                                                         {roleLabels[user.role] ?? user.role ?? '-'}
                                                     </Badge>
                                                 </td>
-                                                <td className="py-3 pe-3">
+                                                <td className="px-5 py-3 text-right">
                                                     <Button
                                                         size="sm"
                                                         type="button"
-                                                        variant="destructive"
+                                                        variant={user.can_revoke_admin ? 'destructive' : 'outline'}
                                                         onClick={() => revokeAdmin(user.id)}
                                                         disabled={!user.can_revoke_admin}
                                                     >
@@ -172,48 +192,51 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5" />
+                            <ShieldPlus className="h-4 w-4" />
                             Выдача прав администратора сотрудникам
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className={hasSearch && staffUsers.length > 0 ? 'p-0' : ''}>
                         {!hasSearch ? (
-                            <p className="text-sm text-muted-foreground">
-                                Введите запрос в поиск, чтобы найти сотрудника и выдать права admin.
-                            </p>
+                            <EmptyStateInline
+                                icon={Search}
+                                title="Найдите сотрудника"
+                                description="Введите запрос в поиск, чтобы найти сотрудника и выдать права admin."
+                            />
                         ) : staffUsers.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Сотрудники не найдены.</p>
+                            <EmptyStateInline icon={Users} title="Сотрудники не найдены" description="Проверьте написание ФИО, email, логина или отдела." />
                         ) : (
-                            <div className="admin-table-wrap">
-                                <table className="admin-data-table min-w-[980px]">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[980px] text-sm">
                                     <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Сотрудник</th>
-                                            <th className="py-3 pe-3 font-medium">Email</th>
-                                            <th className="py-3 pe-3 font-medium">Логин</th>
-                                            <th className="py-3 pe-3 font-medium">Отдел</th>
-                                            <th className="py-3 pe-3 font-medium">Должность</th>
-                                            <th className="py-3 pe-3 font-medium">Текущая роль</th>
-                                            <th className="py-3 pe-3 font-medium">Действие</th>
+                                        <tr className="border-b border-slate-200 text-left">
+                                            <th className="px-5 py-3">Сотрудник</th>
+                                            <th className="px-3 py-3">Email</th>
+                                            <th className="px-3 py-3">Логин</th>
+                                            <th className="px-3 py-3">Отдел</th>
+                                            <th className="px-3 py-3">Должность</th>
+                                            <th className="px-3 py-3">Текущая роль</th>
+                                            <th className="px-5 py-3 text-right">Действие</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-slate-200">
                                         {staffUsers.map((user) => (
-                                            <tr key={user.id} className="border-b align-top">
-                                                <td className="py-3 pe-3 font-medium">{user.name ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.email ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.login ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.department ?? '-'}</td>
-                                                <td className="py-3 pe-3">{user.title ?? '-'}</td>
-                                                <td className="py-3 pe-3">
+                                            <tr key={user.id} className="align-top hover:bg-slate-50">
+                                                <td className="px-5 py-3 font-medium text-slate-900">{user.name ?? '-'}</td>
+                                                <td className="px-3 py-3 text-slate-700">{user.email ?? '-'}</td>
+                                                <td className="px-3 py-3 font-mono text-xs text-slate-700">{user.login ?? '-'}</td>
+                                                <td className="px-3 py-3 text-slate-700">{user.department ?? '-'}</td>
+                                                <td className="px-3 py-3 text-slate-700">{user.title ?? '-'}</td>
+                                                <td className="px-3 py-3">
                                                     <Badge variant={user.role === 'admin' || user.role === 'superadmin' ? 'default' : 'secondary'}>
                                                         {roleLabels[user.role] ?? user.role ?? '-'}
                                                     </Badge>
                                                 </td>
-                                                <td className="py-3 pe-3">
+                                                <td className="px-5 py-3 text-right">
                                                     <Button
                                                         size="sm"
                                                         type="button"
+                                                        variant={user.can_grant_admin ? 'default' : 'outline'}
                                                         onClick={() => grantAdmin(user.id)}
                                                         disabled={!user.can_grant_admin}
                                                     >
@@ -231,5 +254,16 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                 </Card>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+/** Empty state inside a card (the platform EmptyState is a card of its own). */
+function EmptyStateInline({ icon: Icon, title, description }) {
+    return (
+        <div className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Icon className="h-6 w-6" /></span>
+            <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+            <p className="max-w-md text-sm text-slate-600">{description}</p>
+        </div>
     );
 }

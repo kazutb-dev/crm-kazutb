@@ -2,7 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { DarkPanel, PageHeader, SectionHeader, StatGrid, StatTile } from '@/components/platform';
 import { Input } from '@/components/ui/input';
 import {
     Dialog,
@@ -12,7 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { BarChart3, BookOpenText, Link2, Plus, Trash2, Search, X, Download } from 'lucide-react';
+import { BarChart3, Link2, Plus, Trash2, Search, X, Download, Users } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
@@ -173,149 +174,113 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
     );
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Модуль тестирования"
+                    title="Тестирование"
+                    description="Создавайте тесты по своим предметам и отслеживайте результаты прохождения. Привязка предмета выступает контейнером для тестов: после ее создания можно наполнять предмет вопросами, публиковать тесты и анализировать прохождения."
+                    actions={(
+                        <>
+                            {bindings.length > 0 && (
+                                <Button onClick={exportToExcel} variant="outline" className="gap-2">
+                                    <Download className="h-4 w-4" />
+                                    Экспорт в Excel
+                                </Button>
+                            )}
+                            <Button onClick={() => setBindOpen(true)} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Привязать предмет
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="Тестирование" />
 
             <div className="admin-page-wrap space-y-6">
-                {/* ── Hero banner ── */}
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
-                    <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl space-y-3">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
-                                <BookOpenText className="h-3.5 w-3.5" />
-                                Модуль тестирования
-                            </div>
-                            <h1 className="text-3xl font-semibold leading-tight text-white tracking-tight">
-                                Создавайте тесты по своим предметам и отслеживайте результаты прохождения.
-                            </h1>
-                            <p className="max-w-2xl text-sm leading-6 text-white/80">
-                                Привязка предмета выступает контейнером для тестов. После ее создания можно наполнять предмет вопросами, публиковать тесты и анализировать прохождения.
-                            </p>
-                            <div className="flex flex-wrap items-center gap-3 mt-4 pt-1">
-                                <Button onClick={() => setBindOpen(true)} className="bg-white text-[#102945] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
-                                    <Plus className="h-4 w-4 text-[#102945]" />
-                                    Привязать предмет
-                                </Button>
-                                {bindings.length > 0 && (
-                                    <Button onClick={exportToExcel} variant="outline" className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl transition-all shadow-md h-10 px-5">
-                                        <Download className="h-4 w-4 text-white" />
-                                        Экспорт в Excel
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
+                <StatGrid className="xl:grid-cols-2">
+                    <StatTile label="Мои привязки" value={bindings.length} tone="teal" icon={Link2} hint="Предметы, по которым вы ведёте тесты" />
+                    <StatTile label="Привязано студентов" value={total_students_count} tone="navy" icon={Users} hint="Студенты по всем привязанным предметам" />
+                </StatGrid>
 
-                        <div className="grid min-w-[240px] grid-cols-2 gap-3 shrink-0">
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Мои привязки</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{bindings.length}</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Привязано студентов</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{total_students_count}</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                {bindings.length === 0 ? (
+                    <DarkPanel
+                        kicker="Начните отсюда"
+                        title="У вас пока нет привязанных предметов"
+                        actions={(
+                            <Button onClick={() => setBindOpen(true)} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Привязать предмет
+                            </Button>
+                        )}
+                    >
+                        Чтобы начать создавать тесты и проводить опросы, привяжите учебный предмет к своему личному кабинету.
+                    </DarkPanel>
+                ) : (
+                    <div className="space-y-4">
+                        <SectionHeader
+                            title="Мои привязанные предметы"
+                            actions={<Badge variant="default">Всего: {bindings.length}</Badge>}
+                        />
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {bindings.map((binding) => (
+                                <Card key={binding.id} className="flex flex-col justify-between">
+                                    <CardContent className="flex flex-1 flex-col gap-5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <h3 className="font-display text-lg font-bold leading-snug text-[#102945]">{binding.subject?.name}</h3>
+                                                {binding.subject?.code && (
+                                                    <Badge variant="secondary" className="mt-2 font-mono tracking-wider">
+                                                        {binding.subject.code}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
+                                                onClick={() => removeBinding(binding.id, binding.subject?.name || 'предмету')}
+                                                title="Удалить привязку"
+                                                aria-label="Удалить привязку"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
 
-                {/* ── Main content: List of teacher's bindings ── */}
-                <Card className="border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
-                    <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-100">
-                        <CardTitle className="text-xl font-bold text-[#102945] font-sans">Мои привязанные предметы</CardTitle>
-                        <Badge className="bg-[#067a75]/10 text-[#067a75] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#067a75]/10">
-                            Всего: {bindings.length}
-                        </Badge>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        {bindings.length === 0 ? (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center max-w-lg mx-auto my-6">
-                                <Link2 className="mx-auto mb-4 h-12 w-12 text-slate-300 stroke-1" />
-                                <h3 className="text-[16px] font-bold text-slate-700">У вас пока нет привязанных предметов</h3>
-                                <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-                                    Чтобы начать создавать тесты и проводить опросы, привяжите учебный предмет к своему личному кабинету.
-                                </p>
-                                <Button onClick={() => setBindOpen(true)} className="mt-6 gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90">
-                                    <Plus className="h-4 w-4" />
-                                    Привязать предмет
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {bindings.map((binding) => (
-                                    <div key={binding.id} className="group relative rounded-3xl border border-slate-200/60 bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.02)] hover:shadow-[0_12px_30px_-10px_rgba(15,23,42,0.08)] transition-all duration-300 flex flex-col justify-between min-h-[220px]">
-                                        <div className="space-y-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-[#102945] leading-snug group-hover:text-[#067a75] transition-colors">{binding.subject?.name}</h3>
-                                                    {binding.subject?.code && (
-                                                        <span className="mt-1.5 font-mono text-[11px] tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md inline-block">
-                                                            {binding.subject.code}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg shrink-0 transition-colors"
-                                                    onClick={() => removeBinding(binding.id, binding.subject?.name || 'предмету')}
-                                                    title="Удалить привязку"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
+                                        <dl className="grid grid-cols-3 gap-x-4 gap-y-4 border-t border-slate-200 pt-4">
+                                            <Metric label="Студентов" value={binding.students_count || 0} />
+                                            <Metric label="Тестов" value={binding.tests_count || 0} />
+                                            <Metric label="Попыток" value={binding.attempts_count || 0} />
+                                            <Metric label="Ср. балл" value={binding.average_score || 0} />
+                                            <Metric label="Макс. балл" value={binding.max_score || 0} />
+                                            <Metric label="Успешность" value={`${binding.success_rate || 0}%`} accent />
+                                        </dl>
+
+                                        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                                            <p className="text-xs text-slate-500">Привязан: {formatDate(binding.created_at)}</p>
+                                            <div className="flex items-center gap-2">
+                                                <Button asChild size="sm" variant="outline" className="gap-2">
+                                                    <Link href={route('testing.bindings.analytics', binding.id)}>
+                                                        <BarChart3 className="h-3.5 w-3.5" />
+                                                        Аналитика
+                                                    </Link>
+                                                </Button>
+                                                <Button asChild size="sm">
+                                                    <Link href={route('testing.bindings.show', binding.id)}>
+                                                        Открыть тесты
+                                                    </Link>
                                                 </Button>
                                             </div>
-
-                                            {/* Statistics indicators */}
-                                            <div className="grid grid-cols-3 gap-3">
-                                                <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Студентов</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.students_count || 0}</div>
-                                                </div>
-                                                <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Тестов</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.tests_count || 0}</div>
-                                                </div>
-                                                <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Попыток</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.attempts_count || 0}</div>
-                                                </div>
-                                                <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Ср. балл</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.average_score || 0}</div>
-                                                </div>
-                                                <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Макс. балл</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.max_score || 0}</div>
-                                                </div>
-                                                <div className="rounded-2xl bg-emerald-50/40 p-3 border border-emerald-100/30">
-                                                    <div className="text-[10px] uppercase font-semibold tracking-wider text-emerald-600">Успешность</div>
-                                                    <div className="mt-1 text-lg font-bold text-emerald-700 tracking-tight">{binding.success_rate || 0}%</div>
-                                                </div>
-                                            </div>
                                         </div>
-
-                                        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
-                                            <p className="text-[11px] text-slate-400">Привязан: {formatDate(binding.created_at)}</p>
-                                            <div className="flex items-center gap-2">
-                                                <Link href={route('testing.bindings.analytics', binding.id)}>
-                                                    <Button type="button" variant="outline" className="h-9 px-3 gap-2 rounded-xl text-xs hover:bg-slate-50 border-slate-200">
-                                                        <BarChart3 className="h-3.5 w-3.5 text-slate-500" />
-                                                        Аналитика
-                                                    </Button>
-                                                </Link>
-                                                <Link href={route('testing.bindings.show', binding.id)}>
-                                                    <Button type="button" className="h-9 px-4 rounded-xl text-xs bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-sm">
-                                                        Открыть тесты
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* ── Modal Dialog: Bind New Subject ── */}
@@ -325,52 +290,57 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                     setModalSearch('');
                 }
             }}>
-                <DialogContent className="max-w-2xl border-slate-200/50 shadow-2xl rounded-2xl p-6">
-                    <DialogHeader className="pb-3 border-b border-slate-100">
-                        <DialogTitle className="text-xl font-bold text-[#102945] font-sans">Привязать новый предмет</DialogTitle>
-                        <DialogDescription className="text-slate-500 text-sm mt-1 leading-normal">
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Привязать новый предмет</DialogTitle>
+                        <DialogDescription>
                             Выберите необходимый предмет из каталога, чтобы добавить его в свой список для создания тестов.
                         </DialogDescription>
                     </DialogHeader>
 
                     {/* Search inside modal */}
-                    <div className="relative mt-4">
+                    <label className="mt-2 block space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
+                        <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
                             value={modalSearch}
                             onChange={(e) => setModalSearch(e.target.value)}
                             placeholder="Поиск предмета по названию или коду…"
-                            className="pl-9 pr-8 h-10 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-lg"
+                            className="pl-9 pr-8"
                         />
                         {modalSearch && (
                             <button
+                                type="button"
+                                aria-label="Очистить поиск"
                                 onClick={() => setModalSearch('')}
                                 className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                             >
                                 <X className="h-3.5 w-3.5" />
                             </button>
                         )}
-                    </div>
+                        </div>
+                    </label>
 
                     {/* Subjects list in modal */}
-                    <div className="mt-4 max-h-[350px] overflow-y-auto pr-1 space-y-2">
+                    <div className="mt-2 max-h-[350px] overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-200">
                         {filteredAvailable.length === 0 ? (
-                            <div className="p-8 text-center text-slate-400 text-sm italic bg-slate-50/50 rounded-xl">
+                            <div className="p-8 text-center text-sm text-slate-500">
                                 {modalSearch ? 'Предметы не найдены по вашему запросу.' : 'Все предметы уже привязаны!'}
                             </div>
                         ) : (
                             filteredAvailable.map((subject) => (
-                                <div key={subject.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm hover:bg-slate-50/40 transition-colors">
+                                <div key={subject.id} className="flex items-center justify-between gap-3 bg-white px-4 py-3 transition-colors hover:bg-slate-50">
                                     <div className="space-y-1">
-                                        <h4 className="text-sm font-semibold text-slate-800 leading-snug">{subject.name}</h4>
+                                        <h4 className="text-sm font-medium leading-snug text-slate-900">{subject.name}</h4>
                                         <div className="flex flex-wrap gap-2 items-center">
                                             {subject.code && (
-                                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
                                                     {subject.code}
                                                 </span>
                                             )}
                                             {subject.department_name && (
-                                                <span className="text-[10px] text-slate-400">
+                                                <span className="text-xs text-slate-500">
                                                     {subject.department_name}
                                                 </span>
                                             )}
@@ -380,7 +350,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                         size="sm"
                                         disabled={creatingSubjectId !== null}
                                         onClick={() => createBinding(subject.id)}
-                                        className="h-9 px-3 gap-1 bg-[#067a75] hover:bg-[#067a75]/95 text-white rounded-lg text-xs"
+                                        className="shrink-0 gap-1"
                                     >
                                         <Plus className="h-3.5 w-3.5" />
                                         {creatingSubjectId === subject.id ? '...' : 'Привязать'}
@@ -399,5 +369,14 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                 onConfirm={confirmState.onConfirm}
             />
         </AuthenticatedLayout>
+    );
+}
+
+function Metric({ label, value, accent = false }) {
+    return (
+        <div>
+            <dt className="qd-field-label text-slate-500">{label}</dt>
+            <dd className={`mt-1 font-display text-xl font-bold tabular-nums ${accent ? 'text-emerald-700' : 'text-[#102945]'}`}>{value}</dd>
+        </div>
     );
 }

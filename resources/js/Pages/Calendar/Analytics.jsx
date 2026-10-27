@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { PageHeader, Segmented, StatTile, StatusBadge } from '@/components/platform';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
 import { BarChart3, Users } from 'lucide-react';
@@ -11,20 +11,24 @@ const PERIODS = [
     { value: 'year',  label: 'Год' },
 ];
 
-function StatCard({ label, value, total, color = 'bg-primary' }) {
+function ShareBar({ value, total, color }) {
     const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+    if (!(total > 0)) return null;
     return (
-        <Card>
-            <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="text-2xl font-bold mt-1">{value}</p>
-                {total > 0 && (
-                    <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }}/>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }}/>
+        </div>
+    );
+}
+
+function StatCard({ label, value, total, tone = 'teal', color = 'bg-teal-600' }) {
+    return (
+        <StatTile
+            label={label}
+            value={value}
+            tone={tone}
+            hint={total > 0 ? <ShareBar value={value} total={total} color={color} /> : null}
+        />
     );
 }
 
@@ -34,54 +38,53 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
     }
 
     const displayStats = isAdmin && adminStats ? adminStats : stats;
+    const tripTotal = Math.max(displayStats.vacationDays + displayStats.businessTripDays, 1);
 
     return (
-        <AuthenticatedLayout>
-            <Head title="Smart Calendar — Аналитика" />
-            <div className="admin-page-wrap">
-
-                {/* Mode indicator for admin */}
-                {isAdmin && (
-                    <div className="flex items-center gap-2">
-                        <Badge className="bg-purple-500">
-                            <BarChart3 className="w-3 h-3 mr-1" />
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Аналитика"
+                    description="Встречи, их исход, отпуска и командировки за выбранный период."
+                    meta={isAdmin ? (
+                        <StatusBadge tone="info">
+                            <BarChart3 className="mr-1 h-3 w-3" />
                             Общая аналитика
-                        </Badge>
-                    </div>
-                )}
+                        </StatusBadge>
+                    ) : null}
+                    actions={(
+                        <Segmented
+                            items={PERIODS.map(p => ({ key: p.value, label: p.label }))}
+                            value={period}
+                            onChange={changePeriod}
+                        />
+                    )}
+                />
+            )}
+        >
+            <Head title="Smart Calendar — Аналитика" />
+            <div className="admin-page-wrap space-y-6">
 
-                {/* Period switcher */}
-                <div className="flex rounded-lg border overflow-hidden w-fit">
-                    {PERIODS.map(p => (
-                        <button
-                            key={p.value}
-                            onClick={() => changePeriod(p.value)}
-                            className={`px-4 py-1.5 text-sm border-r last:border-r-0 transition-colors ${period === p.value ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
-
-                {/* KPI cards */}
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                {/* KPI tiles */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {isAdmin && adminStats ? (
                         <>
-                            <StatCard label="Встреч всего"     value={displayStats.total}      total={displayStats.total} color="bg-blue-500"/>
-                            <StatCard label="Завершено"         value={displayStats.completed}  total={displayStats.total} color="bg-green-500"/>
-                            <StatCard label="Отменено"          value={displayStats.cancelled}  total={displayStats.total} color="bg-red-500"/>
-                            <StatCard label="Ожидают"           value={displayStats.pending}    total={displayStats.total} color="bg-yellow-500"/>
-                            <StatCard label="Сотрудников"       value={displayStats.employeeCount} total={displayStats.employeeCount} color="bg-purple-500"/>
-                            <StatCard label="Дни отпуска"       value={displayStats.vacationDays} total={Math.max(displayStats.vacationDays + displayStats.businessTripDays, 1)} color="bg-green-600"/>
+                            <StatCard label="Встреч всего"     value={displayStats.total}      total={displayStats.total} tone="info" color="bg-blue-600"/>
+                            <StatCard label="Завершено"         value={displayStats.completed}  total={displayStats.total} tone="success" color="bg-emerald-600"/>
+                            <StatCard label="Отменено"          value={displayStats.cancelled}  total={displayStats.total} tone="danger" color="bg-red-600"/>
+                            <StatCard label="Ожидают"           value={displayStats.pending}    total={displayStats.total} tone="warning" color="bg-amber-500"/>
+                            <StatCard label="Сотрудников"       value={displayStats.employeeCount} total={displayStats.employeeCount} tone="navy" color="bg-[#102945]"/>
+                            <StatCard label="Дни отпуска"       value={displayStats.vacationDays} total={tripTotal} tone="teal" color="bg-teal-600"/>
                         </>
                     ) : (
                         <>
-                            <StatCard label="Всего встреч"      value={displayStats.total}     total={displayStats.total} color="bg-blue-500"/>
-                            <StatCard label="Завершено"         value={displayStats.completed} total={displayStats.total} color="bg-green-500"/>
-                            <StatCard label="Отменено"          value={displayStats.cancelled} total={displayStats.total} color="bg-red-500"/>
-                            <StatCard label="Ожидают решения"   value={displayStats.pending}   total={displayStats.total} color="bg-yellow-500"/>
-                            <StatCard label="Дней отпуска"      value={displayStats.vacationDays} total={Math.max(displayStats.vacationDays + displayStats.businessTripDays, 1)} color="bg-green-600"/>
-                            <StatCard label="Дней командировок" value={displayStats.businessTripDays} total={Math.max(displayStats.vacationDays + displayStats.businessTripDays, 1)} color="bg-violet-600"/>
+                            <StatCard label="Всего встреч"      value={displayStats.total}     total={displayStats.total} tone="info" color="bg-blue-600"/>
+                            <StatCard label="Завершено"         value={displayStats.completed} total={displayStats.total} tone="success" color="bg-emerald-600"/>
+                            <StatCard label="Отменено"          value={displayStats.cancelled} total={displayStats.total} tone="danger" color="bg-red-600"/>
+                            <StatCard label="Ожидают решения"   value={displayStats.pending}   total={displayStats.total} tone="warning" color="bg-amber-500"/>
+                            <StatCard label="Дней отпуска"      value={displayStats.vacationDays} total={tripTotal} tone="teal" color="bg-teal-600"/>
+                            <StatCard label="Дней командировок" value={displayStats.businessTripDays} total={tripTotal} tone="copper" color="bg-orange-600"/>
                         </>
                     )}
                 </div>
@@ -89,23 +92,26 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                 {/* Completion rate */}
                 {displayStats.total > 0 && (
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Показатели</CardTitle>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BarChart3 className="shrink-0" />
+                                Показатели
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-4">
                             {[
-                                { label: 'Завершено', value: displayStats.completed, color: 'bg-green-500' },
-                                { label: 'Отменено',  value: displayStats.cancelled, color: 'bg-red-500' },
-                                { label: 'Ожидают',   value: displayStats.pending,   color: 'bg-yellow-500' },
+                                { label: 'Завершено', value: displayStats.completed, color: 'bg-emerald-600' },
+                                { label: 'Отменено',  value: displayStats.cancelled, color: 'bg-red-600' },
+                                { label: 'Ожидают',   value: displayStats.pending,   color: 'bg-amber-500' },
                             ].map(row => {
                                 const pct = Math.round((row.value / displayStats.total) * 100);
                                 return (
                                     <div key={row.label}>
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span>{row.label}</span>
-                                            <span className="text-muted-foreground">{row.value} ({pct}%)</span>
+                                        <div className="mb-1.5 flex justify-between text-sm">
+                                            <span className="font-medium text-slate-800">{row.label}</span>
+                                            <span className="tabular-nums text-slate-500">{row.value} ({pct}%)</span>
                                         </div>
-                                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                                             <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }}/>
                                         </div>
                                     </div>
@@ -118,9 +124,9 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                 {/* Admin breakdown by user */}
                 {isAdmin && adminStats?.userStats && adminStats.userStats.length > 0 && (
                     <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                                <Users className="w-4 h-4" />
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="shrink-0" />
                                 Статистика по сотрудникам
                             </CardTitle>
                         </CardHeader>
@@ -128,27 +134,27 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b">
-                                            <th className="text-left p-3 font-semibold">Сотрудник</th>
-                                            <th className="text-center p-3 font-semibold">Встреч</th>
-                                            <th className="text-center p-3 font-semibold">Завершено</th>
-                                            <th className="text-center p-3 font-semibold">Отпуск</th>
-                                            <th className="text-center p-3 font-semibold">Командировка</th>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="p-3 text-left">Сотрудник</th>
+                                            <th className="p-3 text-center">Встреч</th>
+                                            <th className="p-3 text-center">Завершено</th>
+                                            <th className="p-3 text-center">Отпуск</th>
+                                            <th className="p-3 text-center">Командировка</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {adminStats.userStats.map((user, idx) => (
-                                            <tr key={idx} className="border-b last:border-b-0 hover:bg-muted/50">
-                                                <td className="p-3">{user.name}</td>
-                                                <td className="text-center p-3 font-semibold">{user.total}</td>
-                                                <td className="text-center p-3">
-                                                    <span className="text-green-600">{user.completed}</span>
+                                            <tr key={idx} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                <td className="p-3 font-medium text-slate-900">{user.name}</td>
+                                                <td className="p-3 text-center font-semibold tabular-nums text-[#102945]">{user.total}</td>
+                                                <td className="p-3 text-center tabular-nums">
+                                                    <span className="text-emerald-700">{user.completed}</span>
                                                 </td>
-                                                <td className="text-center p-3">
-                                                    <span className="text-green-600">{user.vacationDays} дн.</span>
+                                                <td className="p-3 text-center tabular-nums">
+                                                    <span className="text-teal-700">{user.vacationDays} дн.</span>
                                                 </td>
-                                                <td className="text-center p-3">
-                                                    <span className="text-violet-600">{user.businessTripDays} дн.</span>
+                                                <td className="p-3 text-center tabular-nums">
+                                                    <span className="text-orange-700">{user.businessTripDays} дн.</span>
                                                 </td>
                                             </tr>
                                         ))}

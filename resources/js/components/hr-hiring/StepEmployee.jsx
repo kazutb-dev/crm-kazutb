@@ -16,20 +16,20 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
     const updateRow = (key, index, patch) => setList(key, (e[key] ?? []).map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Section
                 title="Личные данные"
                 description="Дата рождения и пол подставятся из ИИН автоматически."
                 feeds={['contract', 'order', 'card']}
             >
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-3">
                     {[['last_name', 'Фамилия'], ['first_name', 'Имя'], ['middle_name', 'Отчество']].map(([key, label]) => (
                         <Field key={key} id={fieldId(`employee.${key}`)} label={label} error={err(`employee.${key}`)}>
                             <TextInput id={fieldId(`employee.${key}`)} value={e[key]} onChange={(value) => set(`employee.${key}`, value)} maxLength={100} />
                         </Field>
                     ))}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto]">
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto]">
                     <Field
                         id={fieldId('employee.iin')}
                         label="ИИН"
@@ -43,7 +43,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                             inputMode="numeric"
                             maxLength={12}
                             placeholder="12 цифр"
-                            className={`font-mono ${iin.valid ? 'border-emerald-300' : ''}`}
+                            className={`font-mono ${iin.valid ? 'border-emerald-400' : ''}`}
                         />
                     </Field>
                     <Field id={fieldId('employee.birth_date')} label="Дата рождения" error={err('employee.birth_date')}>
@@ -60,7 +60,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                     </Field>
                 </div>
                 {iinMismatch && <Notice tone="warning">Дата рождения или пол не совпадают с ИИН ({iin.birthDate.split('-').reverse().join('.')}, {iin.gender === 'm' ? 'мужской' : 'женский'}).</Notice>}
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field id={fieldId('employee.citizenship')} label="Гражданство">
                         <SelectInput
                             id={fieldId('employee.citizenship')}
@@ -85,7 +85,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
             <PhotoSection hiringId={hiringId} photoUrl={photoUrl} onPhotoChange={onPhotoChange} />
 
             <Section title="Удостоверение личности" feeds={['contract', 'card']}>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-3">
                     <Field id={fieldId('employee.id_card_number')} label="Номер" error={err('employee.id_card_number')}>
                         <TextInput id={fieldId('employee.id_card_number')} value={e.id_card_number} onChange={(value) => set('employee.id_card_number', value)} className="font-mono" maxLength={20} />
                     </Field>
@@ -99,7 +99,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
             </Section>
 
             <Section title="Адрес и телефон" description="Адрес проживания — так, как он будет написан в договоре." feeds={['contract', 'card']}>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
                     <Field id={fieldId('employee.city')} label="Город" error={err('employee.city')}>
                         <TextInput id={fieldId('employee.city')} value={e.city} onChange={(value) => set('employee.city', value)} maxLength={100} />
                     </Field>
@@ -107,7 +107,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                         <TextInput id={fieldId('employee.street')} value={e.street} onChange={(value) => set('employee.street', value)} maxLength={150} />
                     </Field>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-3">
                     <Field id={fieldId('employee.house')} label="Дом" error={err('employee.house')}>
                         <TextInput id={fieldId('employee.house')} value={e.house} onChange={(value) => set('employee.house', value)} maxLength={20} />
                     </Field>
@@ -124,17 +124,17 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 <Field id={fieldId('employee.marital_status')} label="Семейное положение" className="sm:max-w-xs">
                     <SelectInput id={fieldId('employee.marital_status')} value={e.marital_status} onChange={(value) => set('employee.marital_status', value)} options={maritalOptions} placeholder="Выберите" />
                 </Field>
-                <div className="space-y-2">
-                    {(e.children ?? []).length > 0 && <p className="text-sm font-medium text-slate-700">Дети</p>}
+                <div className="space-y-3">
+                    {(e.children ?? []).length > 0 && <p className="qd-field-label border-t border-slate-200 pt-4 text-slate-500">Дети</p>}
                     {(e.children ?? []).map((child, index) => (
-                        <div key={child.id ?? `new-${index}`} className="grid items-end gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
+                        <div key={child.id ?? `new-${index}`} className="grid items-end gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
                             <Field id={fieldId(`employee.children.${index}.full_name`)} label="ФИО ребёнка">
                                 <TextInput id={fieldId(`employee.children.${index}.full_name`)} value={child.full_name} onChange={(value) => updateRow('children', index, { full_name: value })} />
                             </Field>
                             <Field id={fieldId(`employee.children.${index}.birth_date`)} label="Дата рождения">
                                 <TextInput id={fieldId(`employee.children.${index}.birth_date`)} type="date" value={child.birth_date} onChange={(value) => updateRow('children', index, { birth_date: value })} />
                             </Field>
-                            <button type="button" onClick={() => setList('children', e.children.filter((_, i) => i !== index))} className={`${buttonClassName.danger} h-[42px]`} title="Удалить ребёнка" aria-label="Удалить ребёнка">
+                            <button type="button" onClick={() => setList('children', e.children.filter((_, i) => i !== index))} className={`${buttonClassName.danger} h-10`} title="Удалить ребёнка" aria-label="Удалить ребёнка">
                                 <Trash2 className="h-4 w-4" />
                             </button>
                         </div>
@@ -149,14 +149,14 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 {(e.educations ?? []).map((row, index) => {
                     const rowId = (key) => fieldId(`employee.educations.${index}.${key}`);
                     return (
-                        <div key={row.id ?? `new-${index}`} className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                            <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-medium text-slate-700">Образование {index + 1}</p>
-                                <button type="button" onClick={() => setList('educations', e.educations.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 text-xs font-medium text-rose-700 hover:underline">
+                        <div key={row.id ?? `new-${index}`} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+                            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                                <p className="flex items-center gap-2 text-sm font-semibold text-[#102945]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-teal-100 text-xs font-bold tabular-nums text-teal-700">{index + 1}</span>Образование</p>
+                                <button type="button" onClick={() => setList('educations', e.educations.filter((_, i) => i !== index))} className="inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50">
                                     <Trash2 className="h-3.5 w-3.5" /> Удалить
                                 </button>
                             </div>
-                            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+                            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
                                 <Field id={rowId('level')} label="Уровень">
                                     <SelectInput id={rowId('level')} value={row.level} onChange={(value) => updateRow('educations', index, { level: value })} options={options.education_levels} placeholder="Выберите" />
                                 </Field>
@@ -167,7 +167,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                             <Field id={rowId('institution')} label="Учебное заведение">
                                 <TextInput id={rowId('institution')} value={row.institution} onChange={(value) => updateRow('educations', index, { institution: value })} />
                             </Field>
-                            <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="grid gap-4 sm:grid-cols-2">
                                 <Field id={rowId('specialty')} label="Специальность">
                                     <TextInput id={rowId('specialty')} value={row.specialty} onChange={(value) => updateRow('educations', index, { specialty: value })} />
                                 </Field>
@@ -188,14 +188,14 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                     <SelectInput id={fieldId('employee.military_status')} value={e.military_status} onChange={(value) => set('employee.military_status', value)} options={options.military} placeholder="Выберите" />
                 </Field>
                 {abilities.sensitive ? (
-                    <div className="grid gap-3 sm:grid-cols-[minmax(0,14rem)_1fr]">
+                    <div className="grid gap-4 sm:grid-cols-[minmax(0,14rem)_1fr]">
                         <Field id={fieldId('employee.disability')} label="Инвалидность">
                             <SelectInput id={fieldId('employee.disability')} value={e.disability ?? 'none'} onChange={(value) => set('employee.disability', value ?? 'none')} options={options.disabilities} />
                         </Field>
-                        <div className="flex flex-wrap items-end gap-x-5 gap-y-2 pb-3 text-sm text-slate-800">
+                        <div className="flex flex-wrap items-end gap-x-5 gap-y-2 pb-2.5 text-sm font-medium text-slate-800">
                             {[['is_pensioner', 'Пенсионер'], ['is_student', 'Обучающийся'], ['is_large_family', 'Многодетная семья']].map(([key, label]) => (
-                                <label key={key} className="flex items-center gap-1.5">
-                                    <input type="checkbox" checked={Boolean(e[key])} onChange={(event) => set(`employee.${key}`, event.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                                <label key={key} className="flex cursor-pointer items-center gap-2">
+                                    <input type="checkbox" checked={Boolean(e[key])} onChange={(event) => set(`employee.${key}`, event.target.checked)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30" />
                                     {label}
                                 </label>
                             ))}
@@ -248,9 +248,9 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
 
     return (
         <Section title="Фото 3×4" description="JPG или PNG до 5 МБ." feeds={['card']} id={fieldId('employee.photo')}>
-            <div className="flex items-center gap-4">
-                <div className="flex h-28 w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                    {photoUrl ? <img src={photoUrl} alt="Фото сотрудника" className="h-full w-full object-cover" /> : <ImageUp className="h-6 w-6 text-slate-300" />}
+            <div className="flex items-center gap-5">
+                <div className="flex h-28 w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-slate-300 bg-slate-50">
+                    {photoUrl ? <img src={photoUrl} alt="Фото сотрудника" className="h-full w-full object-cover" /> : <ImageUp className="h-6 w-6 text-teal-600/50" />}
                 </div>
                 <div className="space-y-2">
                     <label className={`${buttonClassName.secondary} ${busy ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
@@ -264,7 +264,7 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
                             onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ''; }}
                         />
                     </label>
-                    {photoUrl && <button type="button" onClick={remove} disabled={busy} className="block text-xs font-medium text-rose-700 hover:underline disabled:opacity-60">Удалить фото</button>}
+                    {photoUrl && <button type="button" onClick={remove} disabled={busy} className="block text-xs font-semibold text-red-700 underline-offset-2 hover:underline disabled:opacity-60">Удалить фото</button>}
                 </div>
             </div>
         </Section>
@@ -316,28 +316,28 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
             id="hr-attachments"
         >
             {attachments.length > 0 && (
-                <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white">
                     {attachments.map((attachment) => (
-                        <li key={attachment.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                        <li key={attachment.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
                             <span className="min-w-0">
-                                <span className="block font-medium text-slate-800">{attachment.doc_type_label}</span>
+                                <span className="block font-medium text-slate-900">{attachment.doc_type_label}</span>
                                 <span className="block truncate text-xs text-slate-500">{attachment.original_name} · {formatBytes(attachment.size)}</span>
                             </span>
                             {abilities.sensitive ? (
                                 <span className="flex items-center gap-2">
                                     <a href={route('hr.hiring.attachments.show', [hiringId, attachment.id])} target="_blank" rel="noreferrer" className={buttonClassName.ghost}>Открыть</a>
-                                    <button type="button" onClick={() => remove(attachment)} className="text-xs text-rose-700 hover:underline">Удалить</button>
+                                    <button type="button" onClick={() => remove(attachment)} className="rounded-[8px] px-2 py-1 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50">Удалить</button>
                                 </span>
                             ) : (
-                                <span className="text-xs text-slate-400">просмотр — по отдельному праву</span>
+                                <span className="text-xs text-slate-500">просмотр — по отдельному праву</span>
                             )}
                         </li>
                     ))}
                 </ul>
             )}
-            <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-wrap items-end gap-3">
                 <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-slate-700">Вид документа</span>
+                    <span className="qd-field-label mb-2 block text-[#102945]">Вид документа</span>
                     <select value={docType} onChange={(event) => setDocType(event.target.value)} disabled={busy} className={`${inputClassName} w-auto`}>
                         {options.attachment_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                     </select>

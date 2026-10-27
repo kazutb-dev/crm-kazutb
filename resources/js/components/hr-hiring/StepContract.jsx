@@ -14,9 +14,9 @@ export default function StepContract({ state, set, errors, options, hiringId, on
     const address = [e.city && `г. ${e.city}`, e.street, e.house && `д. ${e.house}`, e.apartment && `кв. ${e.apartment}`].filter(Boolean).join(', ');
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Section title="Номер и срок договора" description="Номер подсказывается по счётчику договоров этого года." feeds={['contract', 'order']}>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field id={fieldId('contract.number')} label="Номер договора" error={errors['contract.number']}>
                         <TextInput id={fieldId('contract.number')} value={c.number} onChange={(value) => set('contract.number', value)} className="font-mono" maxLength={30} placeholder="412" />
                         <NumberHint kind="contract" date={c.date} value={c.number} hiringId={hiringId} onApply={(value) => set('contract.number', value)} />
@@ -31,7 +31,7 @@ export default function StepContract({ state, set, errors, options, hiringId, on
             </Section>
 
             <Section title="Оплата и режим работы" description="Отпуск и график подставляются по категории персонала — их можно изменить." feeds={['contract']}>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field id={fieldId('contract.salary')} label="Должностной оклад, ₸" error={errors['contract.salary']}>
                         <TextInput
                             id={fieldId('contract.salary')}
@@ -62,7 +62,7 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                     <SelectInput id={fieldId('contract.schedule')} value={c.schedule} onChange={(value) => set('contract.schedule', value)} options={options.schedules} placeholder="Выберите" />
                 </Field>
                 {!isShift && (
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <Field id={fieldId('contract.break_start')} label="Перерыв с (п. 3.1.3)" error={errors['contract.break_start']}>
                             <TextInput id={fieldId('contract.break_start')} value={c.break_start} onChange={(value) => set('contract.break_start', value)} placeholder="12.30" className="font-mono" maxLength={5} />
                         </Field>
@@ -83,17 +83,25 @@ export default function StepContract({ state, set, errors, options, hiringId, on
             </Section>
 
             <Section title="Проверьте данные сотрудника" note="Только просмотр: так эти данные попадут в договор.">
-                <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
-                    <dt className="text-slate-500">ИИН</dt>
-                    <dd className="font-mono">{iin.valid ? e.iin : '—'}</dd>
-                    <dt className="text-slate-500">Удостоверение</dt>
-                    <dd>{e.id_card_number ? `№${e.id_card_number}, ${date(e.id_card_issued_at)}, ${issuer}` : '—'}</dd>
-                    <dt className="text-slate-500">Адрес</dt>
-                    <dd>{show(address)}</dd>
-                    <dt className="text-slate-500">Телефон</dt>
-                    <dd>{show(e.phone)}</dd>
+                <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
+                        <dt className="qd-field-label text-slate-500">ИИН</dt>
+                        <dd className="font-mono text-[0.9375rem] font-medium text-slate-900">{iin.valid ? e.iin : '—'}</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
+                        <dt className="qd-field-label text-slate-500">Удостоверение</dt>
+                        <dd className="text-[0.9375rem] font-medium text-slate-900">{e.id_card_number ? `№${e.id_card_number}, ${date(e.id_card_issued_at)}, ${issuer}` : '—'}</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
+                        <dt className="qd-field-label text-slate-500">Адрес</dt>
+                        <dd className="text-[0.9375rem] font-medium text-slate-900">{show(address)}</dd>
+                    </div>
+                    <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
+                        <dt className="qd-field-label text-slate-500">Телефон</dt>
+                        <dd className="text-[0.9375rem] font-medium text-slate-900">{show(e.phone)}</dd>
+                    </div>
                 </dl>
-                <button type="button" onClick={() => onGoTo({ step: 1, field: 'employee.iin' })} className="text-sm font-medium text-teal-700 hover:underline">
+                <button type="button" onClick={() => onGoTo({ step: 1, field: 'employee.iin' })} className="text-xs font-bold uppercase tracking-[0.08em] text-teal-700 underline-offset-4 hover:text-[#102945] hover:underline">
                     Изменить на шаге «Сотрудник»
                 </button>
             </Section>

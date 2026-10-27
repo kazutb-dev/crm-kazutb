@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { DataTable, FilterBar, FormField, Notice, PageHeader, qdFieldClass, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,12 +27,12 @@ import { useMemo, useState } from 'react';
 
 const ROLE_BADGES = {
     superadmin: 'border-red-200 bg-red-50 text-red-800',
-    admin: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
+    admin: 'border-teal-200 bg-teal-50 text-teal-800',
     hod: 'border-amber-200 bg-amber-50 text-amber-900',
-    dean: 'border-violet-200 bg-violet-50 text-violet-900',
-    structural: 'border-cyan-200 bg-cyan-50 text-cyan-900',
+    dean: 'border-orange-200 bg-orange-50 text-orange-900',
+    structural: 'border-teal-200 bg-teal-50 text-teal-900',
     teacher: 'border-blue-200 bg-blue-50 text-blue-900',
-    student: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+    student: 'border-blue-200 bg-blue-50 text-blue-900',
     department: 'border-slate-200 bg-slate-100 text-slate-700',
     default: 'border-slate-200 bg-slate-100 text-slate-700',
 };
@@ -40,7 +40,7 @@ const ROLE_BADGES = {
 const RISK_BADGES = {
     critical: 'border-red-200 bg-red-50 text-red-800',
     high: 'border-amber-200 bg-amber-50 text-amber-900',
-    medium: 'border-yellow-200 bg-yellow-50 text-yellow-900',
+    medium: 'border-amber-200 bg-amber-50 text-amber-800',
     low: 'border-slate-200 bg-slate-100 text-slate-700',
 };
 
@@ -56,36 +56,6 @@ const RESOLVER_STATUS_BADGES = {
     partial: 'border-amber-200 bg-amber-50 text-amber-700',
     missing: 'border-red-200 bg-red-50 text-red-700',
 };
-
-function SummaryCard({ title, value, subtitle, tone = 'slate', icon: Icon }) {
-    const tones = {
-        slate: 'border-slate-200 bg-white',
-        blue: 'border-blue-200 bg-blue-50/35',
-        green: 'border-emerald-200 bg-emerald-50/35',
-        amber: 'border-amber-200 bg-amber-50/35',
-        red: 'border-red-200 bg-red-50/35',
-        violet: 'border-violet-200 bg-violet-50/35',
-    };
-
-    return (
-        <Card className={`border shadow-sm ${tones[tone] ?? tones.slate}`}>
-            <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</p>
-                        <p className="mt-1 text-3xl font-semibold text-slate-900">{(value ?? 0).toLocaleString('ru-RU')}</p>
-                        {subtitle ? <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p> : null}
-                    </div>
-                    {Icon ? (
-                        <div className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600">
-                            <Icon className="h-4 w-4" />
-                        </div>
-                    ) : null}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
 
 function roleBadge(role) {
     return ROLE_BADGES[role] ?? ROLE_BADGES.default;
@@ -213,11 +183,28 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
         updateFilters({ page }, false);
     };
 
-    return (
-        <AuthenticatedLayout>
-            <Head title="Ролевой доступ" />
+    const breakdown = [
+        { label: 'Бизнес-суперадмин', value: summary.business_super_admin, tone: 'bg-blue-600' },
+        { label: 'Технический суперадмин', value: summary.technical_super_admin, tone: 'bg-red-600' },
+        { label: 'Оператор платформы', value: summary.platform_operator, tone: 'bg-[#102945]' },
+        { label: 'Преподаватели', value: summary.teachers, tone: 'bg-teal-500' },
+        { label: 'Студенты', value: summary.students, tone: 'bg-teal-500' },
+        { label: 'Профили сотрудников', value: summary.employee_profiles, tone: 'bg-slate-400' },
+        { label: 'Профили студентов', value: summary.student_profiles, tone: 'bg-slate-400' },
+        { label: 'Двойной контекст', value: summary.dual_context, tone: 'bg-[#a4531f]' },
+        { label: 'Готовность академического контура', value: summary.academic_ready, tone: 'bg-emerald-600' },
+        { label: 'Кураторский контур', value: summary.curator_scope, tone: 'bg-[#a4531f]' },
+        { label: 'Регистраторский контур', value: summary.registrar_scope, tone: 'bg-blue-600' },
+        { label: 'Без орг. привязки', value: summary.without_org_binding, tone: 'bg-amber-500' },
+        { label: 'Риски', value: summary.suspicious, tone: 'bg-red-600' },
+        { label: 'KPI расхождения', value: summary.kpi_mismatch, tone: 'bg-amber-500' },
+    ];
+    const currentPage = pagination.current_page ?? 1;
+    const lastPage = pagination.last_page ?? 1;
 
-            <div className="admin-page-wrap space-y-5">
+    return (
+        <AuthenticatedLayout
+            header={(
                 <PageHeader
                     eyebrow="Управление доступом"
                     title="Ролевой доступ"
@@ -229,165 +216,150 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                     )}
                     meta={<StatusBadge tone="info">Режим запрет-по-умолчанию</StatusBadge>}
                 />
+            )}
+        >
+            <Head title="Ролевой доступ" />
 
+            <div className="admin-page-wrap space-y-6">
                 {canManageFoundation ? (
-                    <Card className="border-red-200 bg-red-50/40 shadow-sm">
-                        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                            <div>
-                                <p className="text-sm font-semibold text-red-900">Суперадмин-управление</p>
-                                <p className="text-xs text-red-800">Редактирование, создание, удаление и принудительное переопределение выполняются через проверяемые процессы с обязательной причиной.</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.students'))}>Студенты</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы согласования</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Notice tone="danger" title="Суперадмин-управление">
+                        Редактирование, создание, удаление и принудительное переопределение выполняются через проверяемые процессы с обязательной причиной.
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.students'))}>Студенты</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы согласования</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
+                        </div>
+                    </Notice>
                 ) : null}
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <SummaryCard title="Всего пользователей" value={summary.total_users} tone="slate" icon={Users} />
-                    <SummaryCard title="Суперадмины" value={summary.superadmins} tone="red" icon={ShieldAlert} />
-                    <SummaryCard title="Администраторы" value={summary.admins} tone="violet" icon={ShieldCheck} />
-                    <SummaryCard title="Повышенный доступ" value={summary.elevated} tone="amber" icon={AlertTriangle} />
-                    <SummaryCard title="Бизнес-суперадмин" value={summary.business_super_admin} tone="blue" />
-                    <SummaryCard title="Технический суперадмин" value={summary.technical_super_admin} tone="red" />
-                    <SummaryCard title="Оператор платформы" value={summary.platform_operator} tone="violet" />
-                    <SummaryCard title="Преподаватели" value={summary.teachers} tone="blue" />
-                    <SummaryCard title="Студенты" value={summary.students} tone="blue" />
-                    <SummaryCard title="Профили сотрудников" value={summary.employee_profiles} tone="slate" />
-                    <SummaryCard title="Профили студентов" value={summary.student_profiles} tone="blue" />
-                    <SummaryCard title="Двойной контекст" value={summary.dual_context} tone="violet" />
-                    <SummaryCard title="Готовность академического контура" value={summary.academic_ready} tone="green" />
-                    <SummaryCard title="Кураторский контур" value={summary.curator_scope} tone="violet" />
-                    <SummaryCard title="Регистраторский контур" value={summary.registrar_scope} tone="blue" />
-                    <SummaryCard title="Без орг. привязки" value={summary.without_org_binding} tone="amber" />
-                    <SummaryCard title="Риски" value={summary.suspicious} tone="red" />
-                    <SummaryCard title="KPI расхождения" value={summary.kpi_mismatch} tone="amber" />
-                </div>
+                <StatGrid>
+                    <StatTile label="Всего пользователей" value={(summary.total_users ?? 0).toLocaleString('ru-RU')} tone="navy" icon={Users} />
+                    <StatTile label="Суперадмины" value={(summary.superadmins ?? 0).toLocaleString('ru-RU')} tone="danger" icon={ShieldAlert} />
+                    <StatTile label="Администраторы" value={(summary.admins ?? 0).toLocaleString('ru-RU')} tone="teal" icon={ShieldCheck} />
+                    <StatTile label="Повышенный доступ" value={(summary.elevated ?? 0).toLocaleString('ru-RU')} tone="warning" icon={AlertTriangle} />
+                </StatGrid>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Профиль доступа</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <dl className="grid gap-x-8 sm:grid-cols-2 xl:grid-cols-3">
+                            {breakdown.map((item) => (
+                                <div key={item.label} className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5">
+                                    <dt className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
+                                        <span className={`h-2 w-2 shrink-0 rounded-full ${item.tone}`} aria-hidden="true" />
+                                        <span className="truncate">{item.label}</span>
+                                    </dt>
+                                    <dd className="font-display text-lg font-bold tabular-nums text-[#102945]">{(item.value ?? 0).toLocaleString('ru-RU')}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                    </CardContent>
+                </Card>
 
                 <FilterBar>
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                            <Filter className="h-4 w-4" />
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
+                            <Filter className="h-4 w-4 text-teal-700" />
                             Фильтры и обзор
                         </div>
                         <StatusBadge tone="default">Активно фильтров: {activeFilterCount}</StatusBadge>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                            <div className="relative xl:col-span-2">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={form.q}
-                                    onChange={(e) => updateFilters({ q: e.target.value })}
-                                    className="pl-9"
-                                    placeholder="Поиск: ФИО, login, email"
-                                />
-                            </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                        <label className="relative block space-y-2 md:col-span-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                            <Input
+                                value={form.q}
+                                onChange={(e) => updateFilters({ q: e.target.value })}
+                                className="pl-9"
+                                placeholder="Поиск: ФИО, login, email"
+                            />
+                        </label>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.role}
-                                onChange={(e) => updateFilters({ role: e.target.value })}
-                            >
+                        <FormField label="Роль">
+                            <select className={qdFieldClass} value={form.role} onChange={(e) => updateFilters({ role: e.target.value })}>
                                 <option value="">Все роли</option>
                                 {roleOptions.map((role) => (
                                     <option key={role.value} value={role.value}>{role.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.grant}
-                                onChange={(e) => updateFilters({ grant: e.target.value })}
-                            >
+                        <FormField label="Право">
+                            <select className={qdFieldClass} value={form.grant} onChange={(e) => updateFilters({ grant: e.target.value })}>
                                 <option value="">Все права</option>
                                 {grantOptions.map((grant) => (
                                     <option key={grant.value} value={grant.value}>{grant.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.elevated}
-                                onChange={(e) => updateFilters({ elevated: e.target.value })}
-                            >
+                        <FormField label="Повышенный доступ">
+                            <select className={qdFieldClass} value={form.elevated} onChange={(e) => updateFilters({ elevated: e.target.value })}>
                                 <option value="">Повышенный доступ: все</option>
                                 <option value="1">Только с повышенным доступом</option>
                                 <option value="0">Без повышенного доступа</option>
                             </select>
-                        </div>
+                        </FormField>
 
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.faculty_id}
-                                onChange={(e) => updateFilters({ faculty_id: e.target.value })}
-                            >
+                        <FormField label="Факультет">
+                            <select className={qdFieldClass} value={form.faculty_id} onChange={(e) => updateFilters({ faculty_id: e.target.value })}>
                                 <option value="">Все факультеты</option>
                                 {facultyOptions.map((faculty) => (
                                     <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.department_id}
-                                onChange={(e) => updateFilters({ department_id: e.target.value })}
-                            >
+                        <FormField label="Кафедра">
+                            <select className={qdFieldClass} value={form.department_id} onChange={(e) => updateFilters({ department_id: e.target.value })}>
                                 <option value="">Все кафедры</option>
                                 {departmentOptions.map((department) => (
                                     <option key={department.id} value={department.id}>{department.name}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.structural_unit_id}
-                                onChange={(e) => updateFilters({ structural_unit_id: e.target.value })}
-                            >
+                        <FormField label="Структурная единица">
+                            <select className={qdFieldClass} value={form.structural_unit_id} onChange={(e) => updateFilters({ structural_unit_id: e.target.value })}>
                                 <option value="">Все структурные единицы</option>
                                 {structuralUnitOptions.map((unit) => (
                                     <option key={unit.id} value={unit.id}>{unit.name}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.missing_binding}
-                                onChange={(e) => updateFilters({ missing_binding: e.target.value })}
-                            >
+                        <FormField label="Привязка">
+                            <select className={qdFieldClass} value={form.missing_binding} onChange={(e) => updateFilters({ missing_binding: e.target.value })}>
                                 <option value="">Привязка: все</option>
                                 <option value="1">Без привязки</option>
                             </select>
+                        </FormField>
 
-                            <div className="flex gap-2">
-                                <select
-                                    className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"
-                                    value={form.suspicious}
-                                    onChange={(e) => updateFilters({ suspicious: e.target.value })}
-                                >
-                                    <option value="">Риск: все</option>
-                                    <option value="1">Только подозрительные</option>
-                                </select>
-                                <Button variant="outline" onClick={clearFilters}>Сброс</Button>
-                            </div>
-                        </div>
+                        <FormField label="Риск">
+                            <select className={qdFieldClass} value={form.suspicious} onChange={(e) => updateFilters({ suspicious: e.target.value })}>
+                                <option value="">Риск: все</option>
+                                <option value="1">Только подозрительные</option>
+                            </select>
+                        </FormField>
+                    </div>
+                    <div className="mt-4 flex justify-end border-t border-slate-200 pt-4">
+                        <Button variant="outline" size="sm" onClick={clearFilters}>Сброс</Button>
                     </div>
                 </FilterBar>
 
                 <DataTable>
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
-                            <div className="text-base font-semibold text-foreground">
-                                Текущие роли и доступы
-                                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                    ({pagination.total ?? users.length} записей)
-                                </span>
-                            </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
+                        <div className="flex items-baseline gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
+                            Текущие роли и доступы
+                            <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
+                                {(pagination.total ?? users.length).toLocaleString('ru-RU')} записей
+                            </span>
+                        </div>
                         <StatusBadge tone="default">Табличный вид</StatusBadge>
                     </div>
 
@@ -503,7 +475,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                             <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический</Badge>
                                                         ) : null}
                                                         {user.elevated_authority?.has_operator ? (
-                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор</Badge>
+                                                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">Оператор</Badge>
                                                         ) : null}
                                                         {user.academic_scope?.student_profile?.exists ? (
                                                             <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">Профиль студента</Badge>
@@ -512,7 +484,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                             <Badge variant="outline" className="border-slate-200 bg-slate-100 text-slate-700">Профиль сотрудника</Badge>
                                                         ) : null}
                                                         {user.academic_scope?.dual_context ? (
-                                                            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Двойной контекст</Badge>
+                                                            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">Двойной контекст</Badge>
                                                         ) : null}
                                                     </div>
                                                     {user.kpi_authority?.mismatch_count > 0 ? (
@@ -552,32 +524,20 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                             </table>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                            <div className="text-sm text-muted-foreground">
-                                Показано {pagination.from ?? 0}-{pagination.to ?? 0} из {pagination.total ?? 0}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={(pagination.current_page ?? 1) <= 1}
-                                    onClick={() => goToPage((pagination.current_page ?? 1) - 1)}
-                                >
-                                    <ChevronLeft className="mr-1 h-4 w-4" /> Назад
-                                </Button>
-                                <span className="text-sm text-muted-foreground">
-                                    Стр. {pagination.current_page ?? 1} / {pagination.last_page ?? 1}
-                                </span>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)}
-                                    onClick={() => goToPage((pagination.current_page ?? 1) + 1)}
-                                >
-                                    Вперёд <ChevronRight className="ml-1 h-4 w-4" />
-                                </Button>
-                            </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                        <div className="text-xs font-medium tabular-nums text-slate-500">
+                            Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                         </div>
+                        <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
+                                <ChevronLeft className="mr-1 h-4 w-4" /> Назад
+                            </Button>
+                            <span className="text-sm tabular-nums text-slate-600">Стр. {currentPage} / {lastPage}</span>
+                            <Button size="sm" variant="outline" disabled={currentPage >= lastPage} onClick={() => goToPage(currentPage + 1)}>
+                                Вперёд <ChevronRight className="ml-1 h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </DataTable>
             </div>
 
@@ -594,8 +554,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Идентичность</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Идентичность</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
                                         <div><span className="text-muted-foreground">Эл. почта:</span> {selectedUser.email || '—'}</div>
@@ -606,8 +566,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Модель роли</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Модель роли</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
                                         <div><span className="text-muted-foreground">Вычисленная роль:</span> {selectedUser.resolved_role_label}</div>
@@ -621,8 +581,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Орг. область</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Орг. область</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-1 text-sm">
                                         <div><span className="text-muted-foreground">Факультет:</span> {selectedUser.faculty?.name || '—'}</div>
@@ -644,8 +604,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Сопоставление: устаревший → орг. единица</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Сопоставление: устаревший → орг. единица</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap items-center gap-2">
@@ -668,7 +628,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         </div>
 
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Сопоставленные юниты</p>
+                                            <p className="qd-field-label mb-1.5 text-slate-500">Сопоставленные юниты</p>
                                             {selectedUser.resolved_org_scope?.resolved_units?.length ? (
                                                 <ul className="space-y-1 text-xs text-slate-700">
                                                     {selectedUser.resolved_org_scope.resolved_units.slice(0, 6).map((entry, idx) => (
@@ -683,7 +643,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         </div>
 
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Несопоставленные источники</p>
+                                            <p className="qd-field-label mb-1.5 text-slate-500">Несопоставленные источники</p>
                                             {selectedUser.resolved_org_scope?.missing_mappings?.length ? (
                                                 <ul className="space-y-1 text-xs text-red-700">
                                                     {selectedUser.resolved_org_scope.missing_mappings.slice(0, 6).map((entry, idx) => (
@@ -698,7 +658,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         </div>
 
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Конфликты области</p>
+                                            <p className="qd-field-label mb-1.5 text-slate-500">Конфликты области</p>
                                             {selectedUser.resolved_org_scope?.inconsistencies?.length ? (
                                                 <ul className="space-y-1 text-xs text-amber-700">
                                                     {selectedUser.resolved_org_scope.inconsistencies.slice(0, 4).map((item, idx) => (
@@ -713,8 +673,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Права и активный доступ</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Права и активный доступ</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-1">
@@ -725,7 +685,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                             )) : <span className="text-muted-foreground">Активных прав нет</span>}
                                         </div>
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Почему доступ вычислен</p>
+                                            <p className="qd-field-label mb-1.5 text-slate-500">Почему доступ вычислен</p>
                                             <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
                                                 {selectedUser.effective_access?.length ? selectedUser.effective_access.map((reason) => (
                                                     <li key={reason}>{reason}</li>
@@ -736,8 +696,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Полномочия KPI и управления</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Полномочия KPI и управления</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
@@ -750,7 +710,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         </div>
 
                                         <div>
-                                            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.05em] text-muted-foreground">Источники полномочий</p>
+                                            <p className="qd-field-label mb-1.5 text-slate-500">Источники полномочий</p>
                                             <div className="flex flex-wrap gap-1">
                                                 {selectedUser.kpi_authority?.sources?.length ? selectedUser.kpi_authority.sources.map((source) => (
                                                     <Badge key={source} variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">
@@ -778,8 +738,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Категории повышенных полномочий</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Категории повышенных полномочий</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
@@ -790,7 +750,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800">Технический суперадмин</Badge>
                                             ) : null}
                                             {selectedUser.elevated_authority?.has_operator ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Оператор платформы</Badge>
+                                                <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">Оператор платформы</Badge>
                                             ) : null}
                                             {!selectedUser.elevated_authority?.has_business && !selectedUser.elevated_authority?.has_technical && !selectedUser.elevated_authority?.has_operator ? (
                                                 <span className="text-muted-foreground">Повышенная категория не найдена</span>
@@ -809,8 +769,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Готовность академического контура</CardTitle>
+                                    <CardHeader>
+                                        <CardTitle>Готовность академического контура</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="flex flex-wrap gap-2">
@@ -824,13 +784,13 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">Профиль студента связан</Badge>
                                             ) : null}
                                             {selectedUser.academic_scope?.dual_context ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Двойной контекст</Badge>
+                                                <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">Двойной контекст</Badge>
                                             ) : null}
                                         </div>
 
                                         <div className="flex flex-wrap gap-1">
                                             {selectedUser.academic_scope?.curator_scope_exists ? (
-                                                <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">Кураторский контур есть</Badge>
+                                                <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-800">Кураторский контур есть</Badge>
                                             ) : null}
                                             {selectedUser.academic_scope?.registrar_scope_exists ? (
                                                 <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">Контур регистратора есть</Badge>
@@ -859,8 +819,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                             </div>
 
                             <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm">Риски и несоответствия</CardTitle>
+                                <CardHeader>
+                                    <CardTitle>Риски и несоответствия</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {selectedUser.risk_flags?.length ? (

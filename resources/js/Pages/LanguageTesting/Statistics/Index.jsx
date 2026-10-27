@@ -1,9 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Button, DataTable, EmptyState, FormField, Input, StatusBadge } from '@/components/platform';
+import { Button, EmptyState, FilterBar, FormField, Input, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpenText, ChevronLeft, ChevronRight, Download, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Filter, ListChecks, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 function formatDate(value) {
@@ -94,91 +94,82 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow={(
+                        <>
+                            <Link href={route('testing.index')} className="transition hover:text-[#102945]">Тестирование</Link>
+                            <span className="mx-1.5">/</span>
+                            <Link href={route('language-testing.tests.index')} className="transition hover:text-[#102945]">Тесты</Link>
+                            <span className="mx-1.5">/</span>
+                            <span>Статистика</span>
+                        </>
+                    )}
+                    title="Результаты языкового тестирования"
+                    description="Отслеживайте прохождения, применяйте фильтры и выгружайте результаты в CSV или Excel."
+                    actions={canExport ? (
+                        <>
+                            <Button type="button" variant="outline" onClick={() => exportRoute('language-testing.statistics.export.csv')} className="gap-2">
+                                <Download className="h-4 w-4" />
+                                CSV
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => exportRoute('language-testing.statistics.export.excel')} className="gap-2">
+                                <Download className="h-4 w-4" />
+                                Excel
+                            </Button>
+                        </>
+                    ) : null}
+                />
+            )}
+        >
             <Head title="Проверка знаний языка — Статистика" />
 
             <div className="admin-page-wrap space-y-6">
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
-                    <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl space-y-3">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
-                                <BookOpenText className="h-3.5 w-3.5" />
-                                Language Testing
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
-                                <Link href={route('testing.index')} className="transition hover:text-white">Тестирование</Link>
-                                <span>/</span>
-                                <Link href={route('language-testing.tests.index')} className="transition hover:text-white">Тесты</Link>
-                                <span>/</span>
-                                <span className="text-white/90">Статистика</span>
-                            </div>
-                            <h1 className="text-3xl font-semibold leading-tight text-white tracking-tight">
-                                Результаты языкового тестирования
-                            </h1>
-                            <p className="max-w-2xl text-sm leading-6 text-white/80">
-                                Отслеживайте прохождения, применяйте фильтры и выгружайте результаты в привычном стиле CRM Testing.
-                            </p>
-                            {canExport ? (
-                                <div className="flex flex-wrap items-center gap-3 mt-4 pt-1">
-                                    <Button type="button" onClick={() => exportRoute('language-testing.statistics.export.csv')} className="bg-white text-[#102945] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
-                                        <Download className="h-4 w-4 text-[#102945]" />
-                                        CSV
-                                    </Button>
-                                    <Button type="button" variant="outline" onClick={() => exportRoute('language-testing.statistics.export.excel')} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl transition-all shadow-md h-10 px-5">
-                                        <Download className="h-4 w-4 text-white" />
-                                        Excel
-                                    </Button>
-                                </div>
-                            ) : null}
-                        </div>
+                <StatGrid className="xl:grid-cols-2">
+                    <StatTile label="Результатов" value={pagination.total ?? results.length} tone="teal" icon={ListChecks} />
+                    <StatTile label="Активных фильтров" value={activeFilterCount} tone="navy" icon={Filter} />
+                </StatGrid>
 
-                        <div className="grid min-w-[240px] grid-cols-2 gap-3 shrink-0">
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Результатов</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{pagination.total ?? results.length}</div>
+                <FilterBar>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            applyFilters();
+                        }}
+                    >
+                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-6">
+                            <div className="md:col-span-2 xl:col-span-6">
+                                <FormField label="Поиск">
+                                    <div className="relative max-w-xl">
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        <Input
+                                            value={search}
+                                            onChange={(event) => setSearch(event.target.value)}
+                                            placeholder="Быстрый поиск по ID, имени, email…"
+                                            className="pl-9 pr-9"
+                                        />
+                                        {search && (
+                                            <button type="button" aria-label="Очистить поиск" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </FormField>
                             </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Активных фильтров</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{activeFilterCount}</div>
+                            <div className="xl:col-span-2">
+                                <FormField label="Тест">
+                                    <select value={testId} onChange={(event) => setTestId(event.target.value)} className={qdFieldClass}>
+                                        <option value="">Все тесты</option>
+                                        {tests.map((test) => (
+                                            <option key={test.id} value={test.id}>{test.name}</option>
+                                        ))}
+                                    </select>
+                                </FormField>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <div className="flex flex-col gap-4">
-                    <div className="relative max-w-md shadow-sm rounded-xl">
-                        <Search className="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
-                        <Input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Быстрый поиск по ID, имени, email…"
-                            className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-xl bg-white shadow-sm"
-                        />
-                        {search && (
-                            <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-                                <X className="h-3.5 w-3.5" />
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)]">
-                        <form
-                            className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)_auto]"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                applyFilters();
-                            }}
-                        >
-                            <FormField label="Тест">
-                                <select value={testId} onChange={(event) => setTestId(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
-                                    <option value="">Все тесты</option>
-                                    {tests.map((test) => (
-                                        <option key={test.id} value={test.id}>{test.name}</option>
-                                    ))}
-                                </select>
-                            </FormField>
                             <FormField label="Язык">
-                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
+                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className={qdFieldClass}>
                                     <option value="">Все языки</option>
                                     {Object.entries(languageOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -186,7 +177,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 </select>
                             </FormField>
                             <FormField label="Статус">
-                                <select value={status} onChange={(event) => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
+                                <select value={status} onChange={(event) => setStatus(event.target.value)} className={qdFieldClass}>
                                     <option value="">Все статусы</option>
                                     {Object.entries(statusOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -194,88 +185,87 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 </select>
                             </FormField>
                             <FormField label="С даты">
-                                <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#067a75]/50" />
+                                <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
                             </FormField>
                             <FormField label="По дату">
-                                <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#067a75]/50" />
+                                <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
                             </FormField>
-                            <div className="flex items-end gap-2 xl:col-start-7">
-                                <Button type="submit" className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
-                                    Применить
-                                </Button>
-                                <Button type="button" variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-slate-200 hover:bg-slate-50">
-                                    Сбросить
-                                </Button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit">Применить</Button>
+                            <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
                 {results.length === 0 ? (
                     <EmptyState title="Нет результатов" description="После первого завершённого теста записи появятся в этой таблице." />
                 ) : (
-                    <Card className="border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
-                        <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-100">
-                            <CardTitle className="text-xl font-bold text-[#102945] font-sans">Журнал прохождений</CardTitle>
-                            <Badge className="bg-[#067a75]/10 text-[#067a75] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#067a75]/10">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                            <CardTitle className="flex items-center gap-2">
+                                <ListChecks className="h-4 w-4" />
+                                Журнал прохождений
+                            </CardTitle>
+                            <Badge variant="default" className="tabular-nums">
                                 Всего: {pagination.total ?? results.length}
                             </Badge>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <DataTable>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
-                            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
-                                <tr>
-                                    <th className="px-4 py-3">ID</th>
-                                    <th className="px-4 py-3">Имя</th>
-                                    <th className="px-4 py-3">Фамилия</th>
-                                    <th className="px-4 py-3">Email</th>
-                                    <th className="px-4 py-3">Телефон</th>
-                                    <th className="px-4 py-3">Язык</th>
-                                    <th className="px-4 py-3">Тест</th>
-                                    <th className="px-4 py-3 text-center">Верно</th>
-                                    <th className="px-4 py-3 text-center">Всего</th>
-                                    <th className="px-4 py-3 text-center">Балл</th>
-                                    <th className="px-4 py-3 text-center">%</th>
-                                    <th className="px-4 py-3 text-center">Статус</th>
-                                    <th className="px-4 py-3">Дата</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {results.map((result) => (
-                                    <tr key={result.id} className="border-t align-top hover:bg-slate-50/70">
-                                        <td className="px-4 py-4 font-medium">{result.id}</td>
-                                        <td className="px-4 py-4">{result.first_name}</td>
-                                        <td className="px-4 py-4">{result.last_name}</td>
-                                        <td className="px-4 py-4">{result.email}</td>
-                                        <td className="px-4 py-4">{result.phone || '—'}</td>
-                                        <td className="px-4 py-4">{result.language_label}</td>
-                                        <td className="px-4 py-4">{result.test_name}</td>
-                                        <td className="px-4 py-4 text-center">{result.correct_answers}</td>
-                                        <td className="px-4 py-4 text-center">{result.total_questions}</td>
-                                        <td className="px-4 py-4 text-center">{result.score}</td>
-                                        <td className="px-4 py-4 text-center font-semibold text-[#102945]">{result.percentage}%</td>
-                                        <td className="px-4 py-4 text-center">
-                                            <StatusBadge tone={result.status === 'passed' ? 'success' : 'danger'}>{result.status_label}</StatusBadge>
-                                        </td>
-                                        <td className="px-4 py-4 whitespace-nowrap">{formatDate(result.submitted_at)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
+                                    <thead className="text-left">
+                                        <tr>
+                                            <th className="px-4 py-3">ID</th>
+                                            <th className="px-4 py-3">Имя</th>
+                                            <th className="px-4 py-3">Фамилия</th>
+                                            <th className="px-4 py-3">Email</th>
+                                            <th className="px-4 py-3">Телефон</th>
+                                            <th className="px-4 py-3">Язык</th>
+                                            <th className="px-4 py-3">Тест</th>
+                                            <th className="px-4 py-3 text-center">Верно</th>
+                                            <th className="px-4 py-3 text-center">Всего</th>
+                                            <th className="px-4 py-3 text-center">Балл</th>
+                                            <th className="px-4 py-3 text-center">%</th>
+                                            <th className="px-4 py-3 text-center">Статус</th>
+                                            <th className="px-4 py-3">Дата</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {results.map((result) => (
+                                            <tr key={result.id} className="border-t border-slate-200 align-top hover:bg-slate-50">
+                                                <td className="px-4 py-4 font-medium tabular-nums text-slate-900">{result.id}</td>
+                                                <td className="px-4 py-4">{result.first_name}</td>
+                                                <td className="px-4 py-4">{result.last_name}</td>
+                                                <td className="px-4 py-4 text-slate-600">{result.email}</td>
+                                                <td className="px-4 py-4 tabular-nums text-slate-600">{result.phone || '—'}</td>
+                                                <td className="px-4 py-4">{result.language_label}</td>
+                                                <td className="px-4 py-4">{result.test_name}</td>
+                                                <td className="px-4 py-4 text-center tabular-nums">{result.correct_answers}</td>
+                                                <td className="px-4 py-4 text-center tabular-nums">{result.total_questions}</td>
+                                                <td className="px-4 py-4 text-center tabular-nums">{result.score}</td>
+                                                <td className="px-4 py-4 text-center font-semibold tabular-nums text-[#102945]">{result.percentage}%</td>
+                                                <td className="px-4 py-4 text-center">
+                                                    <StatusBadge tone={result.status === 'passed' ? 'success' : 'danger'}>{result.status_label}</StatusBadge>
+                                                </td>
+                                                <td className="whitespace-nowrap px-4 py-4 tabular-nums text-slate-600">{formatDate(result.submitted_at)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
                                 </table>
-                            </DataTable>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <div>Показано {results.length} из {pagination.total ?? results.length}</div>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div className="tabular-nums">Показано {results.length} из {pagination.total ?? results.length}</div>
                     <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
+                        <Button type="button" size="sm" variant="outline" aria-label="Предыдущая страница" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span>Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
-                        <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
+                        <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
+                        <Button type="button" size="sm" variant="outline" aria-label="Следующая страница" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>

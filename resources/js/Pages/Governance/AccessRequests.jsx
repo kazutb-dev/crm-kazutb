@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { DataTable, EmptyState, FilterBar, FormField, Notice, PageHeader, qdFieldClass, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,8 +34,8 @@ const STATUS_BADGES = {
 
 const ROUTE_BADGES = {
     hr: 'border-blue-200 bg-blue-50 text-blue-800',
-    academic: 'border-violet-200 bg-violet-50 text-violet-800',
-    structural: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+    academic: 'border-amber-200 bg-amber-50 text-amber-800',
+    structural: 'border-teal-200 bg-teal-50 text-teal-800',
 };
 
 function formatDate(value) {
@@ -158,110 +158,71 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
         });
     };
 
-    return (
-        <AuthenticatedLayout>
-            <Head title="Запросы согласования" />
+    const currentPage = pagination.current_page ?? 1;
+    const lastPage = pagination.last_page ?? 1;
 
-            <div className="admin-page-wrap space-y-5">
+    return (
+        <AuthenticatedLayout
+            header={(
                 <PageHeader
                     eyebrow="Управление доступом"
                     title="Запросы согласования"
-                    description="Очередь согласования профиля и организационной привязки."
+                    description="Очередь согласования профиля и организационной привязки. Ожидающие значения не дают доступ — действуют только подтверждённые."
                     meta={<StatusBadge tone="warning">Ожидающие значения не дают доступ</StatusBadge>}
+                    actions={canManageFoundation ? (
+                        <>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.role-access'))}>Ролевой доступ</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
+                        </>
+                    ) : null}
                 />
+            )}
+        >
+            <Head title="Запросы согласования" />
 
+            <div className="admin-page-wrap space-y-6">
                 {canManageFoundation ? (
-                    <Card className="border-red-200 bg-red-50/40 shadow-sm">
-                        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                            <div>
-                                <p className="text-sm font-semibold text-red-900">Управление администратора</p>
-                                <p className="text-xs text-red-800">Одобрение и отклонение требуют указания причины для опасных действий. Все решения записываются в журнал аудита.</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.role-access'))}>Ролевой доступ</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <Notice tone="danger" title="Управление администратора">
+                        Одобрение и отклонение требуют указания причины для опасных действий. Все решения записываются в журнал аудита.
+                    </Notice>
                 ) : null}
 
                 {flash.success ? (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        {flash.success}
-                    </div>
+                    <Notice tone="success">{flash.success}</Notice>
                 ) : null}
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card className="border shadow-sm">
-                        <CardContent className="pt-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Всего</p>
-                                    <p className="mt-1 text-3xl font-semibold text-slate-900">{(summary.total ?? 0).toLocaleString('ru-RU')}</p>
-                                </div>
-                                <ClipboardCheck className="h-5 w-5 text-slate-500" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border border-amber-200 bg-amber-50/35 shadow-sm">
-                        <CardContent className="pt-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Ожидает</p>
-                                    <p className="mt-1 text-3xl font-semibold text-slate-900">{(summary.pending ?? 0).toLocaleString('ru-RU')}</p>
-                                </div>
-                                <ShieldAlert className="h-5 w-5 text-amber-700" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border border-emerald-200 bg-emerald-50/35 shadow-sm">
-                        <CardContent className="pt-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Одобрено</p>
-                                    <p className="mt-1 text-3xl font-semibold text-slate-900">{(summary.approved ?? 0).toLocaleString('ru-RU')}</p>
-                                </div>
-                                <ShieldCheck className="h-5 w-5 text-emerald-700" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="border border-red-200 bg-red-50/35 shadow-sm">
-                        <CardContent className="pt-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Отклонено</p>
-                                    <p className="mt-1 text-3xl font-semibold text-slate-900">{(summary.rejected ?? 0).toLocaleString('ru-RU')}</p>
-                                </div>
-                                <XCircle className="h-5 w-5 text-red-700" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                <StatGrid>
+                    <StatTile label="Всего" value={(summary.total ?? 0).toLocaleString('ru-RU')} tone="navy" icon={ClipboardCheck} />
+                    <StatTile label="Ожидает" value={(summary.pending ?? 0).toLocaleString('ru-RU')} tone="warning" icon={ShieldAlert} />
+                    <StatTile label="Одобрено" value={(summary.approved ?? 0).toLocaleString('ru-RU')} tone="success" icon={ShieldCheck} />
+                    <StatTile label="Отклонено" value={(summary.rejected ?? 0).toLocaleString('ru-RU')} tone="danger" icon={XCircle} />
+                </StatGrid>
 
                 <FilterBar>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                            <Filter className="h-4 w-4" />
+                    <div className="mb-4 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
+                            <Filter className="h-4 w-4 text-teal-700" />
                             Фильтры
                         </div>
                         <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                            <div className="relative xl:col-span-2">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={filters.q ?? ''}
-                                    onChange={(event) => updateFilters({ q: event.target.value })}
-                                    className="pl-9"
-                                    placeholder="Поиск по пользователю / инициатору"
-                                />
-                            </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+                        <label className="relative block space-y-2 md:col-span-2 xl:col-span-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                            <Input
+                                value={filters.q ?? ''}
+                                onChange={(event) => updateFilters({ q: event.target.value })}
+                                className="pl-9"
+                                placeholder="Поиск по пользователю / инициатору"
+                            />
+                        </label>
 
+                        <FormField label="Статус">
                             <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={filters.status ?? 'pending'}
                                 onChange={(event) => updateFilters({ status: event.target.value })}
                             >
@@ -269,9 +230,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 <option value="approved">Одобрено</option>
                                 <option value="rejected">Отклонено</option>
                             </select>
+                        </FormField>
 
+                        <FormField label="Тип запроса">
                             <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={filters.request_type ?? ''}
                                 onChange={(event) => updateFilters({ request_type: event.target.value })}
                             >
@@ -280,9 +243,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                     <option key={item.value} value={item.value}>{item.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
+                        <FormField label="Цепочка">
                             <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={filters.authority_route ?? ''}
                                 onChange={(event) => updateFilters({ authority_route: event.target.value })}
                             >
@@ -291,11 +256,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                     <option key={item.value} value={item.value}>{item.label}</option>
                                 ))}
                             </select>
-                        </div>
+                        </FormField>
 
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <FormField label="Видимость">
                             <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={filters.ownership ?? 'review'}
                                 onChange={(event) => updateFilters({ ownership: event.target.value })}
                             >
@@ -303,21 +268,26 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 <option value="mine">Мои / по мне</option>
                                 <option value="all">Все видимые</option>
                             </select>
-                        </div>
+                        </FormField>
                     </div>
                 </FilterBar>
 
                 <DataTable>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 px-4 py-3">
-                        <div className="text-base font-semibold text-foreground">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
+                        <div className="flex items-baseline gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
                             Очередь запросов
-                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                ({pagination.total ?? requests.length} записей)
+                            <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
+                                {(pagination.total ?? requests.length).toLocaleString('ru-RU')} записей
                             </span>
                         </div>
                         <StatusBadge tone="default">review queue</StatusBadge>
                     </div>
 
+                    {requests.length === 0 ? (
+                        <div className="p-5">
+                            <EmptyState title="Запросов нет" description="Подходящих запросов согласования нет. Измените фильтры, чтобы увидеть другие статусы или цепочки." />
+                        </div>
+                    ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-[1400px]">
                                 <thead>
@@ -334,17 +304,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {requests.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
-                                                Подходящих запросов согласования нет.
-                                            </td>
-                                        </tr>
-                                    ) : requests.map((item) => (
+                                    {requests.map((item) => (
                                         <tr key={item.id} className="align-top">
                                             <td>
                                                 <div className="font-medium text-slate-900">{item.subject_user?.name || '—'}</div>
-                                                <div className="mt-0.5 text-xs text-muted-foreground">{item.subject_user?.email || '—'}</div>
+                                                <div className="mt-0.5 text-xs text-slate-500">{item.subject_user?.email || '—'}</div>
                                             </td>
                                             <td>
                                                 <div className="flex flex-wrap gap-1.5">
@@ -353,13 +317,13 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                                         {item.authority_route_label}
                                                     </Badge>
                                                 </div>
-                                                {item.origin && <div className="mt-1 text-xs text-muted-foreground">Источник: {item.origin}</div>}
+                                                {item.origin && <div className="mt-1 text-xs text-slate-500">Источник: {item.origin}</div>}
                                             </td>
-                                            <td className="text-sm text-slate-700">{renderValueSummary(item.current_value)}</td>
+                                            <td className="text-sm text-slate-600">{renderValueSummary(item.current_value)}</td>
                                             <td className="text-sm font-medium text-slate-900">{renderValueSummary(item.requested_value)}</td>
                                             <td>
                                                 <div className="text-sm text-slate-900">{item.requested_by_user?.name || '—'}</div>
-                                                <div className="text-xs text-muted-foreground">{item.requested_by_user?.email || '—'}</div>
+                                                <div className="text-xs text-slate-500">{item.requested_by_user?.email || '—'}</div>
                                             </td>
                                             <td>
                                                 <Badge variant="outline" className={STATUS_BADGES[item.status] ?? STATUS_BADGES.pending}>
@@ -369,10 +333,10 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                             <td>
                                                 {item.status === 'pending' && (() => {
                                                     const w = waitingLabel(item.created_at);
-                                                    return w ? <span className={`text-xs ${w.tone}`}>{w.text}</span> : null;
+                                                    return w ? <span className={`text-xs tabular-nums ${w.tone}`}>{w.text}</span> : null;
                                                 })()}
                                             </td>
-                                            <td className="text-sm text-muted-foreground">{formatDate(item.created_at)}</td>
+                                            <td className="whitespace-nowrap text-sm tabular-nums text-slate-500">{formatDate(item.created_at)}</td>
                                             <td className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <Button size="sm" variant="outline" onClick={() => setSelectedRequest(item)}>
@@ -395,21 +359,22 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 </tbody>
                             </table>
                     </div>
+                    )}
 
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                            <div className="text-sm text-muted-foreground">
-                                Показано {pagination.from ?? 0}-{pagination.to ?? 0} из {pagination.total ?? 0}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button size="sm" variant="outline" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
-                                    <ChevronLeft className="mr-1 h-4 w-4" /> Назад
-                                </Button>
-                                <span className="text-sm text-muted-foreground">Стр. {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
-                                <Button size="sm" variant="outline" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
-                                    Вперёд <ChevronRight className="ml-1 h-4 w-4" />
-                                </Button>
-                            </div>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                        <div className="text-xs font-medium tabular-nums text-slate-500">
+                            Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                         </div>
+                        <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
+                                <ChevronLeft className="mr-1 h-4 w-4" /> Назад
+                            </Button>
+                            <span className="text-sm tabular-nums text-slate-600">Стр. {currentPage} / {lastPage}</span>
+                            <Button size="sm" variant="outline" disabled={currentPage >= lastPage} onClick={() => goToPage(currentPage + 1)}>
+                                Вперёд <ChevronRight className="ml-1 h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                 </DataTable>
             </div>
 
@@ -426,35 +391,35 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
 
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Текущее значение</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Текущее значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.current_value, null, 2)}</pre>
+                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.current_value, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Запрошенное значение</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Запрошенное значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.requested_value, null, 2)}</pre>
+                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.requested_value, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Подтверждённое значение</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Подтверждённое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.approved_value ?? {}, null, 2)}</pre>
+                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.approved_value ?? {}, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Применяемое значение</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Применяемое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(selectedRequest.effective_value ?? {}, null, 2)}</pre>
+                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.effective_value ?? {}, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Цепочка полномочий</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Цепочка полномочий</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div><span className="text-muted-foreground">Маршрут:</span> {selectedRequest.authority_route_label}</div>
                                         <div><span className="text-muted-foreground">Кандидаты на согласование:</span></div>
@@ -467,7 +432,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">История и сроки</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>История и сроки</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div className="space-y-2">
                                             <div className="flex items-start gap-2">
@@ -512,7 +477,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 </Card>
 
                                 <Card>
-                                    <CardHeader className="pb-2"><CardTitle className="text-sm">Состояние рассмотрения</CardTitle></CardHeader>
+                                    <CardHeader><CardTitle>Состояние рассмотрения</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
                                         <div><span className="text-muted-foreground">Статус:</span> {selectedRequest.status_label}</div>
                                         <div><span className="text-muted-foreground">Инициатор:</span> {selectedRequest.requested_by_user?.name || '—'}</div>
@@ -541,16 +506,16 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                             </DialogHeader>
 
                             <form onSubmit={submitReview} className="space-y-4">
-                                <div className="rounded-xl bg-slate-50 p-3 text-sm">
-                                    <div><span className="text-muted-foreground">Текущее:</span> {renderValueSummary(reviewDialog.request.current_value)}</div>
-                                    <div className="mt-1"><span className="text-muted-foreground">Запрошено:</span> {renderValueSummary(reviewDialog.request.requested_value)}</div>
+                                <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm sm:grid-cols-2">
+                                    <div><span className="qd-field-label block text-slate-500">Текущее</span><span className="mt-1 block text-slate-700">{renderValueSummary(reviewDialog.request.current_value)}</span></div>
+                                    <div><span className="qd-field-label block text-slate-500">Запрошено</span><span className="mt-1 block font-medium text-slate-900">{renderValueSummary(reviewDialog.request.requested_value)}</span></div>
                                 </div>
 
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-slate-700">Комментарий review</label>
+                                    <label className="qd-field-label mb-2 block">Комментарий review</label>
                                     <textarea
                                         rows={3}
-                                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                        className={`${qdFieldClass} h-auto py-2`}
                                         value={reviewForm.data.review_comment}
                                         onChange={(event) => reviewForm.setData('review_comment', event.target.value)}
                                         placeholder="Комментарий рецензента"
@@ -559,10 +524,10 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
 
                                 {reviewDialog.action === 'reject' ? (
                                     <div>
-                                        <label className="mb-1 block text-sm font-medium text-slate-700">Причина отклонения</label>
+                                        <label className="qd-field-label mb-2 block">Причина отклонения</label>
                                         <textarea
                                             rows={3}
-                                            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-slate-500 focus:ring-slate-500"
+                                            className={`${qdFieldClass} h-auto py-2`}
                                             value={reviewForm.data.rejection_reason}
                                             onChange={(event) => reviewForm.setData('rejection_reason', event.target.value)}
                                             placeholder="Почему заявка отклонена"
@@ -571,7 +536,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 ) : null}
 
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-slate-700">Причина override</label>
+                                    <label className="qd-field-label mb-2 block">Причина override</label>
                                     <Input
                                         value={reviewForm.data.reason}
                                         onChange={(event) => reviewForm.setData('reason', event.target.value)}

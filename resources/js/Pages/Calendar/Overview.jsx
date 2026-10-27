@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
@@ -19,10 +19,10 @@ const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const MONTH_NAMES = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
 const STATUS_OPTIONS = [
-    { value: 'available',  label: 'Доступен для приёма', color: 'bg-green-500' },
-    { value: 'busy',       label: 'Занят',                color: 'bg-red-500'   },
-    { value: 'soon',       label: 'Скоро освобожусь',     color: 'bg-yellow-500'},
-    { value: 'dnd',        label: 'Не беспокоить',        color: 'bg-gray-500'  },
+    { value: 'available',  label: 'Доступен для приёма', color: 'bg-emerald-600', tone: 'success' },
+    { value: 'busy',       label: 'Занят',                color: 'bg-red-600',     tone: 'danger'  },
+    { value: 'soon',       label: 'Скоро освобожусь',     color: 'bg-amber-500',   tone: 'warning' },
+    { value: 'dnd',        label: 'Не беспокоить',        color: 'bg-slate-500',   tone: 'default' },
 ];
 
 function getMonthCells(year, month) {
@@ -46,9 +46,9 @@ function formatDate(dt) {
 }
 
 const STATUS_COLORS = {
-    confirmed: 'bg-blue-500/15 border-l-[3px] border-blue-500',
-    pending:   'bg-yellow-500/15 border-l-[3px] border-yellow-500',
-    conflict:  'bg-red-500/15 border-l-[3px] border-red-500',
+    confirmed: 'bg-blue-600',
+    pending:   'bg-amber-500',
+    conflict:  'bg-red-600',
 };
 
 export default function CalendarOverview({ stats, upcomingEvents = [], holidays = {}, userStatus = 'available' }) {
@@ -96,62 +96,61 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
     }
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Обзор"
+                    description="Встречи на неделе, ожидающие ответа приглашения, конфликты и ваш статус приёма."
+                    meta={(
+                        <StatusBadge tone={currentStatus.tone}>
+                            <span className={`mr-1.5 h-2 w-2 rounded-full ${currentStatus.color}`} />
+                            {currentStatus.label}
+                        </StatusBadge>
+                    )}
+                />
+            )}
+        >
             <Head title="Smart Calendar — Обзор" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
 
-                {/* KPI cards */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <Card>
-                        <CardContent className="p-4">
-                            <p className="text-xs text-muted-foreground">Встреч на неделе</p>
-                            <p className="text-2xl font-bold mt-1">{stats.week_count}</p>
-                            <CalendarDays className="size-4 text-muted-foreground mt-1" />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-4">
-                            <p className="text-xs text-muted-foreground">Сегодня встреч</p>
-                            <p className="text-2xl font-bold mt-1">{stats.today_count}</p>
-                            <Clock className="size-4 text-muted-foreground mt-1" />
-                        </CardContent>
-                    </Card>
-                    <Card className="border-yellow-200 bg-yellow-50/40 dark:border-yellow-800 dark:bg-yellow-900/10">
-                        <CardContent className="p-4">
-                            <p className="text-xs text-muted-foreground">Ожидают ответа</p>
-                            <p className="text-2xl font-bold mt-1 text-yellow-600">{stats.pending_count}</p>
-                            <MessageSquare className="size-4 text-yellow-500 mt-1" />
-                        </CardContent>
-                    </Card>
-                    <Card className={stats.conflict_count > 0 ? 'border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-900/10' : ''}>
-                        <CardContent className="p-4">
-                            <p className="text-xs text-muted-foreground">Конфликты</p>
-                            <p className={`text-2xl font-bold mt-1 ${stats.conflict_count > 0 ? 'text-red-600' : ''}`}>{stats.conflict_count}</p>
-                            <AlertTriangle className={`size-4 mt-1 ${stats.conflict_count > 0 ? 'text-red-500' : 'text-muted-foreground'}`} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* KPI tiles */}
+                <StatGrid>
+                    <StatTile label="Встреч на неделе" value={stats.week_count} tone="teal" icon={CalendarDays} />
+                    <StatTile label="Сегодня встреч" value={stats.today_count} tone="info" icon={Clock} />
+                    <StatTile label="Ожидают ответа" value={stats.pending_count} tone="warning" icon={MessageSquare} />
+                    <StatTile
+                        label="Конфликты"
+                        value={stats.conflict_count}
+                        tone={stats.conflict_count > 0 ? 'danger' : 'neutral'}
+                        icon={AlertTriangle}
+                        hint={stats.conflict_count > 0 ? 'Есть пересечения встреч — проверьте календарь' : null}
+                    />
+                </StatGrid>
 
-                <div className="grid gap-4 lg:grid-cols-3">
+                <div className="grid gap-6 lg:grid-cols-3">
                     {/* Mini-calendar */}
                     <Card className="lg:col-span-2">
-                        <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between">
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarDays className="shrink-0" />
+                                    {MONTH_NAMES[calMonth]} {calYear}
+                                </CardTitle>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="size-4"/></Button>
-                                    <span className="text-sm font-semibold w-36 text-center">{MONTH_NAMES[calMonth]} {calYear}</span>
-                                    <Button variant="outline" size="icon" onClick={nextMonth}><ChevronRight className="size-4"/></Button>
+                                    <Button variant="outline" size="icon" onClick={prevMonth} aria-label="Предыдущий месяц"><ChevronLeft className="size-4"/></Button>
+                                    <Button variant="outline" size="sm" onClick={() => { setCalYear(today.getFullYear()); setCalMonth(today.getMonth()); }}>
+                                        Сегодня
+                                    </Button>
+                                    <Button variant="outline" size="icon" onClick={nextMonth} aria-label="Следующий месяц"><ChevronRight className="size-4"/></Button>
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => { setCalYear(today.getFullYear()); setCalMonth(today.getMonth()); }}>
-                                    Сегодня
-                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <div className="grid grid-cols-7 border-b">
+                            <div className="grid grid-cols-7 border-b border-slate-200">
                                 {WEEKDAYS.map((wd, i) => (
-                                    <div key={wd} className={`py-1.5 text-center text-xs font-medium text-muted-foreground ${i >= 5 ? 'text-destructive/60' : ''}`}>{wd}</div>
+                                    <div key={wd} className={`py-2 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>{wd}</div>
                                 ))}
                             </div>
                             <div className="grid grid-cols-7">
@@ -163,15 +162,15 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
                                     const dayEvents = day ? (eventDates[day] ?? []) : [];
 
                                     return (
-                                        <div key={idx} className={`min-h-[60px] border-b border-r p-1 last:border-r-0 ${day ? 'cursor-pointer hover:bg-muted/40' : 'bg-muted/10'}`}>
+                                        <div key={idx} className={`min-h-[64px] border-b border-r border-slate-200 p-1.5 last:border-r-0 [&:nth-child(7n)]:border-r-0 ${day ? 'cursor-pointer hover:bg-teal-50/60' : 'bg-slate-50'}`}>
                                             {day && (
                                                 <>
-                                                    <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-primary-foreground' : isHoliday || isWeekend ? 'text-destructive/70' : ''}`}>
+                                                    <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold tabular-nums ${isToday ? 'bg-teal-700 text-white' : isHoliday || isWeekend ? 'text-red-600/80' : 'text-slate-800'}`}>
                                                         {day}
                                                     </span>
-                                                    <div className="flex gap-0.5 flex-wrap mt-0.5">
+                                                    <div className="mt-1 flex flex-wrap gap-0.5 px-1">
                                                         {dayEvents.slice(0,3).map((s, i) => (
-                                                            <span key={i} className={`w-1.5 h-1.5 rounded-full ${s === 'confirmed' ? 'bg-blue-500' : s === 'pending' ? 'bg-yellow-500' : s === 'conflict' ? 'bg-red-500' : 'bg-green-500'}`}/>
+                                                            <span key={i} className={`h-1.5 w-1.5 rounded-full ${s === 'confirmed' ? 'bg-blue-600' : s === 'pending' ? 'bg-amber-500' : s === 'conflict' ? 'bg-red-600' : 'bg-emerald-600'}`}/>
                                                         ))}
                                                     </div>
                                                 </>
@@ -181,32 +180,36 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
                                 })}
                             </div>
                             {/* Legend */}
-                            <div className="flex flex-wrap gap-3 p-3 border-t text-xs text-muted-foreground">
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"/>Доступен</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"/>Встреча</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500"/>Ожидает</span>
-                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"/>Конфликт</span>
+                            <div className="flex flex-wrap gap-4 px-5 py-3 text-xs text-slate-600">
+                                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-600"/>Доступен</span>
+                                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-600"/>Встреча</span>
+                                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500"/>Ожидает</span>
+                                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-600"/>Конфликт</span>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Right column */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {/* Status switcher */}
                         <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Мой статус</CardTitle>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <CheckCircle2 className="shrink-0" />
+                                    Мой статус
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-1.5">
                                 {STATUS_OPTIONS.map(opt => (
                                     <button
                                         key={opt.value}
+                                        type="button"
                                         onClick={() => changeStatus(opt.value)}
-                                        className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${status === opt.value ? 'bg-muted font-medium' : 'hover:bg-muted/50'}`}
+                                        className={`flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-sm transition-colors ${status === opt.value ? 'border-teal-300 bg-teal-50 font-semibold text-[#102945]' : 'border-transparent text-slate-700 hover:bg-slate-50'}`}
                                     >
-                                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${opt.color}`}/>
+                                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${opt.color}`}/>
                                         {opt.label}
-                                        {status === opt.value && <CheckCircle2 className="size-3.5 ml-auto text-muted-foreground"/>}
+                                        {status === opt.value && <CheckCircle2 className="ml-auto size-4 text-teal-700"/>}
                                     </button>
                                 ))}
                             </CardContent>
@@ -214,27 +217,36 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
 
                         {/* Upcoming meetings */}
                         <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Ближайшие встречи</CardTitle>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Clock className="shrink-0" />
+                                    Ближайшие встречи
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-2">
+                            <CardContent className={upcomingEvents.length === 0 ? '' : 'py-2'}>
                                 {upcomingEvents.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">Нет предстоящих встреч</p>
+                                    <p className="py-4 text-center text-sm text-slate-500">Нет предстоящих встреч</p>
                                 ) : (
-                                    upcomingEvents.map(e => (
-                                        <div key={e.id} className={`rounded-lg p-2.5 text-xs ${STATUS_COLORS[e.status] ?? 'bg-muted/40 border-l-[3px] border-muted'}`}>
-                                            <p className="font-medium truncate">{e.title}</p>
-                                            <p className="text-muted-foreground mt-0.5">{e.with}</p>
-                                            <div className="flex items-center justify-between mt-1">
-                                                <span className="text-muted-foreground">{formatDate(e.starts_at)} {formatTime(e.starts_at)}</span>
-                                                {e.format === 'online' && e.zoom_join_url && (
-                                                    <a href={e.zoom_join_url} target="_blank" rel="noopener noreferrer">
-                                                        <Video className="size-3.5 text-blue-500"/>
-                                                    </a>
-                                                )}
+                                    <div className="divide-y divide-slate-200">
+                                        {upcomingEvents.map(e => (
+                                            <div key={e.id} className="flex gap-3 py-3">
+                                                <span className={`mt-1 w-1 shrink-0 self-stretch rounded-full ${STATUS_COLORS[e.status] ?? 'bg-slate-300'}`} />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-semibold text-slate-900">{e.title}</p>
+                                                    {e.with && <p className="mt-0.5 truncate text-xs text-slate-600">{e.with}</p>}
+                                                    <div className="mt-1 flex items-center justify-between gap-2">
+                                                        <span className="text-xs tabular-nums text-slate-500">{formatDate(e.starts_at)} {formatTime(e.starts_at)}</span>
+                                                        {e.format === 'online' && e.zoom_join_url && (
+                                                            <a href={e.zoom_join_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-[#102945]">
+                                                                <Video className="size-3.5"/>
+                                                                Zoom
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
