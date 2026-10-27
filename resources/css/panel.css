@@ -425,29 +425,24 @@
 }
 
 /* Page intro (AuthenticatedLayout header slot): the hero of the design page */
+/* Page title block: no wash or rule of its own, sits on the page background above the content */
 .qd-hero {
   position: relative;
-  overflow: hidden;
-  border-bottom: 1px solid var(--qd-border);
-  background:
-    radial-gradient(55% 140% at 18% -10%, rgba(9, 186, 178, 0.16), transparent 62%),
-    radial-gradient(35% 120% at 96% 0%, rgba(226, 181, 62, 0.16), transparent 60%),
-    var(--qd-bg);
-  padding: 2rem 1rem 1.75rem;
+  padding: 1.5rem 1rem 0;
 }
 
 @media (min-width: 640px) {
   .qd-hero {
-    padding: 2.75rem 2rem 2.25rem;
+    padding: 2rem 2rem 0;
   }
 }
 
 .qd-hero :is(h1, h2) {
-  font-family: var(--qd-font-display);
-  font-size: clamp(1.875rem, 1.3rem + 1.6vw, 2.75rem);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   color: var(--qd-ink);
 }
 
