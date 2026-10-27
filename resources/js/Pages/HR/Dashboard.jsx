@@ -583,9 +583,9 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                             <span className="text-xs font-medium text-slate-500">Количество опоздавших пользователей</span>
                         </div>
                     </CardHeader>
-                    <CardContent className={topDivisions.length === 0 ? '' : 'p-0'}>
+                    <CardContent className={topDivisions.length === 0 ? '' : 'p-0 sm:p-0'}>
                         {topDivisions.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
+                            <p className="py-12 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="divide-y divide-slate-200">
                                 {topDivisions.map((row, idx) => (

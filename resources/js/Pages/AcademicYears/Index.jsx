@@ -1,8 +1,9 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
+import { EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -128,7 +129,7 @@ export default function Index({ academicYears }) {
             <Head title="Учебные годы" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Учебных годов" value={total} icon={CalendarDays} tone="teal" hint="Во всём справочнике" />
                     <StatTile
                         label="Активный год"
@@ -152,57 +153,60 @@ export default function Index({ academicYears }) {
                         )}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[560px] text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">Период</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    <th className="px-5 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((item) => (
-                                    <tr key={item.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3.5 font-medium tabular-nums text-slate-900">{item.name}</td>
-                                        <td className="px-5 py-3.5">
-                                            {item.is_active ? (
-                                                <Badge variant="success">Активный</Badge>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[560px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Период</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((item) => (
+                                            <tr key={item.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td className="font-medium tabular-nums text-slate-900">{item.name}</td>
+                                                <td>
+                                                    {item.is_active ? (
+                                                        <Badge variant="success">Активный</Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary">Неактивный</Badge>
+                                                    )}
+                                                </td>
+                                                <td className="text-right">
+                                                    <Button variant="destructive" size="sm" onClick={() => handleDelete(item)}>
+                                                        <Trash2 />
+                                                        Удалить
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-end">
+                                    {links.map((link, index) => (
+                                        <Button
+                                            key={`${link.label}-${index}`}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            disabled={!link.url}
+                                            asChild={Boolean(link.url)}
+                                        >
+                                            {link.url ? (
+                                                <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
                                             ) : (
-                                                <Badge variant="secondary">Неактивный</Badge>
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
                                             )}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item)}>
-                                                <Trash2 />
-                                                Удалить
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {links.length > 3 && (
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                        {links.map((link, index) => (
-                            <Button
-                                key={`${link.label}-${index}`}
-                                variant={link.active ? 'default' : 'outline'}
-                                size="sm"
-                                disabled={!link.url}
-                                asChild={Boolean(link.url)}
-                            >
-                                {link.url ? (
-                                    <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                ) : (
-                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )}
-                            </Button>
-                        ))}
-                    </div>
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 

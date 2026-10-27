@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageHeader, StatTile } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link } from '@inertiajs/react';
@@ -162,7 +162,7 @@ export default function Monitoring({
             <Head title="Мониторинг" />
 
             <div className="admin-page-wrap space-y-6">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <StatGrid>
                     <StatTile icon={Radar} label="Онлайн сейчас" value={fmt(summary?.online_users)} tone="success"
                         hint={`< ${windows?.online_minutes ?? 5} мин активности`} />
                     <StatTile icon={Users} label="Активны за 30 мин" value={fmt(summary?.recent_users)} tone="gold"
@@ -173,7 +173,7 @@ export default function Monitoring({
                         hint="Spatie activity" />
                     <StatTile icon={Zap} label={`События за ${windows?.events_hours ?? 24}ч`} value={fmt(summary?.events_24h)}
                         tone="navy" hint="Все источники" />
-                </div>
+                </StatGrid>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
                     <Panel

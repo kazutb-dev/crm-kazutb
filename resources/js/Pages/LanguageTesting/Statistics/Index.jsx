@@ -98,13 +98,13 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
             header={(
                 <PageHeader
                     eyebrow={(
-                        <>
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
                             <Link href={route('testing.index')} className="transition hover:text-[#102945]">Тестирование</Link>
-                            <span className="mx-1.5">/</span>
+                            <span>/</span>
                             <Link href={route('language-testing.tests.index')} className="transition hover:text-[#102945]">Тесты</Link>
-                            <span className="mx-1.5">/</span>
+                            <span>/</span>
                             <span>Статистика</span>
-                        </>
+                        </span>
                     )}
                     title="Результаты языкового тестирования"
                     description="Отслеживайте прохождения, применяйте фильтры и выгружайте результаты в CSV или Excel."
@@ -126,7 +126,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
             <Head title="Проверка знаний языка — Статистика" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-2">
+                <StatGrid>
                     <StatTile label="Результатов" value={pagination.total ?? results.length} tone="teal" icon={ListChecks} />
                     <StatTile label="Активных фильтров" value={activeFilterCount} tone="navy" icon={Filter} />
                 </StatGrid>
@@ -139,7 +139,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                             applyFilters();
                         }}
                     >
-                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-6">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                             <div className="md:col-span-2 xl:col-span-6">
                                 <FormField label="Поиск">
                                     <div className="relative max-w-xl">
@@ -191,7 +191,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
                             <Button type="submit">Применить</Button>
                             <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
                         </div>
@@ -216,60 +216,60 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 <table className="min-w-full text-sm">
                                     <thead className="text-left">
                                         <tr>
-                                            <th className="px-4 py-3">ID</th>
-                                            <th className="px-4 py-3">Имя</th>
-                                            <th className="px-4 py-3">Фамилия</th>
-                                            <th className="px-4 py-3">Email</th>
-                                            <th className="px-4 py-3">Телефон</th>
-                                            <th className="px-4 py-3">Язык</th>
-                                            <th className="px-4 py-3">Тест</th>
-                                            <th className="px-4 py-3 text-center">Верно</th>
-                                            <th className="px-4 py-3 text-center">Всего</th>
-                                            <th className="px-4 py-3 text-center">Балл</th>
-                                            <th className="px-4 py-3 text-center">%</th>
-                                            <th className="px-4 py-3 text-center">Статус</th>
-                                            <th className="px-4 py-3">Дата</th>
+                                            <th>ID</th>
+                                            <th>Имя</th>
+                                            <th>Фамилия</th>
+                                            <th>Email</th>
+                                            <th>Телефон</th>
+                                            <th>Язык</th>
+                                            <th>Тест</th>
+                                            <th className="text-right">Верно</th>
+                                            <th className="text-right">Всего</th>
+                                            <th className="text-right">Балл</th>
+                                            <th className="text-right">%</th>
+                                            <th>Статус</th>
+                                            <th>Дата</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {results.map((result) => (
-                                            <tr key={result.id} className="border-t border-slate-200 align-top hover:bg-slate-50">
-                                                <td className="px-4 py-4 font-medium tabular-nums text-slate-900">{result.id}</td>
-                                                <td className="px-4 py-4">{result.first_name}</td>
-                                                <td className="px-4 py-4">{result.last_name}</td>
-                                                <td className="px-4 py-4 text-slate-600">{result.email}</td>
-                                                <td className="px-4 py-4 tabular-nums text-slate-600">{result.phone || '—'}</td>
-                                                <td className="px-4 py-4">{result.language_label}</td>
-                                                <td className="px-4 py-4">{result.test_name}</td>
-                                                <td className="px-4 py-4 text-center tabular-nums">{result.correct_answers}</td>
-                                                <td className="px-4 py-4 text-center tabular-nums">{result.total_questions}</td>
-                                                <td className="px-4 py-4 text-center tabular-nums">{result.score}</td>
-                                                <td className="px-4 py-4 text-center font-semibold tabular-nums text-[#102945]">{result.percentage}%</td>
-                                                <td className="px-4 py-4 text-center">
+                                            <tr key={result.id} className="align-top hover:bg-slate-50">
+                                                <td className="font-medium tabular-nums text-slate-900">{result.id}</td>
+                                                <td>{result.first_name}</td>
+                                                <td>{result.last_name}</td>
+                                                <td className="text-slate-600">{result.email}</td>
+                                                <td className="tabular-nums text-slate-600">{result.phone || '—'}</td>
+                                                <td>{result.language_label}</td>
+                                                <td>{result.test_name}</td>
+                                                <td className="text-right tabular-nums">{result.correct_answers}</td>
+                                                <td className="text-right tabular-nums">{result.total_questions}</td>
+                                                <td className="text-right tabular-nums">{result.score}</td>
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{result.percentage}%</td>
+                                                <td>
                                                     <StatusBadge tone={result.status === 'passed' ? 'success' : 'danger'}>{result.status_label}</StatusBadge>
                                                 </td>
-                                                <td className="whitespace-nowrap px-4 py-4 tabular-nums text-slate-600">{formatDate(result.submitted_at)}</td>
+                                                <td className="whitespace-nowrap tabular-nums text-slate-600">{formatDate(result.submitted_at)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-sm text-slate-600 sm:px-6">
+                                <div className="tabular-nums">Показано {results.length} из {pagination.total ?? results.length}</div>
+                                <div className="flex items-center gap-2">
+                                    <Button type="button" size="sm" variant="outline" aria-label="Предыдущая страница" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
+                                    <Button type="button" size="sm" variant="outline" aria-label="Следующая страница" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div className="tabular-nums">Показано {results.length} из {pagination.total ?? results.length}</div>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" aria-label="Предыдущая страница" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
-                        <Button type="button" size="sm" variant="outline" aria-label="Следующая страница" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
             </div>
         </AuthenticatedLayout>
     );

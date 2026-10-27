@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, FormField, Notice, PageHeader, qdFieldClass, StatTile, StatusBadge } from '@/components/platform';
+import { EmptyState, FilterBar, FormField, Notice, PageHeader, qdFieldClass, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -75,7 +75,7 @@ function RowCard({ entry }) {
 
     return (
         <Card className="overflow-hidden">
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
                 <div className="min-w-0">
                     <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-teal-700">
                         {entry.kind === 'delegation' ? entry.delegation_type_label : entry.grant_type_label}
@@ -93,7 +93,7 @@ function RowCard({ entry }) {
                     {entry.is_effective_now ? <Pill tone="blue">Действует сейчас</Pill> : <Pill tone="slate">Не действует</Pill>}
                 </div>
             </div>
-            <CardContent className="space-y-4 pt-4 text-sm text-slate-700">
+            <CardContent className="space-y-4 text-sm text-slate-700">
                 <div className="grid gap-x-6 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
                     <Detail label="Тип">{entry.kind === 'delegation' ? entry.delegation_type_label : entry.grant_type_label}</Detail>
                     <Detail label="Область">{entry.scope_label ?? '—'}</Detail>
@@ -218,13 +218,13 @@ export default function AuthorityLedger({ summary = {}, entries = [], filters = 
                     </Notice>
                 ) : null}
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <StatGrid>
                     <StatTile label="Назначения доступа" value={(summary.scoped_grants ?? 0).toLocaleString('ru-RU')} tone="teal" icon={ShieldCheck} />
                     <StatTile label="Делегирования" value={(summary.delegations ?? 0).toLocaleString('ru-RU')} tone="info" icon={History} />
                     <StatTile label="Активные" value={(summary.active ?? 0).toLocaleString('ru-RU')} tone="success" icon={Clock} />
                     <StatTile label="Истекшие" value={(summary.expired ?? 0).toLocaleString('ru-RU')} tone="warning" icon={ShieldAlert} />
                     <StatTile label="Устаревшие источники" value={(summary.legacy_sources ?? 0).toLocaleString('ru-RU')} tone="copper" icon={Users} />
-                </div>
+                </StatGrid>
 
                 <FilterBar>
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

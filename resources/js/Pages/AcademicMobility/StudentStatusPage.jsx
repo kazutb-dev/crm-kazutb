@@ -147,10 +147,10 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
                                     Файлы заявки
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="py-2">
+                            <CardContent>
                                 <ul className="divide-y divide-slate-200 text-sm text-slate-700">
                                     {(application.document_files ?? []).map((file) => (
-                                        <li key={file.path} className="flex flex-wrap items-center gap-3 py-3">
+                                        <li key={file.path} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
                                             <FileText className="h-4 w-4 shrink-0 text-teal-700" />
                                             <span className="font-medium text-slate-900">{file.document_type}</span>
                                             <a

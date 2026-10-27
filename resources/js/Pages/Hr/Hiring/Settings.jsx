@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { buttonClassName, inputClassName, Notice, VerifiedBadge } from '@/components/hr-hiring/ui';
+import { buttonClassName, inputClassName, inputSizedClassName, Notice, VerifiedBadge } from '@/components/hr-hiring/ui';
 import { DOCUMENT_TYPES } from '@/components/hr-hiring/logic';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { PageHeader, Segmented, UnderlineTabs } from '@/components/platform';
@@ -112,12 +112,12 @@ function NumberingCard({ numbering }) {
             <div className="flex flex-wrap items-end gap-4">
                 <div>
                     <label htmlFor="numbering-year" className="qd-field-label mb-2 block text-[#102945]">Год</label>
-                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputClassName} w-28`} />
+                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputSizedClassName} w-28`} />
                 </div>
                 <div>
                     <label htmlFor="numbering-last" className="qd-field-label mb-2 block text-[#102945]">Последний номер приказа вне системы</label>
                     <div className="flex items-center gap-2">
-                        <input id="numbering-last" inputMode="numeric" value={form.data.last_order_number} onChange={(event) => form.setData('last_order_number', event.target.value.replace(/\D/g, ''))} placeholder="например, 415" className={`${inputClassName} w-40 font-mono`} />
+                        <input id="numbering-last" inputMode="numeric" value={form.data.last_order_number} onChange={(event) => form.setData('last_order_number', event.target.value.replace(/\D/g, ''))} placeholder="например, 415" className={`${inputSizedClassName} w-40 font-mono`} />
                         <span className="font-mono text-sm font-semibold text-slate-600">-К</span>
                     </div>
                 </div>
@@ -234,7 +234,7 @@ function CatalogTab({ units, positions, categories, abilities }) {
                 />
                 <label className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" className={`${inputClassName} w-64 pl-9`} />
+                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" className={`${inputSizedClassName} w-64 max-w-full pl-9`} />
                 </label>
                 <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
                     <input type="checkbox" checked={onlyUnverified} onChange={(event) => setOnlyUnverified(event.target.checked)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30" />
@@ -384,15 +384,15 @@ function RightsTab({ members, capabilities }) {
             <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="min-w-full text-sm">
                     <thead className="text-left">
-                        <tr className="border-b border-slate-200">
-                            <th className="px-4 py-3">Пользователь</th>
-                            {Object.entries(capabilities).map(([key, label]) => <th key={key} className="px-3 py-3">{label}</th>)}
+                        <tr>
+                            <th>Пользователь</th>
+                            {Object.entries(capabilities).map(([key, label]) => <th key={key}>{label}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody>
                         {rows.map((user) => (
                             <tr key={user.id}>
-                                <td className="px-4 py-3">
+                                <td>
                                     <span className="flex items-center gap-2 font-medium text-slate-900"><UserRound className="h-4 w-4 text-teal-700" />{user.name}</span>
                                     <span className="block text-xs text-slate-500">{user.email} · роль: {user.role}{user.can_use_module === false && ' (модуль закрыт)'}</span>
                                 </td>
@@ -400,7 +400,7 @@ function RightsTab({ members, capabilities }) {
                                     const granted = (user.rights ?? []).includes(capability);
                                     if (capability === 'hr.access' && user.role_access) {
                                         return (
-                                            <td key={capability} className="px-3 py-3">
+                                            <td key={capability}>
                                                 <label className="flex items-center gap-2" title="Модуль открыт ролью пользователя">
                                                     <input type="checkbox" checked disabled className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 opacity-60" />
                                                     <span className="text-xs text-slate-600">по роли</span>
@@ -409,7 +409,7 @@ function RightsTab({ members, capabilities }) {
                                         );
                                     }
                                     return (
-                                        <td key={capability} className="px-3 py-3">
+                                        <td key={capability}>
                                             <label className="flex items-center gap-2">
                                                 <input type="checkbox" checked={granted} disabled={saving !== null} onChange={() => toggle(user.id, capability, granted)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30 disabled:opacity-60" />
                                                 <span className="text-xs text-slate-600">{granted ? 'выдано' : 'нет'}</span>
@@ -419,7 +419,7 @@ function RightsTab({ members, capabilities }) {
                                 })}
                             </tr>
                         ))}
-                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="px-4 py-8 text-center text-slate-500">Сотрудников с доступом к модулю пока нет. Найдите пользователя выше.</td></tr>}
+                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="text-center text-slate-500">Сотрудников с доступом к модулю пока нет. Найдите пользователя выше.</td></tr>}
                     </tbody>
                 </table>
             </div>

@@ -1,23 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, FormField, Notice, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
+import { FilterBar, FormField, Notice, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    BarChart3,
-    BookOpen,
-    CalendarRange,
-    CheckCircle2,
-    ChevronDown,
-    ChevronRight,
-    Clock,
-    FileText,
-    Sigma,
-    TrendingUp,
-    User,
-    XCircle,
-} from 'lucide-react';
+import { ArrowLeft, BarChart3, BookOpen, CalendarRange, CheckCircle2, ChevronDown, ChevronRight, Clock, FileText, Inbox, Sigma, TrendingUp, User, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 // ─── constants ───────────────────────────────────────────────────────────────
@@ -449,8 +435,8 @@ function EntryRow({ entry }) {
                 className={`border-b border-slate-200 ${canExpand ? 'cursor-pointer hover:bg-slate-50' : ''} ${open ? 'bg-teal-50/40' : ''}`}
                 onClick={() => canExpand && setOpen((v) => !v)}
             >
-                <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
-                <td className="px-3 py-2.5 font-medium text-slate-900">
+                <td className="whitespace-nowrap font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
+                <td className="font-medium text-slate-900">
                     <span className="flex items-center gap-1">
                         {canExpand && (
                             open
@@ -460,12 +446,12 @@ function EntryRow({ entry }) {
                         {entry.name}
                     </span>
                 </td>
-                <td className="px-3 py-2.5 text-right text-slate-500">{entry.unit ?? '—'}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.base_points)}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
-                <td className="max-w-[22rem] px-3 py-2.5 text-xs text-slate-500">{entry.points_formula ?? '—'}</td>
-                <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[#102945]">{fmt(entry.points)}</td>
-                <td className="px-3 py-2.5 text-right">
+                <td className="text-right text-slate-500">{entry.unit ?? '—'}</td>
+                <td className="text-right tabular-nums text-slate-700">{fmtValue(entry.base_points)}</td>
+                <td className="text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                <td className="max-w-[22rem] text-xs text-slate-500">{entry.points_formula ?? '—'}</td>
+                <td className="text-right font-semibold tabular-nums text-[#102945]">{fmt(entry.points)}</td>
+                <td className="text-right">
                     <StatusBadge tone={STATUS_TONES[entry.status] ?? 'default'} className="text-[0.7rem]">
                         {STATUS_LABELS[entry.status] ?? entry.status}
                     </StatusBadge>
@@ -473,7 +459,7 @@ function EntryRow({ entry }) {
             </tr>
             {open && canExpand && (
                 <tr className="border-b border-slate-200 bg-slate-50/70">
-                    <td colSpan={8} className="px-4 pb-4 pt-1">
+                    <td colSpan={8}>
                         <EntryHistory history={entry.history} />
                         <EntryStructuralConfirmations confirmations={entry.structural_confirmations} />
                         <EntryFiles files={entry.files} />
@@ -512,14 +498,14 @@ function SectionBlock({ section, entries }) {
                 <table className="w-full min-w-[640px] text-sm">
                     <thead className="border-b border-slate-200">
                         <tr>
-                            <th className="w-16 px-3 py-2.5 text-left">Код</th>
-                            <th className="px-3 py-2.5 text-left">Показатель</th>
-                            <th className="w-14 px-3 py-2.5 text-right">Ед.</th>
-                            <th className="w-24 px-3 py-2.5 text-right">Базовый балл</th>
-                            <th className="w-20 px-3 py-2.5 text-right">Факт</th>
-                            <th className="w-[22rem] px-3 py-2.5 text-left">Формула баллов</th>
-                            <th className="w-20 px-3 py-2.5 text-right">Баллы</th>
-                            <th className="w-28 px-3 py-2.5 text-right">Статус</th>
+                            <th className="w-16 text-left">Код</th>
+                            <th className="text-left">Показатель</th>
+                            <th className="w-14 text-right">Ед.</th>
+                            <th className="w-24 text-right">Базовый балл</th>
+                            <th className="w-20 text-right">Факт</th>
+                            <th className="w-[22rem] text-left">Формула баллов</th>
+                            <th className="w-20 text-right">Баллы</th>
+                            <th className="w-28 text-right">Статус</th>
                         </tr>
                     </thead>
                     <tbody className="[&>tr:last-child]:border-0">
@@ -534,6 +520,22 @@ function SectionBlock({ section, entries }) {
 }
 
 // ─── main page ────────────────────────────────────────────────────────────────
+
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
+    );
+}
 
 export default function SummaryTeacherCard({
     teacher,
@@ -568,17 +570,17 @@ export default function SummaryTeacherCard({
                         <div className="min-w-0 space-y-2">
                             <p className="qd-kicker">KPI · Карточка преподавателя</p>
                             <h1 className="font-display text-[1.75rem] font-bold leading-tight tracking-[-0.015em] text-[#102945]">{teacher.name}</h1>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+                            <div className="flex flex-col gap-y-1 text-sm text-slate-600 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
                                 {teacher.title && <span className="font-semibold text-teal-700">{teacher.title}</span>}
                                 {teacher.faculty_name && (
                                     <span className="flex items-center gap-2">
-                                        {teacherMeta.indexOf(teacher.faculty_name) > 0 && <span className="text-slate-300">·</span>}
+                                        {teacherMeta.indexOf(teacher.faculty_name) > 0 && <span className="hidden text-slate-300 sm:inline">·</span>}
                                         {teacher.faculty_name}
                                     </span>
                                 )}
                                 {teacher.department_name && (
                                     <span className="flex items-center gap-2">
-                                        {teacherMeta.indexOf(teacher.department_name) > 0 && <span className="text-slate-300">·</span>}
+                                        {teacherMeta.indexOf(teacher.department_name) > 0 && <span className="hidden text-slate-300 sm:inline">·</span>}
                                         {teacher.department_name}
                                     </span>
                                 )}
@@ -614,7 +616,7 @@ export default function SummaryTeacherCard({
                     </Notice>
                 )}
 
-                <StatGrid className="xl:grid-cols-5">
+                <StatGrid>
                     <StatTile icon={BarChart3} label="Всего записей" value={totals.total ?? 0} tone="navy" />
                     <StatTile icon={TrendingUp} label="Утверждено" value={totals.approved ?? 0} tone="success" />
                     <StatTile icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} tone="warning" />
@@ -642,7 +644,7 @@ export default function SummaryTeacherCard({
                                 ))}
                             </div>
                         ) : (
-                            <EmptyState
+                            <InlineEmpty
                                 title="Нет показателей KPI"
                                 description="Нет показателей KPI за выбранный период. Выберите другой учебный год или период."
                             />

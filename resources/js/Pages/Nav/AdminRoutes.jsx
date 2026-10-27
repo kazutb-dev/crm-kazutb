@@ -850,42 +850,42 @@ export default function AdminRoutes({ navigationRoutes }) {
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[980px] text-sm">
                                     <thead>
-                                        <tr className="border-b border-slate-200 text-left">
-                                            <th className="px-5 py-3">ID</th>
-                                            <th className="px-3 py-3">Badge</th>
-                                            <th className="px-3 py-3">Название</th>
-                                            <th className="px-3 py-3">Тип</th>
-                                            <th className="px-3 py-3">Meta</th>
-                                            <th className="px-3 py-3">Сотрудники</th>
-                                            <th className="px-3 py-3">Шаги</th>
-                                            <th className="px-3 py-3">Статус</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Badge</th>
+                                            <th>Название</th>
+                                            <th>Тип</th>
+                                            <th>Meta</th>
+                                            <th>Сотрудники</th>
+                                            <th>Шаги</th>
+                                            <th>Статус</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-200">
+                                    <tbody>
                                         {items.map((item) => (
                                             <tr key={item.id} className={`align-top hover:bg-slate-50 ${editingId === item.id ? 'bg-teal-50/60' : ''}`}>
-                                                <td className="px-5 py-3 tabular-nums text-slate-500">#{item.id}</td>
-                                                <td className="px-3 py-3">{item.badge ? <Badge variant="secondary">{item.badge}</Badge> : null}</td>
-                                                <td className="px-3 py-3 font-medium text-slate-900">{item.title}</td>
-                                                <td className="px-3 py-3 text-slate-700">{item.kind}</td>
-                                                <td className="px-3 py-3 text-slate-600">{item.meta}</td>
-                                                <td className="px-3 py-3 text-slate-600">
+                                                <td className="tabular-nums text-slate-500">#{item.id}</td>
+                                                <td>{item.badge ? <Badge variant="secondary">{item.badge}</Badge> : null}</td>
+                                                <td className="font-medium text-slate-900">{item.title}</td>
+                                                <td className="text-slate-700">{item.kind}</td>
+                                                <td className="text-slate-600">{item.meta}</td>
+                                                <td className="text-slate-600">
                                                     {Array.isArray(item.attached_users) && item.attached_users.length > 0
                                                         ? item.attached_users.slice(0, 2).map((user) => user.name).join(', ')
                                                         : '—'}
                                                 </td>
-                                                <td className="whitespace-pre-line px-3 py-3 text-slate-600">
+                                                <td className="whitespace-pre-line text-slate-600">
                                                     {Array.isArray(item.steps) && item.steps.length > 0
                                                         ? item.steps.slice(0, 2).map((step, idx) => `${idx + 1}. ${step}`).join('\n')
                                                         : 'Нет шагов'}
                                                 </td>
-                                                <td className="px-3 py-3">
+                                                <td>
                                                     <Badge variant={item.is_active ? 'success' : 'outline'}>
                                                         {item.is_active ? 'Активен' : 'Скрыт'}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Button size="sm" variant="outline" type="button" onClick={() => startEdit(item)}>
                                                             Изменить
@@ -903,7 +903,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-200 px-5 py-3">
+                            <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-200 px-5 py-3 sm:px-6">
                                 {links.map((link, index) => (
                                     <Button
                                         key={`${link.label}-${index}`}

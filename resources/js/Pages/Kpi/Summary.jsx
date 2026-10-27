@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import {
     BookOpen,
     Building2,
     CalendarRange,
+    Inbox,
     FileSpreadsheet,
     FileText,
     GraduationCap,
@@ -446,15 +447,29 @@ function StatCard({ icon: Icon, label, value, sub, accent = 'default' }) {
     );
 }
 
-function StatRow({ children, cols = 4 }) {
-    const colsClass = {
-        3: 'sm:grid-cols-3',
-        4: 'sm:grid-cols-2 xl:grid-cols-4',
-        5: 'sm:grid-cols-3 xl:grid-cols-5',
-        6: 'sm:grid-cols-3 xl:grid-cols-6',
-    }[cols] ?? 'sm:grid-cols-2 xl:grid-cols-4';
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, icon: Icon = Inbox }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+        </div>
+    );
+}
 
-    return <div className={`grid gap-4 ${colsClass}`}>{children}</div>;
+// Padded block inside a flush (p-0) card, separated from the table below by a rule.
+function CardSection({ children, className = '' }) {
+    return <div className={`space-y-5 border-b border-slate-200 px-5 py-5 sm:px-6 ${className}`}>{children}</div>;
+}
+
+// Toolbar row above a table inside a flush card.
+function CardToolbar({ children }) {
+    return <div className="border-b border-slate-200 px-5 py-4 sm:px-6">{children}</div>;
 }
 
 // ─── result score card ───────────────────────────────────────────────────────
@@ -509,7 +524,7 @@ function SectionEntriesTable({ sections }) {
     const allSections = Object.entries(sections ?? {});
     if (allSections.length === 0) {
         return (
-            <EmptyState
+            <InlineEmpty
                 title="Нет показателей KPI за выбранный период"
                 description="Записи появятся после заполнения формы KPI."
             />
@@ -540,30 +555,30 @@ function SectionEntriesTable({ sections }) {
                             <table className="w-full min-w-[640px] text-sm">
                                 <thead className="border-b border-slate-200">
                                     <tr>
-                                        <th className="w-16 px-3 py-2.5 text-left">Код</th>
-                                        <th className="px-3 py-2.5 text-left">Показатель</th>
-                                        <th className="w-14 px-3 py-2.5 text-right">Ед.</th>
-                                        <th className="w-14 px-3 py-2.5 text-right">План</th>
-                                        <th className="w-14 px-3 py-2.5 text-right">Факт</th>
-                                        <th className="w-20 px-3 py-2.5 text-right">Баллы</th>
-                                        <th className="w-[26rem] px-3 py-2.5 text-left">Согласование СП</th>
-                                        <th className="w-28 px-3 py-2.5 text-right">Статус</th>
+                                        <th className="w-16 text-left">Код</th>
+                                        <th className="text-left">Показатель</th>
+                                        <th className="w-14 text-right">Ед.</th>
+                                        <th className="w-14 text-right">План</th>
+                                        <th className="w-14 text-right">Факт</th>
+                                        <th className="w-20 text-right">Баллы</th>
+                                        <th className="w-[26rem] text-left">Согласование СП</th>
+                                        <th className="w-28 text-right">Статус</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {entries.map((entry) => (
                                         <tr key={entry.id} className="border-b border-slate-200 align-top last:border-0">
-                                            <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
-                                            <td className="px-3 py-2.5 font-medium text-slate-900">{entry.name}</td>
-                                            <td className="px-3 py-2.5 text-right text-slate-500">{entry.unit ?? '—'}</td>
-                                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
+                                            <td className="whitespace-nowrap font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
+                                            <td className="font-medium text-slate-900">{entry.name}</td>
+                                            <td className="text-right text-slate-500">{entry.unit ?? '—'}</td>
+                                            <td className="text-right tabular-nums text-slate-700">
                                                 <div>{fmtValue(entry.plan_display_value ?? entry.plan_value)}</div>
                                                 {entry.plan_source === 'fact_fallback' && (
                                                     <div className="text-[0.65rem] font-medium text-amber-700">авто из факта</div>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
-                                            <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[#102945]">
+                                            <td className="text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                                            <td className="text-right font-semibold tabular-nums text-[#102945]">
                                                 <div>{fmt(entry.points)}</div>
                                                 {entry.points_formula && (
                                                     <div className="ms-auto mt-0.5 max-w-[18rem] text-[0.65rem] font-normal leading-tight text-slate-500">
@@ -571,7 +586,7 @@ function SectionEntriesTable({ sections }) {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2.5 text-xs">
+                                            <td className="text-xs">
                                                 {(entry.structural_confirmations ?? []).length > 0 ? (
                                                     <div className="space-y-1.5">
                                                         {(entry.structural_confirmations ?? []).map((item) => (
@@ -598,7 +613,7 @@ function SectionEntriesTable({ sections }) {
                                                     <span className="text-slate-400">—</span>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2.5 text-right">
+                                            <td className="text-right">
                                                 <StatusBadge tone={STATUS_TONES[entry.status] ?? 'default'} className="text-[0.7rem]">
                                                     {STATUS_LABELS[entry.status] ?? entry.status}
                                                 </StatusBadge>
@@ -639,7 +654,7 @@ function TotalsChips({ totals }) {
 function RankingTable({ teachers, showFaculty = false, showDept = false, showKScores = false, source }) {
     if (!teachers || teachers.length === 0) {
         return (
-            <EmptyState
+            <InlineEmpty
                 title="Нет данных о ППС за выбранный период"
                 description="Данные появятся после формирования KPI-записей."
             />
@@ -650,21 +665,21 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
 
     return (
         <div>
-            {isLive && (
-                <Notice tone="warning" className="mb-4">
-                    Отображаются оперативные данные — период ещё не закрыт. Финальный рейтинг R появится после утверждения.
-                </Notice>
-            )}
-            <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-slate-500">
+            <CardSection className="space-y-3">
+                {isLive && (
+                    <Notice tone="warning">
+                        Отображаются оперативные данные — период ещё не закрыт. Финальный рейтинг R появится после утверждения.
+                    </Notice>
+                )}
+                <p className="text-xs font-medium text-slate-500">
                     {teachers.length} чел. найдено
-                </span>
-            </div>
-            <div className="admin-table-wrap">
+                </p>
+            </CardSection>
+            <div className="overflow-x-auto">
                 <table className="admin-data-table min-w-[680px]">
                     <thead>
                         <tr>
-                            <th className="ps-3 w-9 text-center">№</th>
+                            <th className="w-9 text-center">№</th>
                             <th>ФИО</th>
                             {showDept && <th>Кафедра</th>}
                             {showFaculty && <th>Факультет</th>}
@@ -677,12 +692,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                     <th className="w-12 text-right">K4</th>
                                     <th className="w-12 text-right">K5</th>
                                     <th className="w-12 text-right">НПУ</th>
-                                    <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
+                                    <th className="w-16 text-right text-[#067a75]">R</th>
                                 </>
                             ) : (
                                 <>
                                     <th className="w-16 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#067a75]">
+                                    <th className="w-20 text-right text-[#067a75]">
                                         {isLive ? 'Баллы' : 'R'}
                                     </th>
                                 </>
@@ -692,7 +707,7 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                     <tbody>
                         {teachers.map((t, i) => (
                             <tr key={t.id ?? i}>
-                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                                <td className="text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="font-medium">{t.name}</td>
                                 {showDept && <td className="text-sm text-slate-500">{t.department_name ?? '—'}</td>}
                                 {showFaculty && <td className="text-sm text-slate-500">{t.faculty_name ?? '—'}</td>}
@@ -705,12 +720,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k5)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k6)}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
+                                        <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 ) : (
                                     <>
                                         <td className="text-right tabular-nums font-medium text-emerald-600">{t.approved_entries}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
+                                        <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 )}
                             </tr>
@@ -724,8 +739,8 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
 
 function ReportHeading({ text, academicYear, period }) {
     return (
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-4 text-center">
-            <p className="qd-kicker justify-center">Официальный отчёт</p>
+        <div className="border-b border-slate-200 px-5 py-5 text-center sm:px-6">
+            <p className="qd-kicker">Официальный отчёт</p>
             <p className="mt-2 text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#102945]">
                 {text}
             </p>
@@ -790,7 +805,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
 
     if (!displayRows.length) {
         return (
-            <EmptyState
+            <InlineEmpty
                 title="Нет данных"
                 description="Нет данных для выбранной формы отчёта."
             />
@@ -799,11 +814,11 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
 
     if (mode === 'hod') {
         return (
-            <div className="admin-table-wrap">
+            <div className="overflow-x-auto">
                 <table className="admin-data-table min-w-[900px]">
                     <thead>
                         <tr>
-                            <th className="ps-3 w-9 text-center">№</th>
+                            <th className="w-9 text-center">№</th>
                             <th className="w-40">Факультет</th>
                             <th className="w-44">Кафедра</th>
                             <th className="w-44">ФИО зав.каф.</th>
@@ -812,7 +827,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
-                            <th className="w-14 text-right pe-3">УПК</th>
+                            <th className="w-14 text-right">УПК</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -822,7 +837,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                                 onClick={() => onRowClick && row.id && onRowClick(row)}
                             >
-                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                                <td className="text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="text-sm max-w-[10rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="text-sm max-w-[11rem] truncate" title={row.department_name ?? ''}>{row.department_name ?? '—'}</td>
                                 <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
@@ -831,7 +846,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
-                                <td className="pe-3 text-right tabular-nums">{fmt(row.k4)}</td>
+                                <td className="text-right tabular-nums">{fmt(row.k4)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -842,11 +857,11 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
 
     if (mode === 'dean') {
         return (
-            <div className="admin-table-wrap">
+            <div className="overflow-x-auto">
                 <table className="admin-data-table min-w-[820px]">
                     <thead>
                         <tr>
-                            <th className="ps-3 w-9 text-center">№</th>
+                            <th className="w-9 text-center">№</th>
                             <th className="w-52">Факультет</th>
                             <th className="w-52">ФИО декана</th>
                             <th className="w-16 text-right">НПУ</th>
@@ -854,7 +869,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
-                            <th className="w-14 text-right pe-3">УПК</th>
+                            <th className="w-14 text-right">УПК</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -864,7 +879,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                                 onClick={() => onRowClick && row.id && onRowClick(row)}
                             >
-                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                                <td className="text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="text-sm max-w-[13rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="font-medium max-w-[13rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                                 <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
@@ -872,7 +887,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
-                                <td className="pe-3 text-right tabular-nums">{fmt(row.k4)}</td>
+                                <td className="text-right tabular-nums">{fmt(row.k4)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -882,11 +897,11 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
     }
 
     return (
-        <div className="admin-table-wrap">
-            <table className="admin-data-table min-w-[1200px]">
+        <div className="overflow-x-auto">
+            <table className="admin-data-table min-w-[1000px]">
                 <thead>
                     <tr>
-                        <th className="ps-3 w-9 text-center">№</th>
+                        <th className="w-9 text-center">№</th>
                         <th className="w-44">ФИО</th>
                         <th className="w-44">Должность</th>
                         <th className="w-14 text-right">К1 (УМР)</th>
@@ -905,7 +920,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                             onClick={() => onRowClick && row.id && onRowClick(row)}
                         >
-                            <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                            <td className="text-center text-xs text-slate-500">{i + 1}</td>
                             <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                             <td className="text-sm text-slate-500 max-w-[220px] truncate">{row.title ?? '—'}</td>
                             <td className="text-right tabular-nums">{fmt(row.k1)}</td>
@@ -915,7 +930,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <td className="text-right tabular-nums">{fmt(row.k5)}</td>
                             <td className="text-right tabular-nums">{fmt(row.npu_threshold ?? getRateValue(row))}</td>
                             <td className={[
-                                'pe-3 text-right tabular-nums font-bold',
+                                'text-right tabular-nums font-bold',
                                 Number(row.rank_score ?? 0) < 0 ? 'text-red-700' : 'text-[#067a75]',
                             ].join(' ')}>
                                 {fmt(row.rank_score)}
@@ -953,18 +968,18 @@ function PositionGroupTable({ groups = [] }) {
 
     return (
         <div className="admin-table-wrap">
-            <table className="admin-data-table min-w-[460px]">
+            <table className="admin-data-table">
                 <thead>
                     <tr>
-                        <th className="ps-3">Должностная группа</th>
-                        <th className="w-24 text-right pe-3">Кол-во</th>
+                        <th>Должностная группа</th>
+                        <th className="w-24 text-right">Кол-во</th>
                     </tr>
                 </thead>
                 <tbody>
                     {groups.map((group) => (
                         <tr key={group.key}>
-                            <td className="ps-3 font-medium">{group.label}</td>
-                            <td className="pe-3 text-right tabular-nums font-semibold text-[#067a75]">{Number(group.count ?? 0)}</td>
+                            <td className="font-medium">{group.label}</td>
+                            <td className="text-right tabular-nums font-semibold text-[#067a75]">{Number(group.count ?? 0)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -1066,6 +1081,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
             </InfoBar>
 
             <ReportCard
+                flush
                 icon={FileText}
                 title="Результаты профессионального рейтинга ППС"
                 subtitle={subtitle}
@@ -1077,29 +1093,29 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                         : null
                 }
             >
-                <div className="mb-5">
+                <CardSection>
                     <RatingFormulaBar
                         formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
                         note="НПУ определяется по степени (настройки НПУ)"
                     />
-                </div>
 
-                {rankGroups.length > 0 && (
-                    <div className="mb-5 space-y-2">
-                        <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                        <RankBandGrid groups={rankGroups} />
-                    </div>
-                )}
+                    {rankGroups.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
+                            <RankBandGrid groups={rankGroups} />
+                        </div>
+                    )}
 
-                {positionGroups.length > 0 && (
-                    <div className="mb-5 space-y-2">
-                        <p className="qd-field-label text-slate-500">Списки по должностям</p>
-                        <PositionGroupTable groups={positionGroups} />
-                    </div>
-                )}
+                    {positionGroups.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="qd-field-label text-slate-500">Списки по должностям</p>
+                            <PositionGroupTable groups={positionGroups} />
+                        </div>
+                    )}
+                </CardSection>
 
-                <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr]">
+                <CardToolbar>
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] xl:items-end">
                         <label className="block space-y-2">
                             <span className="qd-field-label block">Факультет</span>
                             <select
@@ -1139,11 +1155,12 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                                 placeholder="Быстрый поиск: сотрудник, показатель, период, структура, баллы, статус"
                             />
                         </label>
+
+                        <p className="text-xs font-medium text-slate-500 md:col-span-2 xl:col-span-1 xl:pb-3">
+                            Показано: <span className="tabular-nums">{filteredRows.length}</span> из <span className="tabular-nums">{allRows.length}</span>
+                        </p>
                     </div>
-                    <div className="mt-4 border-t border-slate-200 pt-3 text-right text-xs font-medium text-slate-500">
-                        Показано: <span className="tabular-nums">{filteredRows.length}</span> из <span className="tabular-nums">{allRows.length}</span>
-                    </div>
-                </div>
+                </CardToolbar>
 
                 <ReportHeading
                     text="РЕЗУЛЬТАТЫ ПРОФЕССИОНАЛЬНОГО РЕЙТИНГА ППС АО «КАЗУТБ ИМ. К. КУЛАЖАНОВА» ЗА"
@@ -1161,7 +1178,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
 function DeptTable({ departments, showFaculty = false }) {
     if (!departments || departments.length === 0) {
         return (
-            <EmptyState
+            <InlineEmpty
                 title="Нет данных по кафедрам"
                 description="Нет данных по кафедрам за выбранный период."
             />
@@ -1169,29 +1186,29 @@ function DeptTable({ departments, showFaculty = false }) {
     }
 
     return (
-        <div className="admin-table-wrap">
+        <div className="overflow-x-auto">
             <table className="admin-data-table min-w-[520px]">
                 <thead>
                     <tr>
-                        <th className="ps-3 w-9 text-center">№</th>
+                        <th className="w-9 text-center">№</th>
                         <th>Кафедра</th>
                         {showFaculty && <th>Факультет</th>}
                         <th className="w-14 text-right">ППС</th>
                         <th className="w-20 text-right">Записей</th>
                         <th className="w-20 text-right">Утв.</th>
-                        <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
+                        <th className="w-20 text-right text-[#067a75]">R</th>
                     </tr>
                 </thead>
                 <tbody>
                     {departments.map((d, i) => (
                         <tr key={d.id ?? i}>
-                            <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                            <td className="text-center text-xs text-slate-500">{i + 1}</td>
                             <td className="font-medium">{d.name}</td>
                             {showFaculty && <td className="text-sm text-slate-500">{d.faculty_name ?? '—'}</td>}
                             <td className="text-right tabular-nums">{d.teacher_count ?? d.user_count ?? '—'}</td>
                             <td className="text-right tabular-nums">{d.total_entries ?? d.approved_entries ?? '—'}</td>
                             <td className="text-right tabular-nums font-semibold text-emerald-600">{d.approved ?? d.approved_entries ?? '—'}</td>
-                            <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
+                            <td className="text-right tabular-nums font-bold text-[#067a75]">
                                 {d.rank_score != null ? fmt(d.rank_score) : '—'}
                             </td>
                         </tr>
@@ -1217,24 +1234,22 @@ function TabNav({ tabs, active, onChange }) {
 
 // ─── section card ─────────────────────────────────────────────────────────────
 
-function ReportCard({ icon: Icon, title, subtitle, children, actions }) {
+function ReportCard({ icon: Icon, title, subtitle, children, actions, flush = false }) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="flex items-center gap-2">
-                        {Icon && <Icon className="h-4 w-4" />}
-                        {title}
-                    </span>
-                    {(subtitle || actions) && (
-                        <span className="flex items-center gap-3">
-                            {subtitle && <span className="text-xs font-medium normal-case tracking-normal text-slate-500">{subtitle}</span>}
-                            {actions}
-                        </span>
-                    )}
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2">
+                    {Icon && <Icon className="h-4 w-4" />}
+                    {title}
                 </CardTitle>
+                {(subtitle || actions) && (
+                    <div className="flex flex-wrap items-center gap-3">
+                        {subtitle && <span className="text-xs font-medium text-slate-500">{subtitle}</span>}
+                        {actions}
+                    </div>
+                )}
             </CardHeader>
-            <CardContent>{children}</CardContent>
+            <CardContent className={flush ? 'p-0' : ''}>{children}</CardContent>
         </Card>
     );
 }
@@ -1288,26 +1303,27 @@ function TeacherView({ summary }) {
                 </InfoBar>
             )}
 
-            <StatRow cols={5}>
+            <StatGrid>
                 <StatCard icon={BarChart3} label="Всего записей" value={summary.totals?.total ?? 0} />
                 <StatCard icon={TrendingUp} label="Утверждено" value={summary.totals?.approved ?? 0} accent="green" />
                 <StatCard label="На проверке" value={(summary.totals?.submitted ?? 0) + (summary.totals?.pending ?? 0)} accent="amber" />
                 <StatCard label="Отклонено" value={summary.totals?.rejected ?? 0} accent="default" />
                 <StatCard label="Баллов" value={fmt(summary.totals?.total_points)} accent="teal" />
-            </StatRow>
+            </StatGrid>
 
             <ReportCard
+                flush
                 icon={FileText}
                 title="Результаты рейтинга ППС"
                 subtitle="Моя строка рейтинга"
             >
-                <RatingFormulaBar
-                    formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
-                    note="K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК"
-                />
-                <div className="mt-4">
-                    <ProfessionalRatingTable rows={[mineRatingRow]} mode="pps" />
-                </div>
+                <CardSection>
+                    <RatingFormulaBar
+                        formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
+                        note="K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК"
+                    />
+                </CardSection>
+                <ProfessionalRatingTable rows={[mineRatingRow]} mode="pps" />
             </ReportCard>
 
             <ReportCard icon={BarChart3} title="KPI — Мои показатели">
@@ -1317,7 +1333,7 @@ function TeacherView({ summary }) {
                         <SectionEntriesTable sections={summary.entries} />
                     </>
                 ) : (
-                    <EmptyState
+                    <InlineEmpty
                         title="Нет показателей KPI за выбранный период"
                         description="Перейдите в «KPI — Мои показатели» для заполнения формы."
                     />
@@ -1346,12 +1362,12 @@ function HodView({ summary, academicYear, period, filters }) {
                             Итоговый рейтинг ещё не сформирован. Формула: R = (K1 + K2 + K3 + K4) - НПУ. Отображаются текущие данные.
                         </InfoBar>
                     )}
-                    <StatRow cols={4}>
+                    <StatGrid>
                         <StatCard icon={BarChart3} label="Всего записей" value={summary.own_totals?.total ?? 0} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={summary.own_totals?.approved ?? 0} accent="green" />
                         <StatCard label="На проверке" value={(summary.own_totals?.submitted ?? 0) + (summary.own_totals?.pending ?? 0)} accent="amber" />
                         <StatCard label="Баллов" value={fmt(summary.own_totals?.total_points)} accent="teal" />
-                    </StatRow>
+                    </StatGrid>
                     <ReportCard icon={BarChart3} title="KPI — Мои показатели">
                         <TotalsChips totals={summary.own_totals} />
                         <SectionEntriesTable sections={summary.own_entries ?? {}} />
@@ -1373,14 +1389,14 @@ function HodView({ summary, academicYear, period, filters }) {
                         icon={Building2}
                         title={summary.department?.name ?? 'Кафедра'}
                     >
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <StatGrid>
                             <StatCard icon={Users} label="ППС кафедры" value={summary.teachers?.length ?? 0} />
                             <StatCard
                                 label="Сдали KPI"
                                 value={summary.teachers?.filter((t) => t.approved_entries > 0).length ?? 0}
                                 accent="green"
                             />
-                        </div>
+                        </StatGrid>
                     </ReportCard>
                 </div>
             )}
@@ -1417,12 +1433,12 @@ function DeanView({ summary, academicYear, period, filters }) {
                             Итоговый рейтинг ещё не сформирован. Формула: R = (K1 + K2 + K3 + K4) - НПУ. Отображаются текущие данные.
                         </InfoBar>
                     )}
-                    <StatRow cols={4}>
+                    <StatGrid>
                         <StatCard icon={BarChart3} label="Всего записей" value={summary.own_totals?.total ?? 0} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={summary.own_totals?.approved ?? 0} accent="green" />
                         <StatCard label="На проверке" value={(summary.own_totals?.submitted ?? 0) + (summary.own_totals?.pending ?? 0)} accent="amber" />
                         <StatCard label="Баллов" value={fmt(summary.own_totals?.total_points)} accent="teal" />
-                    </StatRow>
+                    </StatGrid>
                     <ReportCard icon={BarChart3} title="KPI — Мои показатели">
                         <TotalsChips totals={summary.own_totals} />
                         <SectionEntriesTable sections={summary.own_entries ?? {}} />
@@ -1436,6 +1452,7 @@ function DeanView({ summary, academicYear, period, filters }) {
                         <ResultScoreCard result={summary.faculty_result} label={`Рейтинг факультета: ${summary.faculty?.name ?? ''}`} />
                     )}
                     <ReportCard
+                        flush
                         icon={Building2}
                         title="Кафедры факультета"
                         subtitle={summary.faculty?.name}
@@ -1619,7 +1636,7 @@ function OverviewTab({ summary }) {
 
     return (
         <div className="space-y-6">
-            <StatRow cols={6}>
+            <StatGrid>
                 <StatCard icon={BarChart3} label="Всего записей" value={nonDraftTotal} />
                 <StatCard
                     icon={TrendingUp}
@@ -1632,7 +1649,7 @@ function OverviewTab({ summary }) {
                 <StatCard label="На проверке" value={pendingCount} accent="amber" />
                 <StatCard label="Возвращено" value={returnedCount} />
                 <StatCard label="Черновики" value={statusCounts.draft ?? 0} />
-            </StatRow>
+            </StatGrid>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <Card>
@@ -1772,7 +1789,8 @@ function OverviewTab({ summary }) {
                         Топ-10 ППС
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-0">
+                    <CardToolbar>
                     <div className="grid gap-4 md:grid-cols-2">
                         <label className="block space-y-2">
                             <span className="qd-field-label block">Факультет</span>
@@ -1803,12 +1821,13 @@ function OverviewTab({ summary }) {
                             </select>
                         </label>
                     </div>
+                    </CardToolbar>
                     {top10.length > 0 ? (
-                        <div className="admin-table-wrap">
+                        <div className="overflow-x-auto">
                             <table className="admin-data-table min-w-[700px]">
                                 <thead>
                                     <tr>
-                                        <th className="ps-3 w-9 text-center">№</th>
+                                        <th className="w-9 text-center">№</th>
                                         <th>ФИО</th>
                                         <th>Факультет</th>
                                         <th>Кафедра</th>
@@ -1816,13 +1835,13 @@ function OverviewTab({ summary }) {
                                         <th className="w-14 text-right">НИР</th>
                                         <th className="w-14 text-right">СВР</th>
                                         <th className="w-14 text-right">УПК</th>
-                                        <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
+                                        <th className="w-16 text-right text-[#067a75]">R</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {top10.map((t, i) => (
                                         <tr key={t.id ?? i}>
-                                            <td className="ps-3 text-center">
+                                            <td className="text-center">
                                                 <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
                                                     {i + 1}
                                                 </span>
@@ -1838,14 +1857,14 @@ function OverviewTab({ summary }) {
                                             <td className="text-right tabular-nums text-sm">{fmt(t.k2)}</td>
                                             <td className="text-right tabular-nums text-sm">{fmt(t.k3)}</td>
                                             <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
-                                            <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
+                                            <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
                     ) : (
-                        <EmptyState
+                        <InlineEmpty
                             title="Нет данных"
                             description="Нет данных для выбранных фильтров."
                         />
@@ -1873,38 +1892,38 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
 
             {tab === 'overview' && (
                 <div className="mb-6 space-y-6">
-                    <StatRow cols={4}>
+                    <StatGrid>
                         <StatCard icon={BarChart3} label="Всего (без черновиков)" value={nonDraftTotal} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={statusCounts.approved ?? 0} accent="green" />
                         <StatCard label="Подано" value={statusCounts.submitted ?? 0} accent="blue" />
                         <StatCard label="На утверждении" value={(statusCounts.pending_structural ?? 0) + (statusCounts.pending_dean ?? 0)} accent="amber" />
-                    </StatRow>
+                    </StatGrid>
 
-                    <ReportCard icon={GraduationCap} title="Факультеты — обзор">
+                    <ReportCard flush icon={GraduationCap} title="Факультеты — обзор">
                         {!summary.faculties?.length ? (
-                            <p className="py-4 text-center text-sm text-slate-500">Нет данных.</p>
+                            <InlineEmpty title="Нет данных." />
                         ) : (
-                            <div className="admin-table-wrap">
+                            <div className="overflow-x-auto">
                                 <table className="admin-data-table min-w-[480px]">
                                     <thead>
                                         <tr>
-                                            <th className="ps-3">Факультет</th>
+                                            <th>Факультет</th>
                                             <th className="w-20 text-right">Участников</th>
                                             <th className="w-20 text-right">Записей</th>
                                             <th className="w-20 text-right">Утв.</th>
                                             <th className="w-14 text-right">%</th>
-                                            <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
+                                            <th className="w-20 text-right text-[#067a75]">R</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {(summary.faculties ?? []).map((f) => (
                                             <tr key={f.id}>
-                                                <td className="ps-3 font-medium">{f.name}</td>
+                                                <td className="font-medium">{f.name}</td>
                                                 <td className="text-right tabular-nums">{f.user_count}</td>
                                                 <td className="text-right tabular-nums">{f.total_entries}</td>
                                                 <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
                                                 <td className="text-right text-xs tabular-nums text-slate-500">{pct(f.approved, f.total_entries)}</td>
-                                                <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
+                                                <td className="text-right tabular-nums font-bold text-[#067a75]">
                                                     {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                                 </td>
                                             </tr>
@@ -1919,28 +1938,28 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
             {tab === 'overview' && <OverviewTab summary={summary} />}
 
             {tab === 'faculties' && (
-                <ReportCard icon={GraduationCap} title="Все факультеты">
-                    <div className="admin-table-wrap">
+                <ReportCard flush icon={GraduationCap} title="Все факультеты">
+                    <div className="overflow-x-auto">
                         <table className="admin-data-table min-w-[480px]">
                             <thead>
                                 <tr>
-                                    <th className="ps-3 w-9 text-center">№</th>
+                                    <th className="w-9 text-center">№</th>
                                     <th>Факультет</th>
                                     <th className="w-20 text-right">ППС</th>
                                     <th className="w-20 text-right">Записей</th>
                                     <th className="w-20 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
+                                    <th className="w-20 text-right text-[#067a75]">R</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(summary.faculties ?? []).map((f, i) => (
                                     <tr key={f.id}>
-                                        <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                                        <td className="text-center text-xs text-slate-500">{i + 1}</td>
                                         <td className="font-medium">{f.name}</td>
                                         <td className="text-right tabular-nums">{f.user_count}</td>
                                         <td className="text-right tabular-nums">{f.total_entries}</td>
                                         <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
+                                        <td className="text-right tabular-nums font-bold text-[#067a75]">
                                             {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                         </td>
                                     </tr>
@@ -1952,7 +1971,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
             )}
 
             {tab === 'departments' && (
-                <ReportCard icon={Building2} title="Все кафедры">
+                <ReportCard flush icon={Building2} title="Все кафедры">
                     <DeptTable departments={summary.departments} showFaculty />
                 </ReportCard>
             )}
@@ -1971,6 +1990,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
 
             {tab === 'hods' && (
                 <ReportCard
+                    flush
                     icon={FileText}
                     title="Результаты рейтинга зав. кафедрами"
                     subtitle={(summary.top_hods?.length ?? 0) + ' чел.'}
@@ -1978,31 +1998,33 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                         <ExcelButton onClick={() => onExportRatingExcel?.('hods')} title="Экспортировать таблицу зав. кафедрами в Excel" />
                     }
                 >
+                    <CardSection>
+                        <RatingFormulaBar
+                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
+                            note="НПУ определяется по настройкам для зав. кафедрой"
+                        />
+                        {(summary.hod_rank_groups?.length ?? 0) > 0 && (
+                            <div className="space-y-2">
+                                <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
+                                <RankBandGrid groups={summary.hod_rank_groups ?? []} />
+                            </div>
+                        )}
+                    </CardSection>
+                    <CardToolbar>
+                        <label className="block max-w-xl space-y-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Input
+                                value={hodSearch}
+                                onChange={(e) => setHodSearch(e.target.value)}
+                                placeholder="Поиск по таблице зав. кафедрами"
+                            />
+                        </label>
+                    </CardToolbar>
                     <ReportHeading
                         text="РЕЗУЛЬТАТЫ РЕЙТИНГА ЗАВ.КАФЕДРАМИ АО «КАЗУТБ ИМ. К. КУЛАЖАНОВА» ЗА"
                         period={period}
                         academicYear={academicYear}
                     />
-                    <div className="mb-4">
-                        <RatingFormulaBar
-                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
-                            note="НПУ определяется по настройкам для зав. кафедрой"
-                        />
-                    </div>
-                    {(summary.hod_rank_groups?.length ?? 0) > 0 && (
-                        <div className="mb-4 space-y-2">
-                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                            <RankBandGrid groups={summary.hod_rank_groups ?? []} />
-                        </div>
-                    )}
-                    <div className="mb-4 space-y-2">
-                        <span className="qd-field-label block">Поиск</span>
-                        <Input
-                            value={hodSearch}
-                            onChange={(e) => setHodSearch(e.target.value)}
-                            placeholder="Поиск по таблице зав. кафедрами"
-                        />
-                    </div>
                     <ProfessionalRatingTable
                         rows={summary.top_hods ?? []}
                         mode="hod"
@@ -2019,6 +2041,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
 
             {tab === 'deans' && (
                 <ReportCard
+                    flush
                     icon={FileText}
                     title="Результаты рейтинга деканов"
                     subtitle={(summary.top_deans?.length ?? 0) + ' чел.'}
@@ -2026,31 +2049,33 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                         <ExcelButton onClick={() => onExportRatingExcel?.('deans')} title="Экспортировать таблицу деканов в Excel" />
                     }
                 >
+                    <CardSection>
+                        <RatingFormulaBar
+                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
+                            note="НПУ определяется по настройкам для декана"
+                        />
+                        {(summary.dean_rank_groups?.length ?? 0) > 0 && (
+                            <div className="space-y-2">
+                                <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
+                                <RankBandGrid groups={summary.dean_rank_groups ?? []} />
+                            </div>
+                        )}
+                    </CardSection>
+                    <CardToolbar>
+                        <label className="block max-w-xl space-y-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Input
+                                value={deanSearch}
+                                onChange={(e) => setDeanSearch(e.target.value)}
+                                placeholder="Поиск по таблице деканов"
+                            />
+                        </label>
+                    </CardToolbar>
                     <ReportHeading
                         text="РЕЗУЛЬТАТЫ РЕЙТИНГА ДЕКАНОВ АО «КАЗУТБ ИМ. К. КУЛАЖАНОВА» ЗА"
                         period={period}
                         academicYear={academicYear}
                     />
-                    <div className="mb-4">
-                        <RatingFormulaBar
-                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
-                            note="НПУ определяется по настройкам для декана"
-                        />
-                    </div>
-                    {(summary.dean_rank_groups?.length ?? 0) > 0 && (
-                        <div className="mb-4 space-y-2">
-                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                            <RankBandGrid groups={summary.dean_rank_groups ?? []} />
-                        </div>
-                    )}
-                    <div className="mb-4 space-y-2">
-                        <span className="qd-field-label block">Поиск</span>
-                        <Input
-                            value={deanSearch}
-                            onChange={(e) => setDeanSearch(e.target.value)}
-                            placeholder="Поиск по таблице деканов"
-                        />
-                    </div>
                     <ProfessionalRatingTable
                         rows={summary.top_deans ?? []}
                         mode="dean"
@@ -2077,28 +2102,28 @@ function StructuralView({ summary }) {
             <TabNav tabs={tabs} active={tab} onChange={setTab} />
 
             {tab === 'faculties' && (
-                <ReportCard icon={BookOpen} title="Сводка по факультетам">
-                    <div className="admin-table-wrap">
+                <ReportCard flush icon={BookOpen} title="Сводка по факультетам">
+                    <div className="overflow-x-auto">
                         <table className="admin-data-table min-w-[540px]">
                             <thead>
                                 <tr>
-                                    <th className="ps-3 w-9 text-center">№</th>
+                                    <th className="w-9 text-center">№</th>
                                     <th>Факультет</th>
                                     <th className="w-20 text-right">ППС</th>
                                     <th className="w-20 text-right">Записей</th>
                                     <th className="w-20 text-right">Утв.</th>
-                                    <th className="w-24 text-right pe-3">Ожидает</th>
+                                    <th className="w-24 text-right">Ожидает</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(summary.faculties ?? []).map((f, i) => (
                                     <tr key={f.id}>
-                                        <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
+                                        <td className="text-center text-xs text-slate-500">{i + 1}</td>
                                         <td className="font-medium">{f.name}</td>
                                         <td className="text-right tabular-nums">{f.user_count}</td>
                                         <td className="text-right tabular-nums">{f.total_entries}</td>
                                         <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                        <td className="pe-3 text-right tabular-nums font-semibold text-amber-700">{f.pending}</td>
+                                        <td className="text-right tabular-nums font-semibold text-amber-700">{f.pending}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -2108,7 +2133,7 @@ function StructuralView({ summary }) {
             )}
 
             {tab === 'pending' && (
-                <ReportCard icon={Users} title="Ожидают финального утверждения">
+                <ReportCard flush icon={Users} title="Ожидают финального утверждения">
                     <RankingTable
                         teachers={summary.pending_teachers}
                         showDept

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { InfoField, PageHeader, StatTile, StatusBadge } from '@/components/platform';
+import { InfoField, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
@@ -122,11 +122,11 @@ export default function PercoLateEmployee({ employee = null, events = [], filter
                     </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Кол-во опозданий" value={employee?.late_count ?? 0} icon={Clock3} tone="copper" />
                     <StatTile label="Суммарно (мин)" value={fmtMinutes(employee?.total_late_time ?? 0)} icon={Clock3} tone="danger" />
                     <StatTile label="Среднее (мин)" value={fmtMinutes(employee?.avg_late_time ?? 0)} icon={Clock3} tone="navy" />
-                </div>
+                </StatGrid>
 
                 <Card>
                     <CardHeader>
@@ -135,25 +135,25 @@ export default function PercoLateEmployee({ employee = null, events = [], filter
                             Полная информация по опозданиям
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {events.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">За выбранный период опозданий нет.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">За выбранный период опозданий нет.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px] text-sm">
+                                <table className="w-full min-w-[560px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
-                                            <th className="py-3 pr-6 text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>На сколько опоздал (мин){sortIndicator('late_time')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>На сколько опоздал (мин){sortIndicator('late_time')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedEvents.map((row, idx) => (
                                             <tr key={`${row.late_date}-${idx}`} className="border-b border-slate-200 last:border-0">
-                                                <td className="py-3 pl-6 pr-3 font-medium tabular-nums text-slate-900">{fmtDate(row.late_date)}</td>
-                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{fmtTime(row.first_enter_time)}</td>
-                                                <td className="py-3 pr-6 text-right">
+                                                <td className="font-medium tabular-nums text-slate-900">{fmtDate(row.late_date)}</td>
+                                                <td className="font-semibold tabular-nums text-[#102945]">{fmtTime(row.first_enter_time)}</td>
+                                                <td className="text-right">
                                                     <StatusBadge tone="danger" className="tabular-nums">{fmtMinutes(row.late_time)}</StatusBadge>
                                                 </td>
                                             </tr>

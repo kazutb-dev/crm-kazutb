@@ -304,19 +304,17 @@ export default function StructuralDivisionDashboard({
                         )}
 
                         <Card>
-                            <CardHeader>
-                                <CardTitle className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="flex items-center gap-2">
-                                        <ListChecks className="h-4 w-4" />
-                                        KPI-записи
-                                    </span>
-                                    {isEditable && !showAddForm && (
-                                        <Button type="button" onClick={() => setShowAddForm(true)} size="sm">
-                                            <Plus className="h-4 w-4" />
-                                            Добавить показатель
-                                        </Button>
-                                    )}
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <ListChecks className="h-4 w-4" />
+                                    KPI-записи
                                 </CardTitle>
+                                {isEditable && !showAddForm && (
+                                    <Button type="button" onClick={() => setShowAddForm(true)} size="sm">
+                                        <Plus className="h-4 w-4" />
+                                        Добавить показатель
+                                    </Button>
+                                )}
                             </CardHeader>
                             <CardContent className={entryData.length === 0 ? '' : 'p-0'}>
                                 {entryData.length === 0 ? (
@@ -329,14 +327,14 @@ export default function StructuralDivisionDashboard({
                                         <table className="w-full min-w-[900px] text-sm">
                                             <thead className="border-b border-slate-200">
                                                 <tr className="text-left">
-                                                    <th className="px-4 py-3">Показатель</th>
-                                                    <th className="px-4 py-3">Раздел</th>
-                                                    <th className="px-4 py-3 text-right">План</th>
-                                                    <th className="px-4 py-3 text-right">Факт</th>
-                                                    <th className="px-4 py-3 text-right">Баллы</th>
-                                                    <th className="px-4 py-3">Файл</th>
-                                                    <th className="px-4 py-3">Статус</th>
-                                                    <th className="px-4 py-3 text-right">Действия</th>
+                                                    <th>Показатель</th>
+                                                    <th>Раздел</th>
+                                                    <th className="text-right">План</th>
+                                                    <th className="text-right">Факт</th>
+                                                    <th className="text-right">Баллы</th>
+                                                    <th>Файл</th>
+                                                    <th>Статус</th>
+                                                    <th className="text-right">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -351,14 +349,14 @@ export default function StructuralDivisionDashboard({
 
                                                     return (
                                                         <tr key={entry.id} className={`border-b border-slate-200 align-top last:border-0 ${isEditing ? 'bg-teal-50/50' : 'hover:bg-slate-50/60'}`}>
-                                                            <td className="px-4 py-3">
+                                                            <td>
                                                                 <div className="font-medium text-slate-900">{indicator.name ?? '—'}</div>
                                                                 <div className="text-xs text-slate-500">
                                                                     {indicator.code}{indicator.unit ? ` · ${indicator.unit}` : ''}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-3 text-slate-600">{indicator.section ?? '—'}</td>
-                                                            <td className="px-4 py-3 text-right tabular-nums">
+                                                            <td className="text-slate-600">{indicator.section ?? '—'}</td>
+                                                            <td className="text-right tabular-nums">
                                                                 {isEditing && isPlanStage ? (
                                                                     <Input
                                                                         type="number"
@@ -372,7 +370,7 @@ export default function StructuralDivisionDashboard({
                                                                     entry.plan_value ?? '—'
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 text-right tabular-nums">
+                                                            <td className="text-right tabular-nums">
                                                                 {isEditing && isFactStage ? (
                                                                     <Input
                                                                         type="number"
@@ -386,10 +384,10 @@ export default function StructuralDivisionDashboard({
                                                                     entry.fact_value ?? '—'
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">
+                                                            <td className="text-right font-semibold tabular-nums text-[#102945]">
                                                                 {Number.isFinite(points) ? points.toFixed(2) : '0.00'}
                                                             </td>
-                                                            <td className="px-4 py-3">
+                                                            <td>
                                                                 {files.length > 0 ? (
                                                                     files.map((file) => (
                                                                         <a
@@ -424,7 +422,7 @@ export default function StructuralDivisionDashboard({
                                                                     </label>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3">
+                                                            <td>
                                                                 <StatusBadge tone={statusTones[entry.status] ?? 'default'}>
                                                                     {statusLabels[entry.status] ?? entry.status}
                                                                 </StatusBadge>
@@ -432,7 +430,7 @@ export default function StructuralDivisionDashboard({
                                                                     <p className="mt-1 max-w-xs text-xs text-slate-500">{entry.comment}</p>
                                                                 )}
                                                             </td>
-                                                            <td className="px-4 py-3">
+                                                            <td>
                                                                 <div className="flex flex-wrap justify-end gap-1">
                                                                     {isEditing ? (
                                                                         <>
@@ -483,7 +481,7 @@ export default function StructuralDivisionDashboard({
                                 )}
 
                                 {entryLinks.length > 3 && (
-                                    <div className="flex flex-wrap justify-end gap-1 border-t border-slate-200 px-4 py-3">
+                                    <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                         {entryLinks.map((link, index) => (
                                             <Button
                                                 key={index}

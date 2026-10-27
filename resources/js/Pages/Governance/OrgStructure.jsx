@@ -303,13 +303,11 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
 
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
                     <Card className="xl:col-span-3">
-                        <CardHeader>
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <CardTitle className="flex items-center gap-2"><GitBranch className="h-4 w-4" />Дерево структуры</CardTitle>
-                                <div className="flex gap-2">
-                                    <Button variant="ghost" size="sm" onClick={expandAll}>Развернуть</Button>
-                                    <Button variant="ghost" size="sm" onClick={collapseAll}>Свернуть</Button>
-                                </div>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><GitBranch className="h-4 w-4" />Дерево структуры</CardTitle>
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={expandAll}>Развернуть</Button>
+                                <Button variant="outline" size="sm" onClick={collapseAll}>Свернуть</Button>
                             </div>
                         </CardHeader>
                         <CardContent className="max-h-[760px] overflow-auto pr-2">
@@ -378,6 +376,9 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Type breakdown</CardTitle>
                             </CardHeader>
                             <CardContent>
+                                {(summary.type_breakdown ?? []).length === 0 ? (
+                                    <p className="text-sm text-slate-500">Нет данных.</p>
+                                ) : null}
                                 {(summary.type_breakdown ?? []).map((item) => (
                                     <div key={item.type} className="flex items-center justify-between border-b border-slate-200 py-2 text-sm last:border-0">
                                         <span className="text-slate-700">{item.label}</span>
@@ -397,29 +398,29 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[960px] text-sm">
                                 <thead className="text-left">
-                                    <tr className="border-b border-slate-200">
-                                        <th className="px-5 py-3">Орг-юнит</th>
-                                        <th className="px-3 py-3">Тип</th>
-                                        <th className="px-3 py-3">Родитель</th>
-                                        <th className="px-3 py-3">Код</th>
-                                        <th className="px-3 py-3">Руководитель</th>
-                                        <th className="px-3 py-3">Статус</th>
-                                        {canManageFoundation && <th className="px-5 py-3 text-right">Действия</th>}
+                                    <tr>
+                                        <th>Орг-юнит</th>
+                                        <th>Тип</th>
+                                        <th>Родитель</th>
+                                        <th>Код</th>
+                                        <th>Руководитель</th>
+                                        <th>Статус</th>
+                                        {canManageFoundation && <th className="text-right">Действия</th>}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-200">
+                                <tbody>
                                     {units.map((item) => (
                                         <tr key={item.id} className="align-top hover:bg-slate-50">
-                                            <td className="px-5 py-3">
+                                            <td>
                                                 <div className="font-medium text-slate-900">{item.name}</div>
                                                 <div className="text-xs tabular-nums text-slate-500">ID: {item.id}</div>
                                             </td>
-                                            <td className="px-3 py-3">
+                                            <td>
                                                 <TypeBadge label={item.unit_type_label} />
                                             </td>
-                                            <td className="px-3 py-3 tabular-nums text-slate-600">{item.parent_id ?? 'Корень'}</td>
-                                            <td className="px-3 py-3 font-mono text-xs text-slate-700">{item.code}</td>
-                                            <td className="px-3 py-3">
+                                            <td className="tabular-nums text-slate-600">{item.parent_id ?? 'Корень'}</td>
+                                            <td className="font-mono text-xs text-slate-700">{item.code}</td>
+                                            <td>
                                                 {item.leader_name ? (
                                                     <div>
                                                         <div className="font-medium text-slate-900">{item.leader_name}</div>
@@ -429,7 +430,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                                     <Badge variant="warning">Не назначен</Badge>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-3">
+                                            <td>
                                                 <div className="flex flex-wrap gap-1">
                                                     {item.metadata?.transitional_mapping ? (
                                                         <Badge variant="destructive">Переходной</Badge>
@@ -442,7 +443,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                                 </div>
                                             </td>
                                             {canManageFoundation && (
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)} title="Редактировать">
                                                             <Pencil className="h-3.5 w-3.5" />
@@ -457,20 +458,20 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                     ))}
                                     {units.length === 0 ? (
                                         <tr>
-                                            <td className="px-5 py-10 text-center text-sm text-slate-500" colSpan={canManageFoundation ? 7 : 6}>Нет записей по текущим фильтрам.</td>
+                                            <td className="text-center text-sm text-slate-500" colSpan={canManageFoundation ? 7 : 6}>Нет записей по текущим фильтрам.</td>
                                         </tr>
                                     ) : null}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-5 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                             <div className="text-xs font-medium tabular-nums text-slate-500">
                                 Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <span className="qd-field-label text-slate-500">На странице</span>
+                                <span className="qd-field-label whitespace-nowrap text-slate-500">На странице</span>
                                 <select
                                     className={`${qdFieldClass} h-8 w-auto px-2 text-xs`}
                                     value={form.per_page}
@@ -484,7 +485,7 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 <Button type="button" size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-sm tabular-nums text-slate-600">{currentPage} / {lastPage}</span>
+                                <span className="whitespace-nowrap text-sm tabular-nums text-slate-600">{currentPage} / {lastPage}</span>
                                 <Button type="button" size="sm" variant="outline" disabled={currentPage >= lastPage} onClick={() => goToPage(currentPage + 1)}>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>

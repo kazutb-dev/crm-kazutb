@@ -17,7 +17,7 @@ const getInitials = (name) => {
 
 function Section({ icon: Icon, title, children }) {
     return (
-        <Card className="shadow-sm">
+        <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     {Icon && <Icon className="shrink-0" />}
@@ -150,8 +150,8 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
             <div className="admin-page-wrap space-y-6">
                 {/* Edit form */}
                 {isEditing && (
-                    <Card className="shadow-sm">
-                        <CardContent className="pt-5">
+                    <Card>
+                        <CardContent>
                             <UpdateProfileInformationForm
                                 mustVerifyEmail={mustVerifyEmail}
                                 status={status}

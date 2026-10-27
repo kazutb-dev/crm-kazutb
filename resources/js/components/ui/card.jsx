@@ -63,13 +63,14 @@ const CardDescription = React.forwardRef(({ className, ...props }, ref) => {
 CardDescription.displayName = "CardDescription"
 
 const CardContent = React.forwardRef(({ className, ...props }, ref) => {
-  // Under the panel strip the body needs its own top padding; pages' p-0 / pt-4 still win.
+  // In the panel the default padding comes from panel.css at zero specificity, so a page's p-0 / pt-4
+  // wins at every breakpoint (with utility classes tailwind-merge kept sm:p-6 next to a page's p-0).
   const panel = usePanelDesign()
   return (
     <div
       ref={ref}
       data-qd={panel ? "card-content" : undefined}
-      className={cn(panel ? "p-5 sm:p-6" : "p-5 pt-0 sm:p-6 sm:pt-0", className)}
+      className={cn(panel ? undefined : "p-5 pt-0 sm:p-6 sm:pt-0", className)}
       {...props} />
   )
 })

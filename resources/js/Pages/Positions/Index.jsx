@@ -1,8 +1,9 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -312,76 +313,79 @@ export default function Index({ positions, divisions }) {
                         )}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[760px] text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">Название</th>
-                                    <th className="px-5 text-left">Департамент</th>
-                                    <th className="px-5 text-left">Код</th>
-                                    <th className="px-5 text-left">Описание</th>
-                                    <th className="px-5 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((position) => (
-                                    <tr key={position.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3.5 font-medium text-slate-900">{position.name}</td>
-                                        <td className="px-5 py-3.5 text-slate-600">
-                                            {position.division?.name ?? <span className="text-slate-400">—</span>}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            {position.code ? (
-                                                <Badge variant="outline">{position.code}</Badge>
-                                            ) : (
-                                                <span className="text-slate-400">—</span>
-                                            )}
-                                        </td>
-                                        <td className="max-w-md px-5 py-3.5 text-slate-600">
-                                            {position.description || <span className="text-slate-400">—</span>}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => openEditDialog(position)}>
-                                                    <Pencil />
-                                                    Редактировать
-                                                </Button>
-                                                <Button variant="destructive" size="sm" onClick={() => handleDelete(position)}>
-                                                    <Trash2 />
-                                                    Удалить
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {links.length > 3 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-xs font-medium text-slate-500">
-                            Показано {positions?.from ?? 0}–{positions?.to ?? 0} из {total}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                            {links.map((link, index) => (
-                                <Button
-                                    key={`${link.label}-${index}`}
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                    asChild={Boolean(link.url)}
-                                >
-                                    {link.url ? (
-                                        <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    ) : (
-                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    )}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[760px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Название</th>
+                                            <th className="text-left">Департамент</th>
+                                            <th className="text-left">Код</th>
+                                            <th className="text-left">Описание</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((position) => (
+                                            <tr key={position.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td className="font-medium text-slate-900">{position.name}</td>
+                                                <td className="text-slate-600">
+                                                    {position.division?.name ?? <span className="text-slate-400">—</span>}
+                                                </td>
+                                                <td>
+                                                    {position.code ? (
+                                                        <Badge variant="outline">{position.code}</Badge>
+                                                    ) : (
+                                                        <span className="text-slate-400">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="max-w-md text-slate-600">
+                                                    {position.description || <span className="text-slate-400">—</span>}
+                                                </td>
+                                                <td className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="outline" size="sm" onClick={() => openEditDialog(position)}>
+                                                            <Pencil />
+                                                            Редактировать
+                                                        </Button>
+                                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(position)}>
+                                                            <Trash2 />
+                                                            Удалить
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-between">
+                                    <span className="text-xs font-medium text-slate-500">
+                                        Показано {positions?.from ?? 0}–{positions?.to ?? 0} из {total}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {links.map((link, index) => (
+                                            <Button
+                                                key={`${link.label}-${index}`}
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                disabled={!link.url}
+                                                asChild={Boolean(link.url)}
+                                            >
+                                                {link.url ? (
+                                                    <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                ) : (
+                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                )}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
             <ConfirmDialog

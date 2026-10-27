@@ -201,21 +201,21 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                                 <table className="min-w-[760px] w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="px-5 py-3 text-left">Название</th>
-                                            <th className="px-5 py-3 text-left">Код</th>
-                                            <th className="px-5 py-3 text-left">Описание</th>
-                                            <th className="px-5 py-3 text-right">Студентов</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="whitespace-nowrap text-left">Название</th>
+                                            <th className="whitespace-nowrap text-left">Код</th>
+                                            <th className="whitespace-nowrap text-left">Описание</th>
+                                            <th className="whitespace-nowrap text-right">Студентов</th>
+                                            <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {groups.map((group) => (
                                             <tr key={group.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{group.name}</td>
-                                                <td className="px-5 py-3 font-mono text-xs text-slate-600">{group.code}</td>
-                                                <td className="px-5 py-3 text-slate-600">{group.description || '—'}</td>
-                                                <td className="px-5 py-3 text-right font-semibold tabular-nums text-[#102945]">{group.students_count || 0}</td>
-                                                <td className="px-5 py-3">
+                                                <td className="font-medium text-slate-900">{group.name}</td>
+                                                <td className="whitespace-nowrap font-mono text-xs text-slate-600">{group.code}</td>
+                                                <td className="text-slate-600">{group.description || '—'}</td>
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{group.students_count || 0}</td>
+                                                <td>
                                                     <div className="flex justify-end gap-2">
                                                         <Button type="button" variant="secondary" size="sm" onClick={() => openBinding(group)}>
                                                             <Link2 className="h-3.5 w-3.5" />

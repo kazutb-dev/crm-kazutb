@@ -269,7 +269,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 key={sub.id}
                 onClick={() => setSelectedSubjectId(sub.id)}
                 aria-pressed={isSelected}
-                className={`group flex w-full items-center justify-between gap-3 border-l-[3px] px-4 py-3 text-left transition-colors ${
+                className={`group flex w-full items-center justify-between gap-3 border-l-[3px] px-5 py-3 text-left transition-colors ${
                     isSelected
                         ? 'border-l-teal-600 bg-teal-50'
                         : hasBindings
@@ -298,7 +298,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                     type="button"
                     onClick={() => toggleDept(key)}
                     aria-expanded={isExpanded}
-                    className={`flex w-full select-none items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors ${
+                    className={`flex w-full select-none items-center justify-between gap-3 px-5 py-4 text-left transition-colors ${
                         isExpanded ? 'border-b border-slate-200 bg-slate-50' : 'bg-white hover:bg-slate-50'
                     }`}
                 >
@@ -391,7 +391,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
             </Dialog>
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-2">
+                <StatGrid>
                     <StatTile label="Всего предметов" value={disciplines.length} tone="teal" icon={BookOpen} />
                     <StatTile label="Всего кафедр" value={departments.length} tone="navy" icon={Building2} />
                 </StatGrid>
@@ -422,7 +422,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 </FilterBar>
 
                 {/* ── Two column master-detail layout ── */}
-                <div className="grid items-start gap-6 lg:grid-cols-12">
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
                     {/* Left column: Collapsible departments list */}
                     <div className="space-y-3 lg:col-span-7">
                         {departments.map(dept => {

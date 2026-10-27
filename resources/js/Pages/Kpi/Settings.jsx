@@ -342,7 +342,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                             </Card>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] xl:col-span-2">
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-4 sm:px-6 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] xl:col-span-2">
                             <p className="text-sm text-slate-600">
                                 Изменения применяются к KPI-сводкам сразу после сохранения.
                             </p>
@@ -455,28 +455,28 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         <table className="w-full min-w-[860px] text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-200 text-left">
-                                                    <th className="px-4 py-3">Сотрудник</th>
-                                                    <th className="px-4 py-3">Email</th>
-                                                    <th className="px-4 py-3">Подразделение</th>
-                                                    <th className="px-4 py-3">Кем выдано</th>
-                                                    <th className="px-4 py-3">Когда</th>
-                                                    <th className="px-4 py-3 text-right">Действия</th>
+                                                    <th>Сотрудник</th>
+                                                    <th>Email</th>
+                                                    <th>Подразделение</th>
+                                                    <th>Кем выдано</th>
+                                                    <th>Когда</th>
+                                                    <th className="text-right">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {accessGrants.map((grant) => (
                                                     <tr key={grant.id} className="border-b border-slate-200 align-top last:border-0">
-                                                        <td className="px-4 py-3">
+                                                        <td>
                                                             <div className="font-medium text-slate-900">{grant.user?.display_name || grant.user?.name || '—'}</div>
                                                             <div className="text-xs text-slate-500">{grant.user?.ad_title || 'Без должности'}</div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-slate-700">{grant.user?.email || '—'}</td>
-                                                        <td className="px-4 py-3 text-slate-700">{grant.user?.ad_department || '—'}</td>
-                                                        <td className="px-4 py-3">
+                                                        <td className="text-slate-700">{grant.user?.email || '—'}</td>
+                                                        <td className="text-slate-700">{grant.user?.ad_department || '—'}</td>
+                                                        <td>
                                                             <Badge variant="outline">{grant.granted_by?.display_name || grant.granted_by?.name || '—'}</Badge>
                                                         </td>
-                                                        <td className="px-4 py-3 tabular-nums text-slate-700">{grant.granted_at ? new Date(grant.granted_at).toLocaleString('ru-RU') : '—'}</td>
-                                                        <td className="px-4 py-3 text-right">
+                                                        <td className="tabular-nums text-slate-700">{grant.granted_at ? new Date(grant.granted_at).toLocaleString('ru-RU') : '—'}</td>
+                                                        <td className="text-right">
                                                             <Button type="button" variant="destructive" size="sm" onClick={() => revokeAccess(grant.id)} disabled={!canManageFullAccess}>
                                                                 <Trash2 className="h-4 w-4" />
                                                                 Отозвать

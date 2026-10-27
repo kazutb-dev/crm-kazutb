@@ -73,7 +73,7 @@ export function StatTile({ label, value, hint = null, tone = 'teal', icon: Icon 
             <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${STAT_DOTS[tone] ?? STAT_DOTS.teal}`} aria-hidden="true" />
-                    <span className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">{label}</span>
+                    <span className="line-clamp-2 text-[0.6875rem] font-bold uppercase leading-snug tracking-[0.1em] text-slate-600">{label}</span>
                 </div>
                 {Icon ? <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" /> : null}
             </div>
@@ -86,8 +86,9 @@ export function StatTile({ label, value, hint = null, tone = 'teal', icon: Icon 
     );
 }
 
+// Tiles share the row evenly whatever their count (3 tiles = 3 columns, no empty cell, no orphan row).
 export function StatGrid({ children, className = '' }) {
-    return <div className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-4 ${className}`}>{children}</div>;
+    return <div className={`grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))] ${className}`}>{children}</div>;
 }
 
 // Underline tabs with an optional count chip; items: [{ key, label, count?, icon?, disabled? }].

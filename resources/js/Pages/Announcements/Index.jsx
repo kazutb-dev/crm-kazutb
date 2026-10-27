@@ -1,8 +1,9 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -286,112 +287,115 @@ export default function Index({ announcements }) {
                         )}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[900px] text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">Объявление</th>
-                                    <th className="px-5 text-left">Важное</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    <th className="px-5 text-left">Дата мероприятия</th>
-                                    <th className="px-5 text-left">Автор</th>
-                                    <th className="px-5 text-left">Создано</th>
-                                    <th className="px-5 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((announcement) => (
-                                    <tr key={announcement.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-start gap-3">
-                                                {announcement.image_url ? (
-                                                    <img
-                                                        src={announcement.image_url}
-                                                        alt={announcement.title}
-                                                        className="h-14 w-14 shrink-0 rounded-[10px] border border-slate-200 object-cover"
-                                                    />
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[900px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Объявление</th>
+                                            <th className="text-left">Важное</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Дата мероприятия</th>
+                                            <th className="text-left">Автор</th>
+                                            <th className="text-left">Создано</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((announcement) => (
+                                            <tr key={announcement.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td>
+                                                    <div className="flex items-start gap-3">
+                                                        {announcement.image_url ? (
+                                                            <img
+                                                                src={announcement.image_url}
+                                                                alt={announcement.title}
+                                                                className="h-14 w-14 shrink-0 rounded-[10px] border border-slate-200 object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-slate-400" title="Без картинки">
+                                                                <ImageOff className="h-5 w-5" />
+                                                            </span>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <div className="font-medium text-slate-900">{announcement.title}</div>
+                                                            <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">
+                                                                {announcement.content}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <Badge variant={announcement.is_important ? 'destructive' : 'secondary'}>
+                                                        {announcement.is_important ? 'Да' : 'Нет'}
+                                                    </Badge>
+                                                </td>
+                                                <td>
+                                                    <Badge variant={announcement.is_active ? 'success' : 'secondary'}>
+                                                        {announcement.is_active ? 'Активно' : 'Черновик'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="whitespace-nowrap tabular-nums text-slate-700">
+                                                    {announcement.event_date_human ?? '—'}
+                                                </td>
+                                                <td className="text-slate-700">{announcement.author_name}</td>
+                                                <td className="whitespace-nowrap tabular-nums text-slate-500">{announcement.created_at_human}</td>
+                                                <td className="text-right">
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            title="Редактировать"
+                                                            aria-label="Редактировать"
+                                                            onClick={() => openEditDialog(announcement)}
+                                                        >
+                                                            <Pencil />
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="icon"
+                                                            title="Удалить"
+                                                            aria-label="Удалить"
+                                                            onClick={() => handleDelete(announcement)}
+                                                        >
+                                                            <Trash2 />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-between">
+                                    <span className="text-xs font-medium text-slate-500">
+                                        Показано {announcements?.from ?? 0}–{announcements?.to ?? 0} из {total}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {links.map((link, index) => (
+                                            <Button
+                                                key={index}
+                                                asChild={Boolean(link.url)}
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                disabled={!link.url}
+                                            >
+                                                {link.url ? (
+                                                    <Link href={link.url} preserveScroll>
+                                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                    </Link>
                                                 ) : (
-                                                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-slate-400" title="Без картинки">
-                                                        <ImageOff className="h-5 w-5" />
-                                                    </span>
+                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
                                                 )}
-                                                <div className="min-w-0">
-                                                    <div className="font-medium text-slate-900">{announcement.title}</div>
-                                                    <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">
-                                                        {announcement.content}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <Badge variant={announcement.is_important ? 'destructive' : 'secondary'}>
-                                                {announcement.is_important ? 'Да' : 'Нет'}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <Badge variant={announcement.is_active ? 'success' : 'secondary'}>
-                                                {announcement.is_active ? 'Активно' : 'Черновик'}
-                                            </Badge>
-                                        </td>
-                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">
-                                            {announcement.event_date_human ?? '—'}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-slate-700">{announcement.author_name}</td>
-                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-500">{announcement.created_at_human}</td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="inline-flex items-center gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="icon"
-                                                    title="Редактировать"
-                                                    aria-label="Редактировать"
-                                                    onClick={() => openEditDialog(announcement)}
-                                                >
-                                                    <Pencil />
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    size="icon"
-                                                    title="Удалить"
-                                                    aria-label="Удалить"
-                                                    onClick={() => handleDelete(announcement)}
-                                                >
-                                                    <Trash2 />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {links.length > 3 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-xs font-medium text-slate-500">
-                            Показано {announcements?.from ?? 0}–{announcements?.to ?? 0} из {total}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                            {links.map((link, index) => (
-                                <Button
-                                    key={index}
-                                    asChild={Boolean(link.url)}
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                >
-                                    {link.url ? (
-                                        <Link href={link.url} preserveScroll>
-                                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                        </Link>
-                                    ) : (
-                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    )}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
             <ConfirmDialog

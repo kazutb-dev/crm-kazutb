@@ -3,10 +3,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, BarChart3, Pencil, Plus, Search, Shuffle, Trash2, ChevronDown, ChevronUp, CheckCircle, XCircle, ClipboardList, ListChecks, Users, Target } from 'lucide-react';
+import { ArrowLeft, Inbox, BarChart3, Pencil, Plus, Search, Shuffle, Trash2, ChevronDown, ChevronUp, CheckCircle, XCircle, ClipboardList, ListChecks, Users, Target } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 function formatDate(value) {
@@ -107,36 +107,32 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <ClipboardList className="h-4 w-4" />
-                            Тесты по предмету
-                        </CardTitle>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                        <div className="min-w-0 space-y-1">
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardList className="h-4 w-4" />
+                                Тесты по предмету
+                            </CardTitle>
+                            <CardDescription>Создавайте новые тесты, управляйте вопросами и отслеживайте результаты сдачи.</CardDescription>
+                        </div>
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input className="pl-9" aria-label="Поиск по тестам" placeholder="Поиск по тестам…" value={search} onChange={(event) => setSearch(event.target.value)} />
+                            </div>
+                            <Button asChild className="gap-2">
+                                <Link href={route('testing.tests.create', binding.id)}>
+                                    <Plus className="h-4 w-4" />
+                                    Создать тест
+                                </Link>
+                            </Button>
+                        </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-5">
-                        <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
-                            <label className="block w-full max-w-md space-y-2">
-                                <span className="qd-field-label block">Поиск</span>
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <Input className="pl-9" placeholder="Поиск по тестам…" value={search} onChange={(event) => setSearch(event.target.value)} />
-                                </div>
-                            </label>
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-xs text-slate-500">Создавайте новые тесты, управляйте вопросами и отслеживайте результаты сдачи.</p>
-                                <Button asChild className="gap-2">
-                                    <Link href={route('testing.tests.create', binding.id)}>
-                                        <Plus className="h-4 w-4" />
-                                        Создать тест
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
-
+                    <CardContent className="space-y-4">
                         {filteredTests.length === 0 ? (
-                            <EmptyState
+                            <InlineEmpty
+                                icon={ClipboardList}
                                 title={tests.length === 0 ? 'Тестов пока нет' : 'Ничего не найдено'}
                                 description={tests.length === 0
                                     ? 'В этой привязке пока нет тестов.'
@@ -253,18 +249,18 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                                                 <table className="w-full text-left text-sm">
                                                                     <thead>
                                                                         <tr>
-                                                                            <th className="px-3 py-2.5">Студент</th>
-                                                                            <th className="px-3 py-2.5 text-center">Балл</th>
-                                                                            <th className="px-3 py-2.5 text-center">Статус</th>
-                                                                            <th className="px-3 py-2.5 text-right">Дата</th>
+                                                                            <th>Студент</th>
+                                                                            <th className="text-right">Балл</th>
+                                                                            <th>Статус</th>
+                                                                            <th className="text-right">Дата</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody className="divide-y divide-slate-200 text-slate-600">
                                                                         {test.results.map((res) => (
                                                                             <tr key={res.id}>
-                                                                                <td className="px-3 py-2.5 font-medium leading-snug text-slate-900">{res.user_name}</td>
-                                                                                <td className="px-3 py-2.5 text-center font-semibold tabular-nums text-[#102945]">{res.score}%</td>
-                                                                                <td className="px-3 py-2.5 text-center">
+                                                                                <td className="font-medium leading-snug text-slate-900">{res.user_name}</td>
+                                                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{res.score}%</td>
+                                                                                <td>
                                                                                     {res.passed ? (
                                                                                         <Badge variant="success">
                                                                                             <CheckCircle className="h-3 w-3" />
@@ -277,7 +273,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                                                                         </Badge>
                                                                                     )}
                                                                                 </td>
-                                                                                <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-500">{formatDate(res.completed_at).split(',')[0]}</td>
+                                                                                <td className="whitespace-nowrap text-right tabular-nums text-slate-500">{formatDate(res.completed_at).split(',')[0]}</td>
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
@@ -315,6 +311,21 @@ function Metric({ label, value }) {
         <div>
             <dt className="qd-field-label text-slate-500">{label}</dt>
             <dd className="mt-1 font-display text-xl font-bold tabular-nums text-[#102945]">{value}</dd>
+        </div>
+    );
+}
+
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
         </div>
     );
 }

@@ -282,7 +282,7 @@ export default function TeacherForm({
                     />
                     <StatTile
                         label="Окно подачи"
-                        value={period ? <span className="text-xl">{formatDate(period.start_date)}</span> : '—'}
+                        value={period ? <span className="block text-base sm:text-xl">{formatDate(period.start_date)}</span> : '—'}
                         hint={period ? `${period.name} · до ${formatDate(period.end_date)}` : 'Активный период не открыт'}
                         tone="navy"
                         icon={CalendarRange}
@@ -320,25 +320,25 @@ export default function TeacherForm({
                                             <table className="w-full min-w-[1200px] text-sm">
                                                 <thead>
                                                     <tr className="border-b border-slate-200 text-left">
-                                                        <th className="px-4 py-3">Показатель</th>
-                                                        <th className="w-32 px-4 py-3">План</th>
-                                                        <th className="w-32 px-4 py-3">Факт</th>
-                                                        <th className="w-28 px-4 py-3 text-right">Баллы</th>
-                                                        <th className="px-4 py-3">Комментарий</th>
-                                                        <th className="px-4 py-3">Файл</th>
-                                                        <th className="px-4 py-3">Статус</th>
+                                                        <th>Показатель</th>
+                                                        <th className="w-32">План</th>
+                                                        <th className="w-32">Факт</th>
+                                                        <th className="w-28 text-right">Баллы</th>
+                                                        <th>Комментарий</th>
+                                                        <th>Файл</th>
+                                                        <th>Статус</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {sectionRows.map((row) => (
                                                         <tr key={row.indicator_id} className="border-b border-slate-200 align-top last:border-0">
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <div className="font-medium text-slate-900">{row.name}</div>
                                                                 <div className="mt-1 text-xs text-slate-500">
                                                                     Код: {row.code}{row.unit ? ` • Ед.: ${row.unit}` : ''}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
@@ -350,7 +350,7 @@ export default function TeacherForm({
                                                                     placeholder="0"
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
@@ -362,12 +362,12 @@ export default function TeacherForm({
                                                                     placeholder="0"
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-4 text-right">
+                                                            <td className="text-right">
                                                                 <span className="font-display text-lg font-bold tabular-nums text-[#102945]">
                                                                     {resolvePoints(row).toFixed(2)}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <textarea
                                                                     className="min-h-20 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed"
                                                                     value={row.comment ?? ''}
@@ -375,7 +375,7 @@ export default function TeacherForm({
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <div className="space-y-2">
                                                                     {row.files.length > 0 ? (
                                                                         row.files.map((file) => (
@@ -423,7 +423,7 @@ export default function TeacherForm({
                                                                     )}
                                                                 </div>
                                                             </td>
-                                                            <td className="px-4 py-4">
+                                                            <td>
                                                                 <Badge variant={statusVariants[row.status] ?? 'outline'}>
                                                                     {statusLabels[row.status] ?? row.status}
                                                                 </Badge>

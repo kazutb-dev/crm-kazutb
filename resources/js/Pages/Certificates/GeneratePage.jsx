@@ -406,23 +406,23 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                 <table className="min-w-full text-sm">
                                                     <thead className="sticky top-0 bg-white">
                                                         <tr>
-                                                            <th className="px-3 py-2 text-left">#</th>
-                                                            <th className="px-3 py-2 text-left">ФИО получателя</th>
-                                                            <th className="px-3 py-2" />
+                                                            <th className="text-left">#</th>
+                                                            <th className="text-left">ФИО получателя</th>
+                                                            <th />
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {csvParsed.map((name, idx) => (
-                                                            <tr key={idx} className="border-t border-slate-200">
-                                                                <td className="px-3 py-1.5 tabular-nums text-slate-500">{idx + 1}</td>
-                                                                <td className="px-3 py-1.5">
+                                                            <tr key={idx}>
+                                                                <td className="tabular-nums text-slate-500">{idx + 1}</td>
+                                                                <td>
                                                                     <input
                                                                         className={cn(qdFieldClass, 'h-8')}
                                                                         value={name}
                                                                         onChange={(e) => editParsedName(idx, e.target.value)}
                                                                     />
                                                                 </td>
-                                                                <td className="px-3 py-1.5 text-right">
+                                                                <td className="text-right">
                                                                     <Button
                                                                         type="button"
                                                                         size="sm"
@@ -457,7 +457,7 @@ export default function CertificatesGenerate({ templates = [] }) {
             <Head title="Сертификаты" />
 
             <div className="admin-page-wrap space-y-6">
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.95fr)] xl:items-start">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.95fr)] xl:items-start">
                     <Card className="overflow-hidden">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">

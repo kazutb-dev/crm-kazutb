@@ -123,7 +123,7 @@ export default function UpdateProfileInformation({
                 </div>
             </header>
 
-            <form onSubmit={submit} className="mt-5 space-y-5">
+            <form onSubmit={submit} className="mt-6 space-y-6">
                 {!editing && (
                     <div className="space-y-4">
                         <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
@@ -178,8 +178,8 @@ export default function UpdateProfileInformation({
                 )}
 
                 {editing && (
-                    <div className="space-y-5">
-                        <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2">
                             <div className="space-y-2">
                                 <Label htmlFor="name" className="block">ФИО</Label>
                                 <TextInput
@@ -216,7 +216,7 @@ export default function UpdateProfileInformation({
                             </div>
 
                             {!isStudent && (
-                                <div className="space-y-3 border-t border-slate-200 pt-5 md:col-span-2">
+                                <div className="space-y-3 border-t border-slate-200 pt-6 md:col-span-2">
                                     <Label className="block">Степень</Label>
 
                                     {/* Current position value shown to user */}
@@ -380,7 +380,7 @@ export default function UpdateProfileInformation({
                             </Notice>
                         )}
 
-                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
+                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
                             <Transition
                                 show={recentlySuccessful}
                                 enter="transition ease-in-out"
@@ -396,7 +396,7 @@ export default function UpdateProfileInformation({
                                     Отмена
                                 </Button>
                             )}
-                            <Button type="submit" disabled={processing}>Сохранить и отправить на согласование</Button>
+                            <Button type="submit" disabled={processing} className="h-auto min-h-10 whitespace-normal text-center">Сохранить и отправить на согласование</Button>
                         </div>
                     </div>
                 )}

@@ -168,7 +168,7 @@ export default function CalendarSettings({
 
                 <Notice tone="brand">Изменения в слотах сразу участвуют в проверке конфликтов и отображаются в календарях сотрудников.</Notice>
 
-                <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.35fr)_minmax(28rem,0.75fr)]">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><CalendarClock className="shrink-0" />Постоянная занятость</CardTitle>
@@ -311,7 +311,7 @@ export default function CalendarSettings({
                             <CardTitle>Мои постоянные занятые интервалы</CardTitle>
                             <CardDescription>Активные интервалы, которые уже учитываются в календарной доступности.</CardDescription>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent className="p-0 sm:p-0">
                             {slots.length === 0 ? (
                                 <p className="px-6 py-8 text-center text-sm text-slate-500">Постоянная занятость не настроена</p>
                             ) : (
@@ -338,7 +338,7 @@ export default function CalendarSettings({
                     </Card>
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-2">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><ShieldCheck className="shrink-0" />Совместное управление календарем</CardTitle>
@@ -372,7 +372,7 @@ export default function CalendarSettings({
                             <CardTitle>Текущие секретари</CardTitle>
                             <CardDescription>Список сотрудников с активным доступом к вашему календарю.</CardDescription>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent className="p-0 sm:p-0">
                             {secretaryAccesses.length === 0 ? (
                                 <p className="px-6 py-8 text-center text-sm text-slate-500">Секретари пока не назначены</p>
                             ) : (
@@ -464,7 +464,7 @@ export default function CalendarSettings({
                                     Сотрудники ниже отображаются в каталоге по должности. Вы можете исключить любого.
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="py-2">
+                            <CardContent className="py-2 sm:py-2">
                                 {calendarEmployees.length === 0 ? (
                                     <p className="py-6 text-center text-sm text-slate-500">Нет сотрудников для отображения</p>
                                 ) : (
@@ -495,7 +495,7 @@ export default function CalendarSettings({
                                 <CardHeader>
                                     <CardTitle>Исключённые сотрудники</CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-0">
+                                <CardContent className="p-0 sm:p-0">
                                     <div className="divide-y divide-slate-200">
                                         {excludedUsers.map(emp => (
                                             <div key={emp.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">

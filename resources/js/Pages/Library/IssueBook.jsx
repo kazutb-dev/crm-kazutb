@@ -193,7 +193,7 @@ export default function IssueBook({ recentLoans = [] }) {
                     <Notice tone="success">{flash.success}</Notice>
                 )}
 
-                <form className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2" onSubmit={submit}>
+                <form className="grid grid-cols-1 gap-6 lg:grid-cols-2" onSubmit={submit}>
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -392,38 +392,38 @@ export default function IssueBook({ recentLoans = [] }) {
                             Недавно оформленные выдачи книг из локальной базы приложения.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="p-0 sm:p-0">
+                    <CardContent className="p-0">
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[980px] text-sm">
+                            <table className="w-full min-w-[760px] text-sm">
                                 <thead>
                                     <tr>
-                                        <th className="px-4 py-3 text-left">Книга</th>
-                                        <th className="px-4 py-3 text-left">Пользователь</th>
-                                        <th className="px-4 py-3 text-left">Дата выдачи</th>
-                                        <th className="px-4 py-3 text-left">Вернуть до</th>
-                                        <th className="px-4 py-3 text-left">Оформил</th>
+                                        <th className="text-left">Книга</th>
+                                        <th className="text-left">Пользователь</th>
+                                        <th className="text-left">Дата выдачи</th>
+                                        <th className="text-left">Вернуть до</th>
+                                        <th className="text-left">Оформил</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {recentLoans.map((loan) => (
-                                        <tr key={loan.id} className="border-t border-slate-200 hover:bg-slate-50">
-                                            <td className="px-4 py-3 align-top">
+                                        <tr key={loan.id} className="hover:bg-slate-50">
+                                            <td className="align-top">
                                                 <div className="font-medium text-slate-900">{loan.book_title}</div>
                                                 <div className="text-xs text-slate-500">{loan.book_author ?? 'Автор не указан'}</div>
                                             </td>
-                                            <td className="px-4 py-3 align-top">
+                                            <td className="align-top">
                                                 <div className="text-slate-900">{loan.user?.name ?? '-'}</div>
                                                 <div className="text-xs text-slate-500">{loan.user?.department ?? loan.user?.email ?? '-'}</div>
                                             </td>
-                                            <td className="px-4 py-3 align-top tabular-nums text-slate-700">{loan.issued_at ?? '-'}</td>
-                                            <td className="px-4 py-3 align-top tabular-nums text-slate-700">{loan.due_at ?? '-'}</td>
-                                            <td className="px-4 py-3 align-top text-slate-700">{loan.issuer ?? '-'}</td>
+                                            <td className="align-top tabular-nums text-slate-700">{loan.issued_at ?? '-'}</td>
+                                            <td className="align-top tabular-nums text-slate-700">{loan.due_at ?? '-'}</td>
+                                            <td className="align-top text-slate-700">{loan.issuer ?? '-'}</td>
                                         </tr>
                                     ))}
 
                                     {recentLoans.length === 0 && (
-                                        <tr className="border-t border-slate-200">
-                                            <td className="px-4 py-10 text-center text-slate-500" colSpan={5}>
+                                        <tr>
+                                            <td className="py-12 text-center text-slate-500" colSpan={5}>
                                                 Выдач пока нет.
                                             </td>
                                         </tr>

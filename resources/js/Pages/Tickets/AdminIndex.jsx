@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, FilterBar, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { EmptyState, FilterBar, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
 import { CalendarClock, CalendarDays, CircleCheck, Clock3, Inbox, Layers, Loader, RefreshCw, Search } from 'lucide-react';
@@ -170,7 +171,7 @@ export default function AdminIndex({
             <Head title="Заявки" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="sm:grid-cols-3 xl:grid-cols-6">
+                <StatGrid>
                     <StatTile label="Новые" value={summaryCounts?.new ?? 0} icon={Inbox} tone="info" />
                     <StatTile label="В работе" value={summaryCounts?.in_progress ?? 0} icon={Loader} tone="warning" />
                     <StatTile label="Закрытые" value={summaryCounts?.closed ?? 0} icon={CircleCheck} tone="success" />
@@ -301,121 +302,124 @@ export default function AdminIndex({
                         )}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[1260px] table-fixed text-[13px] leading-[1.3]">
-                            <thead>
-                                <tr>
-                                    <th className="w-[5%] px-3 text-left">ID</th>
-                                    <th className="w-[10%] px-3 text-left">Тип</th>
-                                    <th className="w-[11%] px-3 text-left">Локация</th>
-                                    <th className="w-[10%] px-3 text-left">Контакт</th>
-                                    <th className="w-[19%] px-3 text-left">Описание</th>
-                                    <th className="w-[12%] px-3 text-left">Отправитель</th>
-                                    <th className="w-[10%] px-3 text-left">Подразделение</th>
-                                    <th className="w-[10%] px-3 text-left">Кто принял</th>
-                                    <th className="w-[8%] px-3 text-left">Статус</th>
-                                    <th className="w-[11%] px-3 text-left">Дата</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((ticket) => (
-                                    <tr key={ticket.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
-                                        <td className="px-3 py-3 font-semibold tabular-nums text-slate-900">#{ticket.id}</td>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[1260px] table-fixed text-[13px] leading-[1.3]">
+                                    <thead>
+                                        <tr>
+                                            <th className="w-[5%] text-left">ID</th>
+                                            <th className="w-[10%] text-left">Тип</th>
+                                            <th className="w-[11%] text-left">Локация</th>
+                                            <th className="w-[10%] text-left">Контакт</th>
+                                            <th className="w-[19%] text-left">Описание</th>
+                                            <th className="w-[12%] text-left">Отправитель</th>
+                                            <th className="w-[10%] text-left">Подразделение</th>
+                                            <th className="w-[10%] text-left">Кто принял</th>
+                                            <th className="w-[8%] text-left">Статус</th>
+                                            <th className="w-[11%] text-left">Дата</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((ticket) => (
+                                            <tr key={ticket.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                <td className="font-semibold tabular-nums text-slate-900">#{ticket.id}</td>
 
-                                        <td className="px-3 py-3">
-                                            <Badge variant="secondary" className="max-w-full truncate">
-                                                {ticket.type_label || ticket.type || '-'}
-                                            </Badge>
-                                        </td>
+                                                <td>
+                                                    <Badge variant="secondary" className="max-w-full truncate">
+                                                        {ticket.type_label || ticket.type || '-'}
+                                                    </Badge>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="line-clamp-2 text-slate-700" title={ticket.location_label || ''}>
-                                                {ticket.location_label || '-'}
-                                            </div>
-                                        </td>
+                                                <td>
+                                                    <div className="line-clamp-2 text-slate-700" title={ticket.location_label || ''}>
+                                                        {ticket.location_label || '-'}
+                                                    </div>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="truncate font-medium text-slate-700" title={ticket.contact || ''}>
-                                                {ticket.contact || '-'}
-                                            </div>
-                                        </td>
+                                                <td>
+                                                    <div className="truncate font-medium text-slate-700" title={ticket.contact || ''}>
+                                                        {ticket.contact || '-'}
+                                                    </div>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="line-clamp-2 text-slate-600" title={ticket.description || ''}>
-                                                {ticket.description || '-'}
-                                            </div>
-                                        </td>
+                                                <td>
+                                                    <div className="line-clamp-2 text-slate-600" title={ticket.description || ''}>
+                                                        {ticket.description || '-'}
+                                                    </div>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="line-clamp-1 font-semibold text-slate-900" title={ticket.sender_label || ''}>
-                                                {ticket.sender_label || 'Гость'}
-                                            </div>
-                                            <div className="line-clamp-1 text-xs text-slate-500" title={ticket.sender_email || ''}>
-                                                {ticket.sender_email || '—'}
-                                            </div>
-                                        </td>
+                                                <td>
+                                                    <div className="line-clamp-1 font-semibold text-slate-900" title={ticket.sender_label || ''}>
+                                                        {ticket.sender_label || 'Гость'}
+                                                    </div>
+                                                    <div className="line-clamp-1 text-xs text-slate-500" title={ticket.sender_email || ''}>
+                                                        {ticket.sender_email || '—'}
+                                                    </div>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="line-clamp-2 text-slate-600" title={ticket.department_label || ''}>
-                                                {ticket.department_label || '-'}
-                                            </div>
-                                        </td>
+                                                <td>
+                                                    <div className="line-clamp-2 text-slate-600" title={ticket.department_label || ''}>
+                                                        {ticket.department_label || '-'}
+                                                    </div>
+                                                </td>
 
-                                        <td className="px-3 py-3">
-                                            <div className="line-clamp-2 text-slate-700" title={ticket.accepted_by_label || ''}>
-                                                {ticket.accepted_by_label || '—'}
-                                            </div>
-                                            {ticket.is_unassigned && (
-                                                <Badge variant="warning" className="mt-1">Не назначена</Badge>
+                                                <td>
+                                                    <div className="line-clamp-2 text-slate-700" title={ticket.accepted_by_label || ''}>
+                                                        {ticket.accepted_by_label || '—'}
+                                                    </div>
+                                                    {ticket.is_unassigned && (
+                                                        <Badge variant="warning" className="mt-1">Не назначена</Badge>
+                                                    )}
+                                                </td>
+
+                                                <td>
+                                                    <StatusControl
+                                                        ticketId={ticket.id}
+                                                        current={ticket.status}
+                                                        isOverdue={Boolean(ticket.is_overdue)}
+                                                    />
+                                                </td>
+
+                                                <td>
+                                                    <div className="flex items-start gap-1.5 text-slate-600">
+                                                        <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                                        <div className="min-w-0 space-y-0.5">
+                                                            <div className="truncate font-medium tabular-nums text-slate-700" title={ticket.created_at_display || ''}>
+                                                                {ticket.created_at_display || '-'}
+                                                            </div>
+                                                            <div className="truncate text-[11px] text-slate-500" title={ticket.created_at_human || ''}>
+                                                                {ticket.created_at_human || '-'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-end">
+                                    {links.map((link, index) => (
+                                        <Button
+                                            key={`${link.label}-${index}`}
+                                            variant={link.active ? 'default' : 'outline'}
+                                            size="sm"
+                                            disabled={!link.url}
+                                            asChild={Boolean(link.url)}
+                                        >
+                                            {link.url ? (
+                                                <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            ) : (
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
                                             )}
-                                        </td>
-
-                                        <td className="px-3 py-3">
-                                            <StatusControl
-                                                ticketId={ticket.id}
-                                                current={ticket.status}
-                                                isOverdue={Boolean(ticket.is_overdue)}
-                                            />
-                                        </td>
-
-                                        <td className="px-3 py-3">
-                                            <div className="flex items-start gap-1.5 text-slate-600">
-                                                <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                                                <div className="min-w-0 space-y-0.5">
-                                                    <div className="truncate font-medium tabular-nums text-slate-700" title={ticket.created_at_display || ''}>
-                                                        {ticket.created_at_display || '-'}
-                                                    </div>
-                                                    <div className="truncate text-[11px] text-slate-500" title={ticket.created_at_human || ''}>
-                                                        {ticket.created_at_human || '-'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {links.length > 3 && (
-                    <div className="flex flex-wrap items-center justify-end gap-1.5">
-                        {links.map((link, index) => (
-                            <Button
-                                key={`${link.label}-${index}`}
-                                variant={link.active ? 'default' : 'outline'}
-                                size="sm"
-                                disabled={!link.url}
-                                asChild={Boolean(link.url)}
-                            >
-                                {link.url ? (
-                                    <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                ) : (
-                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )}
-                            </Button>
-                        ))}
-                    </div>
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </AuthenticatedLayout>

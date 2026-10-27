@@ -609,23 +609,21 @@ export default function Index({
                     <div className="space-y-6">
                         {items.map((faculty) => (
                             <Card key={faculty.id}>
-                                <CardHeader>
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Landmark className="shrink-0" />
-                                            {faculty.name}
-                                        </CardTitle>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            {faculty.code && <Badge variant="outline">{faculty.code}</Badge>}
-                                            <Button variant="outline" size="sm" onClick={() => openEditDialog(faculty)}>
-                                                <Pencil />
-                                                Редактировать
-                                            </Button>
-                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(faculty)}>
-                                                <Trash2 />
-                                                Удалить
-                                            </Button>
-                                        </div>
+                                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Landmark className="shrink-0" />
+                                        {faculty.name}
+                                    </CardTitle>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {faculty.code && <Badge variant="outline">{faculty.code}</Badge>}
+                                        <Button variant="outline" size="sm" onClick={() => openEditDialog(faculty)}>
+                                            <Pencil />
+                                            Редактировать
+                                        </Button>
+                                        <Button variant="destructive" size="sm" onClick={() => handleDelete(faculty)}>
+                                            <Trash2 />
+                                            Удалить
+                                        </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-5">

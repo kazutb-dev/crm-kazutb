@@ -262,7 +262,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                                     ))}
                                 </nav>
                                 <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                                    <h1 className="truncate font-display text-[1.375rem] font-bold leading-tight tracking-[-0.01em] text-[#102945]">{pageName}</h1>
+                                    <h1 className="line-clamp-2 font-display text-lg font-bold leading-tight tracking-[-0.01em] text-[#102945] sm:truncate sm:text-[1.375rem]">{pageName}</h1>
                                     {queueScopeTitle && <Badge className="max-w-[40%] shrink truncate">{queueScopeTitle}</Badge>}
                                 </div>
                             </div>

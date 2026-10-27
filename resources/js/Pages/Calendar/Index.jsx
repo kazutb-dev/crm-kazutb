@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, LoadingState, Notice, PageHeader, Segmented, StatTile, StatusBadge } from '@/components/platform';
+import { EmptyState, FilterBar, LoadingState, Notice, PageHeader, Segmented, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -242,7 +242,7 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
 
     return (
         <Card className="overflow-hidden">
-            <CardContent className="p-0">
+            <CardContent className="p-0 sm:p-0">
                 <div className="grid grid-cols-7 border-b border-slate-200 bg-white">
                     {WEEKDAYS_SHORT.map((wd, i) => (
                         <div key={wd} className={`py-2.5 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>{wd}</div>
@@ -253,7 +253,7 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
                         const isWeekend = idx % 7 >= 5;
                         const isToday = day && today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
                         const isPastDay = day && new Date(year, month, day).setHours(0, 0, 0, 0) < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-                        const isSelected = day === selectedDay;
+                        const isSelected = !!day && day === selectedDay;
                         const dateStr = day ? `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
                         const isHoliday = holidayDates.has(dateStr);
                         const dayEvts = day ? (byDay[day] ?? []) : [];
@@ -313,7 +313,7 @@ function WeekView({ year, month, day, events, onEventClick }) {
 
     return (
         <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0 sm:p-0 overflow-x-auto">
                 <div className="min-w-[640px]">
                     <div className="grid border-b border-slate-200" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
                         <div className="border-r border-slate-200" />
@@ -373,7 +373,7 @@ function DayView({ year, month, day, events, onEventClick }) {
 
     return (
         <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 sm:p-0">
                 <div className="border-b border-slate-200 px-5 py-3 font-display text-base font-bold text-[#102945]">{fmtDate(date)}</div>
                 <div>
                     {HOURS.map(h => {
@@ -410,7 +410,7 @@ function AgendaView({ events, onEventClick }) {
 
     return (
         <Card>
-            <CardContent className="p-0 divide-y divide-slate-200">
+            <CardContent className="p-0 sm:p-0 divide-y divide-slate-200">
                 {events.map(e => {
                     const s = EVENT_STYLE[e.status]
                         ?? (e.type && TYPE_META[e.type] ? TYPE_META[e.type] : EVENT_STYLE.confirmed);
@@ -1419,14 +1419,14 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                     </Notice>
                 )}
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <StatGrid className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                     <SummaryStatCard label="Встреч на неделе" value={stats.week_count ?? 0} hint="подтверждённые встречи" icon={CalendarDays} />
                     <SummaryStatCard label="Сегодня встреч" value={stats.today_count ?? 0} hint="по текущему дню" icon={Clock} tone="navy" />
                     <SummaryStatCard label="Ожидают ответа" value={stats.pending_count ?? 0} hint="входящие запросы" icon={MessageSquare} tone="warning" />
                     <SummaryStatCard label="Конфликты" value={stats.conflict_count ?? 0} hint="требуют внимания" icon={AlertTriangle} tone={(stats.conflict_count ?? 0) > 0 ? 'danger' : 'neutral'} />
                     <SummaryStatCard label="Дней отпуска" value={stats.vacation_days ?? 0} hint="в этом месяце" icon={CalendarDays} tone="success" />
                     <SummaryStatCard label="Командировки" value={stats.business_trip_days ?? 0} hint="в этом месяце" icon={CalendarDays} tone="info" />
-                </div>
+                </StatGrid>
 
                 {hasMeetingNotifications && (
                     <Card className="border-amber-200">
@@ -1515,7 +1515,7 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button variant="outline" size="icon" aria-label="Предыдущий период" onClick={prev}><ChevronLeft className="size-4" /></Button>
                                 <Button variant="outline" size="icon" aria-label="Следующий период" onClick={next}><ChevronRight className="size-4" /></Button>
-                                <h2 className="ml-2 min-w-[200px] font-display text-xl font-bold text-[#102945]">{periodLabel}</h2>
+                                <h2 className="mx-2 font-display text-xl font-bold text-[#102945]">{periodLabel}</h2>
                                 <Button variant="outline" size="sm" onClick={goToday}>Сегодня</Button>
                             </div>
                             <Segmented items={VIEWS} value={view} onChange={setView} />
@@ -1548,7 +1548,7 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                                     Ближайшие встречи
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="max-h-[calc(100vh-10rem)] overflow-y-auto py-1">
+                            <CardContent className="max-h-[calc(100vh-10rem)] overflow-y-auto py-1 sm:py-1">
                                 {upcomingEvents.length === 0 ? (
                                     <p className="py-6 text-center text-sm text-slate-500">Нет предстоящих встреч</p>
                                 ) : (

@@ -90,7 +90,7 @@ export default function Divisions({ divisions }) {
             <Head title="Управление подразделениями" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Подразделений" value={divisions.length} tone="teal" icon={Building2} />
                     <StatTile label="Привязано индикаторов" value={indicatorsTotal} tone="info" icon={ListChecks} />
                     <StatTile label="Сотрудников" value={usersTotal} tone="gold" icon={Users} />
@@ -159,42 +159,54 @@ export default function Divisions({ divisions }) {
                     <table className="w-full text-sm">
                         <thead className="border-b border-slate-200">
                             <tr>
-                                <th className="px-5 py-3 text-left">Название</th>
-                                <th className="px-5 py-3 text-left">Код</th>
-                                <th className="px-5 py-3 text-center">Индикаторов</th>
-                                <th className="px-5 py-3 text-center">Сотрудников</th>
-                                <th className="px-5 py-3 text-right">Действия</th>
+                                <th className="text-left">Название</th>
+                                <th className="text-left">Код</th>
+                                <th className="text-center">Индикаторов</th>
+                                <th className="text-center">Сотрудников</th>
+                                <th className="text-right">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredDivisions.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5" className="px-5 py-10 text-center text-sm text-slate-500">
-                                        Подразделения не найдены
+                                <tr className="hover:bg-transparent">
+                                    <td colSpan="5">
+                                        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                                <Building2 className="h-6 w-6" />
+                                            </div>
+                                            <div className="max-w-md space-y-1">
+                                                <p className="font-display text-base font-bold text-[#102945]">Подразделения не найдены</p>
+                                                <p className="text-sm text-slate-600">Измените запрос поиска или создайте новое подразделение.</p>
+                                            </div>
+                                            <Button onClick={handleCreate}>
+                                                <Plus className="h-4 w-4" />
+                                                Новое подразделение
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredDivisions.map((division) => (
                                     <tr key={division.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3 font-medium text-slate-900">{division.name}</td>
-                                        <td className="px-5 py-3 text-slate-500">
+                                        <td className="font-medium text-slate-900">{division.name}</td>
+                                        <td className="text-slate-500">
                                             {division.code ? (
                                                 <Badge variant="outline">{division.code}</Badge>
                                             ) : (
                                                 '—'
                                             )}
                                         </td>
-                                        <td className="px-5 py-3 text-center">
+                                        <td className="text-center">
                                             <Badge variant="secondary" className="tabular-nums">
                                                 {division.indicators_count ?? 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-5 py-3 text-center">
+                                        <td className="text-center">
                                             <Badge variant="outline" className="tabular-nums">
                                                 {division.users_count ?? 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-5 py-3 text-right">
+                                        <td className="text-right">
                                             <div className="flex justify-end gap-1">
                                                 <Button
                                                     size="sm"

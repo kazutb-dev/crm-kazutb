@@ -398,9 +398,9 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                         </CardHeader>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5"><LoadingState /></div>
+                                <div className="p-5 sm:p-6"><LoadingState /></div>
                             ) : disciplineBuckets.length === 0 ? (
-                                <p className="px-5 py-6 text-sm text-slate-600">
+                                <p className="px-5 py-6 text-sm text-slate-600 sm:px-6">
                                     {visibleItems.length > 0
                                         ? 'По выбранным фильтрам дисциплины не найдены.'
                                         : 'Нет доступных дисциплин для анкетирования.'}
@@ -418,7 +418,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                     type="button"
                                                     onClick={() => selectDiscipline(bucket)}
                                                     aria-current={active ? 'true' : undefined}
-                                                    className={`flex w-full items-start justify-between gap-3 border-l-[3px] px-5 py-3.5 text-left transition-colors ${active ? 'border-l-teal-600 bg-teal-50' : 'border-l-transparent hover:bg-slate-50'}`}
+                                                    className={`relative flex w-full items-start justify-between gap-3 px-5 py-3 text-left transition-colors sm:px-6 ${active ? 'bg-teal-50 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-teal-600' : 'hover:bg-slate-50'}`}
                                                 >
                                                     <span className="min-w-0">
                                                         <span className={`block font-medium ${active ? 'text-[#102945]' : 'text-slate-900'}`}>{bucket.discipline.name}</span>
@@ -445,8 +445,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                     </Card>
 
                     <Card>
-                        <CardHeader>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                                 <CardTitle className="flex items-center gap-2">
                                     <ClipboardList />
                                     Форма анкеты
@@ -461,7 +460,6 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                         Сбросить черновик
                                     </Button>
                                 </div>
-                            </div>
                         </CardHeader>
                         <CardContent>
                             {!selectedItem ? (

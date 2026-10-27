@@ -1,12 +1,12 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { Building2, Search, ShieldCheck, ShieldOff, ShieldPlus, Trash2, UserPlus, Users, X } from 'lucide-react';
+import { Building2, Inbox, Search, ShieldCheck, ShieldOff, ShieldPlus, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 function formatDate(value) {
     if (!value) return '—';
@@ -91,6 +91,22 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
                     ))}
                 </div>
             )}
+        </div>
+    );
+}
+
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
         </div>
     );
 }
@@ -225,13 +241,11 @@ export default function Access({ grants = [], users = [], search = '', permissio
                     <StatTile label="Подразделений проверки" value={structural_divisions.length} tone="gold" icon={Building2} />
                 </StatGrid>
 
-                <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-2"><UserPlus className="h-4 w-4" />Выдать доступ</span>
-                                <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
-                            </CardTitle>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4" />Выдать доступ</CardTitle>
+                            <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm text-slate-600">
@@ -312,15 +326,13 @@ export default function Access({ grants = [], users = [], search = '', permissio
                 </div>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Выданные доступы ({grants.length})</span>
-                            <StatusBadge tone="default">Access grants</StatusBadge>
-                        </CardTitle>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Выданные доступы ({grants.length})</CardTitle>
+                        <StatusBadge tone="default">Access grants</StatusBadge>
                     </CardHeader>
-                    <CardContent className={grouped.length === 0 ? '' : 'p-0'}>
+                    <CardContent className="p-0">
                         {grouped.length === 0 ? (
-                            <EmptyState
+                            <InlineEmpty
                                 title="Нет выданных доступов"
                                 description="Найдите сотрудника в блоке «Выдать доступ» и назначьте ему модуль KPI."
                             />
@@ -329,13 +341,13 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                 <table className="w-full min-w-[900px] text-sm">
                                     <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th className="px-5 py-3 text-left">Сотрудник</th>
-                                            <th className="px-5 py-3 text-left">Должность / Подразделение</th>
-                                            <th className="px-5 py-3 text-left">Модуль / Подразделение</th>
-                                            <th className="px-5 py-3 text-left">Статус</th>
-                                            <th className="px-5 py-3 text-left">Выдан</th>
-                                            <th className="px-5 py-3 text-left">Кем выдан</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="text-left">Сотрудник</th>
+                                            <th className="text-left">Должность / Подразделение</th>
+                                            <th className="text-left">Модуль / Подразделение</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Выдан</th>
+                                            <th className="text-left">Кем выдан</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -343,18 +355,18 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                             userGrants.map((grant, idx) => (
                                                 <tr key={grant.id} className={`align-top ${idx === userGrants.length - 1 ? 'border-b border-slate-200' : ''} last:border-0`}>
                                                     {idx === 0 && (
-                                                        <td className="px-5 py-3" rowSpan={userGrants.length}>
+                                                        <td rowSpan={userGrants.length}>
                                                             <div className="font-medium text-slate-900">{user?.name ?? '—'}</div>
                                                             <div className="text-xs text-slate-500">{user?.email ?? ''}</div>
                                                         </td>
                                                     )}
                                                     {idx === 0 && (
-                                                        <td className="px-5 py-3 text-slate-600" rowSpan={userGrants.length}>
+                                                        <td className="text-slate-600" rowSpan={userGrants.length}>
                                                             <div>{user?.ad_title ?? '—'}</div>
                                                             <div className="text-xs text-slate-500">{user?.ad_department ?? ''}</div>
                                                         </td>
                                                     )}
-                                                    <td className="px-5 py-3">
+                                                    <td>
                                                         <Badge variant="secondary">
                                                             {permission_labels[grant.permission] ?? grant.permission}
                                                         </Badge>
@@ -362,20 +374,20 @@ export default function Access({ grants = [], users = [], search = '', permissio
                                                             <div className="mt-1 text-xs text-slate-500">{grant.division.name}</div>
                                                         )}
                                                     </td>
-                                                    <td className="px-5 py-3">
+                                                    <td>
                                                         {grant.is_active ? (
                                                             <StatusBadge tone="success">Активен</StatusBadge>
                                                         ) : (
                                                             <StatusBadge tone="default">Деактивирован</StatusBadge>
                                                         )}
                                                     </td>
-                                                    <td className="px-5 py-3 tabular-nums text-slate-600">
+                                                    <td className="tabular-nums text-slate-600">
                                                         {formatDate(grant.granted_at)}
                                                     </td>
-                                                    <td className="px-5 py-3 text-slate-600">
+                                                    <td className="text-slate-600">
                                                         {grant.grantedBy?.name ?? '—'}
                                                     </td>
-                                                    <td className="px-5 py-3 text-right">
+                                                    <td className="text-right">
                                                         <div className="flex justify-end gap-2">
                                                             <Button
                                                                 size="sm"

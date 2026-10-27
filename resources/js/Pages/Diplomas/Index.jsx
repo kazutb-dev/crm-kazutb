@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -384,102 +385,105 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
                         )}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[1100px] text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">ID</th>
-                                    <th className="px-5 text-left">Год / семестр</th>
-                                    <th className="px-5 text-left">Тема</th>
-                                    <th className="px-5 text-left">ОП</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    <th className="px-5 text-left">Проверка</th>
-                                    <th className="px-5 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {items.map((diploma) => (
-                                    <tr key={diploma.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3.5 tabular-nums text-slate-500">#{diploma.id}</td>
-                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">
-                                            {diploma.year} / {semesterLabels[diploma.semester] ?? diploma.semester}
-                                        </td>
-                                        <td className="max-w-md px-5 py-3.5">
-                                            <div className="font-medium text-slate-900">{diploma.title_ru}</div>
-                                            <div className="text-xs text-slate-500">
-                                                {diploma.department?.name} / {diploma.faculty?.name}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-slate-600">{diploma.program?.name ?? '—'}</td>
-                                        <td className="px-5 py-3.5">
-                                            <Badge variant={statusVariants[diploma.status] ?? 'outline'}>
-                                                {statusLabels[diploma.status] ?? diploma.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-5 py-3.5">{renderCheckSummary(diploma)}</td>
-                                        <td className="px-5 py-3.5 text-right">
-                                            <div className="flex flex-wrap justify-end gap-2">
-                                                {diploma.status === 'draft' || diploma.status === 'rejected' ? (
-                                                    <Button size="sm" variant="outline" onClick={() => transition(diploma.id, 'submit')}>
-                                                        Отправить
-                                                    </Button>
-                                                ) : null}
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[1100px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">ID</th>
+                                            <th className="text-left">Год / семестр</th>
+                                            <th className="text-left">Тема</th>
+                                            <th className="text-left">ОП</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Проверка</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((diploma) => (
+                                            <tr key={diploma.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                <td className="tabular-nums text-slate-500">#{diploma.id}</td>
+                                                <td className="whitespace-nowrap tabular-nums text-slate-700">
+                                                    {diploma.year} / {semesterLabels[diploma.semester] ?? diploma.semester}
+                                                </td>
+                                                <td className="max-w-md">
+                                                    <div className="font-medium text-slate-900">{diploma.title_ru}</div>
+                                                    <div className="text-xs text-slate-500">
+                                                        {diploma.department?.name} / {diploma.faculty?.name}
+                                                    </div>
+                                                </td>
+                                                <td className="text-slate-600">{diploma.program?.name ?? '—'}</td>
+                                                <td>
+                                                    <Badge variant={statusVariants[diploma.status] ?? 'outline'}>
+                                                        {statusLabels[diploma.status] ?? diploma.status}
+                                                    </Badge>
+                                                </td>
+                                                <td>{renderCheckSummary(diploma)}</td>
+                                                <td className="text-right">
+                                                    <div className="flex flex-wrap justify-end gap-2">
+                                                        {diploma.status === 'draft' || diploma.status === 'rejected' ? (
+                                                            <Button size="sm" variant="outline" onClick={() => transition(diploma.id, 'submit')}>
+                                                                Отправить
+                                                            </Button>
+                                                        ) : null}
 
-                                                {canModerate && diploma.status === 'submitted' ? (
-                                                    <Button size="sm" variant="outline" onClick={() => transition(diploma.id, 'in-review')}>
-                                                        На проверку
-                                                    </Button>
-                                                ) : null}
+                                                        {canModerate && diploma.status === 'submitted' ? (
+                                                            <Button size="sm" variant="outline" onClick={() => transition(diploma.id, 'in-review')}>
+                                                                На проверку
+                                                            </Button>
+                                                        ) : null}
 
-                                                {canModerate && (diploma.status === 'submitted' || diploma.status === 'in_review') ? (
-                                                    <>
-                                                        <Button size="sm" onClick={() => transition(diploma.id, 'approve')}>
-                                                            Одобрить
-                                                        </Button>
-                                                        <Button size="sm" variant="destructive" onClick={() => transition(diploma.id, 'reject')}>
-                                                            Отклонить
-                                                        </Button>
-                                                    </>
-                                                ) : null}
+                                                        {canModerate && (diploma.status === 'submitted' || diploma.status === 'in_review') ? (
+                                                            <>
+                                                                <Button size="sm" onClick={() => transition(diploma.id, 'approve')}>
+                                                                    Одобрить
+                                                                </Button>
+                                                                <Button size="sm" variant="destructive" onClick={() => transition(diploma.id, 'reject')}>
+                                                                    Отклонить
+                                                                </Button>
+                                                            </>
+                                                        ) : null}
 
-                                                {canModerate && !['approved', 'archived'].includes(diploma.status) ? (
-                                                    <Button size="sm" variant="secondary" onClick={() => transition(diploma.id, 'check')}>
-                                                        <SearchCheck />
-                                                        Проверка
-                                                    </Button>
-                                                ) : null}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {links.length > 3 && (
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-xs font-medium text-slate-500">
-                            Показано {diplomas?.from ?? 0}–{diplomas?.to ?? 0} из {total}
-                        </span>
-                        <div className="flex flex-wrap gap-1.5">
-                            {links.map((link, index) => (
-                                <Button
-                                    key={`${link.label}-${index}`}
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                    asChild={Boolean(link.url)}
-                                >
-                                    {link.url ? (
-                                        <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    ) : (
-                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                    )}
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
+                                                        {canModerate && !['approved', 'archived'].includes(diploma.status) ? (
+                                                            <Button size="sm" variant="secondary" onClick={() => transition(diploma.id, 'check')}>
+                                                                <SearchCheck />
+                                                                Проверка
+                                                            </Button>
+                                                        ) : null}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-between">
+                                    <span className="text-xs font-medium text-slate-500">
+                                        Показано {diplomas?.from ?? 0}–{diplomas?.to ?? 0} из {total}
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {links.map((link, index) => (
+                                            <Button
+                                                key={`${link.label}-${index}`}
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                disabled={!link.url}
+                                                asChild={Boolean(link.url)}
+                                            >
+                                                {link.url ? (
+                                                    <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                ) : (
+                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                )}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </AuthenticatedLayout>
