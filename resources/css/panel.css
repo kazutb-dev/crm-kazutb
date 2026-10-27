@@ -422,30 +422,99 @@
   color: var(--qd-fg-muted);
 }
 
-/* Page title block: no wash or rule of its own, sits on the page background above the content */
+/* Page title banner: deep teal band with a soft glow, a dot texture on the right and a gold rule.
+   Pages pass their own header markup, so text colours inside are remapped here; chips, buttons and
+   fields (anything inside the banner with its own background or border) keep their light surface. */
 .qd-hero {
   position: relative;
-  padding: 2rem 1rem 0;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 1.25rem 1rem 0;
+  padding: 1.5rem 1.25rem 1.625rem;
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.78);
+  background:
+    radial-gradient(60% 130% at 100% 0%, rgba(9, 186, 178, 0.3), transparent 60%),
+    radial-gradient(45% 100% at 0% 100%, rgba(226, 181, 62, 0.14), transparent 65%),
+    linear-gradient(135deg, #082834 0%, #0b3442 55%, #0e4250 100%);
+  box-shadow: 0 1px 2px rgba(8, 40, 52, 0.12), 0 18px 40px -24px rgba(8, 40, 52, 0.5);
+}
+
+.qd-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1.3px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 40%, #000 90%);
+  mask-image: linear-gradient(100deg, transparent 40%, #000 90%);
+}
+
+.qd-hero::after {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  bottom: 0;
+  width: 4rem;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: #e2b53e;
 }
 
 @media (min-width: 640px) {
   .qd-hero {
-    padding: 2.5rem 1.5rem 0;
+    margin: 1.5rem 1.5rem 0;
+    padding: 1.75rem 2rem 1.875rem;
+  }
+
+  .qd-hero::after {
+    left: 2rem;
   }
 }
 
 /* The page title is the only Literata text in the panel */
 .qd-panel .qd-hero :is(h1, h2) {
   font-family: var(--qd-font-display);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
   letter-spacing: -0.01em;
-  color: var(--qd-ink);
+  color: #fff;
 }
 
 .qd-hero p {
   max-width: 46rem;
+}
+
+.qd-panel .qd-hero :is(p, span, div, dt, dd, li, small, time):not(:where(button, a, label, input, select, textarea, [class*='bg-'], [class*='border']), .qd-hero :where(button, a, label, [class*='bg-'], [class*='border']) *) {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.qd-panel .qd-hero :is(strong, b, [class*='font-semibold'], [class*='font-bold']):not(:where(button, a, [class*='bg-'], [class*='border']), .qd-hero :where(button, a, [class*='bg-'], [class*='border']) *) {
+  color: #fff;
+}
+
+.qd-panel .qd-hero a:not([class*='bg-'], [class*='border']) {
+  color: #8fe3dd;
+}
+
+.qd-panel .qd-hero svg:not(.qd-hero :where(button, a, [class*='bg-'], [class*='border']) svg) {
+  color: #6fd6cf;
+}
+
+.qd-panel .qd-hero .qd-kicker.qd-kicker {
+  color: #e2b53e;
+}
+
+/* Primary actions turn gold on the dark band */
+.qd-panel .qd-hero :is(button, a)[class*='bg-teal-700'] {
+  background-color: #e2b53e;
+  color: #082834;
+}
+
+.qd-panel .qd-hero :is(button, a)[class*='bg-teal-700']:hover {
+  background-color: #efc75a;
 }
 
 /* Tables: white header row with a rule, as in the design's leaderboard */
