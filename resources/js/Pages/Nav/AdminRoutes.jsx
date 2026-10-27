@@ -728,7 +728,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                                     cy={editorStartPoint.y}
                                                                     r="0.7"
                                                                     fill="none"
-                                                                    stroke="#e5242a"
+                                                                    stroke="#c52b28"
                                                                     strokeWidth="0.36"
                                                                     opacity="0.66"
                                                                 >
@@ -738,7 +738,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                                 <g transform={`translate(${editorStartPoint.x} ${editorStartPoint.y}) scale(0.28)`}>
                                                                     <path
                                                                         d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
-                                                                        fill="#e5242a"
+                                                                        fill="#c52b28"
                                                                         stroke="#ffffff"
                                                                         strokeWidth="0.44"
                                                                     />
@@ -753,7 +753,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                                     cy={editorFinishPoint.y}
                                                                     r="0.8"
                                                                     fill="none"
-                                                                    stroke="#16a34a"
+                                                                    stroke="#26975f"
                                                                     strokeWidth="0.34"
                                                                     opacity="0.7"
                                                                 >
@@ -763,7 +763,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                                 <g transform={`translate(${editorFinishPoint.x} ${editorFinishPoint.y}) scale(0.34)`}>
                                                                     <path
                                                                         d="M 0 0 C 0 0 -2.35 -2.55 -2.35 -4.5 C -2.35 -6.35 -1.3 -7.55 0 -7.55 C 1.3 -7.55 2.35 -6.35 2.35 -4.5 C 2.35 -2.55 0 0 0 0 Z"
-                                                                        fill="#16a34a"
+                                                                        fill="#26975f"
                                                                         stroke="#ffffff"
                                                                         strokeWidth="0.44"
                                                                     />

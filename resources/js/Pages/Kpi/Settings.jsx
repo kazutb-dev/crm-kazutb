@@ -30,7 +30,7 @@ function RuleRow({ rule, index, onChange, onRemove }) {
     return (
         <div className="grid gap-3 rounded-xl border border-border/70 p-4 lg:grid-cols-[1.1fr_140px_1.2fr_44px]">
             <div className="space-y-2">
-                <label className="text-sm font-medium text-[#132844]">Должность</label>
+                <label className="text-sm font-medium text-[#102945]">Должность</label>
                 <Input
                     value={rule.label}
                     onChange={(e) => onChange(index, 'label', e.target.value)}
@@ -38,7 +38,7 @@ function RuleRow({ rule, index, onChange, onRemove }) {
                 />
             </div>
             <div className="space-y-2">
-                <label className="text-sm font-medium text-[#132844]">Баллы</label>
+                <label className="text-sm font-medium text-[#102945]">Баллы</label>
                 <Input
                     type="number"
                     min="0"
@@ -47,7 +47,7 @@ function RuleRow({ rule, index, onChange, onRemove }) {
                 />
             </div>
             <div className="space-y-2">
-                <label className="text-sm font-medium text-[#132844]">Ключевые слова</label>
+                <label className="text-sm font-medium text-[#102945]">Ключевые слова</label>
                 <Input
                     value={rule.keywords_text}
                     onChange={(e) => onChange(index, 'keywords_text', e.target.value)}
@@ -197,7 +197,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                 className={[
                                     'rounded-lg px-4 py-2 text-sm font-medium transition-all',
                                     isActive
-                                        ? 'bg-white shadow-sm text-[#132844] border border-border/60'
+                                        ? 'bg-white shadow-sm text-[#102945] border border-border/60'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-white/60',
                                 ].join(' ')}
                             >
@@ -211,15 +211,15 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                     <form className="grid gap-4 xl:grid-cols-[1.4fr_1fr]" onSubmit={submit}>
                         <Card className="border-border/80 bg-white/90 shadow-sm">
                             <CardHeader className="pb-3">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
-                                    <Users className="h-4 w-4 text-[#139AA4]" />
+                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
+                                    <Users className="h-4 w-4 text-[#067a75]" />
                                     ППС: НПУ по должности
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid gap-4 rounded-xl border border-dashed border-border/70 px-4 py-4 lg:grid-cols-[220px_1fr]">
                                     <div>
-                                        <div className="text-sm font-medium text-[#132844]">НПУ по умолчанию</div>
+                                        <div className="text-sm font-medium text-[#102945]">НПУ по умолчанию</div>
                                         <p className="mt-1 text-xs text-muted-foreground">Применяется, если должность не попала ни под одно правило.</p>
                                     </div>
                                     <div className="space-y-2">
@@ -254,14 +254,14 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                         <div className="space-y-4">
                             <Card className="border-border/80 bg-white/90 shadow-sm">
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
-                                        <GraduationCap className="h-4 w-4 text-[#139AA4]" />
+                                    <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
+                                        <GraduationCap className="h-4 w-4 text-[#067a75]" />
                                         Деканы
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="rounded-xl border border-border/70 px-4 py-3 text-sm space-y-2">
-                                        <div className="mb-2 font-medium text-[#132844]">Фиксированное значение для декана</div>
+                                        <div className="mb-2 font-medium text-[#102945]">Фиксированное значение для декана</div>
                                         <Input
                                             type="number"
                                             min="0"
@@ -277,14 +277,14 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
 
                             <Card className="border-border/80 bg-white/90 shadow-sm">
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
-                                        <Building2 className="h-4 w-4 text-[#139AA4]" />
+                                    <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
+                                        <Building2 className="h-4 w-4 text-[#067a75]" />
                                         Завкафедры
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4 text-sm">
                                     <div className="rounded-xl border border-border/70 px-4 py-3 space-y-2">
-                                        <div className="mb-2 font-medium text-[#132844]">Базовое значение для заведующего кафедрой</div>
+                                        <div className="mb-2 font-medium text-[#102945]">Базовое значение для заведующего кафедрой</div>
                                         <Input
                                             type="number"
                                             min="0"

@@ -324,7 +324,7 @@ export default function Questions() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Опросы, вопросы и опции</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Опросы, вопросы и опции</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Создавайте опросы с привязкой ко всем связкам преподаватель+дисциплина или к конкретной группе, затем наполняйте вопросами.</p>
                         </div>
                         <Badge variant="secondary" className="w-fit">{questions.length} вопросов</Badge>
@@ -334,7 +334,7 @@ export default function Questions() {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">{editingSurveyId ? 'Редактирование опроса' : 'Новый опрос'}</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">{editingSurveyId ? 'Редактирование опроса' : 'Новый опрос'}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form className="space-y-3" onSubmit={submitSurvey}>
@@ -434,7 +434,7 @@ export default function Questions() {
 
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">Список опросов</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">Список опросов</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
                             {surveys.length === 0 ? (
@@ -444,7 +444,7 @@ export default function Questions() {
                                     {surveys.map((survey) => (
                                         <div key={survey.id} className="rounded-md border border-border/80 p-3">
                                             <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <p className="text-sm font-semibold text-[#132844]">{survey.title}</p>
+                                                <p className="text-sm font-semibold text-[#102945]">{survey.title}</p>
                                                 <Badge variant={survey.status === 'active' ? 'secondary' : 'outline'}>{survey.status}</Badge>
                                             </div>
                                             <p className="mt-1 text-xs text-muted-foreground">
@@ -471,7 +471,7 @@ export default function Questions() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Анкет" value={surveys.length} icon={<ListChecks className="h-5 w-5 text-[#139AA4]" />} />
+                    <StatCard title="Анкет" value={surveys.length} icon={<ListChecks className="h-5 w-5 text-[#067a75]" />} />
                     <StatCard title="Single choice" value={questionTypeStats.single_choice} />
                     <StatCard title="Text" value={questionTypeStats.text} />
                     <StatCard title="Numeric" value={questionTypeStats.numeric} />
@@ -483,7 +483,7 @@ export default function Questions() {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">{editingQuestionId ? 'Редактирование вопроса' : 'Новый вопрос'}</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">{editingQuestionId ? 'Редактирование вопроса' : 'Новый вопрос'}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form className="space-y-3" onSubmit={submitQuestion}>
@@ -530,7 +530,7 @@ export default function Questions() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#132844]">Список вопросов</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Список вопросов</CardTitle>
                                 <div className="relative w-full sm:w-72">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input className="pl-9" placeholder="Поиск вопроса" value={questionSearch} onChange={(e) => setQuestionSearch(e.target.value)} />
@@ -553,7 +553,7 @@ export default function Questions() {
                                 <div className="max-h-[460px] space-y-2 overflow-y-auto pr-1">
                                     {selectedQuestions.map((question) => (
                                         <div key={question.id} className="rounded-md border border-border/80 p-3">
-                                            <p className="text-sm font-medium text-[#132844]">{question.question_text}</p>
+                                            <p className="text-sm font-medium text-[#102945]">{question.question_text}</p>
                                             <p className="mt-1 text-xs text-muted-foreground">Тип: {question.question_type} · Анкета: {question.survey?.title || question.survey_id}</p>
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 <Button type="button" variant="outline" size="sm" onClick={() => startEditQuestion(question)}>Ред.</Button>
@@ -576,7 +576,7 @@ export default function Questions() {
 
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-[#132844]">Опции вопроса</CardTitle>
+                        <CardTitle className="text-base text-[#102945]">Опции вопроса</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-5" onSubmit={submitOption}>
@@ -659,7 +659,7 @@ function StatCard({ title, value, icon = null }) {
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
+                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
                 </div>
                 {icon}
             </CardContent>

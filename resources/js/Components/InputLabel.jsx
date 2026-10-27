@@ -1,3 +1,5 @@
+import { usePanelDesign } from '@/components/ui/panel-design';
+
 export default function InputLabel({
     value,
     className = '',
@@ -8,7 +10,9 @@ export default function InputLabel({
         <label
             {...props}
             className={
-                `block text-sm font-medium text-gray-700 ` +
+                (usePanelDesign()
+                    ? 'block text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-slate-900 '
+                    : 'block text-sm font-medium text-gray-700 ') +
                 className
             }
         >

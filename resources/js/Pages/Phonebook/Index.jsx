@@ -1032,14 +1032,14 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                         onDrop={(event) => handleDropOnSection(event, section)}
                                     >
                                         <div className="border-b pb-2">
-                                            <h3 className="text-lg font-bold uppercase tracking-wide text-[#1f3152]">{section.name}:</h3>
+                                            <h3 className="text-lg font-bold uppercase tracking-wide text-[#102945]">{section.name}:</h3>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                             {(section.items ?? []).map((item, index) => (
                                                 <article
                                                     key={item.id}
-                                                    className={`relative overflow-hidden rounded-2xl border border-[#d8dee9] bg-white p-4 shadow-[0_6px_18px_rgba(31,49,82,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-[#1f3152]/30 hover:shadow-[0_10px_24px_rgba(31,49,82,0.14)] ${draggingUserId === item.id ? 'opacity-60' : ''}`}
+                                                    className={`relative overflow-hidden rounded-2xl border border-[#dfe6e4] bg-white p-4 shadow-[0_6px_18px_rgba(31,49,82,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-[#102945]/30 hover:shadow-[0_10px_24px_rgba(31,49,82,0.14)] ${draggingUserId === item.id ? 'opacity-60' : ''}`}
                                                     draggable={canManageDirectory}
                                                     onDragStart={(event) => handleDragStart(event, item.id)}
                                                     onDragEnd={() => setDraggingUserId(null)}
@@ -1050,20 +1050,20 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                     }}
                                                     onDrop={(event) => handleDropOnCard(event, section, item.id)}
                                                 >
-                                                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1f3152]" />
+                                                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#102945]" />
 
                                                     <div className="mb-3 flex items-center justify-between">
-                                                        <span className="inline-flex rounded-full bg-[#eef2f9] px-2.5 py-1 text-xs font-semibold text-[#1f3152]">
+                                                        <span className="inline-flex rounded-full bg-[#eef2f1] px-2.5 py-1 text-xs font-semibold text-[#102945]">
                                                             #{index + 1}
                                                         </span>
-                                                        {canManageDirectory && <GripVertical className="h-4 w-4 text-[#61738f]" />}
+                                                        {canManageDirectory && <GripVertical className="h-4 w-4 text-[#5c6866]" />}
                                                     </div>
 
                                                     <div className="flex items-start gap-3">
                                                         {renderAvatar(item)}
 
                                                         <div className="min-w-0 flex-1">
-                                                            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-[#1f3152]">
+                                                            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-[#102945]">
                                                                 {item.full_name}
                                                             </h3>
                                                             <p className="mt-1 line-clamp-2 text-sm text-[#596b86]">
@@ -1072,26 +1072,26 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                         </div>
                                                     </div>
 
-                                                    <div className="mt-4 space-y-2 rounded-2xl border border-[#d8dee9] bg-[#f8fafc] p-3 text-sm">
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <Phone className="h-4 w-4 text-[#61738f]" />
+                                                    <div className="mt-4 space-y-2 rounded-2xl border border-[#dfe6e4] bg-[#f8fafc] p-3 text-sm">
+                                                        <div className="flex items-center gap-2 text-[#102945]">
+                                                            <Phone className="h-4 w-4 text-[#5c6866]" />
                                                             <span>{item.phone || '-'}</span>
-                                                            <span className="text-xs text-[#61738f]">вн: {item.inner_phone || '-'}</span>
+                                                            <span className="text-xs text-[#5c6866]">вн: {item.inner_phone || '-'}</span>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <Mail className="h-4 w-4 text-[#61738f]" />
+                                                        <div className="flex items-center gap-2 text-[#102945]">
+                                                            <Mail className="h-4 w-4 text-[#5c6866]" />
                                                             <span className="truncate">{item.email || '-'}</span>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <UserCircle2 className="h-4 w-4 text-[#61738f]" />
+                                                        <div className="flex items-center gap-2 text-[#102945]">
+                                                            <UserCircle2 className="h-4 w-4 text-[#5c6866]" />
                                                             <span>Кабинет: {item.office || '-'}</span>
                                                         </div>
                                                     </div>
 
                                                     {(canManageDirectory || canManagePhotos) && (
-                                                        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#d8dee9] pt-3">
+                                                        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#dfe6e4] pt-3">
                                                             {canManageDirectory && (
                                                                 <Button
                                                                     type="button"

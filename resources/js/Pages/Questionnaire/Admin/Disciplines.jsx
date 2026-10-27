@@ -129,10 +129,10 @@ export default function Disciplines() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex items-center justify-between pt-6">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Дисциплины</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Дисциплины</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Справочник дисциплин, используемых в привязках и опросах.</p>
                         </div>
-                        <BookOpenCheck className="h-6 w-6 text-[#139AA4]" />
+                        <BookOpenCheck className="h-6 w-6 text-[#067a75]" />
                     </CardContent>
                 </Card>
 
@@ -143,7 +143,7 @@ export default function Disciplines() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#132844]">Список дисциплин</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Список дисциплин</CardTitle>
                                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                                     <Button type="button" className="gap-2" onClick={openCreateDialog}>
                                         <Plus className="h-4 w-4" />
@@ -175,7 +175,7 @@ export default function Disciplines() {
                                         <tbody>
                                             {filteredDisciplines.map((discipline) => (
                                                 <tr key={discipline.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#132844]">{discipline.name}</td>
+                                                    <td className="px-3 py-2 font-medium text-[#102945]">{discipline.name}</td>
                                                     <td className="px-3 py-2">{discipline.code || '—'}</td>
                                                     <td className="px-3 py-2">
                                                         <Badge variant={discipline.status === 'active' ? 'default' : 'secondary'} className={discipline.status === 'active' ? 'bg-emerald-600 text-white' : ''}>

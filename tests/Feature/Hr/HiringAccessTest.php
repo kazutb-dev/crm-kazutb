@@ -74,6 +74,8 @@ class HiringAccessTest extends TestCase
             'save' => ['putJson', 'hr.hiring.update', 'hiring', null],
             'delete draft' => ['delete', 'hr.hiring.destroy', 'fresh_draft', null],
             'rehire' => ['post', 'hr.hiring.rehire', 'hiring', null],
+            'demo hiring' => ['post', 'hr.hiring.demo.store', 'none', 'admin'],
+            'demo fill' => ['post', 'hr.hiring.demo.fill', 'hiring', 'admin'],
             'photo' => ['get', 'hr.hiring.photo.show', 'hiring', null],
             'photo upload' => ['post', 'hr.hiring.photo.store', 'hiring', null],
             'photo delete' => ['deleteJson', 'hr.hiring.photo.destroy', 'hiring', null],
@@ -208,6 +210,50 @@ class HiringAccessTest extends TestCase
 
         $this->assertFalse((new HrAccess)->canViewSensitive($teacher));
         $this->assertBlocked($this->actingAs($teacher)->get(route('hr.hiring.attachments.show', [$this->hiring, $this->attachment])));
+    }
+
+    public function test_module_access_right_opens_the_module_to_any_role_without_changing_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $teacher = User::factory()->create(['role' => 'teacher']);
+        $payload = ['user_id' => $teacher->id, 'capability' => HrAccess::ACCESS];
+
+        $this->assertBlocked($this->actingAs($teacher)->get(route('hr.hiring.index')));
+        $this->actingAs($this->hr)->post(route('hr.hiring.settings.rights.grant'), $payload)->assertForbidden();
+
+        $this->actingAs($admin)->post(route('hr.hiring.settings.rights.grant'), $payload)->assertRedirect();
+        $teacher = $teacher->fresh();
+        $this->assertSame('teacher', $teacher->resolvedRoleSlug(), 'the role stays as it was');
+
+        $this->actingAs($teacher)->get(route('hr.hiring.index'))->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Hr/Hiring/Index')->where('auth.canUseHiring', true));
+        $this->actingAs($teacher)->get(route('hr.hiring.edit', $this->hiring))->assertOk();
+        $this->actingAs($teacher)->putJson(route('hr.hiring.update', $this->hiring), ['contract' => ['salary' => 400000]])->assertOk();
+        $this->actingAs($teacher)->get(route('hr.hiring.settings.index'))->assertOk();
+        $this->assertBlocked($this->actingAs($teacher)->get(route('hr.hiring.attachments.show', [$this->hiring, $this->attachment])));
+        $this->actingAs($teacher)->get(route('hr.hiring.settings.users', ['q' => 'Тас']))->assertForbidden();
+
+        app(HrAccess::class)->grant($teacher, HrAccess::SENSITIVE, $admin);
+        $this->actingAs($teacher)->get(route('hr.hiring.attachments.show', [$this->hiring, $this->attachment]))->assertOk();
+
+        $this->actingAs($admin)->delete(route('hr.hiring.settings.rights.revoke'), $payload)->assertRedirect();
+        $this->assertBlocked($this->actingAs($teacher->fresh())->get(route('hr.hiring.index')));
+        $this->assertBlocked($this->actingAs($teacher->fresh())->get(route('hr.hiring.attachments.show', [$this->hiring, $this->attachment])));
+    }
+
+    public function test_people_with_module_access_are_listed_in_the_rights_tab(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $dean = User::factory()->create(['role' => 'dean', 'name' => 'Деканова Алия']);
+        app(HrAccess::class)->grant($dean, HrAccess::ACCESS, $admin);
+
+        $this->actingAs($admin)->get(route('hr.hiring.settings.index', ['tab' => 'rights']))->assertOk()
+            ->assertInertia(fn ($page) => $page->where('members', fn ($members) => collect($members)->contains(
+                fn ($member) => $member['id'] === $dean->id && $member['rights'] === [HrAccess::ACCESS] && $member['role_access'] === false
+            ))->where('members', fn ($members) => collect($members)->contains(
+                fn ($member) => $member['id'] === $this->hr->id && $member['role_access'] === true
+            )));
+        $this->actingAs($dean)->get(route('hr.hiring.index'))->assertOk();
     }
 
     /**

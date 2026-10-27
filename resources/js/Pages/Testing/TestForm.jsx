@@ -237,7 +237,7 @@ export default function TestForm({ binding, test = null }) {
             <Head title={test ? `Редактирование теста - ${test.title}` : 'Новый тест'} />
 
             <form className="admin-page-wrap space-y-6" onSubmit={submit}>
-                <Card className="admin-surface overflow-hidden border-0 bg-gradient-to-r from-[#123153] via-[#15466a] to-[#0f8b94] text-white">
+                <Card className="admin-surface overflow-hidden border-0 bg-gradient-to-r from-[#082834] via-[#0e3a3f] to-[#00625e] text-white">
                     <CardContent className="flex flex-col gap-5 p-6 sm:p-8">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -281,7 +281,7 @@ export default function TestForm({ binding, test = null }) {
 
                 <Card className="admin-surface">
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-xl text-[#132844]">Основные параметры</CardTitle>
+                        <CardTitle className="text-xl text-[#102945]">Основные параметры</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-5 lg:grid-cols-2">
                         <div className="space-y-2">
@@ -346,7 +346,7 @@ export default function TestForm({ binding, test = null }) {
                                     onChange={(event) => setData('shuffle_questions', event.target.checked)}
                                 />
                                 <span className="inline-flex items-center gap-2">
-                                    <Shuffle className="h-4 w-4 text-[#139AA4]" />
+                                    <Shuffle className="h-4 w-4 text-[#067a75]" />
                                     Перемешивать порядок вопросов
                                 </span>
                             </label>
@@ -367,7 +367,7 @@ export default function TestForm({ binding, test = null }) {
                     <CardHeader className="pb-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <CardTitle className="text-xl text-[#132844]">Вопросы</CardTitle>
+                                <CardTitle className="text-xl text-[#102945]">Вопросы</CardTitle>
                                 <p className="mt-1 text-sm text-slate-500">Для MVP поддерживаются выбор одного ответа, выбор нескольких ответов и короткий текст.</p>
                             </div>
 
@@ -384,11 +384,11 @@ export default function TestForm({ binding, test = null }) {
                             <div key={`${index}-${question.type}`} className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_16px_38px_-32px_rgba(15,23,42,0.55)]">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#123153] text-sm font-semibold text-white">
+                                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#082834] text-sm font-semibold text-white">
                                             {index + 1}
                                         </span>
                                         <div>
-                                            <div className="font-semibold text-[#132844]">Вопрос {index + 1}</div>
+                                            <div className="font-semibold text-[#102945]">Вопрос {index + 1}</div>
                                             <Badge className="mt-1 bg-slate-200 text-slate-700">{questionTypeOptions.find((item) => item.value === question.type)?.label}</Badge>
                                         </div>
                                     </div>
@@ -433,7 +433,7 @@ export default function TestForm({ binding, test = null }) {
                                         </div>
 
                                         <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                            <div className="mb-2 inline-flex items-center gap-2 font-medium text-[#132844]">
+                                            <div className="mb-2 inline-flex items-center gap-2 font-medium text-[#102945]">
                                                 <ArrowUpDown className="h-4 w-4" />
                                                 Правильные ответы
                                             </div>

@@ -11,10 +11,10 @@
 
     <link rel="icon" href="{{ asset('assets/images/logo.png') }}?v={{ filemtime(public_path('assets/images/logo.png')) }}">
 
-    <!-- Fonts: Google Sans for all interface text, Google Sans Code for codes and numbers -->
+    <!-- Fonts: Google Sans for all interface text, Google Sans Code for codes and numbers, Literata for panel headings -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400..700;1,400..700&family=Google+Sans+Code:wght@400..600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400..700;1,400..700&family=Google+Sans+Code:wght@400..600&family=Literata:opsz,wght@7..72,600..800&display=swap" rel="stylesheet" />
     <!-- Scripts -->
     @routes
     @viteReactRefresh

@@ -122,7 +122,7 @@ export default function StructuralUnitShow() {
 
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-[#132844]">Информация о подразделении</CardTitle>
+                        <CardTitle className="text-base text-[#102945]">Информация о подразделении</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-sm text-muted-foreground">
@@ -134,7 +134,7 @@ export default function StructuralUnitShow() {
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center justify-between text-base text-[#132844]">
+                            <CardTitle className="flex items-center justify-between text-base text-[#102945]">
                                 <span>Ответственные сотрудники</span>
                                 <Badge variant="outline">{unit.users?.length || 0}</Badge>
                             </CardTitle>
@@ -245,7 +245,7 @@ export default function StructuralUnitShow() {
 
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-3">
-                            <CardTitle className="flex items-center justify-between text-base text-[#132844]">
+                            <CardTitle className="flex items-center justify-between text-base text-[#102945]">
                                 <span>Привязанные записи</span>
                                 <Badge variant="secondary">{unit.records?.length || 0}</Badge>
                             </CardTitle>
@@ -289,7 +289,7 @@ export default function StructuralUnitShow() {
 
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center justify-between text-base text-[#132844]">
+                        <CardTitle className="flex items-center justify-between text-base text-[#102945]">
                             <span>Записи без структурного подразделения</span>
                             <Badge variant="outline">{availableRecords.length}</Badge>
                         </CardTitle>

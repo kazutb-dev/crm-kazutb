@@ -723,7 +723,7 @@ export default function TeacherDisciplines() {
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Анкетирование / Преподаватели</p>
-                                <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Реестр преподавателей и дисциплин</h1>
+                                <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Реестр преподавателей и дисциплин</h1>
                                 <p className="mt-1 text-sm text-muted-foreground">Управление связями преподаватель ↔ дисциплина ↔ группа с аналитикой и быстрым доступом.</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -748,10 +748,10 @@ export default function TeacherDisciplines() {
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard title="Всего преподавателей" value={summary.totalTeachers} icon={<Users className="h-5 w-5 text-[#139AA4]" />} />
+                    <MetricCard title="Всего преподавателей" value={summary.totalTeachers} icon={<Users className="h-5 w-5 text-[#067a75]" />} />
                     <MetricCard title="Активных" value={summary.activeTeachers} icon={<Badge className="bg-emerald-600 text-white">active</Badge>} />
-                    <MetricCard title="Дисциплин" value={summary.totalDisciplines} icon={<GraduationCap className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Назначений" value={summary.totalAssignments} icon={<Filter className="h-5 w-5 text-[#139AA4]" />} />
+                    <MetricCard title="Дисциплин" value={summary.totalDisciplines} icon={<GraduationCap className="h-5 w-5 text-[#067a75]" />} />
+                    <MetricCard title="Назначений" value={summary.totalAssignments} icon={<Filter className="h-5 w-5 text-[#067a75]" />} />
                     <MetricCard title="Средний рейтинг" value={summary.avgRating ?? '—'} icon={<Star className="h-5 w-5 text-amber-500" />} />
                     <MetricCard title="Проблемные" value={summary.problematic} icon={<AlertTriangle className="h-5 w-5 text-orange-500" />} />
                     <MetricCard title="Без назначений" value={summary.withoutAssignments} icon={<UserX className="h-5 w-5 text-slate-500" />} />
@@ -764,7 +764,7 @@ export default function TeacherDisciplines() {
                 <div className="grid grid-cols-1 gap-5 xl:grid-cols-[280px_1fr]">
                     <Card className="h-fit border-border/80 bg-white/90 shadow-sm xl:sticky xl:top-5">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">Фильтры</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">Фильтры</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={filters.academic_year} onChange={(e) => setFilters((prev) => ({ ...prev, academic_year: e.target.value }))}>
@@ -817,7 +817,7 @@ export default function TeacherDisciplines() {
                     <div className="space-y-5">
                         <Card className="border-border/80 bg-white/90 shadow-sm">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base text-[#132844]">Новая привязка преподавателя</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Новая привязка преподавателя</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <form className="grid grid-cols-1 gap-3 lg:grid-cols-3" onSubmit={submit}>
@@ -849,7 +849,7 @@ export default function TeacherDisciplines() {
 
                         <Card className="border-border/80 bg-white/90 shadow-sm">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base text-[#132844]">Таблица преподавателей</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Таблица преподавателей</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {loading ? (
@@ -878,7 +878,7 @@ export default function TeacherDisciplines() {
                                                     <tr key={row.teacherId} className="border-b last:border-b-0 hover:bg-muted/40">
                                                         <td className="px-3 py-2"><input type="checkbox" checked={selectedIds.includes(row.teacherId)} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
                                                         <td className="px-3 py-2">
-                                                            <button type="button" className="font-medium text-[#132844] hover:underline" onClick={() => openTeacherDrawer(row)}>
+                                                            <button type="button" className="font-medium text-[#102945] hover:underline" onClick={() => openTeacherDrawer(row)}>
                                                                 {row.teacherName}
                                                             </button>
                                                         </td>
@@ -950,7 +950,7 @@ export default function TeacherDisciplines() {
                                             key={key}
                                             type="button"
                                             onClick={() => setDrawerTab(key)}
-                                            className={`rounded-md px-3 py-1.5 text-sm ${drawerTab === key ? 'bg-white text-[#132844] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                                            className={`rounded-md px-3 py-1.5 text-sm ${drawerTab === key ? 'bg-white text-[#102945] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                                         >
                                             {label}
                                         </button>
@@ -989,7 +989,7 @@ export default function TeacherDisciplines() {
                                         ) : (
                                             <div className="space-y-3 rounded-lg border border-border/70 p-4">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <p className="text-sm font-semibold text-[#132844]">{selectedDrawerDiscipline.disciplineName}</p>
+                                                    <p className="text-sm font-semibold text-[#102945]">{selectedDrawerDiscipline.disciplineName}</p>
                                                     <Button
                                                         type="button"
                                                         variant="outline"
@@ -1027,7 +1027,7 @@ export default function TeacherDisciplines() {
                                                                     group: (
                                                                         <button
                                                                             type="button"
-                                                                            className="font-medium text-[#132844] hover:underline"
+                                                                            className="font-medium text-[#102945] hover:underline"
                                                                             onClick={() => setSelectedDrawerGroupId(Number(row.groupId))}
                                                                         >
                                                                             {row.groupName}
@@ -1045,7 +1045,7 @@ export default function TeacherDisciplines() {
                                                         ) : (
                                                             <div className="space-y-3 rounded-lg border border-border/70 p-3">
                                                                 <div className="flex items-center justify-between gap-2">
-                                                                    <p className="text-sm font-semibold text-[#132844]">Группа {selectedGroupRating.groupName}</p>
+                                                                    <p className="text-sm font-semibold text-[#102945]">Группа {selectedGroupRating.groupName}</p>
                                                                     <Button
                                                                         type="button"
                                                                         variant="outline"
@@ -1105,7 +1105,7 @@ function MetricCard({ title, value, icon }) {
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
+                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
                 </div>
                 {icon}
             </CardContent>
@@ -1117,7 +1117,7 @@ function MiniStat({ title, value }) {
     return (
         <div className="rounded-lg border border-border/70 px-3 py-2">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-            <p className="mt-1 text-lg font-semibold text-[#132844]">{value}</p>
+            <p className="mt-1 text-lg font-semibold text-[#102945]">{value}</p>
         </div>
     );
 }
@@ -1125,7 +1125,7 @@ function MiniStat({ title, value }) {
 function DrawerList({ title, items }) {
     return (
         <div className="rounded-lg border border-border/70 p-3">
-            <p className="mb-2 text-sm font-semibold text-[#132844]">{title}</p>
+            <p className="mb-2 text-sm font-semibold text-[#102945]">{title}</p>
             {items.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Нет данных</p>
             ) : (

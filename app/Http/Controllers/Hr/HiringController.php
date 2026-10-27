@@ -9,6 +9,7 @@ use App\Models\HrHiring;
 use App\Services\Hr\DocxToPdfConverter;
 use App\Services\Hr\EmployerSettings;
 use App\Services\Hr\HiringCleanup;
+use App\Services\Hr\HiringDemoFiller;
 use App\Services\Hr\HiringOptions;
 use App\Services\Hr\HiringService;
 use App\Services\Hr\HrAccess;
@@ -61,6 +62,27 @@ class HiringController extends Controller
         return Redirect::route('hr.hiring.edit', $hiring);
     }
 
+    /** «Демо-приём» (administrators): a new draft filled with made-up data to check the documents quickly. */
+    public function storeDemo(Request $request, HiringDemoFiller $demo): RedirectResponse
+    {
+        $hiring = $this->hirings->createDraft($request->user());
+        $demo->fill($hiring, $request->user());
+
+        return Redirect::route('hr.hiring.edit', $hiring)->with('success', 'Создан демо-приём: данные выдуманы, номера «ДЕМО». После проверки удалите его.');
+    }
+
+    /** «Заполнить демо-данными» (administrators): replaces the data of a draft. */
+    public function fillDemo(Request $request, HrHiring $hiring, HiringDemoFiller $demo): RedirectResponse
+    {
+        if ($hiring->status !== HrHiring::STATUS_DRAFT) {
+            return Redirect::back()->with('error', 'Демо-данными можно заполнить только черновик.');
+        }
+
+        $demo->fill($hiring, $request->user());
+
+        return Redirect::route('hr.hiring.edit', $hiring)->with('success', 'Черновик заполнен демо-данными.');
+    }
+
     /** A new hiring of an employee who already has a personal file. */
     public function rehire(Request $request, HrHiring $hiring): RedirectResponse
     {
@@ -107,7 +129,6 @@ class HiringController extends Controller
         ]);
     }
 
-    /** Only a draft without signed documents can be deleted. */
     /** Only a draft without signed documents can be deleted; its files go at once, the record after 30 days. */
     public function destroy(Request $request, HrHiring $hiring, HiringCleanup $cleanup): RedirectResponse
     {

@@ -342,13 +342,13 @@ export default function Index({
 
     const tabClass = (key) => (
         activeTab === key
-            ? 'inline-flex h-8 items-center gap-1.5 rounded-full border border-[#10263f] bg-[#17314f] px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 transition-all'
+            ? 'inline-flex h-8 items-center gap-1.5 rounded-full border border-[#102945] bg-[#102945] px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 transition-all'
             : 'inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300/90 bg-slate-50/75 px-3 py-1 text-xs font-medium text-slate-600 transition-all hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900'
     );
 
     const badgeClass = (key) => (
         activeTab === key
-            ? 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[10px] font-bold text-[#17314f]'
+            ? 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[10px] font-bold text-[#102945]'
             : 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-200/70 px-1.5 text-[10px] font-semibold text-slate-700'
     );
 
@@ -597,7 +597,7 @@ export default function Index({
                 type="button"
                 size="sm"
                 variant={missing ? 'outline' : 'default'}
-                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold shadow-sm ${missing ? 'border-amber-300 text-amber-800 hover:bg-amber-50' : 'bg-[#17314f] text-white hover:bg-[#10263f]'}`}
+                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold shadow-sm ${missing ? 'border-amber-300 text-amber-800 hover:bg-amber-50' : 'bg-[#102945] text-white hover:bg-[#102945]'}`}
                 onClick={() => handleRoleClick(user)}
             >
                 <ShieldPlus className="h-3.5 w-3.5" />
@@ -963,7 +963,7 @@ export default function Index({
                                             Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                                         </div>
                                         <div className="ml-auto flex items-center gap-1.5">
-                                            <Button type="button" className="h-8 rounded-md bg-[#17314f] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#10263f]" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
+                                            <Button type="button" className="h-8 rounded-md bg-[#102945] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#102945]" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
                                                 Применить
                                             </Button>
                                             <Button
@@ -1152,7 +1152,7 @@ export default function Index({
                                                                 </div>
                                                                 <div className="h-1 w-12 overflow-hidden rounded-full bg-slate-100">
                                                                     <div
-                                                                        className={`h-full rounded-full ${user.login_count > 0 ? 'bg-[#17314f]' : 'bg-slate-300'}`}
+                                                                        className={`h-full rounded-full ${user.login_count > 0 ? 'bg-[#102945]' : 'bg-slate-300'}`}
                                                                         style={{ width: `${Math.min(100, Math.max(6, user.login_count * 12))}%` }}
                                                                     />
                                                                 </div>
@@ -1233,7 +1233,7 @@ export default function Index({
                                                 type="button"
                                                 size="sm"
                                                 variant={pageNumber === currentPage ? 'default' : 'outline'}
-                                                className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${pageNumber === currentPage ? 'bg-[#17314f] hover:bg-[#10263f]' : 'border-slate-300 bg-white'}`}
+                                                className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${pageNumber === currentPage ? 'bg-[#102945] hover:bg-[#102945]' : 'border-slate-300 bg-white'}`}
                                                 onClick={() => submitFilters({ page: pageNumber }, false, { suppressNextSearch: true })}
                                             >
                                                 {pageNumber}

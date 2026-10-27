@@ -625,11 +625,11 @@ function ResultScoreCard({ result }) {
 
     return (
         <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
+            <div className="h-1 w-full bg-gradient-to-r from-[#067a75] via-[#2c5a86] to-[#102945]" />
             <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
                 <div>
                     <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
-                    <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
+                    <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#067a75]' : 'text-muted-foreground/50'].join(' ')}>
                         {formatScore(rVal)}
                     </p>
                 </div>
@@ -2140,11 +2140,11 @@ export default function TeacherDashboard({
                 {/* ── Header ─────────────────────────────────────────── */}
                 <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
                     <div className="flex items-center gap-3.5">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#139AA4] to-[#1a6bb5] shadow-sm">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#067a75] to-[#2c5a86] shadow-sm">
                             <User className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-base font-bold leading-tight text-[#132844]">
+                            <h1 className="text-base font-bold leading-tight text-[#102945]">
                                 {currentUser.name ?? 'KPI — Мои показатели'}
                             </h1>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
@@ -2248,8 +2248,8 @@ export default function TeacherDashboard({
                 {activeMainTab === 'reference' && indicatorReferenceItems.length > 0 && (
                     <Card className="admin-surface">
                         <CardHeader className="pb-3 pt-4">
-                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                                <BookOpen className="h-4 w-4 text-[#139AA4]" />
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
+                                <BookOpen className="h-4 w-4 text-[#067a75]" />
                                 Справочник KPI-индикаторов
                                 <span className="ml-auto font-normal text-xs text-muted-foreground">
                                     Дополнительный раздел ({userLevelLabel})
@@ -2259,7 +2259,7 @@ export default function TeacherDashboard({
                         <CardContent className="space-y-4">
                             <div className="rounded-xl border border-border/70 bg-background/60 p-3 sm:p-4">
                                 <div className="mb-3 flex items-center justify-between gap-2">
-                                    <h3 className="text-sm font-semibold text-[#132844]">Индикаторы для роли: {userLevelLabel}</h3>
+                                    <h3 className="text-sm font-semibold text-[#102945]">Индикаторы для роли: {userLevelLabel}</h3>
                                     <Badge variant="outline">{indicatorReferenceItems.length} индикаторов</Badge>
                                 </div>
 
@@ -2314,8 +2314,8 @@ export default function TeacherDashboard({
                 {activeMainTab === 'entries' && (
                     <Card className="admin-surface">
                         <CardHeader className="pb-3 pt-4">
-                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                                <FileText className="h-4 w-4 text-[#139AA4]" />
+                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
+                                <FileText className="h-4 w-4 text-[#067a75]" />
                                 Мои записи KPI по разделам
                                 <span className="ml-auto font-normal text-xs text-muted-foreground">
                                     Нажмите на строку для истории утверждения

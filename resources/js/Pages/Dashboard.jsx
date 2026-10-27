@@ -45,9 +45,9 @@ const SEVERITY_ROW_BG = {
 };
 
 const ATTENTION_BORDER = {
-    high: 'border-l-4 border-l-red-500 bg-red-50',
-    medium: 'border-l-4 border-l-orange-400 bg-orange-50',
-    ok: 'border-l-4 border-l-green-400 bg-green-50',
+    high: 'border-l-4 border-red-200 border-l-red-600 bg-red-50',
+    medium: 'border-l-4 border-amber-200 border-l-amber-400 bg-amber-50',
+    ok: 'border-l-4 border-slate-200 border-l-emerald-500 bg-white',
 };
 
 const KPI_STATUS_LABELS = {
@@ -93,13 +93,14 @@ function SeverityDot({ severity }) {
     return <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 inline-block ${dot}`} />;
 }
 
+// Qadam KPI tiles: white card, a coloured marker per metric, the number carries the weight.
 const accentClasses = {
-    navy: 'from-[#123153] to-[#1f4e7a]',
-    sky: 'from-[#0a84c1] to-[#0fb0c9]',
-    amber: 'from-[#cc7a09] to-[#eea622]',
-    rose: 'from-[#a83059] to-[#dc5f7d]',
-    teal: 'from-[#0f766e] to-[#0ea5a4]',
-    violet: 'from-[#5b3cc4] to-[#8a5cf6]',
+    navy: 'bg-[#102945]',
+    sky: 'bg-sky-600',
+    amber: 'bg-amber-400',
+    rose: 'bg-rose-600',
+    teal: 'bg-teal-500',
+    violet: 'bg-[#a4531f]',
 };
 
 const severityLabel = {
@@ -197,8 +198,9 @@ export default function Dashboard({
         <AuthenticatedLayout
             header={
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-[#132844]">Панель управления CRM</h2>
+                    <div className="space-y-2">
+                        <p className="qd-kicker">Обзор системы</p>
+                        <h2 className="text-[1.75rem] font-bold leading-tight text-[#102945]">Панель управления CRM</h2>
                         <p className="text-sm text-muted-foreground">Системный обзор по всем ключевым модулям</p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
@@ -213,14 +215,14 @@ export default function Dashboard({
             <div className="admin-page-wrap space-y-5">
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
                     {overviewCards.map((card) => (
-                        <Link key={card.key} href={card.route || '#'} className="block">
-                            <article
-                                className={`relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 text-white shadow-lg transition-transform hover:scale-[1.02] hover:shadow-xl cursor-pointer ${accentClasses[card.accent] ?? accentClasses.navy}`}
-                            >
-                                <div className="text-xs uppercase tracking-wide text-white/70">{card.title}</div>
-                                <div className="mt-2 text-4xl font-semibold leading-none">{card.value}</div>
-                                <div className="mt-2 text-xs text-white/75">{card.hint}</div>
-                                <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-white/15 blur-2xl" />
+                        <Link key={card.key} href={card.route || '#'} className="group block h-full rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2">
+                            <article className="flex h-full flex-col rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] transition-[border-color,box-shadow] duration-200 group-hover:border-slate-300 group-hover:shadow-[0_1px_2px_0_rgba(25,28,29,0.04),0_12px_32px_0_rgba(25,28,29,0.05)]">
+                                <div className="flex items-center gap-2">
+                                    <span className={`h-2 w-2 shrink-0 rounded-full ${accentClasses[card.accent] ?? accentClasses.navy}`} aria-hidden="true" />
+                                    <span className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">{card.title}</span>
+                                </div>
+                                <div className="mt-3 font-display text-[2.5rem] font-bold leading-none tabular-nums text-[#102945]">{card.value}</div>
+                                <div className="mt-auto pt-3 text-xs leading-snug text-slate-500">{card.hint}</div>
                             </article>
                         </Link>
                     ))}
@@ -236,7 +238,7 @@ export default function Dashboard({
                         </CardHeader>
                         <CardContent className="grid gap-3 sm:grid-cols-2">
                             {modules.map((module) => (
-                                <Link key={module.key} href={module.route} className="rounded-xl border bg-background/70 p-4 transition hover:bg-accent/20">
+                                <Link key={module.key} href={module.route} className="rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-teal-300 hover:bg-teal-50">
                                     <div className="flex items-center justify-between gap-2">
                                         <h4 className="font-semibold">{module.title}</h4>
                                         <Badge variant="outline">Всего: {module.total}</Badge>
@@ -289,9 +291,9 @@ export default function Dashboard({
                                 dataset={trend}
                                 xAxis={[{ scaleType: 'point', dataKey: 'day' }]}
                                 series={[
-                                    { dataKey: 'activity', label: 'Activity', color: '#8a5cf6' },
-                                    { dataKey: 'audit', label: 'Audit', color: '#0f766e' },
-                                    { dataKey: 'tickets', label: 'Тикеты', color: '#cc7a09' },
+                                    { dataKey: 'activity', label: 'Activity', color: '#2c5a86' },
+                                    { dataKey: 'audit', label: 'Audit', color: '#00625e' },
+                                    { dataKey: 'tickets', label: 'Тикеты', color: '#b07a00' },
                                 ]}
                                 slotProps={CHART_TOOLTIP_SLOT_PROPS}
                                 height={300}
@@ -310,7 +312,7 @@ export default function Dashboard({
                             <BarChart
                                 dataset={roleBar}
                                 yAxis={[{ scaleType: 'band', dataKey: 'role', tickLabelStyle: { fontSize: 11 } }]}
-                                series={[{ dataKey: 'count', label: 'Кол-во', color: '#1f4e7a' }]}
+                                series={[{ dataKey: 'count', label: 'Кол-во', color: '#14696d' }]}
                                 layout="horizontal"
                                 slotProps={CHART_TOOLTIP_SLOT_PROPS}
                                 height={300}
@@ -358,7 +360,7 @@ export default function Dashboard({
                             <BarChart
                                 dataset={ticketsBar}
                                 xAxis={[{ scaleType: 'band', dataKey: 'status' }]}
-                                series={[{ dataKey: 'count', label: 'Тикеты', color: '#cc7a09' }]}
+                                series={[{ dataKey: 'count', label: 'Тикеты', color: '#b07a00' }]}
                                 slotProps={CHART_TOOLTIP_SLOT_PROPS}
                                 height={280}
                             />
@@ -376,7 +378,7 @@ export default function Dashboard({
                             <BarChart
                                 dataset={calendarBar}
                                 xAxis={[{ scaleType: 'band', dataKey: 'status' }]}
-                                series={[{ dataKey: 'count', label: 'События', color: '#0f766e' }]}
+                                series={[{ dataKey: 'count', label: 'События', color: '#00625e' }]}
                                 slotProps={CHART_TOOLTIP_SLOT_PROPS}
                                 height={280}
                             />

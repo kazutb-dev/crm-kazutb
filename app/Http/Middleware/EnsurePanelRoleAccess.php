@@ -10,6 +10,7 @@ use App\Models\KpiAccessGrant;
 use App\Models\PositionChangeRequest;
 use App\Models\User;
 use App\Services\ElevatedAuthorityService;
+use App\Services\Hr\HrAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,6 +33,11 @@ class EnsurePanelRoleAccess
         }
 
         if ($userId !== null && $this->canAccessKpiRouteViaGrant($userId, $routeName)) {
+            return $next($request);
+        }
+
+        // «Приём на работу»: the hr role, administrators and anyone granted hr.access, whatever their role.
+        if ($this->startsWith($routeName, 'hr.hiring.') && app(HrAccess::class)->canUseModule($user)) {
             return $next($request);
         }
 

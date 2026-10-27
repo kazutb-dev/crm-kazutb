@@ -270,11 +270,11 @@ function ResultScoreCard({ result }) {
     return (
         <div className="space-y-4">
             <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-                <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
+                <div className="h-1 w-full bg-gradient-to-r from-[#067a75] via-[#2c5a86] to-[#102945]" />
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
                     <div>
                         <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
-                        <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
+                        <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#067a75]' : 'text-muted-foreground/50'].join(' ')}>
                             {fmt(rVal)}
                         </p>
                     </div>
@@ -583,13 +583,13 @@ export default function SummaryTeacherCard({
                         >
                             <ArrowLeft className="h-4 w-4" />
                         </button>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#139AA4] to-[#1a6bb5] shadow-sm">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#067a75] to-[#2c5a86] shadow-sm">
                             <User className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-base font-bold leading-tight text-[#132844]">{teacher.name}</h1>
+                            <h1 className="text-base font-bold leading-tight text-[#102945]">{teacher.name}</h1>
                             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                {teacher.title && <span className="font-semibold text-[#139AA4]">{teacher.title}</span>}
+                                {teacher.title && <span className="font-semibold text-[#067a75]">{teacher.title}</span>}
                                 {teacher.faculty_name && (
                                     <span className="flex items-center gap-1">
                                         <span className="text-muted-foreground/40">·</span>
@@ -657,8 +657,8 @@ export default function SummaryTeacherCard({
                 {/* ── Entries by section ────────────────────────────── */}
                 <Card className="admin-surface">
                     <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                            <FileText className="h-4 w-4 text-[#139AA4]" />
+                        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
+                            <FileText className="h-4 w-4 text-[#067a75]" />
                             Записи KPI по разделам
                             <span className="ml-auto font-normal text-xs text-muted-foreground">
                                 Нажмите на строку, чтобы увидеть историю утверждения

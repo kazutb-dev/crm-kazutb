@@ -98,7 +98,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
             <Head title="Проверка знаний языка — Статистика" />
 
             <div className="admin-page-wrap space-y-6">
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#123153] via-[#1b4d74] to-[#139AA4] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
+                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
                     <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl space-y-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
@@ -120,8 +120,8 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                             </p>
                             {canExport ? (
                                 <div className="flex flex-wrap items-center gap-3 mt-4 pt-1">
-                                    <Button type="button" onClick={() => exportRoute('language-testing.statistics.export.csv')} className="bg-white text-[#132844] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
-                                        <Download className="h-4 w-4 text-[#132844]" />
+                                    <Button type="button" onClick={() => exportRoute('language-testing.statistics.export.csv')} className="bg-white text-[#102945] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
+                                        <Download className="h-4 w-4 text-[#102945]" />
                                         CSV
                                     </Button>
                                     <Button type="button" variant="outline" onClick={() => exportRoute('language-testing.statistics.export.excel')} className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white rounded-xl transition-all shadow-md h-10 px-5">
@@ -152,7 +152,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Быстрый поиск по ID, имени, email…"
-                            className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#139AA4]/20 focus-visible:border-[#139AA4] rounded-xl bg-white shadow-sm"
+                            className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-xl bg-white shadow-sm"
                         />
                         {search && (
                             <button type="button" onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
@@ -170,7 +170,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                             }}
                         >
                             <FormField label="Тест">
-                                <select value={testId} onChange={(event) => setTestId(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50">
+                                <select value={testId} onChange={(event) => setTestId(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
                                     <option value="">Все тесты</option>
                                     {tests.map((test) => (
                                         <option key={test.id} value={test.id}>{test.name}</option>
@@ -178,7 +178,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 </select>
                             </FormField>
                             <FormField label="Язык">
-                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50">
+                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
                                     <option value="">Все языки</option>
                                     {Object.entries(languageOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -186,7 +186,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 </select>
                             </FormField>
                             <FormField label="Статус">
-                                <select value={status} onChange={(event) => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50">
+                                <select value={status} onChange={(event) => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
                                     <option value="">Все статусы</option>
                                     {Object.entries(statusOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -194,13 +194,13 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                 </select>
                             </FormField>
                             <FormField label="С даты">
-                                <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#139AA4]/50" />
+                                <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#067a75]/50" />
                             </FormField>
                             <FormField label="По дату">
-                                <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#139AA4]/50" />
+                                <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-10 rounded-md border-slate-300 shadow-sm focus-visible:ring-[#067a75]/50" />
                             </FormField>
                             <div className="flex items-end gap-2 xl:col-start-7">
-                                <Button type="submit" className="gap-2 bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
+                                <Button type="submit" className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
                                     Применить
                                 </Button>
                                 <Button type="button" variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-slate-200 hover:bg-slate-50">
@@ -216,8 +216,8 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                 ) : (
                     <Card className="border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
                         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-100">
-                            <CardTitle className="text-xl font-bold text-[#132844] font-sans">Журнал прохождений</CardTitle>
-                            <Badge className="bg-[#139AA4]/10 text-[#139AA4] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#139AA4]/10">
+                            <CardTitle className="text-xl font-bold text-[#102945] font-sans">Журнал прохождений</CardTitle>
+                            <Badge className="bg-[#067a75]/10 text-[#067a75] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#067a75]/10">
                                 Всего: {pagination.total ?? results.length}
                             </Badge>
                         </CardHeader>
@@ -254,7 +254,7 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                         <td className="px-4 py-4 text-center">{result.correct_answers}</td>
                                         <td className="px-4 py-4 text-center">{result.total_questions}</td>
                                         <td className="px-4 py-4 text-center">{result.score}</td>
-                                        <td className="px-4 py-4 text-center font-semibold text-[#132844]">{result.percentage}%</td>
+                                        <td className="px-4 py-4 text-center font-semibold text-[#102945]">{result.percentage}%</td>
                                         <td className="px-4 py-4 text-center">
                                             <StatusBadge tone={result.status === 'passed' ? 'success' : 'danger'}>{result.status_label}</StatusBadge>
                                         </td>

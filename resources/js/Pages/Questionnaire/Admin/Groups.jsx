@@ -349,7 +349,7 @@ export default function Groups() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Группы</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Группы</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Управление академическими группами для опросов и назначений.</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -363,16 +363,16 @@ export default function Groups() {
                         <CardContent className="flex items-center justify-between pt-6">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Всего групп</p>
-                                <p className="text-2xl font-semibold text-[#132844]">{groups.length}</p>
+                                <p className="text-2xl font-semibold text-[#102945]">{groups.length}</p>
                             </div>
-                            <Layers3 className="h-5 w-5 text-[#139AA4]" />
+                            <Layers3 className="h-5 w-5 text-[#067a75]" />
                         </CardContent>
                     </Card>
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardContent className="flex items-center justify-between pt-6">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Активные</p>
-                                <p className="text-2xl font-semibold text-[#132844]">{activeCount}</p>
+                                <p className="text-2xl font-semibold text-[#102945]">{activeCount}</p>
                             </div>
                             <Badge className="bg-emerald-600 text-white">active</Badge>
                         </CardContent>
@@ -395,8 +395,8 @@ export default function Groups() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
-                                    <GraduationCap className="h-4 w-4 text-[#139AA4]" />
+                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
+                                    <GraduationCap className="h-4 w-4 text-[#067a75]" />
                                     Список групп
                                 </CardTitle>
                                 <Button type="button" className="gap-2" onClick={openCreateModal}>
@@ -514,7 +514,7 @@ export default function Groups() {
                             </div>
 
                             <div className="rounded-lg border border-border/70 px-3 py-2 text-sm text-muted-foreground">
-                                Найдено: <span className="font-semibold text-[#132844]">{foundGroupsCount}</span> групп · Всего студентов в выбранных группах: <span className="font-semibold text-[#132844]">{totalStudentsInFilteredGroups}</span>
+                                Найдено: <span className="font-semibold text-[#102945]">{foundGroupsCount}</span> групп · Всего студентов в выбранных группах: <span className="font-semibold text-[#102945]">{totalStudentsInFilteredGroups}</span>
                             </div>
 
                             {loading ? (
@@ -541,7 +541,7 @@ export default function Groups() {
                                                 const groupStudents = studentsByGroup[group.id] || [];
                                                 return (
                                                     <tr key={group.id} className="border-b last:border-b-0">
-                                                        <td className="px-3 py-2 font-medium text-[#132844]">
+                                                        <td className="px-3 py-2 font-medium text-[#102945]">
                                                             <Link href={route('questionnaire.admin.groups.details', group.id)} className="hover:underline">
                                                                 {group.name}
                                                             </Link>
@@ -553,7 +553,7 @@ export default function Groups() {
                                                         <td className="px-3 py-2">
                                                             <button
                                                                 type="button"
-                                                                className="font-semibold text-[#139AA4] hover:underline"
+                                                                className="font-semibold text-[#067a75] hover:underline"
                                                                 onClick={() => setStudentsSheetGroup(group)}
                                                             >
                                                                 {groupStudents.length}
@@ -657,7 +657,7 @@ export default function Groups() {
                             <div className="space-y-2">
                                 {studentsInOpenedGroup.map((student) => (
                                     <div key={student.id} className="rounded-md border border-border/70 px-3 py-2">
-                                        <p className="font-medium text-[#132844]">{student.full_name}</p>
+                                        <p className="font-medium text-[#102945]">{student.full_name}</p>
                                         <p className="text-xs text-muted-foreground">{student.login || student.user?.ad_login || 'Без логина'}</p>
                                     </div>
                                 ))}
@@ -684,7 +684,7 @@ function ChipButton({ active, children, onClick }) {
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-full border px-3 py-1.5 text-sm transition ${active ? 'border-[#139AA4] bg-[#e9fbfc] text-[#0f6f76]' : 'border-border bg-white text-muted-foreground hover:bg-muted/40'}`}
+            className={`rounded-full border px-3 py-1.5 text-sm transition ${active ? 'border-[#067a75] bg-[#f0f8f7] text-[#0f6f76]' : 'border-border bg-white text-muted-foreground hover:bg-muted/40'}`}
         >
             {children}
         </button>

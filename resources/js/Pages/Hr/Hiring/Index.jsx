@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { DocumentPills, buttonClassName, inputClassName, StatusBadge } from '@/components/hr-hiring/ui';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, FileSignature, Search, Settings2, UserPlus, X } from 'lucide-react';
+import { ChevronRight, FileSignature, FlaskConical, LoaderCircle, Search, Settings2, Trash2, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const SEARCH_DELAY_MS = 450;
@@ -29,7 +29,7 @@ const paginationLabel = (label) => {
 /** A draft opens in the form to continue filling it in, anything else in the hiring card. */
 const rowUrl = (row) => (row.status === 'draft' ? route('hr.hiring.edit', row.id) : route('hr.hiring.show', row.id));
 
-export default function Index({ hirings, counts = {}, filters, units = [] }) {
+export default function Index({ hirings, counts = {}, filters, units = [], abilities = {} }) {
     const [form, setForm] = useState(() => ({ ...EMPTY_FILTERS, ...Object.fromEntries(Object.entries(filters).map(([key, value]) => [key, value ?? ''])) }));
     const rows = hirings?.data ?? [];
     const searchTimer = useRef(null);
@@ -59,7 +59,24 @@ export default function Index({ hirings, counts = {}, filters, units = [] }) {
         apply(next);
     };
 
-    const create = () => router.post(route('hr.hiring.store'));
+    // A double click must not create two drafts: one request at a time.
+    const [creating, setCreating] = useState(null);
+    const post = (kind, url) => {
+        if (creating) {
+            return;
+        }
+        setCreating(kind);
+        router.post(url, {}, { onFinish: () => setCreating(null) });
+    };
+    const create = () => post('hiring', route('hr.hiring.store'));
+    const createDemo = () => post('demo', route('hr.hiring.demo.store'));
+
+    /** Drafts only: files go at once, the record after 30 days (see HiringCleanup). */
+    const removeDraft = (row) => {
+        if (window.confirm(`Удалить черновик «${row.full_name}»? Сформированные документы, фото и сканы удалятся сразу.`)) {
+            router.delete(route('hr.hiring.destroy', row.id), { preserveScroll: true });
+        }
+    };
 
     return (
         <AuthenticatedLayout>
@@ -76,8 +93,13 @@ export default function Index({ hirings, counts = {}, filters, units = [] }) {
                         <Link href={route('hr.hiring.settings.index')} className={buttonClassName.secondary}>
                             <Settings2 className="h-4 w-4" /> Настройки
                         </Link>
-                        <button type="button" onClick={create} className={`${buttonClassName.primary} px-5`}>
-                            <UserPlus className="h-4 w-4" /> Новый приём
+                        {abilities.rights && (
+                            <button type="button" onClick={createDemo} disabled={creating !== null} className={buttonClassName.secondary} title="Черновик с выдуманными данными для проверки документов (видят только администраторы)">
+                                {creating === 'demo' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />} Демо-приём
+                            </button>
+                        )}
+                        <button type="button" onClick={create} disabled={creating !== null} className={`${buttonClassName.primary} px-5`}>
+                            {creating === 'hiring' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Новый приём
                         </button>
                     </div>
                 </div>
@@ -145,7 +167,7 @@ export default function Index({ hirings, counts = {}, filters, units = [] }) {
                     </form>
 
                     {rows.length === 0 ? (
-                        <EmptyState noHirings={(counts.all ?? 0) === 0 && !hasFilters} onCreate={create} onReset={resetFilters} />
+                        <EmptyState noHirings={(counts.all ?? 0) === 0 && !hasFilters} onCreate={create} creating={creating !== null} onReset={resetFilters} />
                     ) : (
                         <>
                             <table className="hidden min-w-full text-sm md:table">
@@ -184,8 +206,21 @@ export default function Index({ hirings, counts = {}, filters, units = [] }) {
                                             </td>
                                             <td className="px-4 py-3 align-top"><StatusBadge status={row.status} label={row.status_label} /></td>
                                             <td className="whitespace-nowrap px-4 py-3 text-right align-top">
-                                                <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 group-hover:text-teal-900">
-                                                    {row.status === 'draft' ? 'Продолжить' : 'Открыть'} <ChevronRight className="h-4 w-4" />
+                                                <span className="inline-flex items-center gap-3">
+                                                    {row.status === 'draft' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(event) => { event.stopPropagation(); removeDraft(row); }}
+                                                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-700"
+                                                            title="Удалить черновик"
+                                                            aria-label={`Удалить черновик «${row.full_name}»`}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                    <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 group-hover:text-teal-900">
+                                                        {row.status === 'draft' ? 'Продолжить' : 'Открыть'} <ChevronRight className="h-4 w-4" />
+                                                    </span>
                                                 </span>
                                             </td>
                                         </tr>
@@ -210,6 +245,11 @@ export default function Index({ hirings, counts = {}, filters, units = [] }) {
                                                 <span>{row.start_date ? `с ${row.start_date}` : 'дата приёма не указана'}</span>
                                             </div>
                                         </Link>
+                                        {row.status === 'draft' && (
+                                            <button type="button" onClick={() => removeDraft(row)} className="mx-4 mb-3 inline-flex items-center gap-1 text-xs font-medium text-rose-700">
+                                                <Trash2 className="h-3.5 w-3.5" /> Удалить черновик
+                                            </button>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -256,7 +296,7 @@ function Numbers({ row }) {
     );
 }
 
-function EmptyState({ noHirings, onCreate, onReset }) {
+function EmptyState({ noHirings, onCreate, creating, onReset }) {
     if (!noHirings) {
         return (
             <div className="px-6 py-14 text-center">
@@ -280,7 +320,7 @@ function EmptyState({ noHirings, onCreate, onReset }) {
                     </li>
                 ))}
             </ol>
-            <button type="button" onClick={onCreate} className={`${buttonClassName.primary} mt-6 px-5`}>
+            <button type="button" onClick={onCreate} disabled={creating} className={`${buttonClassName.primary} mt-6 px-5`}>
                 <UserPlus className="h-4 w-4" /> Оформить первый приём
             </button>
         </div>

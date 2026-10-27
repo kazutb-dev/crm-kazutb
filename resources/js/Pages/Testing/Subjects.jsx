@@ -77,7 +77,7 @@ function SubjectForm({ form, departments, onSubmit, submitLabel }) {
                 <select
                     value={form.data.department_id}
                     onChange={(e) => form.setData('department_id', e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     <option value="">— Без кафедры —</option>
                     {departments.map((d) => (
@@ -266,14 +266,14 @@ export default function Subjects({ disciplines = [], departments = [], filters }
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm" className="gap-2 bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
+                        <Button size="sm" className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
                             <Plus className="h-4 w-4" />
                             Добавить предмет
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-xl border-slate-200/50 shadow-2xl rounded-2xl">
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-bold text-[#132844]">Новый предмет</DialogTitle>
+                            <DialogTitle className="text-xl font-bold text-[#102945]">Новый предмет</DialogTitle>
                             <DialogDescription className="text-slate-500 text-sm">
                                 Заполните название и выберите кафедру для нового предмета.
                             </DialogDescription>
@@ -300,7 +300,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
             >
                 <DialogContent className="max-w-xl border-slate-200/50 shadow-2xl rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-[#132844]">Редактировать предмет</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-[#102945]">Редактировать предмет</DialogTitle>
                         <DialogDescription className="text-slate-500 text-sm">
                             Внесите изменения и сохраните запись.
                         </DialogDescription>
@@ -316,7 +316,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
 
             <div className="admin-page-wrap space-y-6">
                 {/* ── Hero banner ── */}
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#123153] via-[#1b4d74] to-[#139AA4] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
+                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
                     <CardContent className="relative flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl space-y-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
@@ -351,7 +351,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                         value={search}
                         onChange={(e) => handleSearch(e.target.value)}
                         placeholder="Быстрый поиск по названию или коду предмета…"
-                        className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#139AA4]/20 focus-visible:border-[#139AA4] rounded-xl bg-white shadow-sm"
+                        className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-xl bg-white shadow-sm"
                     />
                     {search && (
                         <button
@@ -417,14 +417,14 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                                             onClick={() => setSelectedSubjectId(sub.id)}
                                                             className={`group flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all duration-200 border-l-4 ${
                                                                 isSelected
-                                                                    ? 'bg-[#139AA4]/8 border-l-[#139AA4] text-[#132844] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
+                                                                    ? 'bg-[#067a75]/8 border-l-[#067a75] text-[#102945] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
                                                                     : hasBindings
                                                                         ? 'border-l-emerald-500 bg-white hover:bg-slate-50/80 text-slate-700'
                                                                         : 'border-l-amber-500 bg-white hover:bg-slate-50/80 text-slate-700'
                                                             }`}
                                                         >
                                                             <div className="flex flex-col">
-                                                                <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#132844]' : 'group-hover:text-[#139AA4]'}`}>{sub.name}</span>
+                                                                <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'group-hover:text-[#067a75]'}`}>{sub.name}</span>
                                                                 {sub.code && <span className="mt-1 font-mono text-[11px] text-slate-400">{sub.code}</span>}
                                                             </div>
                                                             <div className="flex items-center gap-2">
@@ -489,14 +489,14 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                                         onClick={() => setSelectedSubjectId(sub.id)}
                                                         className={`group flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all duration-200 border-l-4 ${
                                                             isSelected
-                                                                ? 'bg-[#139AA4]/8 border-l-[#139AA4] text-[#132844] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
+                                                                ? 'bg-[#067a75]/8 border-l-[#067a75] text-[#102945] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
                                                                 : hasBindings
                                                                     ? 'border-l-emerald-500 bg-white hover:bg-slate-50/80 text-slate-700'
                                                                     : 'border-l-amber-500 bg-white hover:bg-slate-50/80 text-slate-700'
                                                         }`}
                                                     >
                                                         <div className="flex flex-col">
-                                                            <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#132844]' : 'group-hover:text-[#139AA4]'}`}>{sub.name}</span>
+                                                            <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'group-hover:text-[#067a75]'}`}>{sub.name}</span>
                                                             {sub.code && <span className="mt-1 font-mono text-[11px] text-slate-400">{sub.code}</span>}
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -527,8 +527,8 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                 <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
                                     <div className="space-y-5">
                                         <div className="space-y-2">
-                                            <span className="text-[11px] uppercase font-bold tracking-widest text-[#139AA4]">Карточка предмета</span>
-                                            <div className="text-2xl font-bold text-[#132844] leading-tight tracking-tight">{selectedSubject.name}</div>
+                                            <span className="text-[11px] uppercase font-bold tracking-widest text-[#067a75]">Карточка предмета</span>
+                                            <div className="text-2xl font-bold text-[#102945] leading-tight tracking-tight">{selectedSubject.name}</div>
                                             {selectedSubject.code && (
                                                 <span className="mt-2 font-mono text-[11px] tracking-wider bg-slate-100 border border-slate-200 text-slate-600 rounded-md px-2 py-0.5 inline-block">
                                                     Код: {selectedSubject.code}
@@ -554,7 +554,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
 
                                         {/* Bound Teachers list */}
                                         <div className="space-y-3 flex-1">
-                                            <div className="text-xs font-bold text-[#132844] uppercase tracking-widest">
+                                            <div className="text-xs font-bold text-[#102945] uppercase tracking-widest">
                                                 Привязанные преподаватели
                                             </div>
                                             {selectedSubject.bindings && selectedSubject.bindings.length > 0 ? (
@@ -563,15 +563,15 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                                         <div
                                                             key={binding.id}
                                                             onClick={() => openDrawer(binding, selectedSubject.name)}
-                                                            className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm hover:shadow-md hover:border-[#139AA4]/30 hover:bg-[#139AA4]/5 transition-all flex items-center justify-between cursor-pointer group/teacher"
+                                                            className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm hover:shadow-md hover:border-[#067a75]/30 hover:bg-[#067a75]/5 transition-all flex items-center justify-between cursor-pointer group/teacher"
                                                             title="Посмотреть привязанных студентов и результаты"
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#1b4d74] to-[#139AA4] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover/teacher:scale-105 transition-transform">
+                                                                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#14696d] to-[#067a75] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover/teacher:scale-105 transition-transform">
                                                                     {binding.teacher?.name ? binding.teacher.name.charAt(0).toUpperCase() : 'У'}
                                                                 </div>
                                                                 <div>
-                                                                    <p className="text-sm font-semibold text-slate-800 leading-tight group-hover/teacher:text-[#139AA4] transition-colors">{binding.teacher?.name}</p>
+                                                                    <p className="text-sm font-semibold text-slate-800 leading-tight group-hover/teacher:text-[#067a75] transition-colors">{binding.teacher?.name}</p>
                                                                     {binding.teacher?.email && <p className="text-[11px] text-slate-400 mt-0.5">{binding.teacher.email}</p>}
                                                                 </div>
                                                             </div>
@@ -579,7 +579,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                                                 <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
                                                                     Активен
                                                                 </span>
-                                                                <ChevronRight className="h-4 w-4 text-slate-400 group-hover/teacher:text-[#139AA4] group-hover/teacher:translate-x-0.5 transition-all" />
+                                                                <ChevronRight className="h-4 w-4 text-slate-400 group-hover/teacher:text-[#067a75] group-hover/teacher:translate-x-0.5 transition-all" />
                                                             </div>
                                                         </div>
                                                     ))}
@@ -637,8 +637,8 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 {/* Drawer Header */}
                 <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
                     <div className="space-y-1.5 max-w-[85%]">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-[#139AA4] block">Результаты студентов</span>
-                        <h3 className="text-lg font-bold text-[#132844] leading-snug truncate" title={drawerData?.subjectName}>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-[#067a75] block">Результаты студентов</span>
+                        <h3 className="text-lg font-bold text-[#102945] leading-snug truncate" title={drawerData?.subjectName}>
                             {drawerData?.subjectName}
                         </h3>
                         <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -659,7 +659,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {loadingStudents ? (
                         <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                            <Loader2 className="h-10 w-10 text-[#139AA4] animate-spin stroke-[1.5]" />
+                            <Loader2 className="h-10 w-10 text-[#067a75] animate-spin stroke-[1.5]" />
                             <p className="text-sm text-slate-400 font-sans">Загрузка результатов студентов...</p>
                         </div>
                     ) : drawerStudents.length === 0 ? (

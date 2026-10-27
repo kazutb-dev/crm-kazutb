@@ -142,7 +142,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
             <Head title="Проверка знаний языка — Тесты" />
 
             <div className="admin-page-wrap space-y-6">
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#123153] via-[#1b4d74] to-[#139AA4] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
+                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
                     <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl space-y-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
@@ -162,8 +162,8 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                             </p>
                             <div className="flex flex-wrap items-center gap-3 mt-4 pt-1">
                                 {canManage ? (
-                                    <Button onClick={openCreateDialog} className="bg-white text-[#132844] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
-                                        <Plus className="h-4 w-4 text-[#132844]" />
+                                    <Button onClick={openCreateDialog} className="bg-white text-[#102945] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
+                                        <Plus className="h-4 w-4 text-[#102945]" />
                                         Добавить тест
                                     </Button>
                                 ) : null}
@@ -196,7 +196,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder="Быстрый поиск по названию или описанию…"
-                            className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#139AA4]/20 focus-visible:border-[#139AA4] rounded-xl bg-white shadow-sm"
+                            className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-xl bg-white shadow-sm"
                         />
                         {search && (
                             <button
@@ -218,7 +218,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                             }}
                         >
                             <FormField label="Язык">
-                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50">
+                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
                                     <option value="">Все языки</option>
                                     {Object.entries(languageOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -226,7 +226,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                 </select>
                             </FormField>
                             <FormField label="Статус">
-                                <select value={status} onChange={(event) => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#139AA4]/50">
+                                <select value={status} onChange={(event) => setStatus(event.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50">
                                     <option value="">Все статусы</option>
                                     {Object.entries(statusOptions).map(([value, label]) => (
                                         <option key={value} value={value}>{label}</option>
@@ -234,7 +234,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                 </select>
                             </FormField>
                             <div className="flex items-end gap-2 lg:col-start-4">
-                                <Button type="submit" className="gap-2 bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
+                                <Button type="submit" className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
                                     Применить
                                 </Button>
                                 <Button type="button" variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-slate-200 hover:bg-slate-50">
@@ -254,8 +254,8 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                 ) : (
                     <Card className="border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
                         <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-100">
-                            <CardTitle className="text-xl font-bold text-[#132844] font-sans">Список языковых тестов</CardTitle>
-                            <Badge className="bg-[#139AA4]/10 text-[#139AA4] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#139AA4]/10">
+                            <CardTitle className="text-xl font-bold text-[#102945] font-sans">Список языковых тестов</CardTitle>
+                            <Badge className="bg-[#067a75]/10 text-[#067a75] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#067a75]/10">
                                 Всего: {pagination.total ?? tests.length}
                             </Badge>
                         </CardHeader>
@@ -266,7 +266,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                         <div className="space-y-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-[#132844] leading-snug group-hover:text-[#139AA4] transition-colors">{test.name}</h3>
+                                                    <h3 className="text-lg font-bold text-[#102945] leading-snug group-hover:text-[#067a75] transition-colors">{test.name}</h3>
                                                     <div className="mt-1.5 flex flex-wrap items-center gap-2">
                                                         <span className="font-mono text-[11px] tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md inline-block">
                                                             {test.language_label}
@@ -308,15 +308,15 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Вопросов</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{test.questions_count || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{test.questions_count || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Порог</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{test.passing_score}%</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{test.passing_score}%</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Лимит</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{test.total_questions}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{test.total_questions}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -331,7 +331,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                                     </Button>
                                                 ) : null}
                                                 <Link href={route('language-testing.questions.index', test.id)}>
-                                                    <Button type="button" className="h-9 px-4 rounded-xl text-xs bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-sm">
+                                                    <Button type="button" className="h-9 px-4 rounded-xl text-xs bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-sm">
                                                         Открыть вопросы
                                                     </Button>
                                                 </Link>
@@ -361,7 +361,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogContent className="max-w-xl border-slate-200/50 shadow-2xl rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-[#132844]">{editingTest ? 'Редактировать тест' : 'Новый тест'}</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-[#102945]">{editingTest ? 'Редактировать тест' : 'Новый тест'}</DialogTitle>
                         <DialogDescription className="text-slate-500 text-sm">
                             Настройте язык, проходной балл и лимит вопросов для выдачи в AI Students.
                         </DialogDescription>
@@ -405,7 +405,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Отмена</Button>
-                            <Button type="submit" disabled={form.processing} className="gap-2 bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
+                            <Button type="submit" disabled={form.processing} className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
                                 {editingTest ? 'Сохранить изменения' : 'Создать тест'}
                             </Button>
                         </DialogFooter>

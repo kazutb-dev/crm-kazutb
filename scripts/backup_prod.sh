@@ -112,7 +112,9 @@ check_projected_disk_space() {
     local available_kb projected_kb base_bytes
     available_kb="$(df -Pk "${PROJECT_ROOT}" | awk 'NR==2 {print $4}')"
 
-    base_bytes="$(du -sb "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/public" "${PROJECT_ROOT}/database" "${PROJECT_ROOT}/app" "${PROJECT_ROOT}/routes" "${PROJECT_ROOT}/config" "${PROJECT_ROOT}/scripts" "${PROJECT_ROOT}/docs" 2>/dev/null | awk '{s+=$1} END {print s+0}')"
+    # du fails on a directory this user cannot read; under pipefail that used to end the script silently.
+    base_bytes="$(du -sb "${PROJECT_ROOT}/storage" "${PROJECT_ROOT}/public" "${PROJECT_ROOT}/database" "${PROJECT_ROOT}/app" "${PROJECT_ROOT}/routes" "${PROJECT_ROOT}/config" "${PROJECT_ROOT}/scripts" "${PROJECT_ROOT}/docs" 2>/dev/null | awk '{s+=$1} END {print s+0}')" \
+        || err "Project data is not fully readable by $(id -un) (permission denied?): the backup would be incomplete. Unreadable: $(find "${PROJECT_ROOT}/storage" ! -readable 2>/dev/null | head -n 3 | tr '\n' ' ')"
     projected_kb="$(( (base_bytes / 1024) * BACKUP_SPACE_FACTOR / 100 ))"
     [[ "${projected_kb}" -gt 0 ]] || projected_kb=1024
 

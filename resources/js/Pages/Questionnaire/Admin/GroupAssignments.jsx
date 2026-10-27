@@ -170,21 +170,21 @@ export default function GroupAssignments() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Назначения</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Назначения</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Привязка связки преподаватель + дисциплина к учебной группе.</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            <ClipboardList className="h-6 w-6 text-[#139AA4]" />
+                            <ClipboardList className="h-6 w-6 text-[#067a75]" />
                             <span className="text-sm text-muted-foreground">{items.length} связок</span>
                         </div>
                     </CardContent>
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Всего назначений" value={items.length} icon={<Link2 className="h-5 w-5 text-[#139AA4]" />} />
+                    <StatCard title="Всего назначений" value={items.length} icon={<Link2 className="h-5 w-5 text-[#067a75]" />} />
                     <StatCard title="Активные" value={activeAssignments} icon={<ClipboardList className="h-5 w-5 text-emerald-600" />} />
-                    <StatCard title="Групп" value={groups.length} icon={<UsersRound className="h-5 w-5 text-[#139AA4]" />} />
-                    <StatCard title="Преп.+дисц." value={teacherDisciplines.length} icon={<GraduationCap className="h-5 w-5 text-[#139AA4]" />} />
+                    <StatCard title="Групп" value={groups.length} icon={<UsersRound className="h-5 w-5 text-[#067a75]" />} />
+                    <StatCard title="Преп.+дисц." value={teacherDisciplines.length} icon={<GraduationCap className="h-5 w-5 text-[#067a75]" />} />
                 </div>
 
                 {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -193,7 +193,7 @@ export default function GroupAssignments() {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[430px_1fr]">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">{editingId ? 'Редактирование назначения' : 'Новое назначение'}</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">{editingId ? 'Редактирование назначения' : 'Новое назначение'}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form className="space-y-3" onSubmit={submit}>
@@ -259,7 +259,7 @@ export default function GroupAssignments() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#132844]">Текущие назначения</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Текущие назначения</CardTitle>
                                 <div className="relative w-full sm:w-72">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
@@ -293,7 +293,7 @@ export default function GroupAssignments() {
                                         <tbody>
                                             {filteredItems.map((item) => (
                                                 <tr key={item.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#132844]">{item.group?.name || item.group_id}</td>
+                                                    <td className="px-3 py-2 font-medium text-[#102945]">{item.group?.name || item.group_id}</td>
                                                     <td className="px-3 py-2">
                                                         {item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}
                                                     </td>
@@ -344,7 +344,7 @@ function StatCard({ title, value, icon }) {
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
+                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
                 </div>
                 {icon}
             </CardContent>

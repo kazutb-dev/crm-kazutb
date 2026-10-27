@@ -9,6 +9,7 @@ use App\Models\CalendarEvent;
 use App\Models\CalendarSecretaryAccess;
 use App\Models\KpiAccessGrant;
 use App\Models\User;
+use App\Services\Hr\HrAccess;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -51,6 +52,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 'roleSlug' => $user?->resolvedRoleSlug(),
                 'canManageTemplates' => fn () => $this->canManageTemplates($user),
+                'canUseHiring' => fn () => app(HrAccess::class)->canUseModule($user),
             ],
             'kpi' => [
                 'grants' => fn () => $request->user()

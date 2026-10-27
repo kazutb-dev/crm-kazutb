@@ -42,6 +42,7 @@ Route::middleware(['auth', 'panel.role.access', 'can:hr-hiring', 'track.last-see
 
         Route::get('/', [HiringController::class, 'index'])->name('index');
         Route::post('/', [HiringController::class, 'store'])->name('store');
+        Route::post('demo', [HiringController::class, 'storeDemo'])->middleware('can:hr-hiring.rights')->name('demo.store');
 
         Route::whereNumber('hiring')->group(function () use ($documentTypes) {
             Route::get('{hiring}', [HiringController::class, 'show'])->name('show');
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'panel.role.access', 'can:hr-hiring', 'track.last-see
             Route::put('{hiring}', [HiringController::class, 'update'])->name('update');
             Route::delete('{hiring}', [HiringController::class, 'destroy'])->name('destroy');
             Route::post('{hiring}/rehire', [HiringController::class, 'rehire'])->name('rehire');
+            Route::post('{hiring}/demo', [HiringController::class, 'fillDemo'])->middleware('can:hr-hiring.rights')->name('demo.fill');
 
             Route::post('{hiring}/photo', [HiringFileController::class, 'storePhoto'])->middleware('throttle:30,1')->name('photo.store');
             Route::get('{hiring}/photo', [HiringFileController::class, 'showPhoto'])->name('photo.show');

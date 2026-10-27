@@ -232,8 +232,18 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
     };
 
     const remove = async () => {
-        await axios.delete(route('hr.hiring.photo.destroy', hiringId));
-        onPhotoChange(null);
+        if (!window.confirm('Удалить фото сотрудника?')) {
+            return;
+        }
+        setBusy(true);
+        try {
+            await axios.delete(route('hr.hiring.photo.destroy', hiringId));
+            onPhotoChange(null);
+        } catch {
+            toast.error('Не удалось удалить фото.');
+        } finally {
+            setBusy(false);
+        }
     };
 
     return (
@@ -243,12 +253,18 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
                     {photoUrl ? <img src={photoUrl} alt="Фото сотрудника" className="h-full w-full object-cover" /> : <ImageUp className="h-6 w-6 text-slate-300" />}
                 </div>
                 <div className="space-y-2">
-                    <label className={`${buttonClassName.secondary} cursor-pointer`}>
+                    <label className={`${buttonClassName.secondary} ${busy ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
                         <ImageUp className="h-4 w-4" />
                         {busy ? 'Загрузка…' : photoUrl ? 'Заменить фото' : 'Загрузить фото'}
-                        <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(event) => upload(event.target.files?.[0])} />
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg"
+                            className="hidden"
+                            disabled={busy}
+                            onChange={(event) => { upload(event.target.files?.[0]); event.target.value = ''; }}
+                        />
                     </label>
-                    {photoUrl && <button type="button" onClick={remove} className="block text-xs font-medium text-rose-700 hover:underline">Удалить фото</button>}
+                    {photoUrl && <button type="button" onClick={remove} disabled={busy} className="block text-xs font-medium text-rose-700 hover:underline disabled:opacity-60">Удалить фото</button>}
                 </div>
             </div>
         </Section>
@@ -260,7 +276,7 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
     const [busy, setBusy] = useState(false);
 
     const upload = async (files) => {
-        if (!files?.length) {
+        if (!files?.length || busy) {
             return;
         }
         setBusy(true);
@@ -276,7 +292,7 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
                 toast.error(`${file.name}: ${validationErrors(error).file ?? 'не удалось загрузить'}`);
             }
         }
-        onAttachmentsChange([...attachments, ...added]);
+        onAttachmentsChange((current) => [...current, ...added]);
         setBusy(false);
     };
 
@@ -284,8 +300,12 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
         if (!window.confirm(`Удалить «${attachment.original_name}»?`)) {
             return;
         }
-        await axios.delete(route('hr.hiring.attachments.destroy', [hiringId, attachment.id]));
-        onAttachmentsChange(attachments.filter((item) => item.id !== attachment.id));
+        try {
+            await axios.delete(route('hr.hiring.attachments.destroy', [hiringId, attachment.id]));
+            onAttachmentsChange((current) => current.filter((item) => item.id !== attachment.id));
+        } catch {
+            toast.error(`Не удалось удалить «${attachment.original_name}».`);
+        }
     };
 
     return (
@@ -318,14 +338,14 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
             <div className="flex flex-wrap items-end gap-2">
                 <label className="block">
                     <span className="mb-1.5 block text-sm font-medium text-slate-700">Вид документа</span>
-                    <select value={docType} onChange={(event) => setDocType(event.target.value)} className={`${inputClassName} w-auto`}>
+                    <select value={docType} onChange={(event) => setDocType(event.target.value)} disabled={busy} className={`${inputClassName} w-auto`}>
                         {options.attachment_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                     </select>
                 </label>
-                <label className={`${buttonClassName.secondary} cursor-pointer`}>
+                <label className={`${buttonClassName.secondary} ${busy ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
                     <FileUp className="h-4 w-4" />
                     {busy ? 'Загрузка…' : 'Прикрепить PDF'}
-                    <input type="file" accept="application/pdf" multiple className="hidden" onChange={(event) => { upload([...(event.target.files ?? [])]); event.target.value = ''; }} />
+                    <input type="file" accept="application/pdf" multiple disabled={busy} className="hidden" onChange={(event) => { upload([...(event.target.files ?? [])]); event.target.value = ''; }} />
                 </label>
             </div>
         </Section>

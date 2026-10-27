@@ -5,9 +5,9 @@ import StepContract from '@/components/hr-hiring/StepContract';
 import StepEmployee from '@/components/hr-hiring/StepEmployee';
 import { fieldElementId, fieldId, fullNameAccusative, missingFields, parseIin } from '@/components/hr-hiring/logic';
 import { buttonClassName, MissingFieldsContext, StatusBadge, validationErrors } from '@/components/hr-hiring/ui';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, Check, CircleAlert, FolderOpen, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, FlaskConical, FolderOpen, LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SAVE_DELAY_MS = 1200;
@@ -201,12 +201,40 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
         return () => window.removeEventListener('beforeunload', warn);
     }, []);
 
+    // An Inertia link (card, list, sidebar) does not fire beforeunload: save first, then go on, so the next
+    // page shows the data just typed. Data with errors stays only if the user agrees to lose it.
+    useEffect(() => router.on('before', (event) => {
+        const { visit } = event.detail;
+        if (visit.method !== 'get' || editRef.current === savedEditRef.current) {
+            return true;
+        }
+        flushSave()
+            .then(() => router.visit(visit.url, { preserveScroll: visit.preserveScroll, preserveState: visit.preserveState, replace: visit.replace }))
+            .catch(() => {
+                if (window.confirm('Изменения не сохранены: в форме есть ошибки. Уйти без сохранения?')) {
+                    savedEditRef.current = editRef.current;
+                    router.visit(visit.url);
+                }
+            });
+        return false;
+    }), [flushSave]);
+
     const resetAccusative = () => {
         setState((current) => {
             const e = current.employee;
             return setIn(setIn(current, 'hiring.fio_accusative_manual', false), 'hiring.fio_accusative', fullNameAccusative(e.last_name, e.first_name, e.middle_name, e.gender));
         });
         markDirty();
+    };
+
+    /** Administrators: replace the data of this draft with demo data (the page reloads from the server). */
+    const fillDemo = () => {
+        if (!window.confirm('Заменить все данные этого черновика демо-данными?')) {
+            return;
+        }
+        window.clearTimeout(timerRef.current);
+        savedEditRef.current = editRef.current;
+        router.post(route('hr.hiring.demo.fill', hiring.id), {}, { preserveState: false, preserveScroll: false });
     };
 
     const changeStep = (target) => {
@@ -217,7 +245,7 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
     const goTo = ({ step: target, field }) => {
         setStep(target);
         window.setTimeout(() => {
-            const element = document.getElementById(fieldElementId(field));
+            const element = document.getElementById(fieldElementId(field)) ?? closestFieldElement(field);
             if (!element) {
                 return;
             }
@@ -276,6 +304,14 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
 
     const current = STEPS[step - 1];
 
+    /** Save error → the first field with an error, on its step. */
+    const showFirstError = () => {
+        const field = Object.keys(errors)[0];
+        if (field) {
+            goTo({ step: stepOfField(field), field });
+        }
+    };
+
     return (
         <AuthenticatedLayout>
             <Head title={`${fullName || 'Новый приём'} — приём на работу`} />
@@ -291,7 +327,12 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                         </h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <SaveIndicator saveState={saveState} />
+                        <SaveIndicator saveState={saveState} hasFieldErrors={Object.keys(errors).length > 0} onShowError={showFirstError} onRetry={() => runSave().catch(() => {})} />
+                        {abilities.rights && hiring.status === 'draft' && (
+                            <button type="button" onClick={fillDemo} className={buttonClassName.secondary} title="Заполнить выдуманными данными для проверки документов (видят только администраторы)">
+                                <FlaskConical className="h-4 w-4" /> Демо-данные
+                            </button>
+                        )}
                         <Link href={route('hr.hiring.show', hiring.id)} className={buttonClassName.secondary}>
                             <FolderOpen className="h-4 w-4" /> Карточка приёма
                         </Link>
@@ -384,7 +425,28 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
     );
 }
 
-function SaveIndicator({ saveState }) {
+/** Step of a form path: employee.* → 1, hiring.* → 2, contract.* → 3 (contract.term is on step 3 too). */
+function stepOfField(field) {
+    if (field.startsWith('employee.')) {
+        return 1;
+    }
+    return field.startsWith('hiring.') ? 2 : 3;
+}
+
+/** A validation path without its own input (hiring.top_unit.id, hiring.replaces.full_name): its closest parent field. */
+function closestFieldElement(field) {
+    const parts = field.split('.');
+    while (parts.length > 1) {
+        parts.pop();
+        const element = document.getElementById(fieldElementId(parts.join('.')));
+        if (element) {
+            return element;
+        }
+    }
+    return null;
+}
+
+function SaveIndicator({ saveState, hasFieldErrors, onShowError, onRetry }) {
     if (saveState.status === 'saving') {
         return <span className="inline-flex items-center gap-1.5 text-slate-500"><LoaderCircle className="h-4 w-4 animate-spin" /> Сохранение…</span>;
     }
@@ -392,7 +454,14 @@ function SaveIndicator({ saveState }) {
         return <span className="text-slate-500">Изменения сохранятся автоматически</span>;
     }
     if (saveState.status === 'error') {
-        return <span className="inline-flex items-center gap-1.5 text-rose-700"><CircleAlert className="h-4 w-4" /> {saveState.message}</span>;
+        return (
+            <span className="inline-flex items-center gap-1.5 text-rose-700">
+                <CircleAlert className="h-4 w-4" /> {saveState.message}
+                {hasFieldErrors
+                    ? <button type="button" onClick={onShowError} className="font-medium underline hover:no-underline">Показать</button>
+                    : <button type="button" onClick={onRetry} className="font-medium underline hover:no-underline">Повторить</button>}
+            </span>
+        );
     }
 
     return (

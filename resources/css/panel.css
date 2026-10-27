@@ -1,0 +1,387 @@
+/* ============================================================
+   Panel design layer — Qadam design system (/design)
+   Applies only inside the panel's main block: .qd-panel sits on
+   SidebarInset, .qd-scope on dialogs and sheets opened from it.
+   The sidebar, public pages and the login page never carry these
+   classes, so they keep their current look.
+   ============================================================ */
+
+.qd-scope,
+.qd-panel {
+  /* slate, gray, zinc, neutral, stone → Qadam neutral */
+  --pal-slate-50: 248 250 249; --pal-slate-100: 238 242 241; --pal-slate-200: 223 230 228; --pal-slate-300: 200 210 208; --pal-slate-400: 138 148 146; --pal-slate-500: 95 107 105; --pal-slate-600: 79 91 89; --pal-slate-700: 67 78 76; --pal-slate-800: 42 51 50; --pal-slate-900: 25 28 29; --pal-slate-950: 15 23 32;
+  --pal-gray-50: 248 250 249; --pal-gray-100: 238 242 241; --pal-gray-200: 223 230 228; --pal-gray-300: 200 210 208; --pal-gray-400: 138 148 146; --pal-gray-500: 95 107 105; --pal-gray-600: 79 91 89; --pal-gray-700: 67 78 76; --pal-gray-800: 42 51 50; --pal-gray-900: 25 28 29; --pal-gray-950: 15 23 32;
+  --pal-zinc-50: 248 250 249; --pal-zinc-100: 238 242 241; --pal-zinc-200: 223 230 228; --pal-zinc-300: 200 210 208; --pal-zinc-400: 138 148 146; --pal-zinc-500: 95 107 105; --pal-zinc-600: 79 91 89; --pal-zinc-700: 67 78 76; --pal-zinc-800: 42 51 50; --pal-zinc-900: 25 28 29; --pal-zinc-950: 15 23 32;
+  --pal-neutral-50: 248 250 249; --pal-neutral-100: 238 242 241; --pal-neutral-200: 223 230 228; --pal-neutral-300: 200 210 208; --pal-neutral-400: 138 148 146; --pal-neutral-500: 95 107 105; --pal-neutral-600: 79 91 89; --pal-neutral-700: 67 78 76; --pal-neutral-800: 42 51 50; --pal-neutral-900: 25 28 29; --pal-neutral-950: 15 23 32;
+  --pal-stone-50: 248 250 249; --pal-stone-100: 238 242 241; --pal-stone-200: 223 230 228; --pal-stone-300: 200 210 208; --pal-stone-400: 138 148 146; --pal-stone-500: 95 107 105; --pal-stone-600: 79 91 89; --pal-stone-700: 67 78 76; --pal-stone-800: 42 51 50; --pal-stone-900: 25 28 29; --pal-stone-950: 15 23 32;
+  /* red, rose → Qadam danger */
+  --pal-red-50: 253 243 242; --pal-red-100: 251 229 227; --pal-red-200: 246 201 197; --pal-red-300: 240 163 157; --pal-red-400: 229 115 107; --pal-red-500: 214 69 64; --pal-red-600: 197 43 40; --pal-red-700: 186 26 26; --pal-red-800: 150 20 20; --pal-red-900: 122 17 17; --pal-red-950: 83 8 8;
+  --pal-rose-50: 253 243 242; --pal-rose-100: 251 229 227; --pal-rose-200: 246 201 197; --pal-rose-300: 240 163 157; --pal-rose-400: 229 115 107; --pal-rose-500: 214 69 64; --pal-rose-600: 197 43 40; --pal-rose-700: 186 26 26; --pal-rose-800: 150 20 20; --pal-rose-900: 122 17 17; --pal-rose-950: 83 8 8;
+  /* orange → Qadam copper */
+  --pal-orange-50: 253 246 241; --pal-orange-100: 251 239 230; --pal-orange-200: 245 214 191; --pal-orange-300: 235 180 139; --pal-orange-400: 217 133 63; --pal-orange-500: 192 106 44; --pal-orange-600: 164 83 31; --pal-orange-700: 138 68 25; --pal-orange-800: 112 55 20; --pal-orange-900: 90 44 16; --pal-orange-950: 59 28 10;
+  /* amber, yellow → Qadam warning */
+  --pal-amber-50: 255 251 240; --pal-amber-100: 251 240 214; --pal-amber-200: 243 223 167; --pal-amber-300: 233 199 118; --pal-amber-400: 226 181 62; --pal-amber-500: 198 154 28; --pal-amber-600: 176 122 0; --pal-amber-700: 138 90 0; --pal-amber-800: 112 72 0; --pal-amber-900: 90 58 0; --pal-amber-950: 61 38 0;
+  --pal-yellow-50: 255 251 240; --pal-yellow-100: 251 240 214; --pal-yellow-200: 243 223 167; --pal-yellow-300: 233 199 118; --pal-yellow-400: 226 181 62; --pal-yellow-500: 198 154 28; --pal-yellow-600: 176 122 0; --pal-yellow-700: 138 90 0; --pal-yellow-800: 112 72 0; --pal-yellow-900: 90 58 0; --pal-yellow-950: 61 38 0;
+  /* green, emerald → Qadam success */
+  --pal-green-50: 246 251 248; --pal-green-100: 227 243 234; --pal-green-200: 195 230 210; --pal-green-300: 147 211 174; --pal-green-400: 97 196 143; --pal-green-500: 63 181 122; --pal-green-600: 38 151 95; --pal-green-700: 27 122 74; --pal-green-800: 20 97 57; --pal-green-900: 15 77 46; --pal-green-950: 8 52 30;
+  --pal-emerald-50: 246 251 248; --pal-emerald-100: 227 243 234; --pal-emerald-200: 195 230 210; --pal-emerald-300: 147 211 174; --pal-emerald-400: 97 196 143; --pal-emerald-500: 63 181 122; --pal-emerald-600: 38 151 95; --pal-emerald-700: 27 122 74; --pal-emerald-800: 20 97 57; --pal-emerald-900: 15 77 46; --pal-emerald-950: 8 52 30;
+  /* teal, cyan → Qadam primary */
+  --pal-teal-50: 240 248 247; --pal-teal-100: 227 244 242; --pal-teal-200: 213 235 231; --pal-teal-300: 131 220 213; --pal-teal-400: 95 214 205; --pal-teal-500: 9 186 178; --pal-teal-600: 10 157 150; --pal-teal-700: 6 122 117; --pal-teal-800: 0 98 94; --pal-teal-900: 0 78 75; --pal-teal-950: 0 51 48;
+  --pal-cyan-50: 240 248 247; --pal-cyan-100: 227 244 242; --pal-cyan-200: 213 235 231; --pal-cyan-300: 131 220 213; --pal-cyan-400: 95 214 205; --pal-cyan-500: 9 186 178; --pal-cyan-600: 10 157 150; --pal-cyan-700: 6 122 117; --pal-cyan-800: 0 98 94; --pal-cyan-900: 0 78 75; --pal-cyan-950: 0 51 48;
+  /* sky, blue, indigo → Qadam info */
+  --pal-sky-50: 243 246 250; --pal-sky-100: 232 238 245; --pal-sky-200: 207 219 233; --pal-sky-300: 169 191 216; --pal-sky-400: 127 159 196; --pal-sky-500: 91 134 181; --pal-sky-600: 63 109 156; --pal-sky-700: 44 90 134; --pal-sky-800: 34 72 112; --pal-sky-900: 26 56 88; --pal-sky-950: 16 41 69;
+  --pal-blue-50: 243 246 250; --pal-blue-100: 232 238 245; --pal-blue-200: 207 219 233; --pal-blue-300: 169 191 216; --pal-blue-400: 127 159 196; --pal-blue-500: 91 134 181; --pal-blue-600: 63 109 156; --pal-blue-700: 44 90 134; --pal-blue-800: 34 72 112; --pal-blue-900: 26 56 88; --pal-blue-950: 16 41 69;
+  --pal-indigo-50: 243 246 250; --pal-indigo-100: 232 238 245; --pal-indigo-200: 207 219 233; --pal-indigo-300: 169 191 216; --pal-indigo-400: 127 159 196; --pal-indigo-500: 91 134 181; --pal-indigo-600: 63 109 156; --pal-indigo-700: 44 90 134; --pal-indigo-800: 34 72 112; --pal-indigo-900: 26 56 88; --pal-indigo-950: 16 41 69;
+
+  /* shadcn tokens (HSL channels) */
+  --background: 160 16% 96%;
+  --foreground: 195 7% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 195 7% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 195 7% 11%;
+  --primary: 177 91% 25%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 165 13% 94%;
+  --secondary-foreground: 212 62% 17%;
+  --muted: 165 13% 94%;
+  --muted-foreground: 170 6% 38%;
+  --accent: 173 44% 92%;
+  --accent-foreground: 177 91% 25%;
+  --destructive: 0 75% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 163 12% 89%;
+  --input: 168 10% 80%;
+  --ring: 177 88% 33%;
+  --radius: 0.625rem;
+
+  /* Qadam semantic tokens */
+  --qd-bg: #f4f7f6;
+  --qd-surface: #ffffff;
+  --qd-surface-raised: #f8faf9;
+  --qd-surface-sunken: #eef2f1;
+  --qd-border: #dfe6e4;
+  --qd-border-strong: #c8d2d0;
+  --qd-fg: #191c1d;
+  --qd-fg-muted: #5c6866;
+  --qd-fg-subtle: #5f6b69;
+  --qd-fg-faint: #8a9492;
+  --qd-ink: #102945;
+  --qd-primary: #067a75;
+  --qd-primary-soft: #e3f4f2;
+  --qd-brand: #09bab2;
+  --qd-gold: #e2b53e;
+  --qd-overlay: rgba(8, 40, 52, 0.45);
+  --qd-shadow-sm: 0 1px 2px 0 rgba(25, 28, 29, 0.04);
+  --qd-shadow-md: 0 1px 2px 0 rgba(25, 28, 29, 0.04), 0 12px 32px 0 rgba(25, 28, 29, 0.05);
+  --qd-shadow-lg: 0 2px 4px 0 rgba(25, 28, 29, 0.04), 0 18px 44px 0 rgba(25, 28, 29, 0.08);
+  --qd-radius-control: 10px;
+  --qd-radius-card: 14px;
+  --qd-font-display: 'Literata', Georgia, 'Times New Roman', serif;
+  --qd-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* kazutb.css aliases that pages read directly */
+  --text-strong: var(--qd-ink);
+  --text-body: var(--qd-fg);
+  --text-muted: var(--qd-fg-muted);
+  --border-subtle: var(--qd-border);
+  --border-default: var(--qd-border-strong);
+  --surface-page: var(--qd-bg);
+  --surface-card: var(--qd-surface);
+  --surface-sunken: var(--qd-surface-sunken);
+  --accent-strong: var(--qd-primary);
+  --focus-ring: var(--qd-primary);
+
+  color: var(--qd-fg);
+  font-feature-settings: 'tnum' 0;
+}
+
+.qd-panel {
+  background: var(--qd-bg);
+}
+
+@layer components {
+  /* ---- Shared admin-* classes (moved from app.css). Pages outside the panel, such as the public
+     certificate check, still use these; the :where(.qd-panel) rules below restyle them in the panel
+     and win by coming later at the same specificity, while page utilities still win over both. ---- */
+
+  .admin-shell-container {
+    @apply mx-auto w-full max-w-[1560px];
+  }
+
+  .admin-page-wrap {
+    @apply w-full space-y-5 p-4 sm:p-6;
+    animation: fade-slide-up 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .admin-header-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .admin-header-actions form {
+    @apply flex items-center gap-2;
+  }
+
+  .admin-header-actions :is(button, a) {
+    @apply h-8;
+  }
+
+  .admin-shell-topbar {
+    @apply sticky top-0 z-20 border-b border-border/70 bg-white/90 backdrop-blur-xl;
+  }
+
+  .admin-shell-topbar-row {
+    @apply flex min-h-16 items-center gap-3 px-4 sm:px-6;
+  }
+
+  .admin-toolbar {
+    @apply mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-2.5;
+  }
+
+  .admin-surface {
+    @apply rounded-2xl border border-border/80 bg-white/90 backdrop-blur;
+    box-shadow: 0 18px 48px rgba(15, 36, 63, 0.08);
+  }
+
+  .admin-subtle {
+    @apply rounded-xl border border-border/70 bg-muted/40;
+  }
+
+  .admin-empty-state {
+    @apply rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground;
+  }
+
+  .admin-data-table {
+    @apply w-full text-sm leading-[1.35];
+  }
+
+  .admin-table-wrap {
+    @apply overflow-x-auto rounded-xl border border-border/75 bg-white/85;
+    box-shadow: 0 10px 26px rgba(15, 36, 63, 0.06);
+  }
+
+  .admin-data-table thead tr {
+    @apply border-b border-border/90 text-left text-muted-foreground;
+  }
+
+  .admin-data-table th {
+    @apply py-3 pe-3 align-middle text-[0.8rem] font-semibold;
+  }
+
+  .admin-data-table tbody tr {
+    @apply border-b border-border/70 align-top transition-colors hover:bg-accent/30;
+  }
+
+  .admin-data-table tbody tr:last-child {
+    @apply border-b-0;
+  }
+
+  .admin-data-table td {
+    @apply py-3 pe-3 align-middle;
+  }
+
+  .admin-pagination {
+    @apply mt-6 flex flex-wrap items-center justify-end gap-2;
+  }
+
+  .admin-row-actions {
+    @apply flex items-center justify-end gap-2;
+  }
+
+  .admin-table-title {
+    @apply text-base font-semibold text-[#132844];
+  }
+
+  /* ---- Typography defaults: one element selector beats the base layer, any page utility beats these ---- */
+  :where(.qd-panel, .qd-scope) :is(h1, h2) {
+    font-family: var(--qd-font-display);
+    color: var(--qd-ink);
+    letter-spacing: -0.01em;
+  }
+
+  :where(.qd-panel, .qd-scope) :is(h3, h4) {
+    color: var(--qd-ink);
+  }
+
+  :where(.qd-panel, .qd-scope) a:not([class]) {
+    color: var(--qd-primary);
+    text-underline-offset: 3px;
+  }
+
+  :where(.qd-panel, .qd-scope) :is(td, th) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* @tailwindcss/forms paints checked boxes with currentColor */
+  :where(.qd-panel, .qd-scope) :is([type='checkbox'], [type='radio']) {
+    color: var(--qd-primary);
+    border-color: var(--qd-border-strong);
+  }
+
+  /* ---- Raw tables: Qadam table header (spaced capitals) ---- */
+  :where(.qd-panel, .qd-scope) thead th {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--qd-fg);
+  }
+
+  /* ---- Shell building blocks used across panel pages ---- */
+  :where(.qd-panel) .admin-page-wrap {
+    padding: 1.5rem 1rem 3rem;
+    animation: qd-rise 0.45s var(--qd-ease-out) both;
+  }
+
+  @media (min-width: 640px) {
+    :where(.qd-panel) .admin-page-wrap {
+      padding: 2rem 2rem 3.5rem;
+    }
+  }
+
+  :where(.qd-panel) .admin-page-wrap > * + * {
+    margin-top: 1.5rem;
+  }
+
+  :where(.qd-panel) .admin-surface {
+    border-radius: var(--qd-radius-card);
+    border: 1px solid var(--qd-border);
+    background: var(--qd-surface);
+    box-shadow: var(--qd-shadow-sm);
+    backdrop-filter: none;
+  }
+
+  :where(.qd-panel) .admin-subtle {
+    border-radius: 12px;
+    border: 1px solid var(--qd-border);
+    background: var(--qd-surface-raised);
+  }
+
+  :where(.qd-panel) .admin-toolbar {
+    border-radius: 12px;
+    border: 1px solid var(--qd-border);
+    background: var(--qd-surface-raised);
+  }
+
+  :where(.qd-panel) .admin-empty-state {
+    border-radius: var(--qd-radius-card);
+    border: 1px dashed var(--qd-border-strong);
+    background: var(--qd-surface-raised);
+    color: var(--qd-fg-muted);
+    padding: 2.5rem 1rem;
+  }
+
+  :where(.qd-panel) .admin-table-wrap {
+    border-radius: var(--qd-radius-card);
+    border: 1px solid var(--qd-border);
+    background: var(--qd-surface);
+    box-shadow: var(--qd-shadow-sm);
+  }
+
+  :where(.qd-panel) .admin-data-table thead tr {
+    border-bottom: 1px solid var(--qd-border);
+    background: var(--qd-surface);
+  }
+
+  :where(.qd-panel) .admin-data-table th {
+    padding: 0.875rem 0.75rem 0.875rem 0;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--qd-fg);
+  }
+
+  :where(.qd-panel) .admin-data-table :is(th, td):first-child {
+    padding-left: 1rem;
+  }
+
+  :where(.qd-panel) .admin-data-table :is(th, td):last-child {
+    padding-right: 1rem;
+  }
+
+  :where(.qd-panel) .admin-data-table tbody tr {
+    border-bottom: 1px solid var(--qd-border);
+  }
+
+  :where(.qd-panel) .admin-data-table tbody tr:hover {
+    background: var(--qd-surface-raised);
+  }
+
+  :where(.qd-panel) .admin-data-table td {
+    padding: 0.875rem 0.75rem 0.875rem 0;
+  }
+
+  :where(.qd-panel) .admin-table-title {
+    font-family: var(--qd-font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--qd-ink);
+  }
+
+  :where(.qd-panel) .admin-shell-topbar {
+    border-bottom-color: var(--qd-border);
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  :where(.qd-panel) .admin-shell-topbar-row {
+    min-height: 4.75rem;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  @media (min-width: 640px) {
+    :where(.qd-panel) .admin-shell-topbar-row {
+      padding: 0.75rem 2rem;
+    }
+  }
+
+  :where(.qd-panel) .admin-header-actions :is(button, a) {
+    height: 2.5rem;
+  }
+
+  /* Section kicker: a short rule and spaced capitals, as on the design page */
+  .qd-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--qd-primary);
+  }
+
+  .qd-kicker::before {
+    content: '';
+    width: 1.75rem;
+    height: 1px;
+    background: currentColor;
+  }
+
+  .qd-field-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--qd-fg);
+  }
+}
+
+@keyframes qd-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.qd-panel) .admin-page-wrap {
+    animation: none;
+  }
+}
