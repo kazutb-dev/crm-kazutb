@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage, useForm, router } from '@inertiajs/react';
+import { EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +11,12 @@ import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Plus, PencilIcon, Eye } from 'lucide-react';
+import { Building2, Eye, ListChecks, PencilIcon, Plus, Trash2, Users } from 'lucide-react';
 
 export default function StructuralUnitsManager() {
     const { units } = usePage().props;
@@ -78,94 +80,100 @@ export default function StructuralUnitsManager() {
         reset();
     };
 
+    const recordsTotal = units.reduce((sum, unit) => sum + (Number(unit.records_count) || 0), 0);
+    const usersTotal = units.reduce((sum, unit) => sum + (Number(unit.users_count) || 0), 0);
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Структура"
+                    title="Структурные подразделения"
+                    description={`Всего структур: ${units.length}`}
+                    actions={(
+                        <Button onClick={() => setOpen(true)}>
+                            <Plus className="h-4 w-4" />
+                            Добавить
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Управление структурами" />
 
-            <div className="admin-page-wrap">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold">Структурные подразделения</h1>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Всего структур: {units.length}
-                        </p>
-                    </div>
-                    <Button
-                        onClick={() => setOpen(true)}
-                        className="gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Добавить
-                    </Button>
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid className="xl:grid-cols-3">
+                    <StatTile label="Структур" value={units.length} tone="teal" icon={Building2} />
+                    <StatTile label="Индикаторов" value={recordsTotal} tone="info" icon={ListChecks} />
+                    <StatTile label="Пользователей" value={usersTotal} tone="gold" icon={Users} />
+                </StatGrid>
 
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-[#102945]">Список структур</CardTitle>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Список структур</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className={units.length > 0 ? 'p-0' : ''}>
                         {units.length > 0 ? (
                             <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="border-b bg-muted/50">
+                                <table className="w-full text-sm">
+                                    <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-sm font-semibold">Код</th>
-                                            <th className="px-6 py-3 text-left text-sm font-semibold">Название</th>
-                                            <th className="px-6 py-3 text-left text-sm font-semibold">Описание</th>
-                                            <th className="px-6 py-3 text-right text-sm font-semibold">Индикаторы</th>
-                                            <th className="px-6 py-3 text-right text-sm font-semibold">Пользователи</th>
-                                            <th className="px-6 py-3 text-right text-sm font-semibold">Открыть</th>
-                                            <th className="px-6 py-3 text-right text-sm font-semibold">Действия</th>
+                                            <th className="px-5 py-3 text-left">Код</th>
+                                            <th className="px-5 py-3 text-left">Название</th>
+                                            <th className="px-5 py-3 text-left">Описание</th>
+                                            <th className="px-5 py-3 text-right">Индикаторы</th>
+                                            <th className="px-5 py-3 text-right">Пользователи</th>
+                                            <th className="px-5 py-3 text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {units.map((unit) => (
-                                            <tr key={unit.id} className="border-b hover:bg-muted/30">
-                                                <td className="px-6 py-3 font-mono font-semibold text-sm">
-                                                    <Badge variant="outline">{unit.code}</Badge>
+                                            <tr key={unit.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td className="px-5 py-3">
+                                                    <Badge variant="outline" className="font-mono">{unit.code}</Badge>
                                                 </td>
-                                                <td className="px-6 py-3 text-sm">
+                                                <td className="px-5 py-3 font-medium text-slate-900">
                                                     {formatStructuralUnitLabel(unit)}
                                                 </td>
-                                                <td className="px-6 py-3 text-sm text-muted-foreground">
+                                                <td className="px-5 py-3 text-slate-500">
                                                     {unit.description || '—'}
                                                 </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium">
-                                                    <Badge variant="secondary">{unit.records_count || 0}</Badge>
+                                                <td className="px-5 py-3 text-right">
+                                                    <Badge variant="secondary" className="tabular-nums">{unit.records_count || 0}</Badge>
                                                 </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium">
-                                                    <Badge variant="outline">{unit.users_count || 0}</Badge>
+                                                <td className="px-5 py-3 text-right">
+                                                    <Badge variant="outline" className="tabular-nums">{unit.users_count || 0}</Badge>
                                                 </td>
-                                                <td className="px-6 py-3 text-right">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleOpenDetails(unit)}
-                                                        className="gap-2"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                        Открыть
-                                                    </Button>
-                                                </td>
-                                                <td className="px-6 py-3 text-right">
-                                                    <div className="flex gap-2 justify-end">
+                                                <td className="px-5 py-3 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleOpenDetails(unit)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            Открыть
+                                                        </Button>
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleEdit(unit)}
+                                                            title="Редактировать"
                                                         >
-                                                            <PencilIcon className="w-4 h-4" />
+                                                            <PencilIcon className="h-4 w-4" />
                                                         </Button>
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleDelete(unit)}
+                                                            title="Удалить"
+                                                            className="text-red-700 hover:bg-red-50"
                                                             disabled={
                                                                 unit.records_count > 0 ||
                                                                 unit.users_count > 0
                                                             }
                                                         >
-                                                            <Trash2 className="w-4 h-4 text-red-500" />
+                                                            <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </td>
@@ -175,9 +183,16 @@ export default function StructuralUnitsManager() {
                                 </table>
                             </div>
                         ) : (
-                            <div className="text-center py-12">
-                                <p className="text-muted-foreground">Структурные подразделения не найдены</p>
-                            </div>
+                            <EmptyState
+                                title="Структурные подразделения не найдены"
+                                description="Добавьте первое структурное подразделение, чтобы привязывать к нему индикаторы и пользователей."
+                                action={(
+                                    <Button onClick={() => setOpen(true)}>
+                                        <Plus className="h-4 w-4" />
+                                        Добавить
+                                    </Button>
+                                )}
+                            />
                         )}
                     </CardContent>
                 </Card>
@@ -194,10 +209,10 @@ export default function StructuralUnitsManager() {
                     </DialogHeader>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Код <span className="text-red-500">*</span>
-                            </label>
+                        <div className="space-y-2">
+                            <span className="qd-field-label block">
+                                Код <span className="text-red-600">*</span>
+                            </span>
                             <Input
                                 value={data.code}
                                 onChange={(e) => setData('code', e.target.value)}
@@ -205,28 +220,26 @@ export default function StructuralUnitsManager() {
                                 disabled={editingId !== null}
                             />
                             {errors.code && (
-                                <p className="text-sm text-red-500 mt-1">{errors.code}</p>
+                                <p className="text-sm text-red-700">{errors.code}</p>
                             )}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Название <span className="text-red-500">*</span>
-                            </label>
+                        <div className="space-y-2">
+                            <span className="qd-field-label block">
+                                Название <span className="text-red-600">*</span>
+                            </span>
                             <Input
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 placeholder="Например: Управление науки и высшей школы"
                             />
                             {errors.name && (
-                                <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                                <p className="text-sm text-red-700">{errors.name}</p>
                             )}
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium mb-2">
-                                Описание
-                            </label>
+                        <div className="space-y-2">
+                            <span className="qd-field-label block">Описание</span>
                             <Textarea
                                 value={data.description}
                                 onChange={(e) => setData('description', e.target.value)}
@@ -234,7 +247,7 @@ export default function StructuralUnitsManager() {
                                 rows={3}
                             />
                             {errors.description && (
-                                <p className="text-sm text-red-500 mt-1">
+                                <p className="text-sm text-red-700">
                                     {errors.description}
                                 </p>
                             )}
@@ -257,28 +270,22 @@ export default function StructuralUnitsManager() {
                 </DialogContent>
             </Dialog>
 
-            {deleteId && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg p-6 max-w-sm">
-                        <h2 className="text-lg font-semibold mb-2">Удалить структурное подразделение?</h2>
-                        <p className="text-gray-600 mb-6">Это действие необратимо.</p>
-                        <div className="flex gap-3 justify-end">
-                            <Button
-                                variant="outline"
-                                onClick={() => setDeleteId(null)}
-                            >
-                                Отмена
-                            </Button>
-                            <Button
-                                onClick={confirmDelete}
-                                className="bg-red-500 hover:bg-red-600 text-white"
-                            >
-                                Удалить
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog open={Boolean(deleteId)} onOpenChange={(value) => { if (!value) setDeleteId(null); }}>
+                <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>Удалить структурное подразделение?</DialogTitle>
+                        <DialogDescription>Это действие необратимо.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteId(null)}>
+                            Отмена
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete}>
+                            Удалить
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

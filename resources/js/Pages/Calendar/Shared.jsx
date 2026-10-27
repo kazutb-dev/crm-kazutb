@@ -1,9 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, PageHeader } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/select';
 import { Head, Link, router } from '@inertiajs/react';
+import { CalendarDays, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SharedCalendar({ managedCalendars = [], selectedOwnerId = null }) {
@@ -15,28 +17,41 @@ export default function SharedCalendar({ managedCalendars = [], selectedOwnerId 
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Совместное управление"
+                    description="Ведение календарей руководителей, для которых вы назначены секретарём."
+                    actions={(
+                        <Button variant="outline" asChild>
+                            <Link href={route('calendar.index')}>
+                                <CalendarDays className="h-4 w-4" />
+                                Мой календарь
+                            </Link>
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Smart Calendar — Совместное управление" />
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
 
                 {managedCalendars.length === 0 ? (
-                    <Card>
-                        <CardContent className="p-8 text-center">
-                            <p className="text-sm text-muted-foreground mb-2">
-                                У вас нет прав на управление чужими календарями
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                                Попросите администратора назначить вас секретарём
-                            </p>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        title="У вас нет прав на управление чужими календарями"
+                        description="Попросите администратора назначить вас секретарём"
+                    />
                 ) : (
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Выбор календаря для управления</CardTitle>
+                    <Card className="max-w-2xl">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="shrink-0" />
+                                Выбор календаря для управления
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-1">
+                        <CardContent className="space-y-5">
+                            <div className="space-y-2">
                                 <Label>Календарь владельца</Label>
                                 <NativeSelect
                                     value={selectedId}
@@ -49,17 +64,15 @@ export default function SharedCalendar({ managedCalendars = [], selectedOwnerId 
                                         })),
                                     ]}
                                 />
+                                <p className="text-xs text-slate-500">Доступно календарей: {managedCalendars.length}</p>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button
                                     onClick={openCalendar}
                                     disabled={!selectedId}
                                 >
                                     Открыть
-                                </Button>
-                                <Button variant="outline" asChild>
-                                    <Link href={route('calendar.index')}>Мой календарь</Link>
                                 </Button>
                             </div>
                         </CardContent>

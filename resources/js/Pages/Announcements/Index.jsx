@@ -1,8 +1,8 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -13,13 +13,26 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, FilePen, ImageOff, Megaphone, Pencil, Plus, Radio, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+
+function Field({ label, error, children }) {
+    return (
+        <div className="space-y-2">
+            <Label className="block">{label}</Label>
+            {children}
+            {error && <p className="text-sm text-red-700">{error}</p>}
+        </div>
+    );
+}
 
 export default function Index({ announcements }) {
     const items = announcements?.data ?? [];
     const links = announcements?.links ?? [];
+    const total = announcements?.total ?? items.length;
 
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
@@ -43,6 +56,10 @@ export default function Index({ announcements }) {
         event_date: '',
         image: null,
     });
+
+    const activeCount = items.filter((item) => item.is_active).length;
+    const draftCount = items.length - activeCount;
+    const importantCount = items.filter((item) => item.is_important).length;
 
     const handleDelete = (announcement) => {
         setConfirmState({
@@ -104,116 +121,116 @@ export default function Index({ announcements }) {
         });
     };
 
+    const renderFields = (form, { isCreate, existingImage = null, existingTitle = '' }) => (
+        <>
+            <Field label="Заголовок" error={form.errors.title}>
+                <Input
+                    value={form.data.title}
+                    onChange={(e) => form.setData('title', e.target.value)}
+                    placeholder={isCreate ? 'Например: Важное обновление расписания' : undefined}
+                />
+            </Field>
+
+            <Field label="Текст" error={form.errors.content}>
+                <Textarea
+                    className="min-h-28"
+                    value={form.data.content}
+                    onChange={(e) => form.setData('content', e.target.value)}
+                    placeholder={isCreate ? 'Текст объявления' : undefined}
+                />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Статус">
+                    <select
+                        className={qdFieldClass}
+                        value={form.data.is_active ? '1' : '0'}
+                        onChange={(e) => form.setData('is_active', e.target.value === '1')}
+                    >
+                        <option value="1">Активно</option>
+                        <option value="0">Черновик</option>
+                    </select>
+                </Field>
+
+                <Field label="Дата мероприятия" error={form.errors.event_date}>
+                    <Input
+                        type="datetime-local"
+                        value={form.data.event_date}
+                        onChange={(e) => form.setData('event_date', e.target.value)}
+                    />
+                </Field>
+            </div>
+
+            <Field label="Картинка" error={form.errors.image}>
+                <div className="flex items-center gap-3">
+                    {existingImage && (
+                        <img
+                            src={existingImage}
+                            alt={existingTitle}
+                            className="h-16 w-16 shrink-0 rounded-[10px] border border-slate-200 object-cover"
+                        />
+                    )}
+                    <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => form.setData('image', e.target.files?.[0] ?? null)}
+                    />
+                </div>
+            </Field>
+
+            <div className="border-t border-slate-200 pt-4">
+                <label className="inline-flex items-center gap-2.5 text-sm font-medium text-slate-800">
+                    <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                        checked={form.data.is_important}
+                        onChange={(e) => form.setData('is_important', e.target.checked)}
+                    />
+                    Важное
+                </label>
+                {form.errors.is_important && (
+                    <p className="mt-1 text-sm text-red-700">{form.errors.is_important}</p>
+                )}
+            </div>
+        </>
+    );
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm">
-                            <Plus />
-                            Добавить объявление
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Новое объявление</DialogTitle>
-                            <DialogDescription>
-                                Заполните данные для публикации объявления.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form className="space-y-4" onSubmit={submitCreate}>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Заголовок</label>
-                                <Input
-                                    value={createForm.data.title}
-                                    onChange={(e) => createForm.setData('title', e.target.value)}
-                                    placeholder="Например: Важное обновление расписания"
-                                />
-                                {createForm.errors.title && (
-                                    <p className="text-sm text-destructive">{createForm.errors.title}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Текст</label>
-                                <textarea
-                                    className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={createForm.data.content}
-                                    onChange={(e) => createForm.setData('content', e.target.value)}
-                                    placeholder="Текст объявления"
-                                />
-                                {createForm.errors.content && (
-                                    <p className="text-sm text-destructive">{createForm.errors.content}</p>
-                                )}
-                            </div>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Статус</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.data.is_active ? '1' : '0'}
-                                        onChange={(e) => createForm.setData('is_active', e.target.value === '1')}
-                                    >
-                                        <option value="1">Активно</option>
-                                        <option value="0">Черновик</option>
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Дата мероприятия</label>
-                                    <Input
-                                        type="datetime-local"
-                                        value={createForm.data.event_date}
-                                        onChange={(e) =>
-                                            createForm.setData('event_date', e.target.value)
-                                        }
-                                    />
-                                    {createForm.errors.event_date && (
-                                        <p className="text-sm text-destructive">
-                                            {createForm.errors.event_date}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Картинка</label>
-                                <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) =>
-                                        createForm.setData('image', e.target.files?.[0] ?? null)
-                                    }
-                                />
-                                {createForm.errors.image && (
-                                    <p className="text-sm text-destructive">{createForm.errors.image}</p>
-                                )}
-                            </div>
-
-                            <label className="inline-flex items-center gap-2 text-sm font-medium">
-                                <input
-                                    type="checkbox"
-                                    checked={createForm.data.is_important}
-                                    onChange={(e) =>
-                                        createForm.setData('is_important', e.target.checked)
-                                    }
-                                />
-                                Важное
-                            </label>
-                            {createForm.errors.is_important && (
-                                <p className="text-sm text-destructive">{createForm.errors.is_important}</p>
-                            )}
-
-                            <DialogFooter>
-                                <Button type="submit" disabled={createForm.processing}>
-                                    Сохранить
+            header={(
+                <PageHeader
+                    eyebrow="Коммуникации"
+                    title="Объявления"
+                    description="Новости и анонсы мероприятий для сотрудников и студентов. Черновики не публикуются, важные выделяются."
+                    actions={(
+                        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <Plus />
+                                    Добавить объявление
                                 </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-            }
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Новое объявление</DialogTitle>
+                                    <DialogDescription>
+                                        Заполните данные для публикации объявления.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form className="space-y-4" onSubmit={submitCreate}>
+                                    {renderFields(createForm, { isCreate: true })}
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Отмена</Button>
+                                        <Button type="submit" disabled={createForm.processing}>
+                                            Сохранить
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                />
+            )}
         >
             <Head title="Объявления" />
 
@@ -234,87 +251,13 @@ export default function Index({ announcements }) {
                         </DialogDescription>
                     </DialogHeader>
                     <form id="edit-announcement-form" className="space-y-4" onSubmit={submitEdit}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Заголовок</label>
-                            <Input
-                                value={editForm.data.title}
-                                onChange={(e) => editForm.setData('title', e.target.value)}
-                            />
-                            {editForm.errors.title && (
-                                <p className="text-sm text-destructive">{editForm.errors.title}</p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Текст</label>
-                            <textarea
-                                className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                value={editForm.data.content}
-                                onChange={(e) => editForm.setData('content', e.target.value)}
-                            />
-                            {editForm.errors.content && (
-                                <p className="text-sm text-destructive">{editForm.errors.content}</p>
-                            )}
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Статус</label>
-                                <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={editForm.data.is_active ? '1' : '0'}
-                                    onChange={(e) => editForm.setData('is_active', e.target.value === '1')}
-                                >
-                                    <option value="1">Активно</option>
-                                    <option value="0">Черновик</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Дата мероприятия</label>
-                                <Input
-                                    type="datetime-local"
-                                    value={editForm.data.event_date}
-                                    onChange={(e) => editForm.setData('event_date', e.target.value)}
-                                />
-                                {editForm.errors.event_date && (
-                                    <p className="text-sm text-destructive">{editForm.errors.event_date}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Картинка</label>
-                            <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => editForm.setData('image', e.target.files?.[0] ?? null)}
-                            />
-                            {editingAnnouncement?.image_url && (
-                                <img
-                                    src={editingAnnouncement.image_url}
-                                    alt={editingAnnouncement.title}
-                                    className="h-24 w-24 rounded-md border object-cover"
-                                />
-                            )}
-                            {editForm.errors.image && (
-                                <p className="text-sm text-destructive">{editForm.errors.image}</p>
-                            )}
-                        </div>
-
-                        <label className="inline-flex items-center gap-2 text-sm font-medium">
-                            <input
-                                type="checkbox"
-                                checked={editForm.data.is_important}
-                                onChange={(e) => editForm.setData('is_important', e.target.checked)}
-                            />
-                            Важное
-                        </label>
-                        {editForm.errors.is_important && (
-                            <p className="text-sm text-destructive">{editForm.errors.is_important}</p>
-                        )}
-
+                        {renderFields(editForm, {
+                            isCreate: false,
+                            existingImage: editingAnnouncement?.image_url ?? null,
+                            existingTitle: editingAnnouncement?.title ?? '',
+                        })}
                         <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Отмена</Button>
                             <Button type="submit" form="edit-announcement-form" disabled={editForm.processing}>
                                 Сохранить изменения
                             </Button>
@@ -323,122 +266,133 @@ export default function Index({ announcements }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Список объявлений</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {items.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                Пока нет объявлений. Создайте первую запись.
-                            </p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px] text-sm">
-                                    <thead>
-                                        <tr className="border-b text-left text-muted-foreground">
-                                            <th className="py-3 pe-3 font-medium">Заголовок</th>
-                                            <th className="py-3 pe-3 font-medium">Картинка</th>
-                                            <th className="py-3 pe-3 font-medium">Важное</th>
-                                            <th className="py-3 pe-3 font-medium">Статус</th>
-                                            <th className="py-3 pe-3 font-medium">Дата мероприятия</th>
-                                            <th className="py-3 pe-3 font-medium">Автор</th>
-                                            <th className="py-3 pe-3 font-medium">Создано</th>
-                                            <th className="py-3 text-right font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.map((announcement) => (
-                                            <tr key={announcement.id} className="border-b last:border-0">
-                                                <td className="py-3 pe-3">
-                                                    <div className="font-medium">{announcement.title}</div>
-                                                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего объявлений" value={total} icon={Megaphone} tone="teal" hint="Во всём разделе" />
+                    <StatTile label="Активные" value={activeCount} icon={Radio} tone="success" hint="Среди показанных" />
+                    <StatTile label="Черновики" value={draftCount} icon={FilePen} tone="neutral" hint="Среди показанных" />
+                    <StatTile label="Важные" value={importantCount} icon={CircleAlert} tone="danger" hint="Среди показанных" />
+                </StatGrid>
+
+                {items.length === 0 ? (
+                    <EmptyState
+                        title="Пока нет объявлений"
+                        description="Создайте первую запись — активные объявления увидят пользователи платформы."
+                        action={(
+                            <Button onClick={() => setCreateOpen(true)}>
+                                <Plus />
+                                Добавить объявление
+                            </Button>
+                        )}
+                    />
+                ) : (
+                    <DataTable>
+                        <table className="w-full min-w-[900px] text-sm">
+                            <thead>
+                                <tr>
+                                    <th className="px-5 text-left">Объявление</th>
+                                    <th className="px-5 text-left">Важное</th>
+                                    <th className="px-5 text-left">Статус</th>
+                                    <th className="px-5 text-left">Дата мероприятия</th>
+                                    <th className="px-5 text-left">Автор</th>
+                                    <th className="px-5 text-left">Создано</th>
+                                    <th className="px-5 text-right">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((announcement) => (
+                                    <tr key={announcement.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                        <td className="px-5 py-3.5">
+                                            <div className="flex items-start gap-3">
+                                                {announcement.image_url ? (
+                                                    <img
+                                                        src={announcement.image_url}
+                                                        alt={announcement.title}
+                                                        className="h-14 w-14 shrink-0 rounded-[10px] border border-slate-200 object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-slate-400" title="Без картинки">
+                                                        <ImageOff className="h-5 w-5" />
+                                                    </span>
+                                                )}
+                                                <div className="min-w-0">
+                                                    <div className="font-medium text-slate-900">{announcement.title}</div>
+                                                    <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">
                                                         {announcement.content}
                                                     </p>
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    {announcement.image_url ? (
-                                                        <img
-                                                            src={announcement.image_url}
-                                                            alt={announcement.title}
-                                                            className="h-14 w-14 rounded-md border object-cover"
-                                                        />
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge variant={announcement.is_important ? 'destructive' : 'secondary'}>
-                                                        {announcement.is_important ? 'Да' : 'Нет'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge variant={announcement.is_active ? 'default' : 'secondary'}>
-                                                        {announcement.is_active ? 'Активно' : 'Черновик'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    {announcement.event_date_human ?? '—'}
-                                                </td>
-                                                <td className="py-3 pe-3">{announcement.author_name}</td>
-                                                <td className="py-3 pe-3">{announcement.created_at_human}</td>
-                                                <td className="py-3 text-right">
-                                                    <div className="inline-flex items-center gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            onClick={() => openEditDialog(announcement)}
-                                                        >
-                                                            <Pencil className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="icon"
-                                                            onClick={() => handleDelete(announcement)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {links.length > 3 && (
-                            <div className="mt-6 flex flex-wrap gap-2">
-                                {links.map((link, index) => (
-                                    <Button
-                                        key={index}
-                                        asChild={Boolean(link.url)}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                    >
-                                        {link.url ? (
-                                            <Link href={link.url} preserveScroll>
-                                                <span
-                                                    dangerouslySetInnerHTML={{
-                                                        __html: link.label,
-                                                    }}
-                                                />
-                                            </Link>
-                                        ) : (
-                                            <span
-                                                dangerouslySetInnerHTML={{
-                                                    __html: link.label,
-                                                }}
-                                            />
-                                        )}
-                                    </Button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-3.5">
+                                            <Badge variant={announcement.is_important ? 'destructive' : 'secondary'}>
+                                                {announcement.is_important ? 'Да' : 'Нет'}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-5 py-3.5">
+                                            <Badge variant={announcement.is_active ? 'success' : 'secondary'}>
+                                                {announcement.is_active ? 'Активно' : 'Черновик'}
+                                            </Badge>
+                                        </td>
+                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">
+                                            {announcement.event_date_human ?? '—'}
+                                        </td>
+                                        <td className="px-5 py-3.5 text-slate-700">{announcement.author_name}</td>
+                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-500">{announcement.created_at_human}</td>
+                                        <td className="px-5 py-3.5 text-right">
+                                            <div className="inline-flex items-center gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    title="Редактировать"
+                                                    aria-label="Редактировать"
+                                                    onClick={() => openEditDialog(announcement)}
+                                                >
+                                                    <Pencil />
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    size="icon"
+                                                    title="Удалить"
+                                                    aria-label="Удалить"
+                                                    onClick={() => handleDelete(announcement)}
+                                                >
+                                                    <Trash2 />
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            </tbody>
+                        </table>
+                    </DataTable>
+                )}
+
+                {links.length > 3 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs font-medium text-slate-500">
+                            Показано {announcements?.from ?? 0}–{announcements?.to ?? 0} из {total}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                            {links.map((link, index) => (
+                                <Button
+                                    key={index}
+                                    asChild={Boolean(link.url)}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="sm"
+                                    disabled={!link.url}
+                                >
+                                    {link.url ? (
+                                        <Link href={link.url} preserveScroll>
+                                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                        </Link>
+                                    ) : (
+                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                    )}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             <ConfirmDialog
                 open={confirmState.open}

@@ -1,8 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { SEVERITY_META, SEVERITY_ORDER, StatusBadge, isInProgress } from '@/components/teacher-ai/shared';
+import { InfoField, Notice, PageHeader, UnderlineTabs } from '@/components/platform';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SEVERITY_META, SEVERITY_ORDER, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Info, Lightbulb, LoaderCircle, RotateCcw, Trash2, TriangleAlert, XCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Lightbulb, LoaderCircle, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const POLL_INTERVAL_MS = 4000;
@@ -13,17 +16,17 @@ function FindingCard({ finding }) {
     const meta = SEVERITY_META[finding.severity] ?? SEVERITY_META.minor;
 
     return (
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <article className="py-5 first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-center gap-2">
                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClassName}`} />
                     {meta.label}
                 </span>
-                {finding.category && <span className="text-sm font-medium text-slate-700">{finding.category}</span>}
+                {finding.category && <span className="text-sm font-semibold text-[#102945]">{finding.category}</span>}
             </div>
 
             {finding.quote && (
-                <blockquote className="mt-3 break-words border-l-4 border-slate-200 pl-3 text-sm italic text-slate-500">
+                <blockquote className="mt-3 break-words border-l-[3px] border-teal-600 pl-3 text-sm italic text-slate-600">
                     «{finding.quote}»
                 </blockquote>
             )}
@@ -31,9 +34,9 @@ function FindingCard({ finding }) {
             <p className="mt-3 text-sm leading-6 text-slate-800">{finding.issue}</p>
 
             {finding.suggestion && (
-                <div className="mt-3 flex items-start gap-2 rounded-xl bg-teal-50 p-3 text-sm text-teal-900">
-                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p><span className="font-medium">Как исправить: </span>{finding.suggestion}</p>
+                <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 p-3 text-sm text-[#102945]">
+                    <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
+                    <p><span className="font-semibold">Как исправить: </span>{finding.suggestion}</p>
                 </div>
             )}
         </article>
@@ -75,165 +78,166 @@ export default function Show({ review }) {
         });
     };
 
+    const filterTabs = [
+        { key: 'all', label: 'Все', count: findings.length },
+        ...SEVERITY_ORDER
+            .filter((key) => (review.findings_count?.[key] ?? 0) > 0)
+            .map((key) => ({ key, label: SEVERITY_META[key].label, count: review.findings_count[key] })),
+    ];
+
     return (
         <AuthenticatedLayout
             header={(
-                <div className="space-y-2">
-                    <Link
-                        href={route('teacher-ai.reviews.index')}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-900"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Все проверки
-                    </Link>
-                    <h2 className="break-words text-2xl font-semibold text-slate-900">{review.title}</h2>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
-                        <StatusBadge status={review.status} />
-                        <span>{review.document_type_label}</span>
-                        <span>{review.created_at}</span>
-                        {review.original_name && <span className="break-all">{review.original_name}</span>}
-                    </div>
-                </div>
+                <PageHeader
+                    eyebrow={(
+                        <Link
+                            href={route('teacher-ai.reviews.index')}
+                            className="inline-flex items-center gap-1.5 hover:text-[#102945]"
+                        >
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                            Все проверки
+                        </Link>
+                    )}
+                    title={<span className="break-words">{review.title}</span>}
+                    description={(
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                            <span>{review.document_type_label}</span>
+                            <span className="tabular-nums">{review.created_at}</span>
+                            {review.original_name && <span className="break-all">{review.original_name}</span>}
+                        </span>
+                    )}
+                    meta={<ReviewStatusBadge status={review.status} />}
+                    actions={(
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setConfirmDelete(true)}
+                            disabled={busy}
+                            className="gap-2"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Удалить проверку
+                        </Button>
+                    )}
+                />
             )}
         >
-            <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-                <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <Info className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
-                    <p>
-                        Это рекомендации ИИ, а не решение. ИИ может ошибаться или пропустить важное:
-                        проверяйте каждое замечание по тексту документа.
-                    </p>
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <Notice tone="brand">
+                    Это рекомендации ИИ, а не решение. ИИ может ошибаться или пропустить важное:
+                    проверяйте каждое замечание по тексту документа.
+                </Notice>
 
                 {inProgress && (
-                    <div className="flex flex-col items-center justify-center rounded-3xl border border-sky-200 bg-sky-50 px-6 py-12 text-center">
-                        <LoaderCircle className="h-10 w-10 animate-spin text-sky-600" />
-                        <h3 className="mt-4 text-lg font-semibold text-sky-900">
-                            {review.status === 'pending' ? 'Документ в очереди на проверку' : 'ИИ анализирует документ'}
-                        </h3>
-                        <p className="mt-1 max-w-md text-sm text-sky-800">
-                            Обычно это занимает 1–2 минуты. Страница обновится сама, можно её не закрывать.
-                        </p>
-                    </div>
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
+                            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                <LoaderCircle className="h-8 w-8 animate-spin" />
+                            </span>
+                            <h3 className="mt-4 font-display text-lg font-bold text-[#102945]">
+                                {review.status === 'pending' ? 'Документ в очереди на проверку' : 'ИИ анализирует документ'}
+                            </h3>
+                            <p className="mt-1 max-w-md text-sm text-slate-600">
+                                Обычно это занимает 1–2 минуты. Страница обновится сама, можно её не закрывать.
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {review.status === 'failed' && (
-                    <div className="flex flex-col gap-4 rounded-3xl border border-rose-200 bg-rose-50 p-6 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-start gap-3">
-                            <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-                            <div>
-                                <h3 className="font-semibold text-rose-900">Проверка не выполнена</h3>
-                                <p className="mt-1 text-sm text-rose-800">{review.error_message ?? 'Попробуйте ещё раз позже.'}</p>
-                            </div>
-                        </div>
-                        {review.can_retry && (
-                            <button
+                    <Notice
+                        tone="danger"
+                        title="Проверка не выполнена"
+                        action={review.can_retry ? (
+                            <Button
                                 type="button"
+                                variant="destructive"
                                 onClick={retry}
                                 disabled={busy}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
+                                className="shrink-0 gap-2"
                             >
                                 <RotateCcw className="h-4 w-4" />
                                 Повторить
-                            </button>
-                        )}
-                    </div>
+                            </Button>
+                        ) : null}
+                    >
+                        {review.error_message ?? 'Попробуйте ещё раз позже.'}
+                    </Notice>
                 )}
 
                 {review.status === 'completed' && (
                     <>
                         {review.is_partial && (
-                            <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-                                <p>
-                                    Документ длинный: проанализированы первые {numberFormat.format(review.analyzed_chars)} из{' '}
-                                    {numberFormat.format(review.content_chars)} символов. Окончание документа ИИ не видел.
-                                </p>
-                            </div>
+                            <Notice tone="warning">
+                                Документ длинный: проанализированы первые {numberFormat.format(review.analyzed_chars)} из{' '}
+                                {numberFormat.format(review.content_chars)} символов. Окончание документа ИИ не видел.
+                            </Notice>
                         )}
 
-                        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                            <h3 className="text-lg font-semibold text-slate-900">Краткий пересказ</h3>
-                            <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{review.summary}</p>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    Краткий пересказ
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <p className="whitespace-pre-line text-[0.9375rem] leading-7 text-slate-700">{review.summary}</p>
 
-                            {review.key_points.length > 0 && (
-                                <>
-                                    <h4 className="mt-6 text-sm font-semibold uppercase tracking-wide text-slate-500">Ключевые положения</h4>
-                                    <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
-                                        {review.key_points.map((point, index) => (
-                                            <li key={index}>{point}</li>
-                                        ))}
-                                    </ul>
-                                </>
-                            )}
+                                {review.key_points.length > 0 && (
+                                    <div className="border-t border-slate-200 pt-5">
+                                        <h4 className="qd-field-label text-slate-500">Ключевые положения</h4>
+                                        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
+                                            {review.key_points.map((point, index) => (
+                                                <li key={index}>{point}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
 
-                            {review.overall && (
-                                <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">
-                                    <span className="font-medium text-slate-900">Общий вывод ИИ: </span>
-                                    {review.overall}
-                                </div>
-                            )}
-                        </section>
+                                {review.overall && (
+                                    <div className="border-t border-slate-200 pt-5">
+                                        <h4 className="qd-field-label text-slate-500">Общий вывод ИИ</h4>
+                                        <p className="mt-2 text-sm leading-6 text-slate-700">{review.overall}</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
-                        <section className="space-y-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    Спорные места <span className="font-normal text-slate-400">({findings.length})</span>
-                                </h3>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TriangleAlert className="h-4 w-4" />
+                                    Спорные места ({findings.length})
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-5">
                                 {findings.length > 0 && (
-                                    <div className="inline-flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1">
-                                        {[
-                                            { key: 'all', label: `Все ${findings.length}` },
-                                            ...SEVERITY_ORDER
-                                                .filter((key) => (review.findings_count?.[key] ?? 0) > 0)
-                                                .map((key) => ({ key, label: `${SEVERITY_META[key].label} ${review.findings_count[key]}` })),
-                                        ].map((option) => (
-                                            <button
-                                                key={option.key}
-                                                type="button"
-                                                onClick={() => setFilter(option.key)}
-                                                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${filter === option.key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                                            >
-                                                {option.label}
-                                            </button>
+                                    <UnderlineTabs items={filterTabs} value={filter} onChange={setFilter} />
+                                )}
+
+                                {findings.length === 0 ? (
+                                    <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
+                                        <p className="font-display text-base font-bold text-[#102945]">Спорных мест не найдено</p>
+                                        <p className="mt-1 text-sm text-slate-600">ИИ не нашёл спорных мест. Это не гарантия, что их нет.</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-slate-200">
+                                        {visibleFindings.map((finding, index) => (
+                                            <FindingCard key={`${filter}-${index}`} finding={finding} />
                                         ))}
                                     </div>
                                 )}
-                            </div>
-
-                            {findings.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
-                                    ИИ не нашёл спорных мест. Это не гарантия, что их нет.
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {visibleFindings.map((finding, index) => (
-                                        <FindingCard key={`${filter}-${index}`} finding={finding} />
-                                    ))}
-                                </div>
-                            )}
-                        </section>
+                            </CardContent>
+                        </Card>
                     </>
                 )}
 
                 {review.focus && (
-                    <p className="text-sm text-slate-500">
-                        <span className="font-medium text-slate-700">Ваш комментарий для ИИ: </span>
-                        {review.focus}
-                    </p>
+                    <InfoField label="Ваш комментарий для ИИ" className="border-b-0">
+                        <span className="font-normal text-slate-700">{review.focus}</span>
+                    </InfoField>
                 )}
-
-                <div className="flex justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setConfirmDelete(true)}
-                        disabled={busy}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Удалить проверку
-                    </button>
-                </div>
             </div>
 
             <ConfirmDialog

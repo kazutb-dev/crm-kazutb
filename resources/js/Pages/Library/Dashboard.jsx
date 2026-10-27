@@ -1,8 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { DataTable, ErrorState, FilterBar, LoadingState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
+import { BookOpen, Layers, Library, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const DEFAULT_LIMIT = 100;
@@ -116,32 +118,50 @@ export default function Dashboard() {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Библиотека"
+                    title="Library Dashboard"
+                    description="Каталог книг из внешнего API с поиском и пагинацией."
+                />
+            )}
+        >
             <Head title="Library Dashboard" />
 
-            <div className="admin-page-wrap">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Library Dashboard</CardTitle>
-                        <CardDescription>
-                            Каталог книг из внешнего API с поиском и пагинацией.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end" onSubmit={handleSearchSubmit}>
-                            <div className="flex-1 space-y-1">
-                                <label className="text-sm font-medium">Поиск</label>
-                                <Input
-                                    value={searchDraft}
-                                    onChange={(event) => setSearchDraft(event.target.value)}
-                                    placeholder="Введите название, автора или ISBN"
-                                />
-                            </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid className="xl:grid-cols-3">
+                    <StatTile
+                        label={query ? 'Найдено книг' : 'Всего книг'}
+                        value={isLoading ? '…' : meta.total}
+                        tone="teal"
+                        icon={Library}
+                        hint={query ? `По запросу «${query}»` : 'Во внешнем каталоге'}
+                    />
+                    <StatTile label="На странице" value={isLoading ? '…' : books.length} tone="navy" icon={BookOpen} />
+                    <StatTile label="Страница" value={`${meta.page} / ${meta.totalPages}`} tone="gold" icon={Layers} />
+                </StatGrid>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">На странице</label>
+                <FilterBar>
+                    <form className="space-y-4" onSubmit={handleSearchSubmit}>
+                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-[minmax(0,1fr)_12rem]">
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        value={searchDraft}
+                                        onChange={(event) => setSearchDraft(event.target.value)}
+                                        placeholder="Введите название, автора или ISBN"
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">На странице</span>
                                 <select
-                                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className={qdFieldClass}
                                     value={limit}
                                     onChange={(event) => {
                                         setLimit(Number(event.target.value));
@@ -154,130 +174,137 @@ export default function Dashboard() {
                                         </option>
                                     ))}
                                 </select>
-                            </div>
+                            </label>
+                        </div>
 
-                            <div className="flex gap-2">
-                                <Button type="submit" disabled={isLoading}>
-                                    Найти
-                                </Button>
-                                <Button type="button" variant="outline" disabled={isLoading} onClick={handleReset}>
-                                    Сбросить
-                                </Button>
-                            </div>
-                        </form>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit" disabled={isLoading}>
+                                Найти
+                            </Button>
+                            <Button type="button" variant="outline" disabled={isLoading} onClick={handleReset}>
+                                Сбросить
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                        {isLoading && (
-                            <p className="text-sm text-muted-foreground">
-                                Загрузка каталога...
+                {isLoading && (
+                    <LoadingState label="Загрузка каталога..." />
+                )}
+
+                {!isLoading && error && (
+                    <ErrorState title="Не удалось загрузить каталог" description={error} />
+                )}
+
+                {!isLoading && !error && (
+                    <div className="space-y-4">
+                        <div className="flex flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                            <p>
+                                {query ? `Результатов по запросу «${query}»: ${meta.total}.` : `Всего книг: ${meta.total}.`} Показано: {books.length} на странице.
                             </p>
-                        )}
-
-                        {!isLoading && error && (
-                            <p className="text-sm text-red-600">
-                                {error}
+                            <p className="tabular-nums">
+                                Страница {meta.page} из {meta.totalPages}
                             </p>
-                        )}
+                        </div>
 
-                        {!isLoading && !error && (
-                            <div className="space-y-4">
-                                <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                                    <p>
-                                        {query ? `Результатов по запросу «${query}»: ${meta.total}.` : `Всего книг: ${meta.total}.`} Показано: {books.length} на странице.
-                                    </p>
-                                    <p>
-                                        Страница {meta.page} из {meta.totalPages}
-                                    </p>
-                                </div>
-
-                                <div className="overflow-x-auto rounded-md border">
-                                    <table className="w-full min-w-[980px] text-sm">
-                                        <thead className="bg-muted/50">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left font-medium">Название</th>
-                                                <th className="px-3 py-2 text-left font-medium">Автор</th>
-                                                <th className="px-3 py-2 text-left font-medium">Год</th>
-                                                <th className="px-3 py-2 text-left font-medium">ISBN</th>
-                                                <th className="px-3 py-2 text-left font-medium">Доступно</th>
-                                                <th className="px-3 py-2 text-left font-medium">Всего</th>
+                        <DataTable>
+                            <table className="w-full min-w-[980px] text-sm">
+                                <thead>
+                                    <tr>
+                                        <th className="px-4 py-3 text-left">Название</th>
+                                        <th className="px-4 py-3 text-left">Автор</th>
+                                        <th className="px-4 py-3 text-left">Год</th>
+                                        <th className="px-4 py-3 text-left">ISBN</th>
+                                        <th className="px-4 py-3 text-right">Доступно</th>
+                                        <th className="px-4 py-3 text-right">Всего</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {books.map((book, index) => {
+                                        const available = book.copies?.available ?? 0;
+                                        return (
+                                            <tr key={book.id ?? `${book.title?.display ?? 'book'}-${book.legacyDocId ?? index}`} className="border-t border-slate-200 hover:bg-slate-50">
+                                                <td className="px-4 py-3 align-top font-medium text-slate-900">{book.title?.display ?? 'Без названия'}</td>
+                                                <td className="px-4 py-3 align-top text-slate-700">{book.primaryAuthor ?? '-'}</td>
+                                                <td className="px-4 py-3 align-top tabular-nums text-slate-700">{book.publicationYear ?? '-'}</td>
+                                                <td className="px-4 py-3 align-top font-mono text-xs text-slate-600">{book.isbn?.raw ?? '-'}</td>
+                                                <td className="px-4 py-3 text-right align-top">
+                                                    <Badge variant={available > 0 ? 'success' : 'secondary'} className="tabular-nums">{available}</Badge>
+                                                </td>
+                                                <td className="px-4 py-3 text-right align-top tabular-nums text-slate-700">{book.copies?.total ?? 0}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {books.map((book, index) => (
-                                                <tr key={book.id ?? `${book.title?.display ?? 'book'}-${book.legacyDocId ?? index}`} className="border-t">
-                                                    <td className="px-3 py-2 align-top">{book.title?.display ?? 'Без названия'}</td>
-                                                    <td className="px-3 py-2 align-top">{book.primaryAuthor ?? '-'}</td>
-                                                    <td className="px-3 py-2 align-top">{book.publicationYear ?? '-'}</td>
-                                                    <td className="px-3 py-2 align-top">{book.isbn?.raw ?? '-'}</td>
-                                                    <td className="px-3 py-2 align-top">{book.copies?.available ?? 0}</td>
-                                                    <td className="px-3 py-2 align-top">{book.copies?.total ?? 0}</td>
-                                                </tr>
-                                            ))}
+                                        );
+                                    })}
 
-                                            {books.length === 0 && (
-                                                <tr className="border-t">
-                                                    <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
-                                                        Книги не найдены.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                    {books.length === 0 && (
+                                        <tr className="border-t border-slate-200">
+                                            <td className="px-4 py-10 text-center text-slate-500" colSpan={6}>
+                                                Книги не найдены.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </DataTable>
 
-                                <div className="flex flex-wrap items-center justify-end gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={!canGoPrev}
+                                onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                            >
+                                Назад
+                            </Button>
+                            {startPage > 1 && (
+                                <>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setPage(1)} disabled={isLoading}>
+                                        1
+                                    </Button>
+                                    {startPage > 2 && <span className="px-1 text-sm text-slate-500">...</span>}
+                                </>
+                            )}
+                            {pageNumbers.map((pageNumber) => (
+                                <Button
+                                    key={pageNumber}
+                                    type="button"
+                                    size="sm"
+                                    variant={pageNumber === meta.page ? 'default' : 'outline'}
+                                    disabled={isLoading}
+                                    onClick={() => setPage(pageNumber)}
+                                    className="tabular-nums"
+                                >
+                                    {pageNumber}
+                                </Button>
+                            ))}
+                            {endPage < meta.totalPages && (
+                                <>
+                                    {endPage < meta.totalPages - 1 && <span className="px-1 text-sm text-slate-500">...</span>}
                                     <Button
                                         type="button"
+                                        size="sm"
                                         variant="outline"
-                                        disabled={!canGoPrev}
-                                        onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                                        onClick={() => setPage(meta.totalPages)}
+                                        disabled={isLoading}
+                                        className="tabular-nums"
                                     >
-                                        Назад
+                                        {meta.totalPages}
                                     </Button>
-                                    {startPage > 1 && (
-                                        <>
-                                            <Button type="button" variant="outline" onClick={() => setPage(1)} disabled={isLoading}>
-                                                1
-                                            </Button>
-                                            {startPage > 2 && <span className="px-1 text-sm text-muted-foreground">...</span>}
-                                        </>
-                                    )}
-                                    {pageNumbers.map((pageNumber) => (
-                                        <Button
-                                            key={pageNumber}
-                                            type="button"
-                                            variant={pageNumber === meta.page ? 'default' : 'outline'}
-                                            disabled={isLoading}
-                                            onClick={() => setPage(pageNumber)}
-                                        >
-                                            {pageNumber}
-                                        </Button>
-                                    ))}
-                                    {endPage < meta.totalPages && (
-                                        <>
-                                            {endPage < meta.totalPages - 1 && <span className="px-1 text-sm text-muted-foreground">...</span>}
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => setPage(meta.totalPages)}
-                                                disabled={isLoading}
-                                            >
-                                                {meta.totalPages}
-                                            </Button>
-                                        </>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        disabled={!canGoNext}
-                                        onClick={() => setPage((currentPage) => Math.min(meta.totalPages, currentPage + 1))}
-                                    >
-                                        Вперед
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                </>
+                            )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={!canGoNext}
+                                onClick={() => setPage((currentPage) => Math.min(meta.totalPages, currentPage + 1))}
+                            >
+                                Вперед
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

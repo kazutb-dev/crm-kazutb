@@ -1,11 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, EmptyState, FilterBar, FormField, PageHeader, qdFieldClass, Segmented, StatGrid, StatTile } from '@/components/platform';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     Activity,
     AlertCircle,
+    CalendarClock,
+    ClipboardList,
     AlertTriangle,
     ChevronDown,
     ChevronUp,
@@ -25,32 +27,32 @@ const SOURCE_LABELS = {
 };
 
 const SEVERITY_CONFIG = {
-    critical: { label: 'Критичное', classes: 'bg-red-100 text-red-800 border-red-200', icon: Shield, dot: 'bg-red-500' },
-    high: { label: 'Важное', classes: 'bg-orange-100 text-orange-800 border-orange-200', icon: AlertTriangle, dot: 'bg-orange-400' },
-    medium: { label: 'Рабочее', classes: 'bg-blue-100 text-blue-700 border-blue-200', icon: AlertCircle, dot: 'bg-blue-400' },
-    low: { label: 'Обычное', classes: 'bg-gray-100 text-gray-600 border-gray-200', icon: Info, dot: 'bg-gray-400' },
+    critical: { label: 'Критичное', classes: 'bg-red-50 text-red-800 border-red-200', icon: Shield, dot: 'bg-red-600' },
+    high: { label: 'Важное', classes: 'bg-orange-50 text-orange-800 border-orange-200', icon: AlertTriangle, dot: 'bg-orange-500' },
+    medium: { label: 'Рабочее', classes: 'bg-blue-50 text-blue-800 border-blue-200', icon: AlertCircle, dot: 'bg-blue-600' },
+    low: { label: 'Обычное', classes: 'bg-slate-100 text-slate-600 border-slate-200', icon: Info, dot: 'bg-slate-400' },
 };
 
 const MODULE_COLORS = {
     auth: 'bg-slate-100 text-slate-700 border-slate-200',
-    kpi: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    kpi_settings: 'bg-violet-100 text-violet-700 border-violet-200',
-    users: 'bg-cyan-100 text-cyan-700 border-cyan-200',
-    positions: 'bg-rose-100 text-rose-700 border-rose-200',
-    tickets: 'bg-amber-100 text-amber-700 border-amber-200',
-    announcements: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    calendar: 'bg-teal-100 text-teal-700 border-teal-200',
-    library: 'bg-green-100 text-green-700 border-green-200',
-    certificates: 'bg-lime-100 text-lime-700 border-lime-200',
-    navigation: 'bg-pink-100 text-pink-700 border-pink-200',
-    directory: 'bg-orange-100 text-orange-700 border-orange-200',
-    system: 'bg-gray-100 text-gray-600 border-gray-200',
+    kpi: 'bg-blue-50 text-blue-800 border-blue-200',
+    kpi_settings: 'bg-blue-50 text-blue-800 border-blue-200',
+    users: 'bg-teal-50 text-teal-800 border-teal-200',
+    positions: 'bg-teal-50 text-teal-800 border-teal-200',
+    tickets: 'bg-amber-50 text-amber-800 border-amber-200',
+    announcements: 'bg-amber-50 text-amber-800 border-amber-200',
+    calendar: 'bg-teal-50 text-teal-800 border-teal-200',
+    library: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    certificates: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    navigation: 'bg-orange-50 text-orange-800 border-orange-200',
+    directory: 'bg-orange-50 text-orange-800 border-orange-200',
+    system: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
 const ROW_SEVERITY_BG = {
-    critical: 'border-l-4 border-l-red-500',
-    high: 'border-l-4 border-l-orange-400',
-    medium: 'border-l-4 border-l-blue-300',
+    critical: 'shadow-[inset_3px_0_0_0_#c62828]',
+    high: 'shadow-[inset_3px_0_0_0_#a4531f]',
+    medium: 'shadow-[inset_3px_0_0_0_rgba(37,99,235,0.45)]',
     low: '',
 };
 
@@ -84,13 +86,13 @@ function ModuleBadge({ module, label }) {
 function SourceBadge({ source }) {
     if (source === 'audit') {
         return (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-blue-600 text-white">
+            <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-800">
                 <Database size={10} /> Аудит
             </span>
         );
     }
     return (
-        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-slate-500 text-white">
+        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
             <Activity size={10} /> Система
         </span>
     );
@@ -112,22 +114,22 @@ function ExpandedRow({ item }) {
 
     return (
         <td colSpan={7} className="px-6 pb-4 pt-0">
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 mt-1">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
+            <div className="mt-1 rounded-xl border border-slate-200 bg-white p-4">
+                <div className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
                     {pairs.map(([k, v]) => (
-                        <div key={k} className="flex gap-2">
-                            <span className="text-slate-400 font-medium w-32 shrink-0">{k}:</span>
+                        <div key={k} className="flex gap-2 border-b border-slate-100 pb-2">
+                            <span className="qd-field-label w-32 shrink-0 pt-0.5 text-slate-500">{k}</span>
                             <span className="text-slate-700 break-all">{v}</span>
                         </div>
                     ))}
                 </div>
                 {meta.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-slate-200">
-                        <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Метаданные</p>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
+                        <p className="qd-kicker mb-3">Метаданные</p>
+                        <div className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
                             {meta.map(([k, v]) => (
-                                <div key={k} className="flex gap-2">
-                                    <span className="text-slate-400 font-medium w-32 shrink-0">{k}:</span>
+                                <div key={k} className="flex gap-2 border-b border-slate-100 pb-2">
+                                    <span className="w-32 shrink-0 font-mono text-xs text-slate-500">{k}</span>
                                     <span className="text-slate-700 break-all font-mono text-xs">
                                         {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                                     </span>
@@ -178,154 +180,129 @@ export default function AuditLogs({ logs, summary, filters, options }) {
         module: 'Модуль', severity: 'Важность', search: 'Поиск',
     }[key] || key);
 
+    const sourceItems = (options?.sources || ['all', 'audit', 'activity']).map((key) => ({ key, label: SOURCE_LABELS[key] || key }));
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Администрирование"
+                    title="Журнал аудита"
+                    description="Все действия и события в CRM · DEV-среда"
+                    actions={(
+                        <Link href={route('admin.monitoring.index')}>
+                            <Button variant="outline" size="sm">Мониторинг →</Button>
+                        </Link>
+                    )}
+                />
+            )}
+        >
             <Head title="Журнал аудита" />
 
-            <div className="admin-page-wrap">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Журнал аудита</h1>
-                        <p className="text-sm text-slate-500 mt-1">Все действия и события в CRM · DEV-среда</p>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего записей" value={(summary?.total || 0).toLocaleString('ru-RU')} tone="navy" icon={ClipboardList} />
+                    <StatTile label="За сегодня" value={(summary?.today_count || 0).toLocaleString('ru-RU')} tone="teal" icon={CalendarClock} />
+                    <StatTile label="Записи аудита" value={(summary?.audit_count || 0).toLocaleString('ru-RU')} tone="info" icon={Database} />
+                    <StatTile label="События системы" value={(summary?.activity_count || 0).toLocaleString('ru-RU')} tone="neutral" icon={Activity} />
+                </StatGrid>
+
+                <FilterBar>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
+                            <Filter className="h-4 w-4 text-teal-700" /> Фильтры
+                        </div>
+                        <Segmented items={sourceItems} value={filters?.source || 'all'} onChange={(value) => applyFilter({ source: value })} />
                     </div>
-                    <Link href={route('admin.monitoring.index')}>
-                        <Button variant="outline" size="sm">Мониторинг →</Button>
-                    </Link>
-                </div>
 
-                {/* Summary */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {[
-                        { label: 'Всего записей', value: summary?.total || 0, cls: '' },
-                        { label: 'За сегодня', value: summary?.today_count || 0, cls: '' },
-                        { label: 'Записи аудита', value: summary?.audit_count || 0, cls: 'bg-blue-50 border-blue-100', vCls: 'text-blue-900', lCls: 'text-blue-600' },
-                        { label: 'События системы', value: summary?.activity_count || 0, cls: 'bg-slate-50', vCls: 'text-slate-700', lCls: 'text-slate-500' },
-                    ].map(({ label, value, cls, vCls, lCls }) => (
-                        <Card key={label} className={`border-slate-200 ${cls}`}>
-                            <CardContent className="pt-5">
-                                <p className={`text-xs font-medium uppercase tracking-wide ${lCls || 'text-slate-500'}`}>{label}</p>
-                                <p className={`text-3xl font-bold mt-1 ${vCls || 'text-slate-900'}`}>{(value).toLocaleString('ru-RU')}</p>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Filters */}
-                <Card className="border-slate-200">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                            <Filter size={14} /> Фильтры
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                            <select
-                                className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
-                                value={filters?.source || 'all'}
-                                onChange={e => applyFilter({ source: e.target.value })}
-                            >
-                                {(options?.sources || ['all', 'audit', 'activity']).map(s => (
-                                    <option key={s} value={s}>{SOURCE_LABELS[s] || s}</option>
-                                ))}
-                            </select>
-
-                            <select
-                                className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
-                                value={filters?.module || ''}
-                                onChange={e => applyFilter({ module: e.target.value || null })}
-                            >
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                        <FormField label="Модуль">
+                            <select className={qdFieldClass} value={filters?.module || ''} onChange={e => applyFilter({ module: e.target.value || null })}>
                                 <option value="">Все модули</option>
                                 {(options?.modules || []).map(m => (
                                     <option key={m.key} value={m.key}>{m.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
-                                value={filters?.severity || ''}
-                                onChange={e => applyFilter({ severity: e.target.value || null })}
-                            >
+                        <FormField label="Важность">
+                            <select className={qdFieldClass} value={filters?.severity || ''} onChange={e => applyFilter({ severity: e.target.value || null })}>
                                 <option value="">Любая важность</option>
                                 {(options?.severities || []).map(s => (
                                     <option key={s.key} value={s.key}>{s.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
-                                value={filters?.event_type || ''}
-                                onChange={e => applyFilter({ event_type: e.target.value || null })}
-                            >
+                        <FormField label="Событие">
+                            <select className={qdFieldClass} value={filters?.event_type || ''} onChange={e => applyFilter({ event_type: e.target.value || null })}>
                                 <option value="">Все события</option>
                                 {(options?.eventTypes || []).map(e => (
                                     <option key={e.key} value={e.key}>{e.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="text-sm border border-slate-200 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-400 outline-none"
-                                value={filters?.subject_type || ''}
-                                onChange={e => applyFilter({ subject_type: e.target.value || null })}
-                            >
+                        <FormField label="Сущность">
+                            <select className={qdFieldClass} value={filters?.subject_type || ''} onChange={e => applyFilter({ subject_type: e.target.value || null })}>
                                 <option value="">Все сущности</option>
                                 {(options?.subjectTypes || []).map(s => (
                                     <option key={s.key} value={s.key}>{s.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <div className="relative">
-                                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                    className="pl-7 text-sm h-8"
-                                    placeholder="Поиск…"
-                                    defaultValue={filters?.search || ''}
-                                    onKeyDown={e => e.key === 'Enter' && applyFilter({ search: e.target.value || null })}
-                                />
-                            </div>
-                        </div>
+                        <label className="relative block space-y-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                            <Input
+                                className="pl-9"
+                                placeholder="Поиск… (Enter)"
+                                defaultValue={filters?.search || ''}
+                                onKeyDown={e => e.key === 'Enter' && applyFilter({ search: e.target.value || null })}
+                            />
+                        </label>
+                    </div>
 
-                        {activeFilters.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                                <span className="text-xs text-slate-400 font-medium">Активные:</span>
-                                {activeFilters.map(([key, val]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => clearFilter(key)}
-                                        className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 border border-blue-200 rounded-full px-2.5 py-1 hover:bg-blue-200 transition-colors"
-                                    >
-                                        <span className="text-blue-500 font-medium">{filterTitleFor(key)}:</span>
-                                        {filterLabelFor(key, val)}
-                                        <X size={10} />
-                                    </button>
-                                ))}
-                                <button onClick={clearAllFilters} className="text-xs text-slate-400 hover:text-slate-600 underline ml-1">
-                                    Очистить всё
+                    {activeFilters.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
+                            <span className="qd-field-label text-slate-500">Активные</span>
+                            {activeFilters.map(([key, val]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => clearFilter(key)}
+                                    className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs text-teal-800 transition-colors hover:border-teal-300 hover:bg-teal-100"
+                                >
+                                    <span className="font-semibold">{filterTitleFor(key)}:</span>
+                                    {filterLabelFor(key, val)}
+                                    <X size={10} />
                                 </button>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            ))}
+                            <Button variant="outline" size="sm" className="ml-auto" onClick={clearAllFilters}>
+                                Очистить всё
+                            </Button>
+                        </div>
+                    )}
+                </FilterBar>
 
-                {/* Table */}
-                <Card className="border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto">
+                {(logs?.data || []).length === 0 ? (
+                    <EmptyState title="Записи не найдены" description="По текущим фильтрам событий нет. Сбросьте фильтры или выберите другой источник." action={activeFilters.length > 0 ? <Button variant="outline" size="sm" onClick={clearAllFilters}>Очистить всё</Button> : null} />
+                ) : (
+                <DataTable>
+                    <div>
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wide">
-                                    <th className="text-left px-6 py-3 font-semibold w-36">Время</th>
-                                    <th className="text-left px-3 py-3 font-semibold w-24">Источник</th>
-                                    <th className="text-left px-3 py-3 font-semibold w-28">Модуль</th>
-                                    <th className="text-left px-3 py-3 font-semibold">Событие</th>
-                                    <th className="text-left px-3 py-3 font-semibold">Пользователь</th>
-                                    <th className="text-left px-3 py-3 font-semibold">Сущность</th>
-                                    <th className="text-left px-3 py-3 font-semibold w-8"></th>
+                                <tr className="border-b border-slate-200 text-left">
+                                    <th className="w-36 px-5 py-3">Время</th>
+                                    <th className="w-24 px-3 py-3">Источник</th>
+                                    <th className="w-28 px-3 py-3">Модуль</th>
+                                    <th className="px-3 py-3">Событие</th>
+                                    <th className="px-3 py-3">Пользователь</th>
+                                    <th className="px-3 py-3">Сущность</th>
+                                    <th className="w-8 px-3 py-3"><span className="sr-only">Подробнее</span></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {(logs?.data || []).length === 0 && (
-                                    <tr><td colSpan={7} className="text-center text-slate-400 py-12">Записи не найдены</td></tr>
-                                )}
+                            <tbody className="divide-y divide-slate-200">
                                 {(logs?.data || []).flatMap(item => {
                                     const isExpanded = expandedRow === item.id;
                                     const rowBg = ROW_SEVERITY_BG[item.severity] || '';
@@ -335,32 +312,32 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                             className={`cursor-pointer hover:bg-slate-50 transition-colors ${rowBg}`}
                                             onClick={() => toggleRow(item.id)}
                                         >
-                                            <td className="px-6 py-3 text-xs text-slate-500 font-mono whitespace-nowrap">
+                                            <td className="whitespace-nowrap px-5 py-3 font-mono text-xs tabular-nums text-slate-500">
                                                 {formatDate(item.created_at)}
                                             </td>
                                             <td className="px-3 py-3"><SourceBadge source={item.source} /></td>
                                             <td className="px-3 py-3"><ModuleBadge module={item.module} label={item.module_label} /></td>
                                             <td className="px-3 py-3">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="font-medium text-slate-800">{item.event_label || item.event_key}</span>
+                                                    <span className="font-medium text-slate-900">{item.event_label || item.event_key}</span>
                                                     <SeverityBadge severity={item.severity} label={item.severity_label} />
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3">
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium text-slate-700">{item.actor_name}</span>
-                                                    {item.actor_email && <span className="text-xs text-slate-400">{item.actor_email}</span>}
+                                                    <span className="font-medium text-slate-800">{item.actor_name}</span>
+                                                    {item.actor_email && <span className="text-xs text-slate-500">{item.actor_email}</span>}
                                                 </div>
                                             </td>
                                             <td className="px-3 py-3">
                                                 <div className="flex flex-col">
                                                     <span className="text-slate-700">{item.subject_name || '—'}</span>
                                                     {item.subject_label && (
-                                                        <span className="text-xs text-slate-400 font-mono">{item.subject_label}</span>
+                                                        <span className="font-mono text-xs text-slate-500">{item.subject_label}</span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-3 text-slate-400">
+                                            <td className="px-3 py-3 text-teal-700">
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                             </td>
                                         </tr>,
@@ -379,8 +356,8 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                     </div>
 
                     {logs?.last_page > 1 && (
-                        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50">
-                            <p className="text-xs text-slate-400">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                            <p className="text-xs font-medium tabular-nums text-slate-500">
                                 Показано {logs.from}–{logs.to} из {(logs.total || 0).toLocaleString('ru-RU')} записей
                             </p>
                             <div className="flex gap-2 items-center">
@@ -389,7 +366,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                         <Button variant="outline" size="sm">← Назад</Button>
                                     </Link>
                                 )}
-                                <span className="text-xs text-slate-500 px-3">{logs.current_page} / {logs.last_page}</span>
+                                <span className="px-3 text-sm tabular-nums text-slate-600">{logs.current_page} / {logs.last_page}</span>
                                 {logs.next_page_url && (
                                     <Link href={logs.next_page_url}>
                                         <Button variant="outline" size="sm">Вперёд →</Button>
@@ -398,9 +375,10 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                             </div>
                         </div>
                     )}
-                </Card>
+                </DataTable>
+                )}
 
-                <p className="text-xs text-slate-400 text-center">
+                <p className="text-center text-xs text-slate-500">
                     DEV-среда · Данные из <code>audit_logs</code> + Spatie <code>activity_log</code>
                 </p>
             </div>

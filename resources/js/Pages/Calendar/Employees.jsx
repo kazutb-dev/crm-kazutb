@@ -1,23 +1,34 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link } from '@inertiajs/react';
-import { Search, User } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useState } from 'react';
 
 const STATUS_COLORS = {
-    available: 'bg-green-500',
+    available: 'bg-emerald-500',
     busy: 'bg-red-500',
-    soon: 'bg-yellow-500',
-    dnd: 'bg-gray-400',
+    soon: 'bg-amber-500',
+    dnd: 'bg-slate-400',
+};
+const STATUS_TONES = {
+    available: 'success',
+    busy: 'danger',
+    soon: 'warning',
+    dnd: 'default',
 };
 const STATUS_LABELS = {
     available: 'Доступен',
     busy: 'Занят',
     soon: 'Скоро',
     dnd: 'Не беспокоить',
+};
+
+const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 };
 
 export default function CalendarEmployees({ employees = [] }) {
@@ -35,62 +46,73 @@ export default function CalendarEmployees({ employees = [] }) {
     });
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Сотрудники"
+                    description="Каталог сотрудников с быстрым переходом в календарь и статусом доступности"
+                    meta={<StatusBadge tone="default">Всего: {employees.length}</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Smart Calendar — Сотрудники" />
-            <div className="admin-page-wrap">
-                <Card className="border-border/70">
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                        <div>
-                            <p className="text-sm font-semibold">Сотрудники</p>
-                            <p className="text-xs text-muted-foreground">Каталог сотрудников с быстрым переходом в календарь и статусом доступности</p>
-                        </div>
-                        <div className="relative w-full max-w-sm">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                            <Input
-                                className="pl-9"
-                                placeholder="Поиск по ФИО, должности, кабинету, телефону..."
-                                value={query}
-                                onChange={e => setQuery(e.target.value)}
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <label className="relative block max-w-xl space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
+                        <Search className="pointer-events-none absolute bottom-3 left-3 size-4 text-slate-400" />
+                        <Input
+                            className="pl-9"
+                            placeholder="Поиск по ФИО, должности, кабинету, телефону..."
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                        />
+                    </label>
+                    {query && (
+                        <p className="mt-3 border-t border-slate-200 pt-3 text-xs font-medium text-slate-500">
+                            Найдено: {filtered.length} из {employees.length}
+                        </p>
+                    )}
+                </FilterBar>
 
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {filtered.map(emp => (
-                        <Card key={emp.id} className="border-border/70 transition-colors hover:border-foreground/10 hover:bg-muted/20">
-                            <CardContent className="flex h-full flex-col gap-4 p-4">
+                {filtered.length === 0 ? (
+                    <EmptyState title="Сотрудники не найдены" description="Измените поисковый запрос: поиск идёт по ФИО, должности, подразделению, кабинету, email и телефону." />
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {filtered.map(emp => (
+                            <div key={emp.id} className="flex h-full flex-col gap-4 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] transition-colors hover:border-teal-300">
                                 <div className="flex gap-3">
                                     <div className="relative shrink-0">
-                                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                                            <User className="size-5 text-muted-foreground" />
+                                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-50 font-display text-sm font-bold text-[#102945]">
+                                            {getInitials(emp.name)}
                                         </div>
-                                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${STATUS_COLORS[emp.calendar_status] ?? STATUS_COLORS.dnd}`} />
+                                        <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${STATUS_COLORS[emp.calendar_status] ?? STATUS_COLORS.dnd}`} />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold">{emp.name}</p>
-                                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{emp.title ?? '—'}</p>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {emp.department && <Badge variant="outline" className="max-w-full truncate text-[10px] py-0">{emp.department}</Badge>}
-                                            {emp.room && <Badge variant="outline" className="text-[10px] py-0">Каб. {emp.room}</Badge>}
-                                            {emp.phone && <Badge variant="outline" className="text-[10px] py-0">{emp.phone}</Badge>}
-                                        </div>
+                                        <p className="truncate font-semibold text-slate-900">{emp.name}</p>
+                                        <p className="mt-0.5 truncate text-sm text-slate-500">{emp.title ?? '—'}</p>
                                     </div>
                                 </div>
-                                <div className="mt-auto flex items-center gap-2 border-t border-border/60 pt-3">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${STATUS_COLORS[emp.calendar_status] ?? STATUS_COLORS.dnd}`} />
-                                    <span className="text-[10px] text-muted-foreground">{STATUS_LABELS[emp.calendar_status] ?? 'Нет данных'}</span>
-                                    <Button variant="outline" size="sm" className="ml-auto h-7 px-3 text-[10px] font-medium" asChild>
+                                {(emp.department || emp.room || emp.phone) && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {emp.department && <Badge variant="secondary" className="max-w-full truncate">{emp.department}</Badge>}
+                                        {emp.room && <Badge variant="outline">Каб. {emp.room}</Badge>}
+                                        {emp.phone && <Badge variant="outline" className="tabular-nums">{emp.phone}</Badge>}
+                                    </div>
+                                )}
+                                <div className="mt-auto flex items-center gap-2 border-t border-slate-200 pt-4">
+                                    <StatusBadge tone={STATUS_TONES[emp.calendar_status] ?? 'default'}>
+                                        {STATUS_LABELS[emp.calendar_status] ?? 'Нет данных'}
+                                    </StatusBadge>
+                                    <Button variant="outline" size="sm" className="ml-auto" asChild>
                                         <Link href={route('calendar.employees.profile', { employee: emp.id })}>Открыть календарь</Link>
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                    {filtered.length === 0 && (
-                        <p className="col-span-full text-sm text-muted-foreground text-center py-8">Сотрудники не найдены</p>
-                    )}
-                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

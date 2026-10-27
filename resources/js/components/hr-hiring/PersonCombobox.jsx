@@ -59,33 +59,33 @@ export default function PersonCombobox({ id, value, onChange, error }) {
                         <button
                             type="button"
                             onClick={() => onChange({ user_id: null, employee_id: null, full_name: '' })}
-                            className="absolute inset-y-0 right-2 my-auto h-6 rounded-md p-1 text-slate-400 hover:bg-slate-100"
+                            className="absolute inset-y-0 right-2 my-auto h-6 rounded-[8px] p-1 text-slate-400 hover:bg-slate-100 hover:text-[#102945]"
                             title="Очистить"
                         >
                             <X className="h-4 w-4" />
                         </button>
                     )}
                 </div>
-                <ComboboxOptions anchor="bottom start" className="z-50 mt-1 max-h-72 w-[var(--input-width)] overflow-auto rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg empty:invisible">
+                <ComboboxOptions anchor="bottom start" className="z-50 mt-1 max-h-72 w-[var(--input-width)] overflow-auto rounded-[12px] border border-slate-200 bg-white p-1 text-sm shadow-[0_12px_32px_0_rgba(25,28,29,0.10)] empty:invisible">
                     {items.map((item) => (
-                        <ComboboxOption key={`${item.kind}-${item.id}`} value={item} className="flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 data-[focus]:bg-teal-50">
-                            <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                        <ComboboxOption key={`${item.kind}-${item.id}`} value={item} className="flex cursor-pointer items-start gap-2.5 rounded-[10px] px-3 py-2 data-[focus]:bg-teal-50">
+                            <UserRound className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
                             <span className="min-w-0">
-                                <span className="block text-slate-900">{item.full_name}</span>
+                                <span className="block font-medium text-slate-900">{item.full_name}</span>
                                 {item.note && <span className="block text-xs text-slate-500">{item.note}</span>}
                             </span>
                         </ComboboxOption>
                     ))}
                     {typed.length >= 2 && (
-                        <ComboboxOption value={{ kind: 'manual', id: null, full_name: typed }} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-teal-800 data-[focus]:bg-teal-50">
+                        <ComboboxOption value={{ kind: 'manual', id: null, full_name: typed }} className="flex cursor-pointer items-center gap-2 rounded-[10px] border-t border-slate-100 px-3 py-2 font-semibold text-teal-700 data-[focus]:bg-teal-50">
                             <PencilLine className="h-4 w-4" />
                             Ввести вручную: «{typed}»
                         </ComboboxOption>
                     )}
                 </ComboboxOptions>
             </Combobox>
-            {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : (
-                <p className="mt-1 text-xs text-slate-500">Поиск по сотрудникам системы и принятым через модуль; можно ввести ФИО вручную.</p>
+            {error ? <p className="mt-1.5 text-xs text-red-700">{error}</p> : (
+                <p className="mt-1.5 text-xs text-slate-500">Поиск по сотрудникам системы и принятым через модуль; можно ввести ФИО вручную.</p>
             )}
         </div>
     );

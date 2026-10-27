@@ -1,5 +1,5 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, FilterBar, FormField, Notice, SectionHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { router, useForm } from '@inertiajs/react';
-import { CircleOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarRange, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const stageLabels = {
@@ -28,10 +28,10 @@ const statusLabels = {
     closed: 'Закрыт',
 };
 
-const statusVariants = {
-    draft: 'outline',
-    active: 'default',
-    closed: 'secondary',
+const statusTones = {
+    draft: 'default',
+    active: 'success',
+    closed: 'info',
 };
 
 const accessScopes = [
@@ -109,9 +109,9 @@ function PeriodForm({ form, academicYears, statusOptions, submitLabel, onSubmit 
         <form className="space-y-4" onSubmit={onSubmit}>
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-medium">Учебный год (сезон)</label>
+                    <label className="qd-field-label block">Учебный год (сезон)</label>
                     <select
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className={qdFieldClass}
                         value={form.data.academic_year_id}
                         onChange={(e) => handleAcademicYearChange(e.target.value)}
                     >
@@ -120,13 +120,13 @@ function PeriodForm({ form, academicYears, statusOptions, submitLabel, onSubmit 
                             <option key={item.id} value={item.id}>{item.name}</option>
                         ))}
                     </select>
-                    {errorFor('academic_year_id') && <p className="text-sm text-destructive">{errorFor('academic_year_id')}</p>}
+                    {errorFor('academic_year_id') && <p className="text-sm text-red-700">{errorFor('academic_year_id')}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Статус</label>
+                    <label className="qd-field-label block">Статус</label>
                     <select
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className={qdFieldClass}
                         value={form.data.status}
                         onChange={(e) => form.setData('status', e.target.value)}
                     >
@@ -134,30 +134,30 @@ function PeriodForm({ form, academicYears, statusOptions, submitLabel, onSubmit 
                             <option key={option} value={option}>{statusLabels[option] ?? option}</option>
                         ))}
                     </select>
-                    {errorFor('status') && <p className="text-sm text-destructive">{errorFor('status')}</p>}
+                    {errorFor('status') && <p className="text-sm text-red-700">{errorFor('status')}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Дата начала</label>
+                    <label className="qd-field-label block">Дата начала</label>
                     <Input type="date" value={form.data.start_date} onChange={(e) => form.setData('start_date', e.target.value)} />
-                    {errorFor('start_date') && <p className="text-sm text-destructive">{errorFor('start_date')}</p>}
+                    {errorFor('start_date') && <p className="text-sm text-red-700">{errorFor('start_date')}</p>}
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Дата окончания</label>
+                    <label className="qd-field-label block">Дата окончания</label>
                     <Input type="date" value={form.data.end_date} onChange={(e) => form.setData('end_date', e.target.value)} />
-                    {errorFor('end_date') && <p className="text-sm text-destructive">{errorFor('end_date')}</p>}
+                    {errorFor('end_date') && <p className="text-sm text-red-700">{errorFor('end_date')}</p>}
                 </div>
             </div>
 
             {form.data.academic_year_id && form.data.start_date && (
-                <p className="text-xs text-muted-foreground">Даты установлены автоматически. При необходимости скорректируйте вручную.</p>
+                <Notice tone="info">Даты установлены автоматически. При необходимости скорректируйте вручную.</Notice>
             )}
 
             <div className="space-y-2">
-                <label className="text-sm font-medium">Описание</label>
+                <label className="qd-field-label block">Описание</label>
                 <textarea
-                    className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className={`${qdFieldClass} h-auto min-h-20 py-2`}
                     value={form.data.description}
                     onChange={(e) => form.setData('description', e.target.value)}
                     placeholder="Краткое описание (необязательно)"
@@ -306,126 +306,144 @@ export default function KpiPeriodsManager({
                 </DialogContent>
             </Dialog>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
-                    <CardTitle>Справочник KPI-сезонов</CardTitle>
-                    {canManage && (
-                        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm">
-                                    <Plus className="h-4 w-4" />
-                                    Добавить KPI-сезон
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle>Создание KPI-периода</DialogTitle>
-                                    <DialogDescription>Настройте период и даты в рамках выбранного учебного года.</DialogDescription>
-                                </DialogHeader>
-                                <PeriodForm
-                                    form={createForm}
-                                    academicYears={academicYears}
-                                    statusOptions={statusOptions}
-                                    submitLabel="Создать период"
-                                    onSubmit={submitCreate}
-                                />
-                            </DialogContent>
-                        </Dialog>
-                    )}
-                </CardHeader>
-                <CardContent>
-                    <form className="flex flex-wrap items-end gap-3" onSubmit={applyFilters}>
-                        <div className="min-w-[220px] space-y-2">
-                            <label className="text-sm font-medium">Учебный год</label>
-                            <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={filterForm.data.academic_year_id} onChange={(e) => filterForm.setData('academic_year_id', e.target.value)}>
-                            <option value="">Все учебные годы</option>
-                            {academicYears.map((item) => (
-                                <option key={item.id} value={item.id}>{item.name}</option>
-                            ))}
-                            </select>
-                        </div>
+            <SectionHeader
+                title="Справочник KPI-сезонов"
+                description="Сезоны, их статусы и доступ ролей к заполнению KPI."
+                compact
+                actions={canManage ? (
+                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="h-4 w-4" />
+                                Добавить KPI-сезон
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Создание KPI-периода</DialogTitle>
+                                <DialogDescription>Настройте период и даты в рамках выбранного учебного года.</DialogDescription>
+                            </DialogHeader>
+                            <PeriodForm
+                                form={createForm}
+                                academicYears={academicYears}
+                                statusOptions={statusOptions}
+                                submitLabel="Создать период"
+                                onSubmit={submitCreate}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                ) : null}
+            />
 
-                        <div className="min-w-[220px] space-y-2">
-                            <label className="text-sm font-medium">Статус</label>
-                            <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm" value={filterForm.data.status} onChange={(e) => filterForm.setData('status', e.target.value)}>
+            <FilterBar>
+                <form className="space-y-4" onSubmit={applyFilters}>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <FormField label="Учебный год">
+                            <select className={qdFieldClass} value={filterForm.data.academic_year_id} onChange={(e) => filterForm.setData('academic_year_id', e.target.value)}>
+                                <option value="">Все учебные годы</option>
+                                {academicYears.map((item) => (
+                                    <option key={item.id} value={item.id}>{item.name}</option>
+                                ))}
+                            </select>
+                        </FormField>
+
+                        <FormField label="Статус">
+                            <select className={qdFieldClass} value={filterForm.data.status} onChange={(e) => filterForm.setData('status', e.target.value)}>
                                 <option value="">Все статусы</option>
                                 {statusOptions.map((option) => (
                                     <option key={option} value={option}>{statusLabels[option] ?? option}</option>
                                 ))}
                             </select>
-                        </div>
+                        </FormField>
+                    </div>
 
-                        <Button type="submit">Применить</Button>
+                    <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                         <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                    </form>
-                </CardContent>
-            </Card>
+                        <Button type="submit">Применить</Button>
+                    </div>
+                </form>
+            </FilterBar>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Таблица сезонов</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {items.length === 0 ? (
-                        <div className="flex min-h-52 flex-col items-center justify-center rounded-xl border border-dashed text-center">
-                            <CircleOff className="h-8 w-8 text-muted-foreground" />
-                            <p className="mt-3 text-sm text-muted-foreground">Периоды не найдены. Измените фильтры или создайте первый KPI-период.</p>
-                        </div>
-                    ) : (
+            {items.length === 0 ? (
+                <EmptyState
+                    title="Периоды не найдены"
+                    description="Измените фильтры или создайте первый KPI-период."
+                    action={canManage ? (
+                        <Button type="button" onClick={() => setCreateOpen(true)}>
+                            <Plus className="h-4 w-4" />
+                            Добавить KPI-сезон
+                        </Button>
+                    ) : null}
+                />
+            ) : (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <CalendarRange className="h-4 w-4" />
+                            Таблица сезонов
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[980px] text-sm">
-                                <thead>
-                                    <tr className="border-b text-left text-muted-foreground">
-                                        <th className="py-3 pe-3 font-medium">Период</th>
-                                        <th className="py-3 pe-3 font-medium">Учебный год</th>
-                                        <th className="py-3 pe-3 font-medium">Статус</th>
-                                        <th className="py-3 pe-3 font-medium">Доступы</th>
-                                        <th className="py-3 pe-3 font-medium">Даты</th>
-                                        <th className="py-3 pe-3 font-medium">Описание</th>
-                                        <th className="py-3 text-right font-medium">Действия</th>
+                                <thead className="border-b border-slate-200">
+                                    <tr className="text-left">
+                                        <th className="px-5 py-3">Период</th>
+                                        <th className="px-5 py-3">Учебный год</th>
+                                        <th className="px-5 py-3">Статус</th>
+                                        <th className="px-5 py-3">Доступы</th>
+                                        <th className="px-5 py-3">Даты</th>
+                                        <th className="px-5 py-3">Описание</th>
+                                        <th className="px-5 py-3 text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.map((period) => (
-                                        <tr key={period.id} className="border-b align-top last:border-0">
-                                            <td className="py-4 pe-3">
-                                                <div className="font-medium">{period.name}</div>
-                                                <div className="mt-1 text-xs text-muted-foreground">Создал: {period.creator?.name ?? '—'}</div>
+                                        <tr key={period.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
+                                            <td className="px-5 py-4">
+                                                <div className="font-medium text-slate-900">{period.name}</div>
+                                                <div className="mt-1 text-xs text-slate-500">Создал: {period.creator?.name ?? '—'}</div>
                                             </td>
-                                            <td className="py-4 pe-3">{period.academic_year?.name ?? '—'}</td>
-                                            <td className="py-4 pe-3">
-                                                <Badge variant={statusVariants[period.status] ?? 'outline'}>{statusLabels[period.status] ?? period.status}</Badge>
+                                            <td className="px-5 py-4 text-slate-700">{period.academic_year?.name ?? '—'}</td>
+                                            <td className="px-5 py-4">
+                                                <StatusBadge tone={statusTones[period.status] ?? 'default'}>{statusLabels[period.status] ?? period.status}</StatusBadge>
                                             </td>
-                                            <td className="py-4 pe-3">
-                                                <div className="flex flex-wrap gap-2">
+                                            <td className="px-5 py-4">
+                                                <div className="grid grid-cols-2 gap-1.5">
                                                     {accessScopes.map((scope) => {
                                                         const isActive = Boolean(period[scope.field]);
                                                         const canToggle = canManage && period.status !== 'closed';
 
                                                         return (
-                                                            <Button
+                                                            <button
                                                                 key={`${period.id}-${scope.key}`}
                                                                 type="button"
-                                                                size="sm"
-                                                                variant={isActive ? 'default' : 'outline'}
                                                                 disabled={!canToggle}
+                                                                aria-pressed={isActive}
                                                                 onClick={() => (isActive ? deactivateScope(period, scope.key) : activateScope(period, scope.key))}
+                                                                className={`inline-flex items-center justify-between gap-2 rounded-[10px] border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isActive
+                                                                    ? 'border-teal-200 bg-teal-50 text-teal-800 hover:border-teal-400'
+                                                                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-[#102945]'}`}
                                                             >
-                                                                {scope.label}: {isActive ? 'ON' : 'OFF'}
-                                                            </Button>
+                                                                <span>{scope.label}</span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? 'bg-teal-600' : 'bg-slate-300'}`} />
+                                                                    {isActive ? 'ON' : 'OFF'}
+                                                                </span>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
                                             </td>
-                                            <td className="py-4 pe-3">
-                                                <div>{formatDate(period.start_date)}</div>
-                                                <div className="text-muted-foreground">{formatDate(period.end_date)}</div>
+                                            <td className="px-5 py-4 tabular-nums">
+                                                <div className="text-slate-900">{formatDate(period.start_date)}</div>
+                                                <div className="text-slate-500">{formatDate(period.end_date)}</div>
                                             </td>
-                                            <td className="py-4 pe-3 text-muted-foreground">
+                                            <td className="px-5 py-4 text-slate-600">
                                                 <div className="max-w-xs whitespace-pre-wrap break-words">{period.description || '—'}</div>
                                             </td>
-                                            <td className="py-4 text-right">
-                                                <div className="flex justify-end gap-2">
+                                            <td className="px-5 py-4 text-right">
+                                                <div className="flex flex-wrap justify-end gap-2">
                                                     {canManage && period.status !== 'closed' && (
                                                         <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(period)}>
                                                             <Pencil className="h-4 w-4" />
@@ -454,26 +472,26 @@ export default function KpiPeriodsManager({
                                 </tbody>
                             </table>
                         </div>
-                    )}
+                    </CardContent>
+                </Card>
+            )}
 
-                    {links.length > 3 && (
-                        <div className="mt-6 flex flex-wrap gap-2">
-                            {links.map((link) => (
-                                <Button
-                                    key={`${link.url}-${link.label}`}
-                                    type="button"
-                                    variant={link.active ? 'default' : 'outline'}
-                                    size="sm"
-                                    disabled={!link.url}
-                                    onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
-                                >
-                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                </Button>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            {links.length > 3 && (
+                <div className="flex flex-wrap justify-end gap-2">
+                    {links.map((link) => (
+                        <Button
+                            key={`${link.url}-${link.label}`}
+                            type="button"
+                            variant={link.active ? 'default' : 'outline'}
+                            size="sm"
+                            disabled={!link.url}
+                            onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
+                        >
+                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                        </Button>
+                    ))}
+                </div>
+            )}
         </div>
         <ConfirmDialog
             open={confirmState.open}

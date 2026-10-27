@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -197,159 +198,133 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <form className="flex items-center gap-2" onSubmit={handleSearch}>
-                    <Input
-                        ref={searchRef}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="ФИО сотрудника..."
-                        className="h-8 w-64"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="mr-1 h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Рабочее время"
+                    description="Табель по данным проходов: время входа и выхода, отработанное время, отсутствие, опоздания, ранний уход и переработка. Строка открывает историю проходов за день."
+                    meta={(
+                        <>
+                            {rangeLabel && <StatusBadge tone="info">{rangeLabel}</StatusBadge>}
+                            {meta?.total != null && <StatusBadge tone="default">Записей: {meta.total}</StatusBadge>}
+                        </>
+                    )}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="HR / Рабочее время" />
 
-            <div className="admin-page-wrap">
-                <div className="flex flex-wrap items-center gap-3">
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+                            <label className="relative block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    ref={searchRef}
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ФИО сотрудника..."
+                                    className="pl-9"
+                                />
+                            </label>
+                            <FormField label="Подразделение">
+                                <select value={division} onChange={handleDivisionChange} className={qdFieldClass}>
+                                    <option value="">Все подразделения</option>
+                                    {divisions.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Период">
+                                <select value={fromDate || toDate ? '' : days} onChange={handleDaysChange} className={qdFieldClass}>
+                                    {(fromDate || toDate) && <option value="" disabled>Диапазон дат</option>}
+                                    <option value="1">Сегодня</option>
+                                    <option value="-1">Вчера</option>
+                                    <option value="7">За 7 дней</option>
+                                    <option value="14">За 14 дней</option>
+                                    <option value="30">За 30 дней</option>
+                                    <option value="0">За все время</option>
+                                </select>
+                            </FormField>
+                            <FormField label="С даты">
+                                <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
+                            </FormField>
+                            <FormField label="По дату">
+                                <input type="date" value={toDate} onChange={handleToDateChange} className={qdFieldClass} />
+                            </FormField>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit">
+                                <Search className="h-4 w-4" />
+                                Найти
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                    <select
-                        value={fromDate || toDate ? '' : days}
-                        onChange={handleDaysChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        {(fromDate || toDate) && <option value="" disabled>Диапазон дат</option>}
-                        <option value="1">Сегодня</option>
-                        <option value="-1">Вчера</option>
-                        <option value="7">За 7 дней</option>
-                        <option value="14">За 14 дней</option>
-                        <option value="30">За 30 дней</option>
-                        <option value="0">За все время</option>
-                    </select>
-
-                    <Input type="date" value={fromDate} onChange={handleFromDateChange} className="h-9 w-[160px]" />
-                    <span className="text-sm text-muted-foreground">—</span>
-                    <Input type="date" value={toDate} onChange={handleToDateChange} className="h-9 w-[160px]" />
-
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-
-                    {rangeLabel && (
-                        <span className="text-sm text-muted-foreground">{rangeLabel}</span>
-                    )}
-
-                    {meta?.total != null && (
-                        <span className="ml-auto text-sm text-muted-foreground">
-                            Записей: <strong>{meta.total}</strong>
-                        </span>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Сотрудников</p>
-                                <p className="text-2xl font-semibold">{totalPeople}</p>
-                            </div>
-                            <Users className="h-5 w-5 text-blue-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Рабочих дней</p>
-                                <p className="text-2xl font-semibold">{totalWorkDays}</p>
-                            </div>
-                            <CalendarDays className="h-5 w-5 text-violet-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Всего отработано</p>
-                                <p className="text-lg font-semibold">{totalPresence}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-emerald-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Суммарное отсутствие</p>
-                                <p className="text-lg font-semibold">{totalAbsent}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-orange-500" />
-                        </CardContent>
-                    </Card>
-                </div>
+                <StatGrid>
+                    <StatTile label="Сотрудников" value={totalPeople} icon={Users} tone="info" />
+                    <StatTile label="Рабочих дней" value={totalWorkDays} icon={CalendarDays} tone="navy" />
+                    <StatTile label="Всего отработано" value={<span className="text-2xl">{totalPresence}</span>} icon={Clock3} tone="success" />
+                    <StatTile label="Суммарное отсутствие" value={<span className="text-2xl">{totalAbsent}</span>} icon={Clock3} tone="copper" />
+                </StatGrid>
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Рабочее время сотрудников</CardTitle>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Clock3 className="shrink-0" />Рабочее время сотрудников</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {items.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет данных за выбранный период.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1200px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('work_date')}>Дата{sortIndicator('work_date')}</button>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('work_date')}>Дата{sortIndicator('work_date')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
-                                            </th>
-                                            <th className="py-3 pr-3 font-medium text-center">
-                                                <button type="button" onClick={() => toggleSort('first_enter_time')}>Зашел{sortIndicator('first_enter_time')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-center">
-                                                <button type="button" onClick={() => toggleSort('last_exit_time')}>Вышел{sortIndicator('last_exit_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Зашел{sortIndicator('first_enter_time')}</button>
+                                            </th>
+                                            <th className="py-3 pr-3 font-medium text-center">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('last_exit_time')}>Вышел{sortIndicator('last_exit_time')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-right">
-                                                <button type="button" onClick={() => toggleSort('work_time')}>Отработано{sortIndicator('work_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('work_time')}>Отработано{sortIndicator('work_time')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-right">
-                                                <button type="button" onClick={() => toggleSort('absent_time')}>Отсутствие{sortIndicator('absent_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('absent_time')}>Отсутствие{sortIndicator('absent_time')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-right">
-                                                <button type="button" onClick={() => toggleSort('late_time')}>Опоздание{sortIndicator('late_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>Опоздание{sortIndicator('late_time')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-right">
-                                                <button type="button" onClick={() => toggleSort('early_time')}>Ранний уход{sortIndicator('early_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('early_time')}>Ранний уход{sortIndicator('early_time')}</button>
                                             </th>
                                             <th className="py-3 pr-3 font-medium text-right">
-                                                <button type="button" onClick={() => toggleSort('over_time')}>Переработка{sortIndicator('over_time')}</button>
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('over_time')}>Переработка{sortIndicator('over_time')}</button>
                                             </th>
                                         </tr>
                                     </thead>
@@ -362,37 +337,37 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                                             <tr
                                                 key={`${row.id}-${row.work_date}`}
                                                 className={[
-                                                    'cursor-pointer border-b last:border-0',
+                                                    'cursor-pointer border-b border-slate-200 last:border-0',
                                                     row.is_non_working_day
                                                         ? 'bg-red-50 hover:bg-red-100/70'
-                                                        : 'hover:bg-muted/30',
+                                                        : '',
                                                 ].join(' ')}
                                                 onClick={() => openDayEvents(row)}
                                                 title="Открыть историю проходов за день"
                                             >
                                                 <td className="py-3 pl-6 pr-3">
-                                                    <div>{fmtDate(row.work_date)}</div>
+                                                    <div className="tabular-nums text-slate-700">{fmtDate(row.work_date)}</div>
                                                     {row.is_non_working_day && (
                                                         <div className="text-[11px] font-medium text-red-600">
                                                             {row.is_holiday ? 'Праздничный день' : 'Выходной день'}
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="py-3 pr-3 font-medium underline underline-offset-4">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.position ?? '—'}</td>
+                                                <td className="py-3 pr-3 font-medium text-teal-700 underline underline-offset-4">{fullName(row)}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
                                                 <td className="py-3 pr-3 text-center font-medium text-emerald-700">{fmtTimeList(row.enter_times, row.first_enter_time)}</td>
                                                 <td className="py-3 pr-3 text-center font-medium text-red-600">
                                                     {fmtTimeList(row.exit_times, row.last_exit_time)}
                                                     {eventIssue && (
-                                                        <div className="text-[11px] font-normal text-amber-600">{eventIssue}</div>
+                                                        <div className="text-[11px] font-normal text-amber-700">{eventIssue}</div>
                                                     )}
                                                 </td>
                                                 <td className="py-3 pr-3 text-right font-semibold text-emerald-700">{fmtDuration(row.work_time)}</td>
                                                 <td className="py-3 pr-3 text-right text-orange-600">{fmtDuration(row.absent_time)}</td>
                                                 <td className="py-3 pr-3 text-right text-red-600">{fmtDuration(row.late_time)}</td>
-                                                <td className="py-3 pr-3 text-right text-amber-600">{fmtDuration(row.early_time)}</td>
-                                                <td className="py-3 pr-3 text-right text-violet-600">{fmtDuration(row.over_time)}</td>
+                                                <td className="py-3 pr-3 text-right text-amber-700">{fmtDuration(row.early_time)}</td>
+                                                <td className="py-3 pr-6 text-right text-blue-700">{fmtDuration(row.over_time)}</td>
                                             </tr>
                                                 );
                                             })()
@@ -403,7 +378,7 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 p-4">
+                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

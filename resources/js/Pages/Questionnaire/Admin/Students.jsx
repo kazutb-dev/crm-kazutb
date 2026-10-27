@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Plus, Save, Search, Trash2, UserSearch, Users } from 'lucide-react';
+import { Loader2, Pencil, Plus, Save, Search, Trash2, UserCheck, UserSearch, Users, UsersRound } from 'lucide-react';
 
 export default function Students() {
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
@@ -175,179 +176,213 @@ export default function Students() {
             .includes(term);
     });
 
+    const activeStudents = students.filter((student) => student.status === 'active').length;
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Студенты"
+                    description="Привязка студентов к группам с выбором из локальной базы или AD."
+                    meta={<StatusBadge tone="default">{students.length} привязок</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Анкетирование - Студенты" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Студенты</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Привязка студентов к группам с выбором из локальной базы или AD.</p>
-                        </div>
-                        <Badge variant="secondary" className="w-fit">{students.length} привязок</Badge>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Привязок" value={students.length} tone="teal" icon={Users} />
+                    <StatTile label="Активные" value={activeStudents} tone="success" icon={UserCheck} />
+                    <StatTile label="Групп" value={groups.length} tone="navy" icon={UsersRound} />
+                    <StatTile label="Студентов в базе" value={studentUsers.length} tone="gold" icon={UserSearch} hint="Доступны для выбора в форме" />
+                </StatGrid>
 
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[430px_1fr]">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">{editingId ? 'Редактирование привязки' : 'Новая привязка студента'}</CardTitle>
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[400px_1fr]">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                {editingId ? <Save /> : <Plus />}
+                                {editingId ? 'Редактирование привязки' : 'Новая привязка студента'}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-3" onSubmit={submit}>
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.user_id}
-                                    onChange={(e) => setForm((prev) => ({
-                                        ...prev,
-                                        user_id: e.target.value,
-                                        ad_login: e.target.value ? '' : prev.ad_login,
-                                        full_name: e.target.value ? '' : prev.full_name,
-                                    }))}
-                                    disabled={Boolean(editingId)}
-                                >
-                                    <option value="">Выберите студента из локальной базы</option>
-                                    {studentUsers.map((user) => (
-                                        <option key={user.id} value={user.id}>
-                                            {user.display_name || user.name} ({user.ad_login || user.email || `id:${user.id}`})
-                                        </option>
-                                    ))}
-                                </select>
+                            <form className="space-y-4" onSubmit={submit}>
+                                <FormField label="Студент из локальной базы">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.user_id}
+                                        onChange={(e) => setForm((prev) => ({
+                                            ...prev,
+                                            user_id: e.target.value,
+                                            ad_login: e.target.value ? '' : prev.ad_login,
+                                            full_name: e.target.value ? '' : prev.full_name,
+                                        }))}
+                                        disabled={Boolean(editingId)}
+                                    >
+                                        <option value="">Выберите студента из локальной базы</option>
+                                        {studentUsers.map((user) => (
+                                            <option key={user.id} value={user.id}>
+                                                {user.display_name || user.name} ({user.ad_login || user.email || `id:${user.id}`})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </FormField>
 
                                 {!editingId && (
-                                    <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
-                                        <p className="text-xs font-medium text-[#102945]">Если студента нет в системе, выполните поиск в AD</p>
+                                    <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white p-4">
+                                        <div className="flex items-start gap-2">
+                                            <UserSearch className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
+                                            <p className="text-sm font-medium text-[#102945]">Если студента нет в системе, выполните поиск в AD</p>
+                                        </div>
                                         <div className="flex gap-2">
                                             <Input
                                                 placeholder="Поиск в AD (ФИО, логин, email)"
                                                 value={adSearch}
                                                 onChange={(e) => setAdSearch(e.target.value)}
                                             />
-                                            <Button type="button" variant="outline" className="gap-2" onClick={searchAdStudents}>
-                                                <UserSearch className="h-4 w-4" />
+                                            <Button type="button" variant="outline" onClick={searchAdStudents}>
+                                                {adLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                                                 {adLoading ? 'Поиск...' : 'Найти'}
                                             </Button>
                                         </div>
 
-                                        <select
-                                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                            value={form.ad_login}
-                                            onChange={(e) => {
-                                                const selected = adStudents.find((item) => item.ad_login === e.target.value);
+                                        <FormField label="Студент из AD">
+                                            <select
+                                                className={qdFieldClass}
+                                                value={form.ad_login}
+                                                onChange={(e) => {
+                                                    const selected = adStudents.find((item) => item.ad_login === e.target.value);
 
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    user_id: '',
-                                                    ad_login: e.target.value,
-                                                    full_name: selected?.display_name || '',
-                                                }));
-                                            }}
-                                        >
-                                            <option value="">Выберите студента из AD</option>
-                                            {adStudents.map((user) => (
-                                                <option key={user.ad_login} value={user.ad_login}>
-                                                    {user.display_name} ({user.ad_login})
-                                                </option>
-                                            ))}
-                                        </select>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        user_id: '',
+                                                        ad_login: e.target.value,
+                                                        full_name: selected?.display_name || '',
+                                                    }));
+                                                }}
+                                            >
+                                                <option value="">Выберите студента из AD</option>
+                                                {adStudents.map((user) => (
+                                                    <option key={user.ad_login} value={user.ad_login}>
+                                                        {user.display_name} ({user.ad_login})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </FormField>
 
                                         {!!form.ad_login && (
-                                            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                                                Выбран AD логин: <span className="font-semibold">{form.ad_login}</span>
-                                            </div>
+                                            <p className="text-xs text-slate-600">
+                                                Выбран AD логин: <Badge variant="secondary" className="ml-1 font-mono">{form.ad_login}</Badge>
+                                            </p>
                                         )}
                                     </div>
                                 )}
 
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.group_id}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, group_id: e.target.value }))}
-                                >
-                                    <option value="">Выберите группу</option>
-                                    {groups.map((group) => (
-                                        <option key={group.id} value={group.id}>
-                                            {group.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <FormField label="Группа">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.group_id}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, group_id: e.target.value }))}
+                                    >
+                                        <option value="">Выберите группу</option>
+                                        {groups.map((group) => (
+                                            <option key={group.id} value={group.id}>
+                                                {group.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </FormField>
 
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.status}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                                >
-                                    <option value="active">active</option>
-                                    <option value="inactive">inactive</option>
-                                </select>
+                                <FormField label="Статус">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.status}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                                    >
+                                        <option value="active">active</option>
+                                        <option value="inactive">inactive</option>
+                                    </select>
+                                </FormField>
 
-                                <div className="flex gap-2">
-                                    <Button type="submit" className="gap-2">
-                                        {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                        {editingId ? 'Сохранить' : 'Привязать'}
-                                    </Button>
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     {editingId && (
                                         <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
                                     )}
+                                    <Button type="submit">
+                                        {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                        {editingId ? 'Сохранить' : 'Привязать'}
+                                    </Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]"><Users className="h-4 w-4 text-[#067a75]" />Текущие привязки студентов</CardTitle>
-                                <div className="relative w-full sm:w-72">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                    className="pl-9"
-                                    placeholder="Поиск"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                                </div>
-                            </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users />
+                                Текущие привязки студентов
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-
+                        <div className="border-b border-slate-200 px-5 py-4">
+                            <FormField label="Поиск">
+                                <div className="relative w-full sm:max-w-sm">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        className="pl-9"
+                                        placeholder="ФИО, логин или группа"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                </div>
+                            </FormField>
+                        </div>
+                        <CardContent className="p-0">
                             {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
+                                <div className="p-5"><LoadingState /></div>
                             ) : filteredStudents.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Привязки пока не созданы.</p>
+                                <div className="px-5 py-12 text-center">
+                                    <p className="font-display text-lg font-bold text-[#102945]">Привязки пока не созданы</p>
+                                    <p className="mt-1 text-sm text-slate-600">
+                                        {students.length === 0 ? 'Выберите студента и группу в форме слева, чтобы создать первую привязку.' : 'По запросу ничего не найдено — измените поиск.'}
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full text-sm">
                                         <thead>
-                                            <tr className="border-b text-muted-foreground">
-                                                <th className="px-3 py-2 text-left font-medium">Студент</th>
-                                                <th className="px-3 py-2 text-left font-medium">Логин AD</th>
-                                                <th className="px-3 py-2 text-left font-medium">Группа</th>
-                                                <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                                <th className="px-3 py-2 text-right font-medium">Действия</th>
+                                            <tr className="border-b border-slate-200">
+                                                <th className="px-5 py-3 text-left">Студент</th>
+                                                <th className="px-5 py-3 text-left">Логин AD</th>
+                                                <th className="px-5 py-3 text-left">Группа</th>
+                                                <th className="px-5 py-3 text-left">Статус</th>
+                                                <th className="px-5 py-3 text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredStudents.map((student) => (
-                                                <tr key={student.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#102945]">{student.full_name}</td>
-                                                    <td className="px-3 py-2">{student.login || student.user?.ad_login || '—'}</td>
-                                                    <td className="px-3 py-2">{student.group?.name || '—'}</td>
-                                                    <td className="px-3 py-2">
-                                                        <Badge variant={student.status === 'active' ? 'default' : 'secondary'} className={student.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
+                                                <tr key={student.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingId === student.id ? 'bg-teal-50' : ''}`}>
+                                                    <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
+                                                    <td className="px-5 py-3 text-slate-700">{student.group?.name || '—'}</td>
+                                                    <td className="px-5 py-3">
+                                                        <StatusBadge tone={student.status === 'active' ? 'success' : 'default'}>
                                                             {student.status}
-                                                        </Badge>
+                                                        </StatusBadge>
                                                     </td>
-                                                    <td className="px-3 py-2 text-right">
+                                                    <td className="px-5 py-3 text-right">
                                                         <div className="inline-flex gap-2">
-                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>Ред.</Button>
-                                                            <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => remove(student.id)}>
-                                                                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(student.id)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                                 Удалить
                                                             </Button>
                                                         </div>
@@ -360,7 +395,7 @@ export default function Students() {
                             )}
                         </CardContent>
                     </Card>
-                    </div>
+                </div>
             </div>
             <ConfirmDialog
                 open={confirmState.open}

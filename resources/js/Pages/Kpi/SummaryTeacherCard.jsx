@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, FilterBar, FormField, Notice, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
 import {
@@ -12,6 +13,7 @@ import {
     ChevronRight,
     Clock,
     FileText,
+    Sigma,
     TrendingUp,
     User,
     XCircle,
@@ -39,12 +41,12 @@ const SECTION_SHORT = {
 };
 
 const SECTION_ICON_COLOR = {
-    teaching: 'bg-blue-50 text-blue-700',
-    science: 'bg-violet-50 text-violet-700',
-    social: 'bg-emerald-50 text-emerald-700',
-    qualification: 'bg-amber-50 text-amber-700',
-    survey: 'bg-cyan-50 text-cyan-700',
-    other: 'bg-muted text-muted-foreground',
+    teaching: 'border-blue-200 bg-blue-50 text-blue-700',
+    science: 'border-teal-200 bg-teal-50 text-teal-700',
+    social: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    qualification: 'border-amber-200 bg-amber-50 text-amber-800',
+    survey: 'border-orange-200 bg-orange-50 text-orange-700',
+    other: 'border-slate-200 bg-slate-100 text-slate-600',
 };
 
 const STATUS_LABELS = {
@@ -59,16 +61,16 @@ const STATUS_LABELS = {
     locked: 'Заблокировано',
 };
 
-const STATUS_VARIANTS = {
-    draft: 'secondary',
-    submitted: 'outline',
-    returned: 'destructive',
-    reviewed: 'secondary',
-    pending_dean: 'outline',
-    pending_structural: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-    locked: 'secondary',
+const STATUS_TONES = {
+    draft: 'default',
+    submitted: 'info',
+    returned: 'warning',
+    reviewed: 'info',
+    pending_dean: 'info',
+    pending_structural: 'info',
+    approved: 'success',
+    rejected: 'danger',
+    locked: 'default',
 };
 
 const SP_STATUS_LABELS = {
@@ -77,10 +79,10 @@ const SP_STATUS_LABELS = {
     rejected: 'Отклонено СП',
 };
 
-const SP_STATUS_VARIANTS = {
-    pending: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
+const SP_STATUS_TONES = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
 };
 
 const ACTION_LABELS = {
@@ -95,14 +97,11 @@ const ACTION_LABELS = {
 const ACTION_COLORS = {
     submit: 'text-blue-700 bg-blue-50 border-blue-200',
     return: 'text-orange-700 bg-orange-50 border-orange-200',
-    review: 'text-violet-700 bg-violet-50 border-violet-200',
+    review: 'text-teal-700 bg-teal-50 border-teal-200',
     approve: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     reject: 'text-red-700 bg-red-50 border-red-200',
-    lock: 'text-muted-foreground bg-muted/40 border-border',
+    lock: 'text-slate-600 bg-slate-100 border-slate-200',
 };
-
-const SELECT_CLS =
-    'h-9 rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors hover:border-ring focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -176,7 +175,7 @@ function fmtPercent(value) {
 
 // ─── filter bar ───────────────────────────────────────────────────────────────
 
-function FilterBar({ teacherId, filters, filterOptions }) {
+function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period }) {
     const handleChange = (key, value) => {
         const params = {};
         if (key === 'academic_year_id') {
@@ -192,30 +191,54 @@ function FilterBar({ teacherId, filters, filterOptions }) {
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2">
-            <select
-                className={SELECT_CLS + ' pe-8'}
-                value={filters.academic_year_id ?? ''}
-                onChange={(e) => handleChange('academic_year_id', e.target.value)}
-            >
-                <option value="">— Учебный год —</option>
-                {(filterOptions.academicYears ?? []).map((y) => (
-                    <option key={y.id} value={y.id}>{y.name}</option>
-                ))}
-            </select>
-            <select
-                className={SELECT_CLS + ' pe-8'}
-                value={filters.period_id ?? ''}
-                onChange={(e) => handleChange('period_id', e.target.value)}
-            >
-                <option value="">— Период —</option>
-                {(filterOptions.periods ?? []).map((p) => (
-                    <option key={p.id} value={p.id}>
-                        {p.name}{p.status === 'active' ? ' ●' : ''}
-                    </option>
-                ))}
-            </select>
-        </div>
+        <FilterBar>
+            <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <FormField label="Учебный год">
+                    <select
+                        className={qdFieldClass}
+                        value={filters.academic_year_id ?? ''}
+                        onChange={(e) => handleChange('academic_year_id', e.target.value)}
+                    >
+                        <option value="">— Учебный год —</option>
+                        {(filterOptions.academicYears ?? []).map((y) => (
+                            <option key={y.id} value={y.id}>{y.name}</option>
+                        ))}
+                    </select>
+                </FormField>
+                <FormField label="Период">
+                    <select
+                        className={qdFieldClass}
+                        value={filters.period_id ?? ''}
+                        onChange={(e) => handleChange('period_id', e.target.value)}
+                    >
+                        <option value="">— Период —</option>
+                        {(filterOptions.periods ?? []).map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name}{p.status === 'active' ? ' ●' : ''}
+                            </option>
+                        ))}
+                    </select>
+                </FormField>
+                <div className="flex h-10 items-center gap-2 text-sm">
+                    {period ? (
+                        <>
+                            <CalendarRange className="h-4 w-4 text-teal-700" />
+                            <span className="text-slate-600">
+                                {academicYear?.name && <span className="mr-1">{academicYear.name} ·</span>}
+                                <strong className="text-[#102945]">{period.name}</strong>
+                            </span>
+                            {period.status === 'active' && <StatusBadge tone="success">Активный</StatusBadge>}
+                            {period.status === 'closed' && <StatusBadge tone="default">Закрыт</StatusBadge>}
+                        </>
+                    ) : (
+                        <span className="flex items-center gap-1.5 font-medium text-amber-700">
+                            <CalendarRange className="h-4 w-4" />
+                            Период не выбран
+                        </span>
+                    )}
+                </div>
+            </div>
+        </FilterBar>
     );
 }
 
@@ -233,24 +256,27 @@ function FormulaBreakdown({ result, npuThreshold }) {
     const sumNum = k1Num + k2Num + k3Num + k4Num + k5Num;
 
     return (
-        <Card className="border-border/80 bg-muted/20">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Расчет Рейтинга</CardTitle>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Sigma className="h-4 w-4" />
+                    Расчет Рейтинга
+                </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2 font-mono text-sm text-foreground/90">
-                    <div>Формула: R = (K1 + K2 + K3 + K4 + K5) - НПУ</div>
-                    <div className="border-t border-border/70 pt-2 text-muted-foreground">Подстановка:</div>
+                <div className="space-y-2 font-mono text-sm tabular-nums text-slate-800">
+                    <div className="text-slate-600">Формула: R = (K1 + K2 + K3 + K4 + K5) - НПУ</div>
+                    <div className="border-t border-slate-200 pt-2 text-xs uppercase tracking-[0.08em] text-slate-500">Подстановка:</div>
                     <div>R = ({fmt(k1Num)} + {fmt(k2Num)} + {fmt(k3Num)} + {fmt(k4Num)} + {fmt(k5Num)}) - {fmt(npuNum)}</div>
                     <div>R = {fmt(sumNum)} - {fmt(npuNum)}</div>
                     <div className={[
-                        'text-lg font-bold',
-                        rankNum < 0 ? 'text-red-600' : 'text-emerald-600',
+                        'font-display text-xl font-bold',
+                        rankNum < 0 ? 'text-red-700' : 'text-emerald-700',
                     ].join(' ')}>
                         R = {fmt(rankNum)}
                     </div>
                     {rankNum < 0 && (
-                        <div className="text-xs text-red-600">Не достигнут минимум выполнения НПУ</div>
+                        <Notice tone="danger" className="font-sans">Не достигнут минимум выполнения НПУ</Notice>
                     )}
                 </div>
             </CardContent>
@@ -268,73 +294,38 @@ function ResultScoreCard({ result }) {
     const hasAnyScore = coefKeys.some((k) => result[k] > 0);
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-                <div className="h-1 w-full bg-gradient-to-r from-[#067a75] via-[#2c5a86] to-[#102945]" />
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
+        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+            <div className="relative overflow-hidden rounded-[14px] bg-[#082834] p-6 text-white">
+                <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" aria-hidden="true" />
+                <div className="relative flex flex-wrap items-end gap-x-10 gap-y-6">
                     <div>
-                        <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
-                        <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#067a75]' : 'text-muted-foreground/50'].join(' ')}>
+                        <p className="qd-kicker text-teal-300">Итоговый рейтинг R</p>
+                        <p className={['mt-3 font-display text-5xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-white' : 'text-white/40'].join(' ')}>
                             {fmt(rVal)}
                         </p>
                     </div>
-                    {hasAnyScore && (
-                        <div className="flex gap-4">
-                            {coefKeys.map((k, i) => (
-                                <div key={k} className="text-center min-w-[2.5rem]">
-                                    <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">{coefLabels[i]}</p>
-                                    <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
-                                        {fmt(result[k])}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                     {result.approved_entries !== undefined && (
-                        <div className="ml-auto text-right">
-                            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
-                            <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
+                        <div>
+                            <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-white/60">Утв. записей</p>
+                            <p className="mt-2 font-display text-2xl font-bold tabular-nums text-amber-300">{result.approved_entries}</p>
                         </div>
                     )}
                 </div>
+                {hasAnyScore && (
+                    <div className="relative mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-6">
+                        {coefKeys.map((k, i) => (
+                            <div key={k} className="bg-[#082834] px-3 py-2.5 text-center">
+                                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/55">{coefLabels[i]}</p>
+                                <p className={['mt-0.5 text-sm font-bold tabular-nums', result[k] > 0 ? 'text-white' : 'text-white/35'].join(' ')}>
+                                    {fmt(result[k])}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <FormulaBreakdown result={result} npuThreshold={npuThreshold} />
-        </div>
-    );
-}
-
-// ─── stat card ───────────────────────────────────────────────────────────────
-
-const ACCENT_TOP = {
-    green: 'before:bg-emerald-500', blue: 'before:bg-blue-500',
-    amber: 'before:bg-amber-500', teal: 'before:bg-teal-500',
-    default: 'before:bg-border/60',
-};
-const ACCENT_VALUE = {
-    green: 'text-emerald-600', blue: 'text-blue-600',
-    amber: 'text-amber-600', teal: 'text-teal-600',
-    default: 'text-foreground',
-};
-
-function StatCard({ icon: Icon, label, value, accent = 'default' }) {
-    const isEmpty = value === 0 || value === '0.00';
-    return (
-        <div className={[
-            'relative overflow-hidden rounded-xl border border-border/80 bg-white/90 px-4 py-3.5 backdrop-blur',
-            'before:absolute before:inset-x-0 before:top-0 before:h-0.5',
-            ACCENT_TOP[accent] ?? ACCENT_TOP.default,
-            'shadow-[0_6px_18px_rgba(15,36,63,0.07)]',
-        ].join(' ')}>
-            <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80 mb-1">{label}</p>
-                    <p className={['text-2xl font-bold tabular-nums leading-none', isEmpty ? 'text-muted-foreground/60' : (ACCENT_VALUE[accent] ?? 'text-foreground')].join(' ')}>
-                        {value}
-                    </p>
-                </div>
-                {Icon && <div className="shrink-0 rounded-lg bg-muted/50 p-1.5"><Icon className="h-4 w-4 text-muted-foreground/60" /></div>}
-            </div>
         </div>
     );
 }
@@ -343,13 +334,13 @@ function StatCard({ icon: Icon, label, value, accent = 'default' }) {
 
 function EntryHistory({ history }) {
     if (!history?.length) {
-        return <p className="text-xs text-muted-foreground italic">История действий отсутствует.</p>;
+        return <p className="text-xs italic text-slate-500">История действий отсутствует.</p>;
     }
 
     return (
         <div className="mt-3 space-y-1.5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">История утверждения</p>
-            <div className="relative pl-4 before:absolute before:left-1.5 before:top-1 before:bottom-1 before:w-px before:bg-border/60 space-y-2">
+            <p className="qd-field-label mb-1 text-slate-500">История утверждения</p>
+            <div className="relative space-y-2 pl-4 before:absolute before:bottom-1 before:left-1.5 before:top-1 before:w-px before:bg-slate-200">
                 {history.map((log, i) => (
                     <div key={log.id ?? i} className="relative flex items-start gap-2.5">
                         {/* dot */}
@@ -358,7 +349,7 @@ function EntryHistory({ history }) {
                             log.action === 'approve' ? 'bg-emerald-500 ring-emerald-300' :
                                 log.action === 'reject' ? 'bg-red-500 ring-red-300' :
                                     log.action === 'return' ? 'bg-orange-500 ring-orange-300' :
-                                        'bg-muted-foreground/40 ring-border',
+                                        'bg-slate-400 ring-slate-200',
                         ].join(' ')} />
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
@@ -368,11 +359,11 @@ function EntryHistory({ history }) {
                                 ].join(' ')}>
                                     {ACTION_LABELS[log.action] ?? log.action}
                                 </span>
-                                <span className="text-xs font-medium text-foreground/80">{log.actor_name}</span>
-                                <span className="text-[0.65rem] text-muted-foreground">{fmtDateTime(log.created_at)}</span>
+                                <span className="text-xs font-medium text-slate-800">{log.actor_name}</span>
+                                <span className="text-[0.65rem] tabular-nums text-slate-500">{fmtDateTime(log.created_at)}</span>
                             </div>
                             {log.comment && (
-                                <p className="mt-0.5 text-xs text-muted-foreground italic">"{log.comment}"</p>
+                                <p className="mt-0.5 text-xs italic text-slate-500">"{log.comment}"</p>
                             )}
                         </div>
                     </div>
@@ -384,12 +375,12 @@ function EntryHistory({ history }) {
 
 function EntryFiles({ files }) {
     if (!files?.length) {
-        return <p className="text-xs text-muted-foreground italic">Прикрепленные файлы отсутствуют.</p>;
+        return <p className="mt-3 text-xs italic text-slate-500">Прикрепленные файлы отсутствуют.</p>;
     }
 
     return (
         <div className="mt-3 space-y-1.5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Прикрепленные файлы</p>
+            <p className="qd-field-label mb-1 text-slate-500">Прикрепленные файлы</p>
             <ul className="space-y-1.5">
                 {files.map((file) => (
                     <li key={file.id} className="text-xs">
@@ -398,14 +389,14 @@ function EntryFiles({ files }) {
                                 href={file.file_url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="text-blue-700 hover:underline"
+                                className="font-medium text-teal-700 hover:underline"
                             >
                                 {file.file_name}
                             </a>
                         ) : (
-                            <span className="text-muted-foreground">{file.file_name}</span>
+                            <span className="text-slate-600">{file.file_name}</span>
                         )}
-                        <span className="text-muted-foreground"> ({formatFileSize(file.file_size)})</span>
+                        <span className="text-slate-500"> ({formatFileSize(file.file_size)})</span>
                     </li>
                 ))}
             </ul>
@@ -415,23 +406,23 @@ function EntryFiles({ files }) {
 
 function EntryStructuralConfirmations({ confirmations }) {
     if (!confirmations?.length) {
-        return <p className="text-xs text-muted-foreground italic">Согласование СП отсутствует.</p>;
+        return <p className="mt-3 text-xs italic text-slate-500">Согласование СП отсутствует.</p>;
     }
 
     return (
         <div className="mt-3 space-y-1.5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Решения структурных подразделений</p>
+            <p className="qd-field-label mb-1 text-slate-500">Решения структурных подразделений</p>
             <ul className="space-y-1.5">
                 {confirmations.map((item, idx) => (
-                    <li key={`${item.structural_unit_id ?? 'sp'}-${idx}`} className="rounded-md border border-border/70 bg-muted/20 p-2">
+                    <li key={`${item.structural_unit_id ?? 'sp'}-${idx}`} className="rounded-[10px] border border-slate-200 bg-white p-2.5">
                         <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-medium text-foreground/85">{formatStructuralUnitName(item)}</span>
-                            <Badge variant={SP_STATUS_VARIANTS[item.status] ?? 'outline'} className="text-[0.65rem]">
+                            <span className="text-xs font-medium text-slate-800">{formatStructuralUnitName(item)}</span>
+                            <StatusBadge tone={SP_STATUS_TONES[item.status] ?? 'default'} className="text-[0.65rem]">
                                 {SP_STATUS_LABELS[item.status] ?? item.status}
-                            </Badge>
+                            </StatusBadge>
                         </div>
                         {(item.comment || item.confirmed_by || item.confirmed_at) && (
-                            <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                            <p className="mt-1 text-[0.7rem] text-slate-500">
                                 {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
                                 {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
                                 {item.confirmed_at ? ` · ${fmtDateTime(item.confirmed_at)}` : ''}
@@ -455,39 +446,39 @@ function EntryRow({ entry }) {
     return (
         <>
             <tr
-                className={canExpand ? 'cursor-pointer hover:bg-muted/20' : ''}
+                className={`border-b border-slate-200 ${canExpand ? 'cursor-pointer hover:bg-slate-50' : ''} ${open ? 'bg-teal-50/40' : ''}`}
                 onClick={() => canExpand && setOpen((v) => !v)}
             >
-                <td className="ps-3 text-xs text-muted-foreground font-mono">{entry.code ?? '—'}</td>
-                <td className="font-medium">
+                <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
+                <td className="px-3 py-2.5 font-medium text-slate-900">
                     <span className="flex items-center gap-1">
                         {canExpand && (
                             open
-                                ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-                                : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                                ? <ChevronDown className="h-3.5 w-3.5 shrink-0 text-teal-700" />
+                                : <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         )}
                         {entry.name}
                     </span>
                 </td>
-                <td className="text-right text-muted-foreground">{entry.unit ?? '—'}</td>
-                <td className="text-right tabular-nums">{fmtValue(entry.base_points)}</td>
-                <td className="text-right tabular-nums">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
-                <td className="text-xs text-muted-foreground max-w-[22rem]">{entry.points_formula ?? '—'}</td>
-                <td className="text-right tabular-nums font-semibold">{fmt(entry.points)}</td>
-                <td className="text-right pe-3">
-                    <Badge variant={STATUS_VARIANTS[entry.status] ?? 'secondary'} className="text-[0.7rem]">
+                <td className="px-3 py-2.5 text-right text-slate-500">{entry.unit ?? '—'}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.base_points)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                <td className="max-w-[22rem] px-3 py-2.5 text-xs text-slate-500">{entry.points_formula ?? '—'}</td>
+                <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[#102945]">{fmt(entry.points)}</td>
+                <td className="px-3 py-2.5 text-right">
+                    <StatusBadge tone={STATUS_TONES[entry.status] ?? 'default'} className="text-[0.7rem]">
                         {STATUS_LABELS[entry.status] ?? entry.status}
-                    </Badge>
+                    </StatusBadge>
                 </td>
             </tr>
             {open && canExpand && (
-                <tr>
-                    <td colSpan={8} className="ps-3 pb-3 pt-1 bg-muted/10">
+                <tr className="border-b border-slate-200 bg-slate-50/70">
+                    <td colSpan={8} className="px-4 pb-4 pt-1">
                         <EntryHistory history={entry.history} />
                         <EntryStructuralConfirmations confirmations={entry.structural_confirmations} />
                         <EntryFiles files={entry.files} />
                         {entry.comment && (
-                            <p className="mt-1.5 text-xs text-muted-foreground"><span className="font-medium">Комментарий:</span> {entry.comment}</p>
+                            <p className="mt-2 text-xs text-slate-600"><span className="font-semibold text-slate-800">Комментарий:</span> {entry.comment}</p>
                         )}
                     </td>
                 </tr>
@@ -500,48 +491,44 @@ function EntryRow({ entry }) {
 
 function SectionBlock({ section, entries }) {
     const sectionTotal = entries.reduce((s, e) => s + Number(e.points ?? 0), 0);
-    const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-muted text-muted-foreground';
+    const iconCls = SECTION_ICON_COLOR[section] ?? SECTION_ICON_COLOR.other;
 
     return (
-        <div>
-            <div className="mb-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${iconCls}`}>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${iconCls}`}>
                         {SECTION_SHORT[section] ?? section}
                     </span>
-                    <span className="text-sm font-medium text-foreground/80">
+                    <span className="truncate text-sm font-semibold text-[#102945]">
                         {SECTION_LABELS[section] ?? section}
                     </span>
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground">
-                    Итого: <span className="text-foreground">{fmt(sectionTotal)}</span> б.
+                <span className="text-xs font-semibold text-slate-500">
+                    Итого: <span className="font-display text-base font-bold tabular-nums text-[#102945]">{fmt(sectionTotal)}</span> б.
                 </span>
             </div>
-            <div className="admin-table-wrap">
-                <table className="admin-data-table min-w-[640px]">
-                    <thead>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                    <thead className="border-b border-slate-200">
                         <tr>
-                            <th className="ps-3 w-16">Код</th>
-                            <th>Показатель</th>
-                            <th className="w-14 text-right">Ед.</th>
-                            <th className="w-24 text-right">Базовый балл</th>
-                            <th className="w-20 text-right">Факт</th>
-                            <th className="w-[22rem]">Формула баллов</th>
-                            <th className="w-20 text-right">Баллы</th>
-                            <th className="w-28 text-right pe-3">Статус</th>
+                            <th className="w-16 px-3 py-2.5 text-left">Код</th>
+                            <th className="px-3 py-2.5 text-left">Показатель</th>
+                            <th className="w-14 px-3 py-2.5 text-right">Ед.</th>
+                            <th className="w-24 px-3 py-2.5 text-right">Базовый балл</th>
+                            <th className="w-20 px-3 py-2.5 text-right">Факт</th>
+                            <th className="w-[22rem] px-3 py-2.5 text-left">Формула баллов</th>
+                            <th className="w-20 px-3 py-2.5 text-right">Баллы</th>
+                            <th className="w-28 px-3 py-2.5 text-right">Статус</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="[&>tr:last-child]:border-0">
                         {entries.map((entry) => (
                             <EntryRow key={entry.id} entry={entry} />
                         ))}
                     </tbody>
                 </table>
             </div>
-            <p className="mt-1.5 text-[0.65rem] text-muted-foreground/60 flex items-center gap-1">
-                <ChevronRight className="h-3 w-3" />
-                Нажмите на строку для просмотра истории утверждения
-            </p>
         </div>
     );
 }
@@ -568,119 +555,97 @@ export default function SummaryTeacherCard({
         router.get(route('kpi.summary'), params);
     };
 
-    return (
-        <AuthenticatedLayout>
-            <Head title={`KPI — ${teacher.name}`} />
+    const teacherMeta = [teacher.title, teacher.faculty_name, teacher.department_name].filter(Boolean);
 
-            <div className="admin-page-wrap">
-                {/* ── Header ──────────────────────────────────────────── */}
-                <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
-                    <div className="flex items-center gap-3.5">
-                        <button
-                            type="button"
-                            onClick={goBack}
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </button>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#067a75] to-[#2c5a86] shadow-sm">
-                            <User className="h-5 w-5 text-white" />
+    return (
+        <AuthenticatedLayout
+            header={(
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-700 text-white">
+                            <User className="h-6 w-6" />
                         </div>
-                        <div>
-                            <h1 className="text-base font-bold leading-tight text-[#102945]">{teacher.name}</h1>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                {teacher.title && <span className="font-semibold text-[#067a75]">{teacher.title}</span>}
+                        <div className="min-w-0 space-y-2">
+                            <p className="qd-kicker">KPI · Карточка преподавателя</p>
+                            <h1 className="font-display text-[1.75rem] font-bold leading-tight tracking-[-0.015em] text-[#102945]">{teacher.name}</h1>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">
+                                {teacher.title && <span className="font-semibold text-teal-700">{teacher.title}</span>}
                                 {teacher.faculty_name && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="text-muted-foreground/40">·</span>
+                                    <span className="flex items-center gap-2">
+                                        {teacherMeta.indexOf(teacher.faculty_name) > 0 && <span className="text-slate-300">·</span>}
                                         {teacher.faculty_name}
                                     </span>
                                 )}
                                 {teacher.department_name && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="text-muted-foreground/40">·</span>
+                                    <span className="flex items-center gap-2">
+                                        {teacherMeta.indexOf(teacher.department_name) > 0 && <span className="text-slate-300">·</span>}
                                         {teacher.department_name}
                                     </span>
                                 )}
                                 {!teacher.faculty_name && !teacher.department_name && teacher.division && (
-                                    <span className="text-muted-foreground/70">{teacher.division}</span>
+                                    <span className="text-slate-500">{teacher.division}</span>
                                 )}
                             </div>
                         </div>
                     </div>
-
-                    <div className="flex flex-col items-end gap-2">
-                        <FilterBar teacherId={teacher.id} filters={filters} filterOptions={filterOptions} />
-                        <div className="flex items-center gap-2">
-                            {period ? (
-                                <>
-                                    <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">
-                                        {academicYear?.name && <span className="mr-1">{academicYear.name} ·</span>}
-                                        <strong className="text-foreground">{period.name}</strong>
-                                    </span>
-                                    {period.status === 'active' && (
-                                        <Badge variant="default" className="h-5 text-[0.65rem] px-2">Активный</Badge>
-                                    )}
-                                    {period.status === 'closed' && (
-                                        <Badge variant="secondary" className="h-5 text-[0.65rem] px-2">Закрыт</Badge>
-                                    )}
-                                </>
-                            ) : (
-                                <span className="text-xs text-amber-600 flex items-center gap-1">
-                                    <CalendarRange className="h-3.5 w-3.5" />
-                                    Период не выбран
-                                </span>
-                            )}
-                        </div>
-                    </div>
+                    <Button type="button" variant="outline" onClick={goBack}>
+                        <ArrowLeft className="h-4 w-4" />
+                        К сводке
+                    </Button>
                 </div>
+            )}
+        >
+            <Head title={`KPI — ${teacher.name}`} />
 
-                {/* ── Result + Stats ─────────────────────────────────── */}
+            <div className="admin-page-wrap space-y-6">
+                <PeriodFilters
+                    teacherId={teacher.id}
+                    filters={filters}
+                    filterOptions={filterOptions}
+                    academicYear={academicYear}
+                    period={period}
+                />
+
                 {result ? (
                     <ResultScoreCard result={result} />
                 ) : (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-muted/30 px-3.5 py-2.5 text-sm text-muted-foreground">
-                        <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
-                        Итоговый рейтинг ещё не сформирован — период не закрыт. Ниже отображаются текущие данные.
-                    </div>
+                    <Notice tone="info" title="Итоговый рейтинг ещё не сформирован">
+                        Период не закрыт. Ниже отображаются текущие данные.
+                    </Notice>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <StatCard icon={BarChart3} label="Всего записей" value={totals.total ?? 0} />
-                    <StatCard icon={TrendingUp} label="Утверждено" value={totals.approved ?? 0} accent="green" />
-                    <StatCard icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} accent="amber" />
-                    <StatCard label="Отклонено" value={totals.rejected ?? 0} />
-                    <StatCard label="Баллов" value={fmt(totals.total_points)} accent="teal" />
-                </div>
+                <StatGrid className="xl:grid-cols-5">
+                    <StatTile icon={BarChart3} label="Всего записей" value={totals.total ?? 0} tone="navy" />
+                    <StatTile icon={TrendingUp} label="Утверждено" value={totals.approved ?? 0} tone="success" />
+                    <StatTile icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} tone="warning" />
+                    <StatTile icon={XCircle} label="Отклонено" value={totals.rejected ?? 0} tone="danger" />
+                    <StatTile icon={CheckCircle2} label="Баллов" value={fmt(totals.total_points)} tone="teal" />
+                </StatGrid>
 
-                {/* ── Entries by section ────────────────────────────── */}
-                <Card className="admin-surface">
-                    <CardHeader className="pb-3 pt-4">
-                        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
-                            <FileText className="h-4 w-4 text-[#067a75]" />
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
                             Записи KPI по разделам
-                            <span className="ml-auto font-normal text-xs text-muted-foreground">
-                                Нажмите на строку, чтобы увидеть историю утверждения
-                            </span>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="mb-3 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                    <CardContent className="space-y-5">
+                        <Notice tone="brand">
                             В колонке "Базовый балл" отображается значение показателя из настроек KPI.
                             Формула в колонке "Формула баллов" показывает, как рассчитаны баллы по каждой записи.
-                        </div>
+                            Нажмите на строку, чтобы увидеть историю утверждения.
+                        </Notice>
                         {hasEntries ? (
-                            <div className="space-y-6">
+                            <div className="space-y-5">
                                 {allSections.map(([section, sectionEntries]) => (
                                     <SectionBlock key={section} section={section} entries={sectionEntries} />
                                 ))}
                             </div>
                         ) : (
-                            <div className="admin-empty-state">
-                                <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                                Нет показателей KPI за выбранный период.
-                            </div>
+                            <EmptyState
+                                title="Нет показателей KPI"
+                                description="Нет показателей KPI за выбранный период. Выберите другой учебный год или период."
+                            />
                         )}
                     </CardContent>
                 </Card>

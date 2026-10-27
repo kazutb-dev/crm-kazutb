@@ -1,15 +1,16 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, EmptyState, FilterBar, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Head, router, usePage } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleCheck, CircleX, Inbox, Layers, Loader, Search } from 'lucide-react';
 
 const statusMeta = {
-    new:         { label: 'Новая',      className: 'border-blue-200 bg-blue-50 text-blue-800' },
-    in_progress: { label: 'В работе',   className: 'border-amber-200 bg-amber-50 text-amber-800' },
-    resolved:    { label: 'Решена',     className: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
-    rejected:    { label: 'Отклонена',  className: 'border-red-200 bg-red-50 text-red-800' },
+    new:         { label: 'Новая',      variant: 'info' },
+    in_progress: { label: 'В работе',   variant: 'warning' },
+    resolved:    { label: 'Решена',     variant: 'success' },
+    rejected:    { label: 'Отклонена',  variant: 'destructive' },
 };
 
 const statusOptions = [
@@ -48,7 +49,7 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
         router.get(route('dept-requests.admin'), { ...filters, ...patch }, { preserveState: true, replace: true });
     };
 
-    const { data, links, current_page, last_page } = requests;
+    const { data, current_page, last_page } = requests;
 
     const stats = data.reduce(
         (acc, req) => {
@@ -64,61 +65,40 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
 
     return (
         <AuthenticatedLayout
-            header={
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Заявки — {isAdmin ? 'Все отделы' : 'Мои отделы'}
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            {isAdmin ? 'Административный просмотр всех заявок' : 'Заявки по вашим отделам'}
-                        </p>
-                    </div>
-                </div>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="Обращения"
+                    title={`Заявки — ${isAdmin ? 'Все отделы' : 'Мои отделы'}`}
+                    description={isAdmin ? 'Административный просмотр всех заявок' : 'Заявки по вашим отделам'}
+                    meta={<Badge variant="secondary">Найдено: {requests.total ?? 0}</Badge>}
+                />
+            )}
         >
             <Head title="Заявки — Администрирование" />
 
-            <div className="admin-page-wrap space-y-4">
+            <div className="admin-page-wrap space-y-6">
+                {flash.success && <Notice tone="success">{flash.success}</Notice>}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Статистика (текущая страница)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                <p className="text-xs text-slate-500">Всего</p>
-                                <p className="text-xl font-semibold text-slate-900">{stats.total}</p>
-                            </div>
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
-                                <p className="text-xs text-blue-700">Новые</p>
-                                <p className="text-xl font-semibold text-blue-900">{stats.new}</p>
-                            </div>
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                                <p className="text-xs text-amber-700">В работе</p>
-                                <p className="text-xl font-semibold text-amber-900">{stats.in_progress}</p>
-                            </div>
-                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                                <p className="text-xs text-emerald-700">Решённые</p>
-                                <p className="text-xl font-semibold text-emerald-900">{stats.resolved}</p>
-                            </div>
-                            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
-                                <p className="text-xs text-rose-700">Отклонённые</p>
-                                <p className="text-xl font-semibold text-rose-900">{stats.rejected}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="space-y-2">
+                    <p className="qd-field-label text-slate-500">Статистика (текущая страница)</p>
+                    <StatGrid className="xl:grid-cols-5">
+                        <StatTile label="Всего" value={stats.total} icon={Layers} tone="navy" />
+                        <StatTile label="Новые" value={stats.new} icon={Inbox} tone="info" />
+                        <StatTile label="В работе" value={stats.in_progress} icon={Loader} tone="warning" />
+                        <StatTile label="Решённые" value={stats.resolved} icon={CircleCheck} tone="success" />
+                        <StatTile label="Отклонённые" value={stats.rejected} icon={CircleX} tone="danger" />
+                    </StatGrid>
+                </div>
 
                 {/* ── Filters ── */}
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex flex-wrap gap-3">
-                            <div className="relative flex-1 min-w-48">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <input
-                                    className="w-full rounded-md border pl-8 pr-3 py-2 text-sm"
+                <FilterBar>
+                    <div className="grid gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-12">
+                        <label className={`space-y-2 md:col-span-2 ${departments.length > 0 ? 'xl:col-span-6' : 'xl:col-span-8'}`}>
+                            <span className="qd-field-label block">Поиск</span>
+                            <span className="relative block">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    className="pl-9"
                                     placeholder="Поиск по теме или описанию..."
                                     defaultValue={filters.search}
                                     onKeyDown={(e) => {
@@ -126,10 +106,13 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
                                     }}
                                     onBlur={(e) => applyFilter({ search: e.target.value, page: 1 })}
                                 />
-                            </div>
+                            </span>
+                        </label>
 
+                        <label className={`space-y-2 ${departments.length > 0 ? 'xl:col-span-3' : 'md:col-span-2 xl:col-span-4'}`}>
+                            <span className="qd-field-label block">Статус</span>
                             <select
-                                className="rounded-md border px-3 py-2 text-sm"
+                                className={qdFieldClass}
                                 value={filters.status ?? ''}
                                 onChange={(e) => applyFilter({ status: e.target.value, page: 1 })}
                             >
@@ -137,10 +120,13 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
                                     <option key={o.value} value={o.value}>{o.label}</option>
                                 ))}
                             </select>
+                        </label>
 
-                            {departments.length > 0 && (
+                        {departments.length > 0 && (
+                            <label className="space-y-2 xl:col-span-3">
+                                <span className="qd-field-label block">Отдел</span>
                                 <select
-                                    className="rounded-md border px-3 py-2 text-sm"
+                                    className={qdFieldClass}
                                     value={filters.department_id ?? 0}
                                     onChange={(e) => applyFilter({ department_id: e.target.value, page: 1 })}
                                 >
@@ -149,123 +135,107 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                            </label>
+                        )}
+                    </div>
+                </FilterBar>
 
                 {/* ── List ── */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            Заявки
-                            <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                ({requests.total ?? 0})
-                            </span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {flash.success && (
-                            <div className="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                                {flash.success}
-                            </div>
-                        )}
+                {data.length === 0 ? (
+                    <EmptyState
+                        title="Заявок не найдено"
+                        description="По выбранным условиям заявок нет. Измените поиск, статус или отдел."
+                    />
+                ) : (
+                    <DataTable>
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th className="px-5 text-left">ID / Тема</th>
+                                    <th className="px-5 text-left">Отдел</th>
+                                    <th className="px-5 text-left">Автор</th>
+                                    <th className="px-5 text-left">Дата отправки</th>
+                                    <th className="px-5 text-left">Дата решения</th>
+                                    <th className="px-5 text-left">Статус</th>
+                                    <th className="px-5 text-left">Ответ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.map((req) => {
+                                    const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
 
-                        {data.length === 0 ? (
-                            <p className="py-6 text-center text-sm text-muted-foreground">Заявок не найдено.</p>
-                        ) : (
-                            <div className="overflow-x-auto rounded-xl border border-slate-200">
-                                <table className="min-w-full text-sm">
-                                    <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                                        <tr>
-                                            <th className="px-4 py-3">ID / Тема</th>
-                                            <th className="px-4 py-3">Отдел</th>
-                                            <th className="px-4 py-3">Автор</th>
-                                            <th className="px-4 py-3">Дата отправки</th>
-                                            <th className="px-4 py-3">Дата решения</th>
-                                            <th className="px-4 py-3">Статус</th>
-                                            <th className="px-4 py-3">Ответ</th>
+                                    const departmentText = asText(req.department);
+                                    const submittedByText = asText(req.submitted_by);
+                                    const closedByText = asText(req.closed_by, '—');
+
+                                    return (
+                                        <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                            <td className="px-5 py-3.5">
+                                                <p className="font-medium text-slate-900">
+                                                    <span className="tabular-nums text-slate-500">#{req.id}</span> {req.title}
+                                                </p>
+                                                {req.room && (
+                                                    <p className="mt-1 text-xs text-slate-500">Кабинет: {req.room}</p>
+                                                )}
+                                                {req.description && (
+                                                    <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">{req.description}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-5 py-3.5 text-slate-700">{departmentText}</td>
+                                            <td className="px-5 py-3.5 text-slate-700">{submittedByText}</td>
+                                            <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
+                                            <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
+                                            <td className="px-5 py-3.5">
+                                                <Badge variant={meta.variant}>{meta.label}</Badge>
+                                            </td>
+                                            <td className="px-5 py-3.5 text-slate-700">
+                                                {req.note ? (
+                                                    <div>
+                                                        <p>{req.note}</p>
+                                                        {req.closed_by && (
+                                                            <p className="mt-1 text-xs text-slate-500">Обработал: {closedByText}</p>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 bg-white">
-                                        {data.map((req) => {
-                                            const meta = statusMeta[req.status] ?? {
-                                                label: req.status,
-                                                className: 'border-slate-200 bg-slate-50 text-slate-700',
-                                            };
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </DataTable>
+                )}
 
-                                            const departmentText = asText(req.department);
-                                            const submittedByText = asText(req.submitted_by);
-                                            const closedByText = asText(req.closed_by, '—');
-
-                                            return (
-                                                <tr key={req.id} className="align-top">
-                                                    <td className="px-4 py-3">
-                                                        <p className="font-medium text-slate-900">#{req.id} {req.title}</p>
-                                                        {req.room && (
-                                                            <p className="mt-1 text-xs text-slate-500">Кабинет: {req.room}</p>
-                                                        )}
-                                                        {req.description && (
-                                                            <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">{req.description}</p>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-slate-700">{departmentText}</td>
-                                                    <td className="px-4 py-3 text-slate-700">{submittedByText}</td>
-                                                    <td className="px-4 py-3 text-slate-700">{req.created_at ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-slate-700">{req.closed_at ?? '—'}</td>
-                                                    <td className="px-4 py-3">
-                                                        <Badge variant="outline" className={`text-[11px] font-semibold ${meta.className}`}>
-                                                            {meta.label}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-slate-700">
-                                                        {req.note ? (
-                                                            <div>
-                                                                <p>{req.note}</p>
-                                                                {req.closed_by && (
-                                                                    <p className="mt-1 text-xs text-slate-500">Обработал: {closedByText}</p>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            '—'
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {/* Pagination */}
-                        {last_page > 1 && (
-                            <div className="flex items-center justify-between pt-3">
-                                <span className="text-xs text-muted-foreground">
-                                    Страница {current_page} из {last_page}
-                                </span>
-                                <div className="flex gap-1">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={current_page <= 1}
-                                        onClick={() => applyFilter({ page: current_page - 1 })}
-                                    >
-                                        <ChevronLeft className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={current_page >= last_page}
-                                        onClick={() => applyFilter({ page: current_page + 1 })}
-                                    >
-                                        <ChevronRight className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* Pagination */}
+                {last_page > 1 && (
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-500">
+                            Страница {current_page} из {last_page}
+                        </span>
+                        <div className="flex gap-1.5">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={current_page <= 1}
+                                onClick={() => applyFilter({ page: current_page - 1 })}
+                                aria-label="Предыдущая страница"
+                            >
+                                <ChevronLeft />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={current_page >= last_page}
+                                onClick={() => applyFilter({ page: current_page + 1 })}
+                                aria-label="Следующая страница"
+                            >
+                                <ChevronRight />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

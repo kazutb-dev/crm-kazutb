@@ -1,13 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Badge } from '@/components/ui/badge';
+import { FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { ClipboardList, GraduationCap, Link2, Plus, Save, Search, Trash2, UsersRound } from 'lucide-react';
+import { ClipboardList, GraduationCap, Link2, Pencil, Plus, Save, Search, Trash2, UsersRound } from 'lucide-react';
 
 const getAcademicYearOptions = () => {
     const currentYear = new Date().getFullYear();
@@ -163,154 +163,177 @@ export default function GroupAssignments() {
     const activeAssignments = items.filter((item) => item.status === 'active').length;
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Назначения"
+                    description="Привязка связки преподаватель + дисциплина к учебной группе."
+                    meta={<StatusBadge tone="default">{items.length} связок</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Анкетирование - Назначения" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Назначения</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Привязка связки преподаватель + дисциплина к учебной группе.</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <ClipboardList className="h-6 w-6 text-[#067a75]" />
-                            <span className="text-sm text-muted-foreground">{items.length} связок</span>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего назначений" value={items.length} tone="teal" icon={Link2} />
+                    <StatTile label="Активные" value={activeAssignments} tone="success" icon={ClipboardList} />
+                    <StatTile label="Групп" value={groups.length} tone="navy" icon={UsersRound} />
+                    <StatTile label="Преп.+дисц." value={teacherDisciplines.length} tone="gold" icon={GraduationCap} hint="Связки преподаватель + дисциплина" />
+                </StatGrid>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Всего назначений" value={items.length} icon={<Link2 className="h-5 w-5 text-[#067a75]" />} />
-                    <StatCard title="Активные" value={activeAssignments} icon={<ClipboardList className="h-5 w-5 text-emerald-600" />} />
-                    <StatCard title="Групп" value={groups.length} icon={<UsersRound className="h-5 w-5 text-[#067a75]" />} />
-                    <StatCard title="Преп.+дисц." value={teacherDisciplines.length} icon={<GraduationCap className="h-5 w-5 text-[#067a75]" />} />
-                </div>
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[430px_1fr]">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">{editingId ? 'Редактирование назначения' : 'Новое назначение'}</CardTitle>
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[400px_1fr]">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                {editingId ? <Save /> : <Plus />}
+                                {editingId ? 'Редактирование назначения' : 'Новое назначение'}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-3" onSubmit={submit}>
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.group_id}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, group_id: e.target.value }))}
-                                >
-                                    <option value="">Выберите группу</option>
-                                    {groups.map((group) => (
-                                        <option key={group.id} value={group.id}>
-                                            {group.name}
-                                        </option>
-                                    ))}
-                                </select>
+                            <form className="space-y-4" onSubmit={submit}>
+                                <FormField label="Группа">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.group_id}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, group_id: e.target.value }))}
+                                    >
+                                        <option value="">Выберите группу</option>
+                                        {groups.map((group) => (
+                                            <option key={group.id} value={group.id}>
+                                                {group.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </FormField>
 
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.teacher_discipline_id}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, teacher_discipline_id: e.target.value }))}
-                                >
-                                    <option value="">Выберите связку преподаватель + дисциплина</option>
-                                    {teacherDisciplines.map((item) => (
-                                        <option key={item.id} value={item.id}>
-                                            {renderTeacherDisciplineLabel(item)}
-                                        </option>
-                                    ))}
-                                </select>
+                                <FormField label="Преподаватель + дисциплина">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.teacher_discipline_id}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, teacher_discipline_id: e.target.value }))}
+                                    >
+                                        <option value="">Выберите связку преподаватель + дисциплина</option>
+                                        {teacherDisciplines.map((item) => (
+                                            <option key={item.id} value={item.id}>
+                                                {renderTeacherDisciplineLabel(item)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </FormField>
 
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.academic_year} onChange={(e) => setForm((prev) => ({ ...prev, academic_year: e.target.value }))}>
-                                    {academicYearOptions.map((year) => (
-                                        <option key={year} value={year}>{year}</option>
-                                    ))}
-                                </select>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField label="Учебный год">
+                                        <select className={qdFieldClass} value={form.academic_year} onChange={(e) => setForm((prev) => ({ ...prev, academic_year: e.target.value }))}>
+                                            {academicYearOptions.map((year) => (
+                                                <option key={year} value={year}>{year}</option>
+                                            ))}
+                                        </select>
+                                    </FormField>
 
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.semester} onChange={(e) => setForm((prev) => ({ ...prev, semester: e.target.value }))}>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                </select>
+                                    <FormField label="Семестр">
+                                        <select className={qdFieldClass} value={form.semester} onChange={(e) => setForm((prev) => ({ ...prev, semester: e.target.value }))}>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                        </select>
+                                    </FormField>
+                                </div>
 
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={form.status}
-                                    onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                                >
-                                    <option value="active">active</option>
-                                    <option value="inactive">inactive</option>
-                                </select>
+                                <FormField label="Статус">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={form.status}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                                    >
+                                        <option value="active">active</option>
+                                        <option value="inactive">inactive</option>
+                                    </select>
+                                </FormField>
 
-                                <div className="flex gap-2">
-                                    <Button type="submit" className="gap-2">
-                                        {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                        {editingId ? 'Сохранить' : 'Назначить'}
-                                    </Button>
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     {editingId && (
                                         <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
                                     )}
+                                    <Button type="submit">
+                                        {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                        {editingId ? 'Сохранить' : 'Назначить'}
+                                    </Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#102945]">Текущие назначения</CardTitle>
-                                <div className="relative w-full sm:w-72">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                    className="pl-9"
-                                    placeholder="Поиск"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                                </div>
-                            </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardList />
+                                Текущие назначения
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-
+                        <div className="border-b border-slate-200 px-5 py-4">
+                            <FormField label="Поиск">
+                                <div className="relative w-full sm:max-w-sm">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        className="pl-9"
+                                        placeholder="Группа, преподаватель, дисциплина, период"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                </div>
+                            </FormField>
+                        </div>
+                        <CardContent className="p-0">
                             {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
+                                <div className="p-5"><LoadingState /></div>
                             ) : filteredItems.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Назначения пока не созданы.</p>
+                                <div className="px-5 py-12 text-center">
+                                    <p className="font-display text-lg font-bold text-[#102945]">Назначения пока не созданы</p>
+                                    <p className="mt-1 text-sm text-slate-600">
+                                        {items.length === 0 ? 'Заполните форму «Новое назначение», чтобы привязать преподавателя и дисциплину к группе.' : 'По запросу ничего не найдено — измените поиск.'}
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full text-sm">
                                         <thead>
-                                            <tr className="border-b text-muted-foreground">
-                                                <th className="px-3 py-2 text-left font-medium">Группа</th>
-                                                <th className="px-3 py-2 text-left font-medium">Преподаватель</th>
-                                                <th className="px-3 py-2 text-left font-medium">Дисциплина</th>
-                                                <th className="px-3 py-2 text-left font-medium">Период</th>
-                                                <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                                <th className="px-3 py-2 text-right font-medium">Действия</th>
+                                            <tr className="border-b border-slate-200">
+                                                <th className="px-5 py-3 text-left">Группа</th>
+                                                <th className="px-5 py-3 text-left">Преподаватель</th>
+                                                <th className="px-5 py-3 text-left">Дисциплина</th>
+                                                <th className="px-5 py-3 text-left">Период</th>
+                                                <th className="px-5 py-3 text-left">Статус</th>
+                                                <th className="px-5 py-3 text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredItems.map((item) => (
-                                                <tr key={item.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#102945]">{item.group?.name || item.group_id}</td>
-                                                    <td className="px-3 py-2">
+                                                <tr key={item.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingId === item.id ? 'bg-teal-50' : ''}`}>
+                                                    <td className="px-5 py-3 font-medium text-slate-900">{item.group?.name || item.group_id}</td>
+                                                    <td className="px-5 py-3 text-slate-700">
                                                         {item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}
                                                     </td>
-                                                    <td className="px-3 py-2">
+                                                    <td className="px-5 py-3 text-slate-700">
                                                         {item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}
                                                     </td>
-                                                    <td className="px-3 py-2">{item.academic_year} · {item.semester}</td>
-                                                    <td className="px-3 py-2">
-                                                        <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className={item.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
+                                                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
+                                                    <td className="px-5 py-3">
+                                                        <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
                                                             {item.status}
-                                                        </Badge>
+                                                        </StatusBadge>
                                                     </td>
-                                                    <td className="px-3 py-2 text-right">
+                                                    <td className="px-5 py-3 text-right">
                                                         <div className="inline-flex gap-2">
-                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(item)}>Ред.</Button>
-                                                            <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => remove(item.id)}>
-                                                                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(item)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(item.id)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                                 Удалить
                                                             </Button>
                                                         </div>
@@ -323,7 +346,7 @@ export default function GroupAssignments() {
                             )}
                         </CardContent>
                     </Card>
-                    </div>
+                </div>
             </div>
             <ConfirmDialog
                 open={confirmState.open}
@@ -335,19 +358,5 @@ export default function GroupAssignments() {
                 }}
             />
         </AuthenticatedLayout>
-    );
-}
-
-function StatCard({ title, value, icon }) {
-    return (
-        <Card className="border-border/80 bg-white/90 shadow-sm">
-            <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
-                </div>
-                {icon}
-            </CardContent>
-        </Card>
     );
 }

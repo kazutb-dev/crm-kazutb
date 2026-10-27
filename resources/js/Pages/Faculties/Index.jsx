@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,21 +13,33 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2, UserCog, Users } from 'lucide-react';
+import { Building2, Crown, Landmark, Pencil, Plus, Trash2, UserCog, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-const ROLE_COLORS = {
-    teacher: 'bg-sky-50 text-sky-700 border-sky-200',
-    hod: 'bg-amber-50 text-amber-800 border-amber-200',
-    dean: 'bg-violet-50 text-violet-800 border-violet-200',
-    structural: 'bg-teal-50 text-teal-800 border-teal-200',
-    admin: 'bg-slate-100 text-slate-700 border-slate-200',
-    superadmin: 'bg-slate-100 text-slate-700 border-slate-200',
+const ROLE_BADGE_VARIANTS = {
+    teacher: 'info',
+    hod: 'warning',
+    dean: 'default',
+    structural: 'success',
+    admin: 'secondary',
+    superadmin: 'secondary',
 };
 
-function roleBadgeClass(roleSlug) {
-    return ROLE_COLORS[roleSlug] ?? 'bg-slate-50 text-slate-700 border-slate-200';
+function roleBadgeVariant(roleSlug) {
+    return ROLE_BADGE_VARIANTS[roleSlug] ?? 'secondary';
+}
+
+function Field({ label, error, children }) {
+    return (
+        <div className="space-y-2">
+            <Label className="block">{label}</Label>
+            {children}
+            {error && <p className="text-sm text-red-700">{error}</p>}
+        </div>
+    );
 }
 
 export default function Index({
@@ -93,6 +106,13 @@ export default function Index({
             (department) => String(department.faculty_id) === String(staffForm.data.faculty_id),
         );
     }, [departmentOptions, staffForm.data.faculty_id]);
+
+    const stats = useMemo(() => ({
+        faculties: items.length,
+        departments: items.reduce((sum, faculty) => sum + Number(faculty.department_count ?? faculty.departments?.length ?? 0), 0),
+        staff: items.reduce((sum, faculty) => sum + Number(faculty.staff_count ?? 0), 0),
+        withoutDean: items.filter((faculty) => (faculty.deans ?? []).length === 0).length,
+    }), [items]);
 
     const handleDelete = (faculty) => {
         if (!window.confirm(`Удалить факультет "${faculty.name}"?`)) {
@@ -246,131 +266,123 @@ export default function Index({
         });
     };
 
+    const createFacultyDialog = (
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus />
+                    Добавить факультет
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Новый факультет</DialogTitle>
+                    <DialogDescription>
+                        Создание факультета в единой структуре.
+                    </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={submitCreate}>
+                    <Field label="Название" error={createForm.errors.name}>
+                        <Input
+                            value={createForm.data.name}
+                            onChange={(e) => createForm.setData('name', e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Код" error={createForm.errors.code}>
+                        <Input
+                            value={createForm.data.code}
+                            onChange={(e) => createForm.setData('code', e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Описание" error={createForm.errors.description}>
+                        <Textarea
+                            value={createForm.data.description}
+                            onChange={(e) => createForm.setData('description', e.target.value)}
+                        />
+                    </Field>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Отмена</Button>
+                        <Button type="submit" disabled={createForm.processing}>Сохранить</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+
+    const createDepartmentDialog = (
+        <Dialog open={createDepartmentOpen} onOpenChange={setCreateDepartmentOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <Plus />
+                    Добавить кафедру
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Новая кафедра</DialogTitle>
+                    <DialogDescription>
+                        Кафедра будет привязана к выбранному факультету.
+                    </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={submitCreateDepartment}>
+                    <Field label="Факультет" error={createDepartmentForm.errors.faculty_id}>
+                        <select
+                            className={qdFieldClass}
+                            value={createDepartmentForm.data.faculty_id}
+                            onChange={(e) => createDepartmentForm.setData('faculty_id', e.target.value)}
+                        >
+                            <option value="">Выберите факультет</option>
+                            {facultyOptions.map((faculty) => (
+                                <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                            ))}
+                        </select>
+                    </Field>
+                    <Field label="Название кафедры" error={createDepartmentForm.errors.name}>
+                        <Input
+                            value={createDepartmentForm.data.name}
+                            onChange={(e) => createDepartmentForm.setData('name', e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Код" error={createDepartmentForm.errors.code}>
+                        <Input
+                            value={createDepartmentForm.data.code}
+                            onChange={(e) => createDepartmentForm.setData('code', e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Описание" error={createDepartmentForm.errors.description}>
+                        <Textarea
+                            value={createDepartmentForm.data.description}
+                            onChange={(e) => createDepartmentForm.setData('description', e.target.value)}
+                        />
+                    </Field>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setCreateDepartmentOpen(false)}>Отмена</Button>
+                        <Button type="submit" disabled={createDepartmentForm.processing}>Сохранить</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <div className="flex flex-wrap gap-2">
-                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="sm">
-                                <Plus />
-                                Добавить факультет
+            header={(
+                <PageHeader
+                    eyebrow="Справочники"
+                    title="Факультеты и кафедры"
+                    description="Единая структура факультетов, кафедр и сотрудников: руководство, состав и привязки."
+                    actions={(
+                        <>
+                            {createFacultyDialog}
+                            {createDepartmentDialog}
+                            <Button variant="secondary" onClick={() => openStaffDialog()}>
+                                <UserCog />
+                                Управление сотрудником
                             </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Новый факультет</DialogTitle>
-                                <DialogDescription>
-                                    Создание факультета в единой структуре.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <form className="space-y-4" onSubmit={submitCreate}>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Название</label>
-                                    <Input
-                                        value={createForm.data.name}
-                                        onChange={(e) => createForm.setData('name', e.target.value)}
-                                    />
-                                    {createForm.errors.name && <p className="text-sm text-destructive">{createForm.errors.name}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Код</label>
-                                    <Input
-                                        value={createForm.data.code}
-                                        onChange={(e) => createForm.setData('code', e.target.value)}
-                                    />
-                                    {createForm.errors.code && <p className="text-sm text-destructive">{createForm.errors.code}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Описание</label>
-                                    <textarea
-                                        className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.data.description}
-                                        onChange={(e) => createForm.setData('description', e.target.value)}
-                                    />
-                                    {createForm.errors.description && <p className="text-sm text-destructive">{createForm.errors.description}</p>}
-                                </div>
-
-                                <DialogFooter>
-                                    <Button type="submit" disabled={createForm.processing}>Сохранить</Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-
-                    <Dialog open={createDepartmentOpen} onOpenChange={setCreateDepartmentOpen}>
-                        <DialogTrigger asChild>
-                            <Button size="sm" variant="outline">
-                                <Plus />
-                                Добавить кафедру
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Новая кафедра</DialogTitle>
-                                <DialogDescription>
-                                    Кафедра будет привязана к выбранному факультету.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <form className="space-y-4" onSubmit={submitCreateDepartment}>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Факультет</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                                        value={createDepartmentForm.data.faculty_id}
-                                        onChange={(e) => createDepartmentForm.setData('faculty_id', e.target.value)}
-                                    >
-                                        <option value="">Выберите факультет</option>
-                                        {facultyOptions.map((faculty) => (
-                                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
-                                        ))}
-                                    </select>
-                                    {createDepartmentForm.errors.faculty_id && <p className="text-sm text-destructive">{createDepartmentForm.errors.faculty_id}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Название кафедры</label>
-                                    <Input
-                                        value={createDepartmentForm.data.name}
-                                        onChange={(e) => createDepartmentForm.setData('name', e.target.value)}
-                                    />
-                                    {createDepartmentForm.errors.name && <p className="text-sm text-destructive">{createDepartmentForm.errors.name}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Код</label>
-                                    <Input
-                                        value={createDepartmentForm.data.code}
-                                        onChange={(e) => createDepartmentForm.setData('code', e.target.value)}
-                                    />
-                                    {createDepartmentForm.errors.code && <p className="text-sm text-destructive">{createDepartmentForm.errors.code}</p>}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Описание</label>
-                                    <textarea
-                                        className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createDepartmentForm.data.description}
-                                        onChange={(e) => createDepartmentForm.setData('description', e.target.value)}
-                                    />
-                                    {createDepartmentForm.errors.description && <p className="text-sm text-destructive">{createDepartmentForm.errors.description}</p>}
-                                </div>
-
-                                <DialogFooter>
-                                    <Button type="submit" disabled={createDepartmentForm.processing}>Сохранить</Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
-
-                    <Button size="sm" variant="secondary" onClick={() => openStaffDialog()}>
-                        <UserCog />
-                        Управление сотрудником
-                    </Button>
-                </div>
-            }
+                        </>
+                    )}
+                />
+            )}
         >
             <Head title="Факультеты и кафедры" />
 
@@ -391,49 +403,26 @@ export default function Index({
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitEdit}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Название</label>
+                        <Field label="Название" error={editForm.errors.name}>
                             <Input
                                 value={editForm.data.name}
                                 onChange={(e) => editForm.setData('name', e.target.value)}
                             />
-                            {editForm.errors.name && (
-                                <p className="text-sm text-destructive">
-                                    {editForm.errors.name}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Код</label>
+                        </Field>
+                        <Field label="Код" error={editForm.errors.code}>
                             <Input
                                 value={editForm.data.code}
                                 onChange={(e) => editForm.setData('code', e.target.value)}
                             />
-                            {editForm.errors.code && (
-                                <p className="text-sm text-destructive">
-                                    {editForm.errors.code}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Описание</label>
-                            <textarea
-                                className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        </Field>
+                        <Field label="Описание" error={editForm.errors.description}>
+                            <Textarea
                                 value={editForm.data.description}
-                                onChange={(e) =>
-                                    editForm.setData('description', e.target.value)
-                                }
+                                onChange={(e) => editForm.setData('description', e.target.value)}
                             />
-                            {editForm.errors.description && (
-                                <p className="text-sm text-destructive">
-                                    {editForm.errors.description}
-                                </p>
-                            )}
-                        </div>
-
+                        </Field>
                         <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Отмена</Button>
                             <Button type="submit" disabled={editForm.processing}>
                                 Сохранить изменения
                             </Button>
@@ -459,10 +448,9 @@ export default function Index({
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitEditDepartment}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Факультет</label>
+                        <Field label="Факультет" error={editDepartmentForm.errors.faculty_id}>
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={editDepartmentForm.data.faculty_id}
                                 onChange={(e) => editDepartmentForm.setData('faculty_id', e.target.value)}
                             >
@@ -471,38 +459,27 @@ export default function Index({
                                     <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
                                 ))}
                             </select>
-                            {editDepartmentForm.errors.faculty_id && <p className="text-sm text-destructive">{editDepartmentForm.errors.faculty_id}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Название</label>
+                        </Field>
+                        <Field label="Название" error={editDepartmentForm.errors.name}>
                             <Input
                                 value={editDepartmentForm.data.name}
                                 onChange={(e) => editDepartmentForm.setData('name', e.target.value)}
                             />
-                            {editDepartmentForm.errors.name && <p className="text-sm text-destructive">{editDepartmentForm.errors.name}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Код</label>
+                        </Field>
+                        <Field label="Код" error={editDepartmentForm.errors.code}>
                             <Input
                                 value={editDepartmentForm.data.code}
                                 onChange={(e) => editDepartmentForm.setData('code', e.target.value)}
                             />
-                            {editDepartmentForm.errors.code && <p className="text-sm text-destructive">{editDepartmentForm.errors.code}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Описание</label>
-                            <textarea
-                                className="min-h-24 w-full rounded-md border border-input bg-background/70 px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        </Field>
+                        <Field label="Описание" error={editDepartmentForm.errors.description}>
+                            <Textarea
                                 value={editDepartmentForm.data.description}
                                 onChange={(e) => editDepartmentForm.setData('description', e.target.value)}
                             />
-                            {editDepartmentForm.errors.description && <p className="text-sm text-destructive">{editDepartmentForm.errors.description}</p>}
-                        </div>
-
+                        </Field>
                         <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditDepartmentOpen(false)}>Отмена</Button>
                             <Button type="submit" disabled={editDepartmentForm.processing}>Сохранить изменения</Button>
                         </DialogFooter>
                     </form>
@@ -519,10 +496,9 @@ export default function Index({
                     </DialogHeader>
 
                     <form className="space-y-4" onSubmit={submitStaff}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Сотрудник</label>
+                        <Field label="Сотрудник">
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={staffForm.data.user_id}
                                 onChange={(e) => staffForm.setData('user_id', e.target.value)}
                             >
@@ -533,12 +509,11 @@ export default function Index({
                                     </option>
                                 ))}
                             </select>
-                        </div>
+                        </Field>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Роль</label>
+                        <Field label="Роль">
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={staffForm.data.role}
                                 onChange={(e) => staffForm.setData('role', e.target.value)}
                             >
@@ -546,12 +521,11 @@ export default function Index({
                                     <option key={role.slug} value={role.slug}>{role.label}</option>
                                 ))}
                             </select>
-                        </div>
+                        </Field>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Факультет</label>
+                        <Field label="Факультет">
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={staffForm.data.faculty_id}
                                 onChange={(e) => {
                                     staffForm.setData('faculty_id', e.target.value);
@@ -572,12 +546,11 @@ export default function Index({
                                     <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
                                 ))}
                             </select>
-                        </div>
+                        </Field>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Кафедра</label>
+                        <Field label="Кафедра">
                             <select
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                className={qdFieldClass}
                                 value={staffForm.data.department_id}
                                 onChange={(e) => staffForm.setData('department_id', e.target.value)}
                             >
@@ -586,11 +559,12 @@ export default function Index({
                                     <option key={department.id} value={department.id}>{department.name}</option>
                                 ))}
                             </select>
-                        </div>
+                        </Field>
 
                         {selectedStaff && (
-                            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                                Текущее состояние: {selectedStaff.role_label}
+                            <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3 text-sm">
+                                <span className="qd-field-label text-slate-500">Текущее состояние</span>
+                                <Badge variant={roleBadgeVariant(selectedStaff.role_slug)}>{selectedStaff.role_label}</Badge>
                             </div>
                         )}
 
@@ -606,64 +580,76 @@ export default function Index({
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap">
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle>Единая структура факультетов, кафедр и сотрудников</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {items.length === 0 ? (
-                            <div className="admin-empty-state">
-                                Пока нет факультетов. Создайте первую запись.
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {items.map((faculty) => (
-                                    <div key={faculty.id} className="rounded-xl border border-border/70 bg-background p-4">
-                                        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                                            <div>
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <h3 className="text-base font-semibold">{faculty.name}</h3>
-                                                    {faculty.code && <Badge variant="outline">{faculty.code}</Badge>}
-                                                </div>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {faculty.description || 'Описание не заполнено'}
-                                                </p>
-                                                <p className="mt-1 text-xs text-muted-foreground">
-                                                    Кафедр: {faculty.department_count} • Сотрудников: {faculty.staff_count}
-                                                </p>
-                                            </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Факультеты" value={stats.faculties} icon={Landmark} tone="teal" hint="В единой структуре" />
+                    <StatTile label="Кафедры" value={stats.departments} icon={Building2} tone="navy" hint="Привязаны к факультетам" />
+                    <StatTile label="Сотрудники" value={stats.staff} icon={Users} tone="info" hint="С привязкой к факультету" />
+                    <StatTile
+                        label="Без декана"
+                        value={stats.withoutDean}
+                        icon={Crown}
+                        tone={stats.withoutDean > 0 ? 'warning' : 'success'}
+                        hint={stats.withoutDean > 0 ? 'Назначьте руководство' : 'Руководство назначено везде'}
+                    />
+                </StatGrid>
 
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => openEditDialog(faculty)}>
-                                                    <Pencil />
-                                                    Редактировать
-                                                </Button>
-                                                <Button variant="destructive" size="sm" onClick={() => handleDelete(faculty)}>
-                                                    <Trash2 />
-                                                    Удалить
-                                                </Button>
+                {items.length === 0 ? (
+                    <EmptyState
+                        title="Пока нет факультетов"
+                        description="Создайте первую запись — после этого можно добавлять кафедры и назначать руководство."
+                        action={(
+                            <Button onClick={() => setCreateOpen(true)}>
+                                <Plus />
+                                Добавить факультет
+                            </Button>
+                        )}
+                    />
+                ) : (
+                    <div className="space-y-6">
+                        {items.map((faculty) => (
+                            <Card key={faculty.id}>
+                                <CardHeader>
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Landmark className="shrink-0" />
+                                            {faculty.name}
+                                        </CardTitle>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {faculty.code && <Badge variant="outline">{faculty.code}</Badge>}
+                                            <Button variant="outline" size="sm" onClick={() => openEditDialog(faculty)}>
+                                                <Pencil />
+                                                Редактировать
+                                            </Button>
+                                            <Button variant="destructive" size="sm" onClick={() => handleDelete(faculty)}>
+                                                <Trash2 />
+                                                Удалить
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-5">
+                                    <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
+                                            {faculty.description || 'Описание не заполнено'}
+                                        </p>
+                                        <div className="flex gap-6 text-sm">
+                                            <div>
+                                                <div className="qd-field-label text-slate-500">Кафедр</div>
+                                                <div className="font-display text-xl font-bold tabular-nums text-[#102945]">{faculty.department_count}</div>
+                                            </div>
+                                            <div>
+                                                <div className="qd-field-label text-slate-500">Сотрудников</div>
+                                                <div className="font-display text-xl font-bold tabular-nums text-[#102945]">{faculty.staff_count}</div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div className="mb-4 rounded-lg border border-border/60 bg-muted/20 p-3">
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <p className="text-sm font-medium">Руководство факультета (декан)</p>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openStaffDialog({
-                                                        userId: faculty.deans[0]?.id ?? '',
-                                                        role: 'dean',
-                                                        facultyId: faculty.id,
-                                                        departmentId: '',
-                                                    })}
-                                                >
-                                                    Назначить декана
-                                                </Button>
-                                            </div>
+                                    <div className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-200 py-3">
+                                        <div className="min-w-0 space-y-2">
+                                            <span className="qd-field-label block text-slate-500">Руководство факультета (декан)</span>
                                             {faculty.deans.length === 0 ? (
-                                                <p className="text-xs text-muted-foreground">Декан не назначен.</p>
+                                                <Badge variant="warning">Декан не назначен</Badge>
                                             ) : (
                                                 <div className="flex flex-wrap gap-2">
                                                     {faculty.deans.map((dean) => (
@@ -676,99 +662,121 @@ export default function Index({
                                                                 facultyId: faculty.id,
                                                                 departmentId: '',
                                                             })}
-                                                            className="rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-left text-xs text-violet-800"
+                                                            className="flex items-center gap-2.5 rounded-[10px] border border-teal-200 bg-teal-50 px-3 py-1.5 text-left transition-colors hover:border-teal-400"
                                                         >
-                                                            <div className="font-medium">{dean.name}</div>
-                                                            <div>{dean.email || 'без email'}</div>
+                                                            <Crown className="h-4 w-4 shrink-0 text-teal-700" />
+                                                            <span>
+                                                                <span className="block text-sm font-semibold text-[#102945]">{dean.name}</span>
+                                                                <span className="block text-xs text-slate-500">{dean.email || 'без email'}</span>
+                                                            </span>
                                                         </button>
                                                     ))}
                                                 </div>
                                             )}
                                         </div>
-
-                                        <div className="space-y-3">
-                                            {faculty.departments.map((department) => (
-                                                <div key={department.id} className="rounded-lg border border-border/70 p-3">
-                                                    <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                                                        <div>
-                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                <p className="font-medium">{department.name}</p>
-                                                                {department.code && <Badge variant="outline">{department.code}</Badge>}
-                                                            </div>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Сотрудников: {department.staff_count}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => openDepartmentEditDialog(department, faculty.id)}
-                                                            >
-                                                                <Pencil />
-                                                                Кафедра
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => openStaffDialog({
-                                                                    userId: department.heads[0]?.id ?? '',
-                                                                    role: 'hod',
-                                                                    facultyId: faculty.id,
-                                                                    departmentId: department.id,
-                                                                })}
-                                                            >
-                                                                Назначить заведующего
-                                                            </Button>
-                                                            <Button
-                                                                variant="destructive"
-                                                                size="sm"
-                                                                onClick={() => handleDeleteDepartment(department)}
-                                                            >
-                                                                <Trash2 />
-                                                                Удалить
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-
-                                                    {department.staff.length === 0 ? (
-                                                        <p className="text-xs text-muted-foreground">Сотрудники кафедры не привязаны.</p>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {department.staff.map((employee) => (
-                                                                <button
-                                                                    key={employee.id}
-                                                                    type="button"
-                                                                    onClick={() => openStaffDialog({
-                                                                        userId: employee.id,
-                                                                        role: employee.role_slug,
-                                                                        facultyId: employee.faculty_id,
-                                                                        departmentId: employee.department_id,
-                                                                    })}
-                                                                    className="rounded-md border border-border bg-card px-2 py-1 text-left text-xs"
-                                                                >
-                                                                    <div className="mb-1 flex items-center gap-1.5">
-                                                                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                        <span className="font-medium">{employee.name}</span>
-                                                                    </div>
-                                                                    <div className="mb-1 text-muted-foreground">{employee.email || 'без email'}</div>
-                                                                    <span className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] ${roleBadgeClass(employee.role_slug)}`}>
-                                                                        {employee.role_label}
-                                                                    </span>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => openStaffDialog({
+                                                userId: faculty.deans[0]?.id ?? '',
+                                                role: 'dean',
+                                                facultyId: faculty.id,
+                                                departmentId: '',
+                                            })}
+                                        >
+                                            Назначить декана
+                                        </Button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+
+                                    <div>
+                                        <span className="qd-field-label block text-slate-500">Кафедры</span>
+                                        {faculty.departments.length === 0 ? (
+                                            <p className="pt-3 text-sm text-slate-500">Кафедры ещё не добавлены.</p>
+                                        ) : (
+                                            <div className="divide-y divide-slate-200">
+                                                {faculty.departments.map((department) => (
+                                                    <div key={department.id} className="space-y-3 py-4 last:pb-0">
+                                                        <div className="flex flex-wrap items-start justify-between gap-2">
+                                                            <div className="min-w-0">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <p className="font-semibold text-slate-900">{department.name}</p>
+                                                                    {department.code && <Badge variant="outline">{department.code}</Badge>}
+                                                                </div>
+                                                                <p className="text-xs text-slate-500">
+                                                                    Сотрудников: <span className="tabular-nums">{department.staff_count}</span>
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="flex flex-wrap gap-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => openDepartmentEditDialog(department, faculty.id)}
+                                                                >
+                                                                    <Pencil />
+                                                                    Кафедра
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => openStaffDialog({
+                                                                        userId: department.heads[0]?.id ?? '',
+                                                                        role: 'hod',
+                                                                        facultyId: faculty.id,
+                                                                        departmentId: department.id,
+                                                                    })}
+                                                                >
+                                                                    Назначить заведующего
+                                                                </Button>
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() => handleDeleteDepartment(department)}
+                                                                >
+                                                                    <Trash2 />
+                                                                    Удалить
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+
+                                                        {department.staff.length === 0 ? (
+                                                            <p className="text-xs text-slate-500">Сотрудники кафедры не привязаны.</p>
+                                                        ) : (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {department.staff.map((employee) => (
+                                                                    <button
+                                                                        key={employee.id}
+                                                                        type="button"
+                                                                        onClick={() => openStaffDialog({
+                                                                            userId: employee.id,
+                                                                            role: employee.role_slug,
+                                                                            facultyId: employee.faculty_id,
+                                                                            departmentId: employee.department_id,
+                                                                        })}
+                                                                        className="min-w-[180px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition-colors hover:border-teal-400"
+                                                                    >
+                                                                        <span className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
+                                                                            <Users className="h-3.5 w-3.5 text-slate-400" />
+                                                                            {employee.name}
+                                                                        </span>
+                                                                        <span className="block text-xs text-slate-500">{employee.email || 'без email'}</span>
+                                                                        <Badge variant={roleBadgeVariant(employee.role_slug)} className="mt-1.5 text-[10px]">
+                                                                            {employee.role_label}
+                                                                        </Badge>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

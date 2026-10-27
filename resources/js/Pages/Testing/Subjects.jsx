@@ -13,6 +13,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { EmptyState, FilterBar, InfoField, LoadingState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BookOpen,
@@ -41,15 +42,15 @@ import axios from 'axios';
 
 function FieldError({ message }) {
     if (!message) return null;
-    return <p className="mt-1 text-xs text-red-500">{message}</p>;
+    return <p className="mt-1 text-xs text-red-700">{message}</p>;
 }
 
 function FormField({ label, children, required }) {
     return (
-        <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">
+        <div className="space-y-2">
+            <label className="qd-field-label block">
                 {label}
-                {required && <span className="ml-1 text-red-500">*</span>}
+                {required && <span className="ml-1 text-red-600">*</span>}
             </label>
             {children}
         </div>
@@ -77,7 +78,7 @@ function SubjectForm({ form, departments, onSubmit, submitLabel }) {
                 <select
                     value={form.data.department_id}
                     onChange={(e) => form.setData('department_id', e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[#067a75]/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={qdFieldClass}
                 >
                     <option value="">— Без кафедры —</option>
                     {departments.map((d) => (
@@ -98,8 +99,6 @@ function SubjectForm({ form, departments, onSubmit, submitLabel }) {
         </form>
     );
 }
-
-// ─── Main page ─────────────────────────────────────────────────────────────
 
 // ─── Main page ─────────────────────────────────────────────────────────────
 
@@ -261,20 +260,90 @@ export default function Subjects({ disciplines = [], departments = [], filters }
         });
     };
 
+    const renderSubjectRow = (sub) => {
+        const isSelected = selectedSubjectId === sub.id;
+        const hasBindings = sub.bindings?.length > 0;
+        return (
+            <button
+                type="button"
+                key={sub.id}
+                onClick={() => setSelectedSubjectId(sub.id)}
+                aria-pressed={isSelected}
+                className={`group flex w-full items-center justify-between gap-3 border-l-[3px] px-4 py-3 text-left transition-colors ${
+                    isSelected
+                        ? 'border-l-teal-600 bg-teal-50'
+                        : hasBindings
+                            ? 'border-l-emerald-500 bg-white hover:bg-slate-50'
+                            : 'border-l-amber-400 bg-white hover:bg-slate-50'
+                }`}
+            >
+                <span className="flex min-w-0 flex-col">
+                    <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'text-slate-900 group-hover:text-teal-700'}`}>{sub.name}</span>
+                    {sub.code && <span className="mt-0.5 font-mono text-[11px] text-slate-500">{sub.code}</span>}
+                </span>
+                {hasBindings ? (
+                    <Badge variant="success" className="shrink-0">Учителей: {sub.bindings.length}</Badge>
+                ) : (
+                    <Badge variant="warning" className="shrink-0">Свободен</Badge>
+                )}
+            </button>
+        );
+    };
+
+    const renderGroup = ({ key, icon: GroupIcon, name, code, list, emptyText }) => {
+        const isExpanded = !!expandedDepts[key];
+        return (
+            <div key={key} className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+                <button
+                    type="button"
+                    onClick={() => toggleDept(key)}
+                    aria-expanded={isExpanded}
+                    className={`flex w-full select-none items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors ${
+                        isExpanded ? 'border-b border-slate-200 bg-slate-50' : 'bg-white hover:bg-slate-50'
+                    }`}
+                >
+                    <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-100 text-teal-700">
+                            <GroupIcon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block text-[0.9375rem] font-semibold text-[#102945]">{name}</span>
+                            {code && <span className="mt-0.5 block font-mono text-[11px] tracking-wider text-slate-500">{code}</span>}
+                        </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3">
+                        <Badge variant="secondary" className="tabular-nums">{list.length} предм.</Badge>
+                        <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </span>
+                </button>
+
+                {isExpanded && (
+                    <div className="divide-y divide-slate-200">
+                        {list.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-slate-500">{emptyText}</div>
+                        ) : (
+                            list.map(renderSubjectRow)
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <AuthenticatedLayout
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button size="sm" className="gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-md transition-all active:scale-[0.98]">
+                        <Button size="sm" className="gap-2">
                             <Plus className="h-4 w-4" />
                             Добавить предмет
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-xl border-slate-200/50 shadow-2xl rounded-2xl">
+                    <DialogContent className="max-w-xl">
                         <DialogHeader>
-                            <DialogTitle className="text-xl font-bold text-[#102945]">Новый предмет</DialogTitle>
-                            <DialogDescription className="text-slate-500 text-sm">
+                            <DialogTitle>Новый предмет</DialogTitle>
+                            <DialogDescription>
                                 Заполните название и выберите кафедру для нового предмета.
                             </DialogDescription>
                         </DialogHeader>
@@ -287,6 +356,13 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                     </DialogContent>
                 </Dialog>
             }
+            header={(
+                <PageHeader
+                    eyebrow="Справочник предметов"
+                    title="Список предметов по кафедрам"
+                    description="Выберите предмет из списка по кафедрам слева, чтобы в правой части экрана посмотреть детали о нём и список преподавателей, которые его преподают."
+                />
+            )}
         >
             <Head title="Управление предметами" />
 
@@ -298,10 +374,10 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                     if (!open) setEditTarget(null);
                 }}
             >
-                <DialogContent className="max-w-xl border-slate-200/50 shadow-2xl rounded-2xl">
+                <DialogContent className="max-w-xl">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-[#102945]">Редактировать предмет</DialogTitle>
-                        <DialogDescription className="text-slate-500 text-sm">
+                        <DialogTitle>Редактировать предмет</DialogTitle>
+                        <DialogDescription>
                             Внесите изменения и сохраните запись.
                         </DialogDescription>
                     </DialogHeader>
@@ -315,310 +391,161 @@ export default function Subjects({ disciplines = [], departments = [], filters }
             </Dialog>
 
             <div className="admin-page-wrap space-y-6">
-                {/* ── Hero banner ── */}
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
-                    <CardContent className="relative flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl space-y-3">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
-                                <BookOpen className="h-3.5 w-3.5" />
-                                Справочник предметов
-                            </div>
-                            <h1 className="text-3xl font-semibold leading-tight text-white tracking-tight font-sans">
-                                Список предметов по кафедрам
-                            </h1>
-                            <p className="max-w-2xl text-sm leading-6 text-white/80">
-                                Выберите предмет из списка по кафедрам слева, чтобы в правой части экрана посмотреть детали о нём и список преподавателей, которые его преподают.
-                            </p>
-                        </div>
+                <StatGrid className="xl:grid-cols-2">
+                    <StatTile label="Всего предметов" value={disciplines.length} tone="teal" icon={BookOpen} />
+                    <StatTile label="Всего кафедр" value={departments.length} tone="navy" icon={Building2} />
+                </StatGrid>
 
-                        <div className="grid min-w-[240px] grid-cols-2 gap-3 shrink-0">
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Всего предметов</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{disciplines.length}</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]">
-                                <div className="text-xs uppercase tracking-[0.15em] text-white/70">Всего кафедр</div>
-                                <div className="mt-2 text-3xl font-bold tracking-tight">{departments.length}</div>
-                            </div>
+                <FilterBar>
+                    <label className="block max-w-md space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                value={search}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                placeholder="Быстрый поиск по названию или коду предмета…"
+                                className="pl-9 pr-9"
+                            />
+                            {search && (
+                                <button
+                                    type="button"
+                                    aria-label="Очистить поиск"
+                                    onClick={() => handleSearch('')}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                >
+                                    <X className="h-3.5 w-3.5" />
+                                </button>
+                            )}
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Search */}
-                <div className="relative max-w-md shadow-sm rounded-xl">
-                    <Search className="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
-                    <Input
-                        value={search}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        placeholder="Быстрый поиск по названию или коду предмета…"
-                        className="pl-10 pr-9 h-11 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-xl bg-white shadow-sm"
-                    />
-                    {search && (
-                        <button
-                            onClick={() => handleSearch('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        >
-                            <X className="h-3.5 w-3.5" />
-                        </button>
-                    )}
-                </div>
+                    </label>
+                </FilterBar>
 
                 {/* ── Two column master-detail layout ── */}
-                <div className="grid gap-6 lg:grid-cols-12 items-start">
-                    {/* Left column: Collapsible departments list (col-span-7) */}
-                    <div className="space-y-4 lg:col-span-7">
+                <div className="grid items-start gap-6 lg:grid-cols-12">
+                    {/* Left column: Collapsible departments list */}
+                    <div className="space-y-3 lg:col-span-7">
                         {departments.map(dept => {
                             const deptSubjects = subjectsByDept[dept.id] || [];
-                            const isExpanded = !!expandedDepts[dept.id];
 
                             // Skip empty departments if search query is active
                             if (search && deptSubjects.length === 0) return null;
 
-                            return (
-                                <Card key={dept.id} className="overflow-hidden border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl transition-all duration-300">
-                                    <div
-                                        onClick={() => toggleDept(dept.id)}
-                                        className={`flex cursor-pointer items-center justify-between p-4 transition-all duration-200 select-none ${
-                                            isExpanded ? 'bg-slate-50/80 border-b border-slate-100' : 'bg-white hover:bg-slate-50/50'
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-xl bg-slate-100 text-slate-500">
-                                                <Building2 className="h-4.5 w-4.5" />
-                                            </div>
-                                            <div>
-                                                <div className="font-semibold text-slate-800 text-[15px]">{dept.name}</div>
-                                                {dept.code && <span className="text-[11px] font-mono tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md mt-1 inline-block">{dept.code}</span>}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Badge className="bg-slate-200/80 text-slate-600 hover:bg-slate-200/80 rounded-lg px-2 py-0.5 text-xs font-medium">
-                                                {deptSubjects.length} предм.
-                                            </Badge>
-                                            <div className="p-1 rounded-full hover:bg-slate-200/50 transition-colors">
-                                                <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-slate-600' : ''}`} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {isExpanded && (
-                                        <div className="bg-white p-2.5 space-y-1">
-                                            {deptSubjects.length === 0 ? (
-                                                <div className="p-4 text-sm text-slate-400 text-center italic bg-slate-50/50 rounded-xl">
-                                                    Нет предметов на этой кафедре
-                                                </div>
-                                            ) : (
-                                                deptSubjects.map(sub => {
-                                                    const isSelected = selectedSubjectId === sub.id;
-                                                    const hasBindings = sub.bindings?.length > 0;
-                                                    return (
-                                                        <div
-                                                            key={sub.id}
-                                                            onClick={() => setSelectedSubjectId(sub.id)}
-                                                            className={`group flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all duration-200 border-l-4 ${
-                                                                isSelected
-                                                                    ? 'bg-[#067a75]/8 border-l-[#067a75] text-[#102945] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
-                                                                    : hasBindings
-                                                                        ? 'border-l-emerald-500 bg-white hover:bg-slate-50/80 text-slate-700'
-                                                                        : 'border-l-amber-500 bg-white hover:bg-slate-50/80 text-slate-700'
-                                                            }`}
-                                                        >
-                                                            <div className="flex flex-col">
-                                                                <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'group-hover:text-[#067a75]'}`}>{sub.name}</span>
-                                                                {sub.code && <span className="mt-1 font-mono text-[11px] text-slate-400">{sub.code}</span>}
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                {hasBindings ? (
-                                                                    <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-50 text-[11px] rounded-lg px-2.5 py-0.5">
-                                                                        Учителей: {sub.bindings.length}
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50/20 text-[11px] rounded-lg px-2.5 py-0.5">
-                                                                        Свободен
-                                                                    </Badge>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
-                                    )}
-                                </Card>
-                            );
+                            return renderGroup({
+                                key: dept.id,
+                                icon: Building2,
+                                name: dept.name,
+                                code: dept.code,
+                                list: deptSubjects,
+                                emptyText: 'Нет предметов на этой кафедре',
+                            });
                         })}
 
                         {/* Unassigned subjects (Without department) */}
-                        {(!search || unassignedSubjects.length > 0) && (
-                            <Card className="overflow-hidden border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
-                                <div
-                                    onClick={() => toggleDept('unassigned')}
-                                    className={`flex cursor-pointer items-center justify-between p-4 transition-all duration-200 select-none ${
-                                        expandedDepts['unassigned'] ? 'bg-slate-50/80 border-b border-slate-100' : 'bg-white hover:bg-slate-50/50'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-xl bg-slate-100 text-slate-500">
-                                            <GraduationCap className="h-4.5 w-4.5" />
-                                        </div>
-                                        <div className="font-semibold text-slate-800 text-[15px]">Без кафедры</div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge className="bg-slate-200/80 text-slate-600 hover:bg-slate-200/80 rounded-lg px-2 py-0.5 text-xs font-medium">
-                                            {unassignedSubjects.length} предм.
-                                        </Badge>
-                                        <div className="p-1 rounded-full hover:bg-slate-200/50 transition-colors">
-                                            <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${expandedDepts['unassigned'] ? 'rotate-180' : ''}`} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {expandedDepts['unassigned'] && (
-                                    <div className="bg-white p-2.5 space-y-1">
-                                        {unassignedSubjects.length === 0 ? (
-                                            <div className="p-4 text-sm text-slate-400 text-center italic bg-slate-50/50 rounded-xl">
-                                                Нет неназначенных предметов
-                                            </div>
-                                        ) : (
-                                            unassignedSubjects.map(sub => {
-                                                const isSelected = selectedSubjectId === sub.id;
-                                                const hasBindings = sub.bindings?.length > 0;
-                                                return (
-                                                    <div
-                                                        key={sub.id}
-                                                        onClick={() => setSelectedSubjectId(sub.id)}
-                                                        className={`group flex cursor-pointer items-center justify-between rounded-xl p-3.5 transition-all duration-200 border-l-4 ${
-                                                            isSelected
-                                                                ? 'bg-[#067a75]/8 border-l-[#067a75] text-[#102945] font-medium shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]'
-                                                                : hasBindings
-                                                                    ? 'border-l-emerald-500 bg-white hover:bg-slate-50/80 text-slate-700'
-                                                                    : 'border-l-amber-500 bg-white hover:bg-slate-50/80 text-slate-700'
-                                                        }`}
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className={`text-[14px] font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'group-hover:text-[#067a75]'}`}>{sub.name}</span>
-                                                            {sub.code && <span className="mt-1 font-mono text-[11px] text-slate-400">{sub.code}</span>}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            {hasBindings ? (
-                                                                <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-50 text-[11px] rounded-lg px-2.5 py-0.5">
-                                                                    Учителей: {sub.bindings.length}
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50/20 text-[11px] rounded-lg px-2.5 py-0.5">
-                                                                    Свободен
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
-                            </Card>
-                        )}
+                        {(!search || unassignedSubjects.length > 0) && renderGroup({
+                            key: 'unassigned',
+                            icon: GraduationCap,
+                            name: 'Без кафедры',
+                            code: null,
+                            list: unassignedSubjects,
+                            emptyText: 'Нет неназначенных предметов',
+                        })}
                     </div>
 
-                    {/* Right column: Details Sidebar (col-span-5) */}
+                    {/* Right column: Details panel */}
                     <div className="lg:col-span-5">
-                        <Card className="sticky top-6 border border-slate-200/70 shadow-[0_16px_50px_-20px_rgba(15,23,42,0.15)] bg-gradient-to-b from-white to-slate-50/50 p-6 min-h-[440px] flex flex-col justify-between rounded-3xl overflow-hidden relative">
+                        <Card className="sticky top-6 flex min-h-[440px] flex-col overflow-hidden">
                             {selectedSubject ? (
-                                <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
-                                    <div className="space-y-5">
+                                <>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BookOpen className="h-4 w-4" />
+                                            Карточка предмета
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-1 flex-col gap-5">
                                         <div className="space-y-2">
-                                            <span className="text-[11px] uppercase font-bold tracking-widest text-[#067a75]">Карточка предмета</span>
-                                            <div className="text-2xl font-bold text-[#102945] leading-tight tracking-tight">{selectedSubject.name}</div>
+                                            <div className="font-display text-2xl font-bold leading-tight text-[#102945]">{selectedSubject.name}</div>
                                             {selectedSubject.code && (
-                                                <span className="mt-2 font-mono text-[11px] tracking-wider bg-slate-100 border border-slate-200 text-slate-600 rounded-md px-2 py-0.5 inline-block">
+                                                <Badge variant="secondary" className="font-mono tracking-wider">
                                                     Код: {selectedSubject.code}
-                                                </span>
+                                                </Badge>
                                             )}
                                         </div>
 
-                                        {/* General Specs */}
-                                        <div className="grid grid-cols-2 gap-4 rounded-2xl bg-white p-4 border border-slate-100 shadow-sm">
-                                            <div>
-                                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Кафедра</span>
-                                                <span className="text-[13px] font-semibold text-slate-700 mt-1 block leading-normal">
-                                                    {selectedSubject.department?.name || 'Без кафедры'}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Привязок</span>
-                                                <span className="text-[13px] font-semibold text-slate-700 mt-1 block leading-normal">
-                                                    {selectedSubject.bindings?.length || 0} преподав.
-                                                </span>
-                                            </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <InfoField label="Кафедра">
+                                                {selectedSubject.department?.name || 'Без кафедры'}
+                                            </InfoField>
+                                            <InfoField label="Привязок">
+                                                <span className="tabular-nums">{selectedSubject.bindings?.length || 0} преподав.</span>
+                                            </InfoField>
                                         </div>
 
-                                        {/* Bound Teachers list */}
-                                        <div className="space-y-3 flex-1">
-                                            <div className="text-xs font-bold text-[#102945] uppercase tracking-widest">
+                                        <div className="flex-1 space-y-3">
+                                            <div className="qd-field-label text-[#102945]">
                                                 Привязанные преподаватели
                                             </div>
                                             {selectedSubject.bindings && selectedSubject.bindings.length > 0 ? (
-                                                <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                                                <div className="max-h-[260px] divide-y divide-slate-200 overflow-y-auto rounded-xl border border-slate-200">
                                                     {selectedSubject.bindings.map(binding => (
-                                                        <div
+                                                        <button
+                                                            type="button"
                                                             key={binding.id}
                                                             onClick={() => openDrawer(binding, selectedSubject.name)}
-                                                            className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm hover:shadow-md hover:border-[#067a75]/30 hover:bg-[#067a75]/5 transition-all flex items-center justify-between cursor-pointer group/teacher"
+                                                            className="group/teacher flex w-full items-center justify-between gap-3 bg-white px-3.5 py-3 text-left transition-colors hover:bg-teal-50"
                                                             title="Посмотреть привязанных студентов и результаты"
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#14696d] to-[#067a75] text-white flex items-center justify-center font-bold text-sm shadow-sm group-hover/teacher:scale-105 transition-transform">
+                                                            <span className="flex min-w-0 items-center gap-3">
+                                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white">
                                                                     {binding.teacher?.name ? binding.teacher.name.charAt(0).toUpperCase() : 'У'}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-slate-800 leading-tight group-hover/teacher:text-[#067a75] transition-colors">{binding.teacher?.name}</p>
-                                                                    {binding.teacher?.email && <p className="text-[11px] text-slate-400 mt-0.5">{binding.teacher.email}</p>}
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                                                                    Активен
                                                                 </span>
-                                                                <ChevronRight className="h-4 w-4 text-slate-400 group-hover/teacher:text-[#067a75] group-hover/teacher:translate-x-0.5 transition-all" />
-                                                            </div>
-                                                        </div>
+                                                                <span className="min-w-0">
+                                                                    <span className="block text-sm font-semibold leading-tight text-slate-900 transition-colors group-hover/teacher:text-teal-700">{binding.teacher?.name}</span>
+                                                                    {binding.teacher?.email && <span className="mt-0.5 block truncate text-xs text-slate-500">{binding.teacher.email}</span>}
+                                                                </span>
+                                                            </span>
+                                                            <span className="flex shrink-0 items-center gap-2">
+                                                                <Badge variant="success">Активен</Badge>
+                                                                <ChevronRight className="h-4 w-4 text-slate-400 transition-colors group-hover/teacher:text-teal-700" />
+                                                            </span>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-slate-400 text-sm italic shadow-sm">
+                                                <Notice tone="warning">
                                                     Преподаватели ещё не привязали этот предмет. Он свободен.
-                                                </div>
+                                                </Notice>
                                             )}
                                         </div>
-                                    </div>
 
-                                    {/* Actions */}
-                                    <div className="pt-4 border-t border-slate-200/60 flex items-center gap-3 bg-slate-50/30 -mx-6 -mb-6 p-6">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => openEdit(selectedSubject)}
-                                            className="flex-1 gap-2 h-10 rounded-xl hover:bg-slate-100 transition-colors"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                            Изменить
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            onClick={() => handleDelete(selectedSubject)}
-                                            className="flex-1 gap-2 h-10 rounded-xl hover:bg-red-600 transition-colors shadow-sm"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                            Удалить
-                                        </Button>
-                                    </div>
-                                </div>
+                                        <div className="flex items-center gap-3 border-t border-slate-200 pt-4">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => openEdit(selectedSubject)}
+                                                className="flex-1 gap-2"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                                Изменить
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                onClick={() => handleDelete(selectedSubject)}
+                                                className="flex-1 gap-2"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                Удалить
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </>
                             ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 my-auto">
-                                    <div className="p-4 bg-slate-100/50 rounded-2xl mb-4 border border-slate-200/20">
-                                        <BookOpen className="h-10 w-10 text-slate-400 stroke-1" />
+                                <div className="my-auto flex flex-1 flex-col items-center justify-center p-8 text-center">
+                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <BookOpen className="h-7 w-7" />
                                     </div>
-                                    <div className="font-bold text-slate-700 text-[16px]">Сведения о предмете</div>
-                                    <p className="text-xs text-slate-400 mt-2 max-w-[280px] leading-relaxed">
+                                    <div className="font-display text-lg font-bold text-[#102945]">Сведения о предмете</div>
+                                    <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-slate-600">
                                         Выберите нужный предмет из списка кафедр слева, чтобы просмотреть его характеристики, коды и список закрепленных учителей.
                                     </p>
                                 </div>
@@ -628,67 +555,66 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 </div>
             </div>
 
-            {/* ── Drawer component (Right side, 40% width, full height) ── */}
+            {/* ── Drawer (right side, 40% width, full height) ── */}
             <div
-                className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[40%] bg-white shadow-2xl border-l border-slate-200/80 transform transition-transform duration-300 ease-in-out flex flex-col justify-between ${
+                className={`fixed inset-y-0 right-0 z-50 flex w-full transform flex-col justify-between border-l border-slate-200 bg-white shadow-[0_24px_64px_-24px_rgba(16,41,69,0.35)] transition-transform duration-300 ease-in-out sm:w-[40%] ${
                     drawerOpen ? 'translate-x-0' : 'translate-x-full'
                 }`}
+                role="dialog"
+                aria-hidden={!drawerOpen}
             >
                 {/* Drawer Header */}
-                <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-                    <div className="space-y-1.5 max-w-[85%]">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-[#067a75] block">Результаты студентов</span>
-                        <h3 className="text-lg font-bold text-[#102945] leading-snug truncate" title={drawerData?.subjectName}>
+                <div className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 p-6">
+                    <div className="min-w-0 max-w-[85%] space-y-1.5">
+                        <p className="qd-kicker">Результаты студентов</p>
+                        <h3 className="truncate font-display text-xl font-bold leading-snug text-[#102945]" title={drawerData?.subjectName}>
                             {drawerData?.subjectName}
                         </h3>
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <User className="h-3 w-3 text-slate-400" />
-                            Преподаватель: <span className="font-semibold text-slate-700">{drawerData?.teacher?.name}</span>
+                        <p className="flex items-center gap-1 text-sm text-slate-600">
+                            <User className="h-3.5 w-3.5 text-slate-400" />
+                            Преподаватель: <span className="font-semibold text-slate-900">{drawerData?.teacher?.name}</span>
                         </p>
                     </div>
-                    <button
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setDrawerOpen(false)}
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
                         title="Закрыть"
+                        aria-label="Закрыть"
                     >
                         <X className="h-5 w-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Drawer Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 space-y-6 overflow-y-auto p-6">
                     {loadingStudents ? (
-                        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                            <Loader2 className="h-10 w-10 text-[#067a75] animate-spin stroke-[1.5]" />
-                            <p className="text-sm text-slate-400 font-sans">Загрузка результатов студентов...</p>
+                        <div className="flex justify-center py-20">
+                            <LoadingState label="Загрузка результатов студентов..." />
                         </div>
                     ) : drawerStudents.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
-                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
-                                <GraduationCap className="h-8 w-8 text-slate-300 stroke-1" />
-                            </div>
-                            <p className="text-sm text-slate-500 font-medium font-sans">Нет привязанных студентов</p>
-                            <p className="text-xs text-slate-400 max-w-[240px] leading-relaxed font-sans">
-                                Студенты ещё не привязывались к этому преподавателю по этому предмету и не проходили тесты.
-                            </p>
-                        </div>
+                        <EmptyState
+                            title="Нет привязанных студентов"
+                            description="Студенты ещё не привязывались к этому преподавателю по этому предмету и не проходили тесты."
+                        />
                     ) : (
                         <div className="space-y-4">
                             {drawerStudents.map((student) => (
-                                <div key={student.student_id} className="rounded-2xl border border-slate-100 p-4 space-y-4 bg-slate-50/30 hover:border-slate-200/80 transition-colors">
+                                <div key={student.student_id} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                                     {/* Student Profile Info */}
-                                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm border border-slate-200/40">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-700">
                                                 {student.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-800 leading-tight font-sans">{student.name}</p>
-                                                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">{student.student_id}</p>
+                                                <p className="text-sm font-semibold leading-tight text-slate-900">{student.name}</p>
+                                                <p className="mt-0.5 font-mono text-[11px] text-slate-500">{student.student_id}</p>
                                             </div>
                                         </div>
                                         {student.email && student.email !== '—' && (
-                                            <a href={`mailto:${student.email}`} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors" title={student.email}>
+                                            <a href={`mailto:${student.email}`} className="rounded-[10px] p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-teal-700" title={student.email}>
                                                 <Mail className="h-4 w-4" />
                                             </a>
                                         )}
@@ -696,43 +622,41 @@ export default function Subjects({ disciplines = [], departments = [], filters }
 
                                     {/* Test attempts */}
                                     <div className="space-y-2">
-                                        <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider font-sans">
+                                        <div className="qd-field-label text-slate-500">
                                             Попытки сдачи тестов
                                         </div>
                                         {student.attempts && student.attempts.length > 0 ? (
-                                            <div className="space-y-2">
+                                            <div className="divide-y divide-slate-200">
                                                 {student.attempts.map((attempt) => (
-                                                    <div key={attempt.id} className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-100/60 shadow-[0_2px_8px_rgba(0,0,0,0.01)] text-xs">
-                                                        <div className="space-y-1 max-w-[65%]">
-                                                            <p className="font-semibold text-slate-700 leading-snug truncate font-sans" title={attempt.test_title}>
+                                                    <div key={attempt.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                                                        <div className="min-w-0 max-w-[65%] space-y-0.5">
+                                                            <p className="truncate font-medium leading-snug text-slate-900" title={attempt.test_title}>
                                                                 {attempt.test_title}
                                                             </p>
-                                                            <p className="text-[10px] text-slate-400 flex items-center gap-1 font-sans">
-                                                                <Calendar className="h-3 w-3 text-slate-400" />
+                                                            <p className="flex items-center gap-1 text-xs text-slate-500">
+                                                                <Calendar className="h-3 w-3" />
                                                                 {attempt.completed_at}
                                                             </p>
                                                         </div>
-                                                        <div className="flex items-center gap-2.5 shrink-0">
-                                                            <div className="text-right">
-                                                                <span className="font-bold text-slate-800 font-sans">{attempt.score}%</span>
-                                                            </div>
+                                                        <div className="flex shrink-0 items-center gap-2.5">
+                                                            <span className="font-semibold tabular-nums text-[#102945]">{attempt.score}%</span>
                                                             {attempt.passed ? (
-                                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                                                                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                                                <Badge variant="success">
+                                                                    <CheckCircle2 className="h-3 w-3" />
                                                                     Сдано
-                                                                </span>
+                                                                </Badge>
                                                             ) : (
-                                                                <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                                                                    <XCircle className="h-3 w-3 text-red-500" />
+                                                                <Badge variant="destructive">
+                                                                    <XCircle className="h-3 w-3" />
                                                                     Не сдано
-                                                                </span>
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-xs text-slate-400 italic bg-white rounded-xl p-3 border border-dashed border-slate-100 text-center font-sans">
+                                            <div className="rounded-[10px] border border-dashed border-slate-300 p-3 text-center text-xs text-slate-500">
                                                 Ещё не проходил тесты по этому предмету
                                             </div>
                                         )}
@@ -744,18 +668,18 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 </div>
 
                 {/* Drawer Footer */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center">
-                    <Button onClick={() => setDrawerOpen(false)} className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-xl border-0 h-10 transition-colors font-sans">
+                <div className="flex items-center justify-end border-t border-slate-200 bg-slate-50 p-4">
+                    <Button variant="outline" onClick={() => setDrawerOpen(false)}>
                         Закрыть панель
                     </Button>
                 </div>
             </div>
 
-            {/* Glass Backdrop for Drawer */}
+            {/* Backdrop for Drawer */}
             {drawerOpen && (
                 <div
                     onClick={() => setDrawerOpen(false)}
-                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[2px] transition-opacity duration-300"
+                    className="fixed inset-0 z-40 bg-[#082834]/40 transition-opacity duration-300"
                 />
             )}
 

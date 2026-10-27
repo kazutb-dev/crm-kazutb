@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, ArrowUpDown, Plus, Save, Shuffle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, FileCheck2, Hash, ListChecks, Plus, Save, Settings2, Shuffle, Target, Trash2 } from 'lucide-react';
+import { Notice, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { useEffect, useRef } from 'react';
 
 const questionTypeOptions = [
@@ -233,65 +234,54 @@ export default function TestForm({ binding, test = null }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Конструктор теста"
+                    title={test ? 'Редактирование теста' : 'Создание нового теста'}
+                    description={`Предмет: ${binding.subject?.name ?? ''} ${binding.subject?.code ? `(${binding.subject.code})` : ''}`}
+                    actions={(
+                        <Button asChild variant="outline" className="gap-2">
+                            <Link href={route('testing.bindings.show', binding.id)}>
+                                <ArrowLeft className="h-4 w-4" />
+                                Назад к привязке
+                            </Link>
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title={test ? `Редактирование теста - ${test.title}` : 'Новый тест'} />
 
             <form className="admin-page-wrap space-y-6" onSubmit={submit}>
-                <Card className="admin-surface overflow-hidden border-0 bg-gradient-to-r from-[#082834] via-[#0e3a3f] to-[#00625e] text-white">
-                    <CardContent className="flex flex-col gap-5 p-6 sm:p-8">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <div className="mb-3 inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/80">
-                                    Конструктор теста
-                                </div>
-                                <h1 className="text-3xl font-semibold">{test ? 'Редактирование теста' : 'Создание нового теста'}</h1>
-                                <p className="mt-2 text-sm text-white/75">
-                                    Предмет: {binding.subject?.name} {binding.subject?.code ? `(${binding.subject.code})` : ''}
-                                </p>
-                            </div>
+                <StatGrid>
+                    <StatTile label="Подготовлено вопросов" value={data.questions.length} tone="teal" icon={ListChecks} />
+                    <StatTile label="В тесте используется" value={data.question_count} tone="navy" icon={Hash} />
+                    <StatTile
+                        label="Статус"
+                        value={<span className="text-2xl">{submitStatusRef.current === 'published' || data.status === 'published' ? 'Опубликован' : 'Черновик'}</span>}
+                        tone={submitStatusRef.current === 'published' || data.status === 'published' ? 'success' : 'warning'}
+                        icon={FileCheck2}
+                    />
+                    <StatTile label="Проходной балл" value={`${data.passing_score}%`} tone="gold" icon={Target} />
+                </StatGrid>
 
-                            <Link href={route('testing.bindings.show', binding.id)}>
-                                <Button type="button" variant="outline" className="gap-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Назад к привязке
-                                </Button>
-                            </Link>
-                        </div>
-
-                        <div className="grid gap-3 md:grid-cols-4">
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/70">Подготовлено вопросов</div>
-                                <div className="mt-2 text-3xl font-semibold">{data.questions.length}</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/70">В тесте используется</div>
-                                <div className="mt-2 text-3xl font-semibold">{data.question_count}</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/70">Статус</div>
-                                <div className="mt-2 text-xl font-semibold">{submitStatusRef.current === 'published' || data.status === 'published' ? 'Опубликован' : 'Черновик'}</div>
-                            </div>
-                            <div className="rounded-2xl border border-white/15 bg-white/10 p-4">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/70">Проходной балл</div>
-                                <div className="mt-2 text-3xl font-semibold">{data.passing_score}%</div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="admin-surface">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-xl text-[#102945]">Основные параметры</CardTitle>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Settings2 className="h-4 w-4" />
+                            Основные параметры
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-5 lg:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Название теста</label>
+                            <label className="qd-field-label block">Название теста</label>
                             <Input value={data.title} onChange={(event) => setData('title', event.target.value)} placeholder="Например, Промежуточный тест по теме" />
-                            {errors.title && <div className="text-sm text-red-600">{errors.title}</div>}
+                            {errors.title && <div className="text-sm text-red-700">{errors.title}</div>}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Статус</label>
+                            <label className="qd-field-label block">Статус</label>
                             <NativeSelect
                                 value={data.status}
                                 onValueChange={(value) => setData('status', value)}
@@ -300,21 +290,21 @@ export default function TestForm({ binding, test = null }) {
                                     { value: 'published', label: 'Опубликован' },
                                 ]}
                             />
-                            {errors.status && <div className="text-sm text-red-600">{errors.status}</div>}
+                            {errors.status && <div className="text-sm text-red-700">{errors.status}</div>}
                         </div>
 
                         <div className="space-y-2 lg:col-span-2">
-                            <label className="text-sm font-medium text-slate-700">Описание</label>
+                            <label className="qd-field-label block">Описание</label>
                             <Textarea
                                 value={data.description}
                                 onChange={(event) => setData('description', event.target.value)}
                                 placeholder="Кратко опишите цель теста, инструкции или особенности прохождения."
                             />
-                            {errors.description && <div className="text-sm text-red-600">{errors.description}</div>}
+                            {errors.description && <div className="text-sm text-red-700">{errors.description}</div>}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Количество вопросов в прохождении</label>
+                            <label className="qd-field-label block">Количество вопросов в прохождении</label>
                             <Input
                                 type="number"
                                 min="1"
@@ -323,11 +313,11 @@ export default function TestForm({ binding, test = null }) {
                                 onChange={(event) => setData('question_count', Number(event.target.value))}
                             />
                             <p className="text-xs text-slate-500">Значение не может превышать количество подготовленных вопросов.</p>
-                            {errors.question_count && <div className="text-sm text-red-600">{errors.question_count}</div>}
+                            {errors.question_count && <div className="text-sm text-red-700">{errors.question_count}</div>}
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700">Проходной балл, %</label>
+                            <label className="qd-field-label block">Проходной балл, %</label>
                             <Input
                                 type="number"
                                 min="0"
@@ -335,18 +325,19 @@ export default function TestForm({ binding, test = null }) {
                                 value={data.passing_score}
                                 onChange={(event) => setData('passing_score', Number(event.target.value))}
                             />
-                            {errors.passing_score && <div className="text-sm text-red-600">{errors.passing_score}</div>}
+                            {errors.passing_score && <div className="text-sm text-red-700">{errors.passing_score}</div>}
                         </div>
 
-                        <div className="flex flex-wrap gap-6 lg:col-span-2">
+                        <div className="flex flex-wrap gap-6 border-t border-slate-200 pt-5 lg:col-span-2">
                             <label className="inline-flex items-center gap-3 text-sm text-slate-700">
                                 <input
                                     type="checkbox"
+                                    className="h-4 w-4 rounded border-slate-300 accent-teal-700"
                                     checked={data.shuffle_questions}
                                     onChange={(event) => setData('shuffle_questions', event.target.checked)}
                                 />
                                 <span className="inline-flex items-center gap-2">
-                                    <Shuffle className="h-4 w-4 text-[#067a75]" />
+                                    <Shuffle className="h-4 w-4 text-teal-700" />
                                     Перемешивать порядок вопросов
                                 </span>
                             </label>
@@ -354,6 +345,7 @@ export default function TestForm({ binding, test = null }) {
                             <label className="inline-flex items-center gap-3 text-sm text-slate-700">
                                 <input
                                     type="checkbox"
+                                    className="h-4 w-4 rounded border-slate-300 accent-teal-700"
                                     checked={data.allow_reordering}
                                     onChange={(event) => setData('allow_reordering', event.target.checked)}
                                 />
@@ -363,33 +355,34 @@ export default function TestForm({ binding, test = null }) {
                     </CardContent>
                 </Card>
 
-                <Card className="admin-surface">
-                    <CardHeader className="pb-3">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <CardTitle className="text-xl text-[#102945]">Вопросы</CardTitle>
-                                <p className="mt-1 text-sm text-slate-500">Для MVP поддерживаются выбор одного ответа, выбор нескольких ответов и короткий текст.</p>
-                            </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <ListChecks className="h-4 w-4" />
+                            Вопросы
+                        </CardTitle>
+                    </CardHeader>
 
-                            <Button type="button" className="gap-2" onClick={addQuestion}>
+                    <CardContent className="space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm text-slate-600">Для MVP поддерживаются выбор одного ответа, выбор нескольких ответов и короткий текст.</p>
+                            <Button type="button" variant="secondary" className="gap-2" onClick={addQuestion}>
                                 <Plus className="h-4 w-4" />
                                 Добавить вопрос
                             </Button>
                         </div>
-                        {errors.questions && <div className="text-sm text-red-600">{errors.questions}</div>}
-                    </CardHeader>
+                        {errors.questions && <Notice tone="danger">{errors.questions}</Notice>}
 
-                    <CardContent className="space-y-4">
                         {data.questions.map((question, index) => (
-                            <div key={`${index}-${question.type}`} className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_16px_38px_-32px_rgba(15,23,42,0.55)]">
+                            <div key={`${index}-${question.type}`} className="rounded-[14px] border border-slate-200 bg-white p-5">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#082834] text-sm font-semibold text-white">
+                                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-teal-700 font-display text-sm font-bold tabular-nums text-white">
                                             {index + 1}
                                         </span>
                                         <div>
-                                            <div className="font-semibold text-[#102945]">Вопрос {index + 1}</div>
-                                            <Badge className="mt-1 bg-slate-200 text-slate-700">{questionTypeOptions.find((item) => item.value === question.type)?.label}</Badge>
+                                            <div className="font-display font-bold text-[#102945]">Вопрос {index + 1}</div>
+                                            <Badge variant="secondary" className="mt-1">{questionTypeOptions.find((item) => item.value === question.type)?.label}</Badge>
                                         </div>
                                     </div>
 
@@ -404,27 +397,27 @@ export default function TestForm({ binding, test = null }) {
                                                 </Button>
                                             </>
                                         )}
-                                        <Button type="button" variant="outline" size="sm" className="text-red-700" disabled={data.questions.length === 1} onClick={() => removeQuestion(index)}>
+                                        <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" disabled={data.questions.length === 1} onClick={() => removeQuestion(index)}>
                                             <Trash2 className="mr-1 h-3.5 w-3.5" />
                                             Удалить
                                         </Button>
                                     </div>
                                 </div>
 
-                                <div className="mt-5 grid gap-5">
+                                <div className="mt-5 grid gap-5 border-t border-slate-200 pt-5">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Текст вопроса</label>
+                                        <label className="qd-field-label block">Текст вопроса</label>
                                         <Textarea
                                             value={question.text}
                                             onChange={(event) => updateQuestion(index, { text: event.target.value })}
                                             placeholder="Введите формулировку вопроса"
                                         />
-                                        {errors[`questions.${index}.text`] && <div className="text-sm text-red-600">{errors[`questions.${index}.text`]}</div>}
+                                        {errors[`questions.${index}.text`] && <div className="text-sm text-red-700">{errors[`questions.${index}.text`]}</div>}
                                     </div>
 
                                     <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-700">Тип вопроса</label>
+                                            <label className="qd-field-label block">Тип вопроса</label>
                                             <NativeSelect
                                                 value={question.type}
                                                 onValueChange={(value) => updateQuestionType(index, value)}
@@ -432,19 +425,15 @@ export default function TestForm({ binding, test = null }) {
                                             />
                                         </div>
 
-                                        <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                            <div className="mb-2 inline-flex items-center gap-2 font-medium text-[#102945]">
-                                                <ArrowUpDown className="h-4 w-4" />
-                                                Правильные ответы
-                                            </div>
+                                        <Notice tone="brand" title="Правильные ответы" className="self-end">
                                             {question.type === 'short_text'
                                                 ? 'Укажите один или несколько допустимых текстовых ответов.'
                                                 : 'Отметьте варианты, которые считаются правильными при проверке.'}
-                                        </div>
+                                        </Notice>
                                     </div>
 
                                     {question.type === 'short_text' ? (
-                                        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                                             {(question.correct_answers.length ? question.correct_answers : ['']).map((answer, answerIndex) => (
                                                 <div key={answerIndex} className="flex gap-2">
                                                     <Input
@@ -458,7 +447,10 @@ export default function TestForm({ binding, test = null }) {
                                                     />
                                                     <Button
                                                         type="button"
-                                                        variant="outline"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        aria-label="Удалить ответ"
+                                                        className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
                                                         disabled={(question.correct_answers.length ? question.correct_answers : ['']).length === 1}
                                                         onClick={() => updateQuestion(index, {
                                                             correct_answers: (question.correct_answers.length ? question.correct_answers : ['']).filter((_, currentIndex) => currentIndex !== answerIndex),
@@ -472,15 +464,18 @@ export default function TestForm({ binding, test = null }) {
                                             <Button
                                                 type="button"
                                                 variant="outline"
+                                                size="sm"
+                                                className="gap-1.5"
                                                 onClick={() => updateQuestion(index, {
                                                     correct_answers: [...(question.correct_answers.length ? question.correct_answers : ['']), ''],
                                                 })}
                                             >
+                                                <Plus className="h-3.5 w-3.5" />
                                                 Добавить допустимый ответ
                                             </Button>
                                         </div>
                                     ) : (
-                                        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
                                             {question.options.map((option, optionIndex) => {
                                                 const checked = question.correct_answers.includes(option);
 
@@ -495,16 +490,19 @@ export default function TestForm({ binding, test = null }) {
                                                         <Button
                                                             type="button"
                                                             variant={checked ? 'default' : 'outline'}
-                                                            className="justify-center"
+                                                            className="justify-center gap-1.5"
                                                             onClick={() => toggleCorrectAnswer(index, option)}
                                                         >
+                                                            {checked && <Check className="h-3.5 w-3.5" />}
                                                             {question.type === 'single_choice' ? 'Сделать правильным' : checked ? 'Правильный' : 'Отметить'}
                                                         </Button>
 
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
-                                                            className="text-red-700"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            aria-label="Удалить вариант"
+                                                            className="text-red-700 hover:bg-red-50 hover:text-red-800"
                                                             disabled={question.options.length <= 2}
                                                             onClick={() => removeOption(index, optionIndex)}
                                                         >
@@ -514,8 +512,9 @@ export default function TestForm({ binding, test = null }) {
                                                 );
                                             })}
 
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button type="button" variant="outline" onClick={() => addOption(index)}>
+                                            <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                                                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={() => addOption(index)}>
+                                                    <Plus className="h-3.5 w-3.5" />
                                                     Добавить вариант
                                                 </Button>
                                             </div>
@@ -527,7 +526,10 @@ export default function TestForm({ binding, test = null }) {
                     </CardContent>
                 </Card>
 
-                <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+                    <span className="mr-auto text-sm text-slate-500">
+                        Вопросов: <span className="font-semibold tabular-nums text-[#102945]">{data.questions.length}</span>
+                    </span>
                     <Button
                         type="submit"
                         variant="outline"

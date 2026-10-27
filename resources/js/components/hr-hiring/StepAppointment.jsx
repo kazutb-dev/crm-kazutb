@@ -24,7 +24,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
     const isReplacement = c.term === 'replacement';
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <Section
                 title="Должность и подразделение"
                 description="Выберите из справочника или введите вручную. Категория персонала задаёт отпуск и график по умолчанию."
@@ -32,11 +32,11 @@ export default function StepAppointment({ state, set, errors, options, abilities
             >
                 <div id={fieldId('hiring.staff_category')} role="radiogroup" aria-label="Категория персонала" className="grid gap-2 sm:grid-cols-3">
                     {options.categories.map((category) => (
-                        <label key={category.value} className={`flex cursor-pointer flex-col rounded-xl border px-3 py-2 text-sm transition ${h.staff_category === category.value ? 'border-teal-500 bg-teal-50 text-teal-900' : 'border-slate-200 hover:bg-slate-50'}`}>
+                        <label key={category.value} className={`flex cursor-pointer flex-col rounded-xl border px-4 py-3 text-sm transition-colors ${h.staff_category === category.value ? 'border-teal-600 bg-teal-50 text-[#102945] ring-1 ring-teal-600' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
                             <input type="radio" name="staff_category" className="sr-only" checked={h.staff_category === category.value} onChange={() => set('hiring.staff_category', category.value)} />
-                            <span className="font-semibold">{category.label}</span>
-                            <span className="text-xs leading-snug text-slate-500">{category.name}</span>
-                            {category.defaults?.vacation_days && <span className="mt-1 text-xs text-slate-400">отпуск {category.defaults.vacation_days} дн.</span>}
+                            <span className="font-display text-base font-bold">{category.label}</span>
+                            <span className="text-xs leading-snug text-slate-600">{category.name}</span>
+                            {category.defaults?.vacation_days && <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">отпуск {category.defaults.vacation_days} дн.</span>}
                         </label>
                     ))}
                 </div>
@@ -86,8 +86,8 @@ export default function StepAppointment({ state, set, errors, options, abilities
                 />
 
                 {full.ru && (
-                    <div className="space-y-1.5 rounded-xl border border-teal-100 bg-teal-50/50 px-4 py-3 text-sm text-slate-700">
-                        <p className="text-xs font-medium uppercase tracking-wide text-teal-800">Так будет написано в договоре</p>
+                    <div className="space-y-1.5 rounded-xl border border-teal-200 border-l-[3px] border-l-teal-600 bg-teal-50 px-4 py-3 text-sm text-slate-700">
+                        <p className="qd-kicker">Так будет написано в договоре</p>
                         <p>на должность <span className="font-medium text-slate-900">{full.ru}</span></p>
                         <p><span className="font-medium text-slate-900">{full.kz}</span> лауазымына</p>
                     </div>
@@ -95,7 +95,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
             </Section>
 
             <Section title="Дата приёма" feeds={['contract', 'order']}>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field id={fieldId('hiring.start_date')} label="Дата приёма на работу" error={errors['hiring.start_date']}>
                         <TextInput id={fieldId('hiring.start_date')} type="date" value={h.start_date} onChange={(value) => set('hiring.start_date', value)} />
                     </Field>
@@ -108,16 +108,16 @@ export default function StepAppointment({ state, set, errors, options, abilities
                         />
                     </Field>
                 </div>
-                <label className="flex items-start gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800">
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition-colors hover:border-slate-300">
                     <input
                         type="checkbox"
                         checked={isReplacement}
                         onChange={(event) => set('contract.term', event.target.checked ? 'replacement' : null)}
-                        className="mt-0.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                        className="mt-0.5 h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30"
                     />
                     <span>
                         На время замещения работника
-                        <span className="block text-xs text-slate-500">Срок договора станет «на время замещения».</span>
+                        <span className="block text-xs font-normal text-slate-500">Срок договора станет «на время замещения».</span>
                     </span>
                 </label>
                 {isReplacement && (
@@ -128,7 +128,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
             </Section>
 
             <Section title="Приказ о приёме" description="Номер подсказывается по счётчику приказов этого года." feeds={['order']}>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <Field id={fieldId('hiring.order_number')} label="Номер приказа" error={errors['hiring.order_number']}>
                         <TextInput id={fieldId('hiring.order_number')} value={h.order_number} onChange={(value) => set('hiring.order_number', value)} className="font-mono" maxLength={30} placeholder="412-К" />
                         <NumberHint kind="order" date={h.order_date || c.date} value={h.order_number} hiringId={hiringId} onApply={(value) => set('hiring.order_number', value)} />
@@ -146,7 +146,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
                     <div className="flex gap-2">
                         <TextInput id={fieldId('hiring.fio_accusative')} value={h.fio_accusative} onChange={(value) => set('hiring.fio_accusative', value)} placeholder={autoAccusative} />
                         {h.fio_accusative_manual && (
-                            <button type="button" onClick={onAccusativeReset} className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-300 px-3 text-xs text-slate-700 hover:bg-slate-50" title="Склонять автоматически">
+                            <button type="button" onClick={onAccusativeReset} className="inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-slate-300 bg-white px-3 text-xs font-bold uppercase tracking-[0.08em] text-[#102945] transition-colors hover:border-[#102945]" title="Склонять автоматически">
                                 <RotateCcw className="h-3.5 w-3.5" /> Авто
                             </button>
                         )}

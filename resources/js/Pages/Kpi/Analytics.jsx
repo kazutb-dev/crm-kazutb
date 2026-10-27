@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,34 +20,38 @@ function score(value) {
 
 function RankingTable({ title, icon: Icon, rows, emptyMessage }) {
     return (
-        <Card className="admin-surface">
+        <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
+                <CardTitle className="flex items-center gap-2">
                     <Icon className="h-4 w-4" />
                     {title}
                 </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={rows.length === 0 ? '' : 'p-0'}>
                 {rows.length === 0 ? (
-                    <div className="admin-empty-state">{emptyMessage}</div>
+                    <p className="py-4 text-center text-sm text-slate-500">{emptyMessage}</p>
                 ) : (
-                    <div className="admin-table-wrap">
-                        <table className="admin-data-table min-w-[520px]">
-                            <thead>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[420px] text-sm">
+                            <thead className="border-b border-slate-200">
                                 <tr>
-                                    <th>#</th>
-                                    <th>Название</th>
-                                    <th>Утверждено</th>
-                                    <th>Итоговый балл</th>
+                                    <th className="px-4 py-3 text-left">#</th>
+                                    <th className="px-4 py-3 text-left">Название</th>
+                                    <th className="px-4 py-3 text-right">Утверждено</th>
+                                    <th className="px-4 py-3 text-right">Итоговый балл</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, index) => (
-                                    <tr key={row.id}>
-                                        <td className="py-3 pe-3">{index + 1}</td>
-                                        <td className="py-3 pe-3 font-medium">{row.entity_name}</td>
-                                        <td className="py-3 pe-3">{row.approved_entries_count}</td>
-                                        <td className="py-3 pe-3 font-semibold">{score(row.total_score)}</td>
+                                    <tr key={row.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                        <td className="px-4 py-3">
+                                            <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold tabular-nums ${index === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
+                                                {index + 1}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 font-medium text-slate-900">{row.entity_name}</td>
+                                        <td className="px-4 py-3 text-right tabular-nums text-slate-600">{row.approved_entries_count}</td>
+                                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{score(row.total_score)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -108,105 +113,86 @@ export default function Analytics({
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Аналитика"
+                    title="KPI аналитика и рейтинги"
+                    description="Режим только просмотра для superadmin. Данные ранжируются по total_score DESC на основе kpi_results."
+                    actions={(
+                        <>
+                            <Button type="button" variant="outline" onClick={() => exportReport('kpi.analytics.export-excel')}>
+                                <Download className="h-4 w-4" />
+                                Excel
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => exportReport('kpi.analytics.export-pdf')}>
+                                <FileText className="h-4 w-4" />
+                                PDF
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="KPI Аналитика" />
 
-            <div className="admin-page-wrap">
-                <Card className="admin-surface border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <BarChart3 className="h-5 w-5" />
-                            KPI аналитика и рейтинги
-                        </CardTitle>
-                        <CardDescription>
-                            Режим только просмотра для superadmin. Данные ранжируются по `total_score DESC` на основе `kpi_results`.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Всего записей</p>
-                            <p className="mt-2 text-2xl font-semibold">{widgets.total_entries ?? 0}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Черновик</p>
-                            <p className="mt-2 text-2xl font-semibold">{widgets.draft ?? 0}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Отправлено</p>
-                            <p className="mt-2 text-2xl font-semibold">{widgets.submitted ?? 0}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Утверждено</p>
-                            <p className="mt-2 text-2xl font-semibold">{widgets.approved ?? 0}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего записей" value={widgets.total_entries ?? 0} tone="navy" icon={BarChart3} />
+                    <StatTile label="Черновик" value={widgets.draft ?? 0} tone="neutral" />
+                    <StatTile label="Отправлено" value={widgets.submitted ?? 0} tone="info" />
+                    <StatTile label="Утверждено" value={widgets.approved ?? 0} tone="success" />
+                </StatGrid>
 
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle className="text-base">Фильтры</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="space-y-4" onSubmit={applyFilters}>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Учебный год</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
-                                        value={form.data.academic_year_id}
-                                        onChange={(event) => form.setData('academic_year_id', event.target.value)}
-                                    >
-                                        <option value="">Все</option>
-                                        {(filterOptions.academicYears ?? []).map((year) => (
-                                            <option key={year.id} value={year.id}>{year.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                <FilterBar>
+                    <form className="space-y-4" onSubmit={applyFilters}>
+                        <div className="grid gap-4 md:grid-cols-3">
+                            <FormField label="Учебный год">
+                                <select
+                                    className={qdFieldClass}
+                                    value={form.data.academic_year_id}
+                                    onChange={(event) => form.setData('academic_year_id', event.target.value)}
+                                >
+                                    <option value="">Все</option>
+                                    {(filterOptions.academicYears ?? []).map((year) => (
+                                        <option key={year.id} value={year.id}>{year.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Период</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
-                                        value={form.data.period_id}
-                                        onChange={(event) => form.setData('period_id', event.target.value)}
-                                    >
-                                        <option value="">Все</option>
-                                        {(filterOptions.periods ?? []).map((period) => (
-                                            <option key={period.id} value={period.id}>{period.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <FormField label="Период">
+                                <select
+                                    className={qdFieldClass}
+                                    value={form.data.period_id}
+                                    onChange={(event) => form.setData('period_id', event.target.value)}
+                                >
+                                    <option value="">Все</option>
+                                    {(filterOptions.periods ?? []).map((period) => (
+                                        <option key={period.id} value={period.id}>{period.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Уровень</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm"
-                                        value={form.data.entity_type}
-                                        onChange={(event) => form.setData('entity_type', event.target.value)}
-                                    >
-                                        <option value="">Все</option>
-                                        {(filterOptions.entityTypes ?? []).map((item) => (
-                                            <option key={item} value={item}>{entityLabels[item] ?? item}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            <FormField label="Уровень">
+                                <select
+                                    className={qdFieldClass}
+                                    value={form.data.entity_type}
+                                    onChange={(event) => form.setData('entity_type', event.target.value)}
+                                >
+                                    <option value="">Все</option>
+                                    {(filterOptions.entityTypes ?? []).map((item) => (
+                                        <option key={item} value={item}>{entityLabels[item] ?? item}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                        </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button type="submit">Применить</Button>
-                                <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                                <Button type="button" variant="outline" onClick={() => exportReport('kpi.analytics.export-excel')}>
-                                    <Download className="h-4 w-4" />
-                                    Excel
-                                </Button>
-                                <Button type="button" variant="outline" onClick={() => exportReport('kpi.analytics.export-pdf')}>
-                                    <FileText className="h-4 w-4" />
-                                    PDF
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                            <Button type="submit">Применить</Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
                 <div className="grid gap-6 xl:grid-cols-3">
                     <RankingTable
@@ -231,26 +217,26 @@ export default function Analytics({
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Примеры агрегации</CardTitle>
+                        <CardTitle>Примеры агрегации</CardTitle>
                         <CardDescription>
                             Пример Eloquent-агрегации и SQL-шаблон для секционных KPI-расчетов.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <p className="mb-2 text-sm font-medium">Результат Eloquent</p>
+                    <CardContent className="space-y-5">
+                        <div className="space-y-2">
+                            <span className="qd-field-label block text-slate-500">Результат Eloquent</span>
                             <div className="flex flex-wrap gap-2">
                                 {(aggregationExamples.eloquent ?? []).map((item) => (
-                                    <Badge key={item.section} variant="outline">
+                                    <Badge key={item.section} variant="outline" className="tabular-nums">
                                         {item.section}: {score(item.section_score)}
                                     </Badge>
                                 ))}
                             </div>
                         </div>
 
-                        <div>
-                            <p className="mb-2 text-sm font-medium">SQL-шаблон</p>
-                            <pre className="overflow-x-auto rounded-lg border bg-muted/30 p-3 text-xs">
+                        <div className="space-y-2">
+                            <span className="qd-field-label block text-slate-500">SQL-шаблон</span>
+                            <pre className="overflow-x-auto rounded-[10px] border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
                                 {aggregationExamples.sql}
                             </pre>
                         </div>

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, Notice, PageHeader, Segmented, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,12 @@ import { Head, router, useForm } from '@inertiajs/react';
 import {
     BarChart3,
     BookOpen,
+    CalendarRange,
     CircleAlert,
     FileUp,
+    Flag,
+    Paperclip,
+    Save,
     FlaskConical,
     GraduationCap,
     MessageSquareText,
@@ -56,12 +61,12 @@ const statusLabels = {
 
 const statusVariants = {
     draft: 'outline',
-    submitted: 'secondary',
-    returned: 'secondary',
+    submitted: 'info',
+    returned: 'warning',
     reviewed: 'secondary',
-    pending_dean: 'secondary',
-    pending_structural: 'secondary',
-    approved: 'default',
+    pending_dean: 'info',
+    pending_structural: 'default',
+    approved: 'success',
     rejected: 'destructive',
     locked: 'destructive',
     mixed: 'outline',
@@ -240,83 +245,62 @@ export default function TeacherForm({
     const canEditFact = (row) => isFactStage && !isRowReadOnly(row);
     const canSubmit = Boolean(period) && (isPlanStage || isFactStage) && !entryForm.processing;
 
+    const stageItems = stageOptions.map((stage) => ({ key: stage, label: stageLabels[stage] ?? stage }));
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <div className="flex items-center gap-2">
-                    {stageOptions.map((stage) => (
-                        <Button
-                            key={stage}
-                            type="button"
-                            size="sm"
-                            variant={period?.stage === stage ? 'default' : 'outline'}
-                            onClick={() => handleStageSwitch(stage)}
-                        >
-                            {stageLabels[stage] ?? stage}
-                        </Button>
-                    ))}
-                </div>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Преподаватель"
+                    title="KPI-форма преподавателя"
+                    description={(
+                        <>
+                            Заполняйте показатели по разделам. В стадии <strong>plan</strong> доступно только плановое значение,
+                            в стадии <strong>fact</strong> — фактическое значение и подтверждающий файл.
+                        </>
+                    )}
+                    actions={(
+                        <Segmented items={stageItems} value={period?.stage} onChange={handleStageSwitch} />
+                    )}
+                />
+            )}
         >
             <Head title="Моя KPI-форма" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <BarChart3 className="h-5 w-5" />
-                            KPI-форма преподавателя
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                        <div className="space-y-2 text-sm text-muted-foreground">
-                            <p>
-                                Заполняйте показатели по разделам. В стадии <strong>plan</strong> доступно только плановое значение.
-                                В стадии <strong>fact</strong> доступны фактическое значение и подтверждающий файл.
-                            </p>
-                            {period ? (
-                                <p>
-                                    Период: <span className="font-medium text-foreground">{period.name}</span>. Окно подачи:{' '}
-                                    {formatDate(period.start_date)} - {formatDate(period.end_date)}.
-                                </p>
-                            ) : (
-                                <p>Активный KPI-период для выбранной стадии сейчас не открыт.</p>
-                            )}
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Этап</p>
-                                <p className="mt-2 text-lg font-semibold">{stageLabels[period?.stage] ?? '—'}</p>
-                            </div>
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Общий статус</p>
-                                <div className="mt-2">
-                                    <Badge variant={statusVariants[overallStatus] ?? 'outline'}>
-                                        {statusLabels[overallStatus] ?? overallStatus}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Сумма баллов</p>
-                                <p className="mt-2 text-lg font-semibold">{totalPoints.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Этап" value={stageLabels[period?.stage] ?? '—'} tone="teal" icon={Flag} />
+                    <StatTile
+                        label="Общий статус"
+                        value={(
+                            <Badge variant={statusVariants[overallStatus] ?? 'outline'} className="font-sans">
+                                {statusLabels[overallStatus] ?? overallStatus}
+                            </Badge>
+                        )}
+                        tone="info"
+                        icon={ShieldCheck}
+                    />
+                    <StatTile
+                        label="Окно подачи"
+                        value={period ? <span className="text-xl">{formatDate(period.start_date)}</span> : '—'}
+                        hint={period ? `${period.name} · до ${formatDate(period.end_date)}` : 'Активный период не открыт'}
+                        tone="navy"
+                        icon={CalendarRange}
+                    />
+                    <StatTile label="Сумма баллов" value={totalPoints.toFixed(2)} tone="gold" icon={BarChart3} />
+                </StatGrid>
 
                 {!period ? (
-                    <Card>
-                        <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center">
-                            <CircleAlert className="h-8 w-8 text-muted-foreground" />
-                            <div>
-                                <p className="font-medium">Нет активного периода</p>
-                                <p className="text-sm text-muted-foreground">Дождитесь открытия периода администратором или переключите этап выше.</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <EmptyState
+                        title="Нет активного периода"
+                        description="Активный KPI-период для выбранной стадии сейчас не открыт. Дождитесь открытия периода администратором или переключите этап в шапке страницы."
+                    />
                 ) : (
                     <>
+                        <Notice tone="brand" title={`Период: ${period.name}`}>
+                            Окно подачи: {formatDate(period.start_date)} - {formatDate(period.end_date)}.
+                        </Notice>
+
                         {sectionKeys.map((section) => {
                             const Icon = sectionIcons[section] ?? NotebookPen;
                             const sectionRows = groupedSections[section] ?? [];
@@ -324,74 +308,74 @@ export default function TeacherForm({
 
                             return (
                                 <Card key={section}>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center justify-between gap-3 text-base">
-                                            <span className="flex items-center gap-2">
-                                                <Icon className="h-4 w-4" />
-                                                {sectionLabels[section] ?? section}
-                                            </span>
-                                            <Badge variant="outline">Итог: {sectionTotal.toFixed(2)}</Badge>
+                                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Icon />
+                                            {sectionLabels[section] ?? section}
                                         </CardTitle>
+                                        <Badge variant="default" className="tabular-nums">Итог: {sectionTotal.toFixed(2)}</Badge>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardContent className="p-0">
                                         <div className="overflow-x-auto">
                                             <table className="w-full min-w-[1200px] text-sm">
                                                 <thead>
-                                                    <tr className="border-b text-left text-muted-foreground">
-                                                        <th className="py-3 pe-3 font-medium">Показатель</th>
-                                                        <th className="py-3 pe-3 font-medium">План</th>
-                                                        <th className="py-3 pe-3 font-medium">Факт</th>
-                                                        <th className="py-3 pe-3 font-medium">Баллы</th>
-                                                        <th className="py-3 pe-3 font-medium">Комментарий</th>
-                                                        <th className="py-3 pe-3 font-medium">Файл</th>
-                                                        <th className="py-3 pe-3 font-medium">Статус</th>
+                                                    <tr className="border-b border-slate-200 text-left">
+                                                        <th className="px-4 py-3">Показатель</th>
+                                                        <th className="w-32 px-4 py-3">План</th>
+                                                        <th className="w-32 px-4 py-3">Факт</th>
+                                                        <th className="w-28 px-4 py-3 text-right">Баллы</th>
+                                                        <th className="px-4 py-3">Комментарий</th>
+                                                        <th className="px-4 py-3">Файл</th>
+                                                        <th className="px-4 py-3">Статус</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {sectionRows.map((row) => (
-                                                        <tr key={row.indicator_id} className="border-b align-top last:border-0">
-                                                            <td className="py-4 pe-3">
-                                                                <div className="font-medium">{row.name}</div>
-                                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                        <tr key={row.indicator_id} className="border-b border-slate-200 align-top last:border-0">
+                                                            <td className="px-4 py-4">
+                                                                <div className="font-medium text-slate-900">{row.name}</div>
+                                                                <div className="mt-1 text-xs text-slate-500">
                                                                     Код: {row.code}{row.unit ? ` • Ед.: ${row.unit}` : ''}
                                                                 </div>
                                                             </td>
-                                                            <td className="py-4 pe-3">
+                                                            <td className="px-4 py-4">
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
                                                                     min="0"
+                                                                    className="tabular-nums"
                                                                     value={row.plan_value ?? ''}
                                                                     disabled={!canEditPlan(row)}
                                                                     onChange={(event) => updateRow(row.indicator_id, 'plan_value', event.target.value)}
                                                                     placeholder="0"
                                                                 />
                                                             </td>
-                                                            <td className="py-4 pe-3">
+                                                            <td className="px-4 py-4">
                                                                 <Input
                                                                     type="number"
                                                                     step="1"
                                                                     min="0"
+                                                                    className="tabular-nums"
                                                                     value={row.fact_value ?? ''}
                                                                     disabled={!canEditFact(row)}
                                                                     onChange={(event) => updateRow(row.indicator_id, 'fact_value', event.target.value)}
                                                                     placeholder="0"
                                                                 />
                                                             </td>
-                                                            <td className="py-4 pe-3">
-                                                                <div className="rounded-md border bg-muted/40 px-3 py-2 font-medium">
+                                                            <td className="px-4 py-4 text-right">
+                                                                <span className="font-display text-lg font-bold tabular-nums text-[#102945]">
                                                                     {resolvePoints(row).toFixed(2)}
-                                                                </div>
+                                                                </span>
                                                             </td>
-                                                            <td className="py-4 pe-3">
+                                                            <td className="px-4 py-4">
                                                                 <textarea
-                                                                    className="min-h-20 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm"
+                                                                    className="min-h-20 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed"
                                                                     value={row.comment ?? ''}
                                                                     disabled
                                                                     readOnly
                                                                 />
                                                             </td>
-                                                            <td className="py-4 pe-3">
+                                                            <td className="px-4 py-4">
                                                                 <div className="space-y-2">
                                                                     {row.files.length > 0 ? (
                                                                         row.files.map((file) => (
@@ -400,20 +384,21 @@ export default function TeacherForm({
                                                                                 href={file.file_url}
                                                                                 target="_blank"
                                                                                 rel="noreferrer"
-                                                                                className="block text-sm text-primary underline-offset-4 hover:underline"
+                                                                                className="flex items-center gap-1.5 text-sm font-medium text-teal-700 underline-offset-4 hover:text-[#102945] hover:underline"
                                                                             >
-                                                                                {file.file_name}
+                                                                                <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                                                                <span className="truncate">{file.file_name}</span>
                                                                             </a>
                                                                         ))
                                                                     ) : (
-                                                                        <p className="text-xs text-muted-foreground">
+                                                                        <p className="text-xs text-slate-500">
                                                                             {row.requires_file ? 'Файл обязателен на стадии fact.' : 'Файл не требуется.'}
                                                                         </p>
                                                                     )}
 
                                                                     {row.requires_file && isFactStage && canEditFact(row) && (
                                                                         row.entry_id ? (
-                                                                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/40">
+                                                                            <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-[10px] border border-slate-300 bg-white px-3 text-xs font-bold uppercase tracking-[0.08em] text-[#102945] transition-colors hover:border-teal-600 hover:text-teal-700">
                                                                                 <FileUp className="h-4 w-4" />
                                                                                 <span>{uploadingEntryId === row.entry_id ? 'Загрузка...' : 'Загрузить файл'}</span>
                                                                                 <input
@@ -430,12 +415,15 @@ export default function TeacherForm({
                                                                                 />
                                                                             </label>
                                                                         ) : (
-                                                                            <p className="text-xs text-amber-700">Сначала сохраните факт, затем загрузите файл.</p>
+                                                                            <p className="flex items-start gap-1.5 text-xs text-amber-700">
+                                                                                <CircleAlert className="mt-px h-3.5 w-3.5 shrink-0" />
+                                                                                Сначала сохраните факт, затем загрузите файл.
+                                                                            </p>
                                                                         )
                                                                     )}
                                                                 </div>
                                                             </td>
-                                                            <td className="py-4 pe-3">
+                                                            <td className="px-4 py-4">
                                                                 <Badge variant={statusVariants[row.status] ?? 'outline'}>
                                                                     {statusLabels[row.status] ?? row.status}
                                                                 </Badge>
@@ -450,10 +438,13 @@ export default function TeacherForm({
                             );
                         })}
 
-                        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p className="font-medium">Общий статус отправки: {statusLabels[overallStatus] ?? overallStatus}</p>
-                                <p className="text-sm text-muted-foreground">
+                        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_0_rgba(25,28,29,0.08)] sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                                <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#102945]">
+                                    Общий статус отправки:
+                                    <Badge variant={statusVariants[overallStatus] ?? 'outline'}>{statusLabels[overallStatus] ?? overallStatus}</Badge>
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600">
                                     {isPlanStage && 'Сейчас редактируются только плановые значения.'}
                                     {isFactStage && 'Сейчас редактируются фактические значения и подтверждающие файлы.'}
                                     {isReviewStage && 'Период в review: форма доступна только для просмотра.'}
@@ -462,6 +453,7 @@ export default function TeacherForm({
                             <div className="flex flex-wrap gap-2">
                                 {(isPlanStage || isFactStage) && (
                                     <Button type="button" variant="outline" onClick={saveEntries} disabled={!period || entryForm.processing}>
+                                        <Save className="h-4 w-4" />
                                         Сохранить
                                     </Button>
                                 )}

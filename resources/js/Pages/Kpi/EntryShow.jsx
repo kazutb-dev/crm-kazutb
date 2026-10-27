@@ -1,9 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { InfoField, Notice, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Download, FileText, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Award, Building2, CalendarRange, Calculator, Clock3, Download, ExternalLink, FileText, Gavel, History, ShieldAlert, ShieldCheck, User } from 'lucide-react';
 
 const statusLabels = {
     draft: 'Черновик',
@@ -19,10 +21,12 @@ const statusLabels = {
 
 const statusVariants = {
     draft: 'outline',
-    submitted: 'secondary',
-    returned: 'outline',
+    submitted: 'info',
+    returned: 'warning',
     reviewed: 'secondary',
-    approved: 'default',
+    pending_dean: 'info',
+    pending_structural: 'default',
+    approved: 'success',
     rejected: 'destructive',
     locked: 'destructive',
 };
@@ -34,8 +38,8 @@ const spStatusLabels = {
 };
 
 const spStatusVariants = {
-    pending: 'outline',
-    approved: 'default',
+    pending: 'warning',
+    approved: 'success',
     rejected: 'destructive',
 };
 
@@ -288,88 +292,86 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                     </Button>
                 </div>
             }
+            header={(
+                <PageHeader
+                    eyebrow={`KPI-запись #${entry.id}`}
+                    title={entry.indicator?.name ?? `KPI-запись #${entry.id}`}
+                    description={[
+                        entry.indicator?.code ? `Код ${entry.indicator.code}` : null,
+                        entry.faculty?.name ?? null,
+                        entry.department?.name ?? null,
+                    ].filter(Boolean).join(' · ') || null}
+                    meta={(
+                        <Badge variant={statusVariants[entry.status] ?? 'outline'}>
+                            {statusLabels[entry.status] ?? entry.status}
+                        </Badge>
+                    )}
+                />
+            )}
         >
             <Head title={`KPI-запись #${entry.id}`} />
 
-            <div className="admin-page-wrap">
-                <Card className="border-0 bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between gap-3 text-xl">
-                            <span>{entry.indicator?.name ?? `KPI-запись #${entry.id}`}</span>
-                            <Badge variant={statusVariants[entry.status] ?? 'outline'}>
-                                {statusLabels[entry.status] ?? entry.status}
-                            </Badge>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Сотрудник</p>
-                            <p className="mt-2 font-semibold">{entry.user?.name ?? '—'}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{entry.user?.email ?? 'Без email'}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Период</p>
-                            <p className="mt-2 font-semibold">{entry.period?.name ?? '—'}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Баллы</p>
-                            <p className="mt-2 text-lg font-semibold">{resolvePoints(entry)}</p>
-                        </div>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Последнее изменение</p>
-                            <p className="mt-2 font-semibold">{formatDateTime(entry.updated_at)}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile
+                        label="Сотрудник"
+                        value={<span className="text-xl leading-snug">{entry.user?.name ?? '—'}</span>}
+                        hint={entry.user?.email ?? 'Без email'}
+                        tone="navy"
+                        icon={User}
+                    />
+                    <StatTile
+                        label="Период"
+                        value={<span className="text-xl leading-snug">{entry.period?.name ?? '—'}</span>}
+                        hint={stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'}
+                        tone="teal"
+                        icon={CalendarRange}
+                    />
+                    <StatTile label="Баллы" value={resolvePoints(entry)} tone="gold" icon={Award} />
+                    <StatTile
+                        label="Последнее изменение"
+                        value={<span className="text-xl leading-snug">{formatDateTime(entry.updated_at)}</span>}
+                        tone="neutral"
+                        icon={Clock3}
+                    />
+                </StatGrid>
 
                 <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
                     <div className="space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-base">Детали записи</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText />
+                                    Детали записи
+                                </CardTitle>
                             </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Код показателя</p>
-                                    <p className="mt-1 font-medium">{entry.indicator?.code ?? '—'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Единица измерения</p>
-                                    <p className="mt-1 font-medium">{entry.indicator?.unit ?? '—'}</p>
-                                </div>
-
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Фактическое значение</p>
-                                    <p className="mt-1 font-medium">{entry.fact_value ?? '—'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Факультет</p>
-                                    <p className="mt-1 font-medium">{entry.faculty?.name ?? '—'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Кафедра</p>
-                                    <p className="mt-1 font-medium">{entry.department?.name ?? '—'}</p>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <p className="text-sm text-muted-foreground">Комментарий исполнителя</p>
-                                    <p className="mt-1 whitespace-pre-wrap rounded-lg border bg-muted/30 p-3 text-sm">
-                                        {entry.comment || 'Комментарий отсутствует.'}
-                                    </p>
+                            <CardContent className="space-y-5">
+                                <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+                                    <InfoField label="Код показателя">{entry.indicator?.code ?? '—'}</InfoField>
+                                    <InfoField label="Единица измерения">{entry.indicator?.unit ?? '—'}</InfoField>
+                                    <InfoField label="Фактическое значение"><span className="tabular-nums">{entry.fact_value ?? '—'}</span></InfoField>
+                                    <InfoField label="Факультет">{entry.faculty?.name ?? '—'}</InfoField>
+                                    <InfoField label="Кафедра" className="md:col-span-2">{entry.department?.name ?? '—'}</InfoField>
+                                    <InfoField label="Комментарий исполнителя" className="md:col-span-2">
+                                        <span className={`whitespace-pre-wrap text-sm ${entry.comment ? 'font-normal text-slate-800' : 'font-normal text-slate-500'}`}>
+                                            {entry.comment || 'Комментарий отсутствует.'}
+                                        </span>
+                                    </InfoField>
                                 </div>
 
                                 {externalLinks.length > 0 && (
-                                    <div className="md:col-span-2">
-                                        <p className="text-sm text-muted-foreground">Внешние ссылки</p>
-                                        <div className="mt-1 rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+                                    <div className="space-y-2">
+                                        <span className="qd-field-label block text-slate-500">Внешние ссылки</span>
+                                        <div className="space-y-1.5">
                                             {externalLinks.map((link, index) => (
                                                 <a
                                                     key={`entry-link-${index}`}
                                                     href={link}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="block break-all text-sky-700 underline-offset-2 hover:underline"
+                                                    className="flex items-start gap-2 break-all text-sm font-medium text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline"
                                                 >
+                                                    <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                                                     {link}
                                                 </a>
                                             ))}
@@ -378,17 +380,18 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                 )}
 
                                 {calculationRows.length > 0 && (
-                                    <div className="md:col-span-2">
-                                        <p className="text-sm text-muted-foreground">Детали расчета баллов</p>
-                                        <div className="mt-1 rounded-lg border bg-muted/30 p-3 text-sm">
-                                            <div className="grid gap-2 sm:grid-cols-2">
-                                                {calculationRows.map((row, index) => (
-                                                    <div key={`${row.label}-${index}`}>
-                                                        <p className="text-xs text-muted-foreground">{row.label}</p>
-                                                        <p className="font-medium whitespace-pre-wrap">{row.value}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                    <div className="rounded-xl border border-slate-200 bg-white">
+                                        <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 text-sm font-semibold text-[#102945]">
+                                            <Calculator className="h-4 w-4 text-teal-700" />
+                                            Детали расчета баллов
+                                        </div>
+                                        <div className="grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2">
+                                            {calculationRows.map((row, index) => (
+                                                <div key={`${row.label}-${index}`}>
+                                                    <p className="qd-field-label text-slate-500">{row.label}</p>
+                                                    <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-slate-900">{row.value}</p>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
@@ -397,23 +400,28 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base">
-                                    <FileText className="h-4 w-4" />
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText />
                                     Подтверждающие файлы
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {files.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Файлы не прикреплены.</p>
+                                    <Notice tone="info">Файлы не прикреплены.</Notice>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <div className="divide-y divide-slate-200">
                                         {files.map((file) => (
-                                            <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
-                                                <div>
-                                                    <p className="font-medium">{file.file_name}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {file.file_type || 'Неизвестный тип'} • {file.file_size ? `${Math.max(file.file_size / 1024, 1).toFixed(1)} КБ` : 'Размер неизвестен'}
-                                                    </p>
+                                            <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700">
+                                                        <FileText className="h-4 w-4" />
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate font-medium text-slate-900">{file.file_name}</p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {file.file_type || 'Неизвестный тип'} • {file.file_size ? `${Math.max(file.file_size / 1024, 1).toFixed(1)} КБ` : 'Размер неизвестен'}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                                 <Button asChild size="sm" variant="outline">
                                                     <a href={file.file_url} target="_blank" rel="noreferrer">
@@ -430,37 +438,41 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
 
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-base">История статусов</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    <History />
+                                    История статусов
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {statusLogs.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">История изменений пока пуста.</p>
+                                    <Notice tone="info">История изменений пока пуста.</Notice>
                                 ) : (
-                                    <div className="space-y-4">
+                                    <ol className="relative space-y-5 border-l border-slate-200 pl-6">
                                         {statusLogs.map((log) => (
-                                            <div key={log.id} className="rounded-lg border p-4">
+                                            <li key={log.id} className="relative">
+                                                <span className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-teal-600 ring-1 ring-teal-600" aria-hidden="true" />
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                                    <p className="font-medium">{actionLabels[log.action] ?? log.action}</p>
-                                                    <p className="text-sm text-muted-foreground">{formatDateTime(log.created_at)}</p>
+                                                    <p className="font-semibold text-[#102945]">{actionLabels[log.action] ?? log.action}</p>
+                                                    <p className="text-xs tabular-nums text-slate-500">{formatDateTime(log.created_at)}</p>
                                                 </div>
                                                 <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                                                     <Badge variant={statusVariants[log.from_status] ?? 'outline'}>
                                                         {statusLabels[log.from_status] ?? log.from_status ?? '—'}
                                                     </Badge>
-                                                    <span className="text-muted-foreground">→</span>
+                                                    <span className="text-slate-400">→</span>
                                                     <Badge variant={statusVariants[log.to_status] ?? 'outline'}>
                                                         {statusLabels[log.to_status] ?? log.to_status ?? '—'}
                                                     </Badge>
                                                 </div>
-                                                <p className="mt-2 text-sm text-muted-foreground">
-                                                    Исполнитель действия: <span className="font-medium text-foreground">{log.actor?.name ?? 'Система'}</span>
+                                                <p className="mt-2 text-sm text-slate-600">
+                                                    Исполнитель действия: <span className="font-medium text-slate-900">{log.actor?.name ?? 'Система'}</span>
                                                 </p>
                                                 {log.comment && (
-                                                    <p className="mt-2 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 text-sm">{log.comment}</p>
+                                                    <p className="mt-2 whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">{log.comment}</p>
                                                 )}
-                                            </div>
+                                            </li>
                                         ))}
-                                    </div>
+                                    </ol>
                                 )}
                             </CardContent>
                         </Card>
@@ -468,24 +480,27 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                         {structuralConfirmations.length > 0 && (
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-base">Подтверждения структурных подразделений</CardTitle>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Building2 />
+                                        Подтверждения структурных подразделений
+                                    </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
+                                    <div className="divide-y divide-slate-200">
                                         {structuralConfirmations.map((item) => (
-                                            <div key={`sp-confirm-${item.structural_unit_id}`} className="rounded-lg border p-4">
+                                            <div key={`sp-confirm-${item.structural_unit_id}`} className="py-4 first:pt-0 last:pb-0">
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                                    <p className="font-medium">{item.name}</p>
+                                                    <p className="font-medium text-slate-900">{item.name}</p>
                                                     <Badge variant={spStatusVariants[item.status] ?? 'outline'}>
                                                         {spStatusLabels[item.status] ?? item.status}
                                                     </Badge>
                                                 </div>
-                                                <p className="mt-2 text-sm text-muted-foreground">
-                                                    Подтвердил: <span className="font-medium text-foreground">{item.confirmed_by ?? '—'}</span>
+                                                <p className="mt-1.5 text-sm text-slate-600">
+                                                    Подтвердил: <span className="font-medium text-slate-900">{item.confirmed_by ?? '—'}</span>
                                                     {' · '}
-                                                    {formatDateTime(item.confirmed_at)}
+                                                    <span className="tabular-nums">{formatDateTime(item.confirmed_at)}</span>
                                                 </p>
-                                                <p className="mt-2 whitespace-pre-wrap rounded-lg bg-muted/30 p-3 text-sm">
+                                                <p className={`mt-2 whitespace-pre-wrap text-sm ${item.comment ? 'text-slate-800' : 'text-slate-500'}`}>
                                                     {item.comment || 'Комментарий отсутствует.'}
                                                 </p>
                                             </div>
@@ -497,24 +512,27 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                     </div>
 
                     <div className="space-y-6">
-                        <Card>
+                        <Card className="xl:sticky xl:top-6">
                             <CardHeader>
-                                <CardTitle className="text-base">Действия модерации</CardTitle>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Gavel />
+                                    Действия модерации
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Комментарий</label>
-                                    <textarea
-                                        className="min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                <label className="block space-y-2">
+                                    <span className="qd-field-label block">Комментарий</span>
+                                    <Textarea
+                                        className="min-h-32"
                                         value={form.data.comment}
                                         onChange={(event) => form.setData('comment', event.target.value)}
                                         placeholder="Комментарий к утверждению или отклонению"
                                     />
-                                </div>
+                                </label>
 
-                                <div className="grid gap-2">
+                                <div className="grid gap-2 border-t border-slate-200 pt-4">
                                     {entry.status === 'pending_structural' && structuralConfirmations.length > 0 ? (
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                             {structuralConfirmations.map((item) => {
                                                 const canAct = canActForStructuralUnit(item.structural_unit_id);
                                                 const isPending = item.status === 'pending';
@@ -528,9 +546,9 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                 const isActionable = entry.status === 'pending_structural' || isPending || isAdminViewer;
 
                                                 return (
-                                                    <div key={`moderation-sp-${item.structural_unit_id}`} className="rounded-md border bg-muted/20 p-2.5">
-                                                        <div className="mb-2 flex items-center justify-between gap-2">
-                                                            <p className="text-sm font-medium">{item.name}</p>
+                                                    <div key={`moderation-sp-${item.structural_unit_id}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                                                        <div className="mb-3 flex items-center justify-between gap-2">
+                                                            <p className="text-sm font-medium text-slate-900">{item.name}</p>
                                                             <Badge variant={spStatusVariants[item.status] ?? 'outline'}>
                                                                 {spStatusLabels[item.status] ?? item.status}
                                                             </Badge>
@@ -590,7 +608,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                 </Button>
 
                                                 {!permissions.canApprove && !permissions.canReject && !permissions.canReturn && (
-                                                    <p className="text-sm text-muted-foreground">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</p>
+                                                    <Notice tone="info" className="mt-2">Для этой записи у текущего пользователя доступны только просмотр и история изменений.</Notice>
                                                 )}
                                             </div>
                                         </>

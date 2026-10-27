@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, FilterBar, FormField, LoadingState, Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { BookOpenCheck, Plus, Save, Search, Trash2 } from 'lucide-react';
+import { BookOpenCheck, Pencil, Plus, Save, Search, Trash2 } from 'lucide-react';
 
 const emptyForm = {
     name: '',
@@ -121,85 +121,110 @@ export default function Disciplines() {
             .includes(term);
     });
 
+    const activeCount = disciplines.filter((discipline) => discipline.status === 'active').length;
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Дисциплины"
+                    description="Справочник дисциплин, используемых в привязках и опросах."
+                    meta={!loading ? (
+                        <div className="flex flex-wrap gap-2">
+                            <StatusBadge tone="default">Всего: {disciplines.length}</StatusBadge>
+                            <StatusBadge tone="success">Активных: {activeCount}</StatusBadge>
+                        </div>
+                    ) : null}
+                    actions={(
+                        <Button type="button" onClick={openCreateDialog}>
+                            <Plus className="h-4 w-4" />
+                            Добавить дисциплину
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Дисциплины" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex items-center justify-between pt-6">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Дисциплины</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Справочник дисциплин, используемых в привязках и опросах.</p>
-                        </div>
-                        <BookOpenCheck className="h-6 w-6 text-[#067a75]" />
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
-                <div className="grid grid-cols-1 gap-6">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#102945]">Список дисциплин</CardTitle>
-                                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                    <Button type="button" className="gap-2" onClick={openCreateDialog}>
-                                        <Plus className="h-4 w-4" />
-                                        Добавить дисциплину
-                                    </Button>
-                                    <div className="relative w-full sm:w-72">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input className="pl-9" placeholder="Поиск дисциплины" value={search} onChange={(e) => setSearch(e.target.value)} />
-                                    </div>
-                                </div>
+                <FilterBar>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <FormField label="Поиск">
+                            <div className="relative w-full sm:w-80">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input className="pl-9" placeholder="Название или код дисциплины" value={search} onChange={(e) => setSearch(e.target.value)} />
                             </div>
+                        </FormField>
+                        <p className="text-sm text-slate-500 tabular-nums">Показано: {filteredDisciplines.length} из {disciplines.length}</p>
+                    </div>
+                </FilterBar>
+
+                {loading ? (
+                    <LoadingState />
+                ) : filteredDisciplines.length === 0 ? (
+                    <EmptyState
+                        title={disciplines.length === 0 ? 'Дисциплины еще не добавлены' : 'Ничего не найдено'}
+                        description={disciplines.length === 0 ? 'Добавьте первую дисциплину, чтобы использовать её в привязках и опросах.' : 'Измените поисковый запрос.'}
+                        action={disciplines.length === 0 ? (
+                            <Button type="button" onClick={openCreateDialog}>
+                                <Plus className="h-4 w-4" />
+                                Добавить дисциплину
+                            </Button>
+                        ) : null}
+                    />
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpenCheck />
+                                Список дисциплин
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
-                            ) : filteredDisciplines.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Дисциплины еще не добавлены.</p>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b text-muted-foreground">
-                                                <th className="px-3 py-2 text-left font-medium">Название</th>
-                                                <th className="px-3 py-2 text-left font-medium">Код</th>
-                                                <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                                <th className="px-3 py-2 text-right font-medium">Действия</th>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="px-5 py-3 text-left">Название</th>
+                                            <th className="px-5 py-3 text-left">Код</th>
+                                            <th className="px-5 py-3 text-left">Статус</th>
+                                            <th className="px-5 py-3 text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredDisciplines.map((discipline) => (
+                                            <tr key={discipline.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                <td className="px-5 py-3 font-medium text-slate-900">{discipline.name}</td>
+                                                <td className="px-5 py-3 font-mono text-xs text-slate-600">{discipline.code || '—'}</td>
+                                                <td className="px-5 py-3">
+                                                    <StatusBadge tone={discipline.status === 'active' ? 'success' : 'default'}>
+                                                        {discipline.status}
+                                                    </StatusBadge>
+                                                </td>
+                                                <td className="px-5 py-3 text-right">
+                                                    <div className="inline-flex gap-2">
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => startEdit(discipline)}>
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                            Ред.
+                                                        </Button>
+                                                        <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(discipline.id)}>
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            Удалить
+                                                        </Button>
+                                                    </div>
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredDisciplines.map((discipline) => (
-                                                <tr key={discipline.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#102945]">{discipline.name}</td>
-                                                    <td className="px-3 py-2">{discipline.code || '—'}</td>
-                                                    <td className="px-3 py-2">
-                                                        <Badge variant={discipline.status === 'active' ? 'default' : 'secondary'} className={discipline.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
-                                                            {discipline.status}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right">
-                                                        <div className="inline-flex gap-2">
-                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(discipline)}>Ред.</Button>
-                                                            <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => remove(discipline.id)}>
-                                                                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                                                                Удалить
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </CardContent>
                     </Card>
-                </div>
+                )}
             </div>
 
             <Dialog
@@ -219,21 +244,27 @@ export default function Disciplines() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form className="space-y-3" onSubmit={submit}>
-                        <Input placeholder="Название" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
-                        <Input placeholder="Код" value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} />
-                        <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}>
-                            <option value="active">active</option>
-                            <option value="inactive">inactive</option>
-                        </select>
+                    <form className="space-y-4" onSubmit={submit}>
+                        <FormField label="Название">
+                            <Input placeholder="Название" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
+                        </FormField>
+                        <FormField label="Код">
+                            <Input placeholder="Код" value={form.code} onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))} />
+                        </FormField>
+                        <FormField label="Статус">
+                            <select className={qdFieldClass} value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}>
+                                <option value="active">active</option>
+                                <option value="inactive">inactive</option>
+                            </select>
+                        </FormField>
 
-                        <div className="flex gap-2">
-                            <Button type="submit" className="gap-2">
-                                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                {editingId ? 'Сохранить' : 'Создать'}
-                            </Button>
+                        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                                 Отмена
+                            </Button>
+                            <Button type="submit">
+                                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                {editingId ? 'Сохранить' : 'Создать'}
                             </Button>
                         </div>
                     </form>

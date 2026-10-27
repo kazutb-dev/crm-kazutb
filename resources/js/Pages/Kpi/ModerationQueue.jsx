@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, FilterBar, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Eye, Filter, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { CalendarOff, ClipboardList, Eye, Filter, Hourglass, Link2Off, ListChecks, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 
@@ -22,12 +23,12 @@ const statusLabels = {
 
 const statusVariants = {
     draft: 'outline',
-    submitted: 'secondary',
-    returned: 'outline',
+    submitted: 'info',
+    returned: 'warning',
     reviewed: 'secondary',
-    pending_dean: 'secondary',
-    pending_structural: 'secondary',
-    approved: 'default',
+    pending_dean: 'info',
+    pending_structural: 'default',
+    approved: 'success',
     rejected: 'destructive',
     locked: 'destructive',
 };
@@ -53,10 +54,12 @@ const spStatusLabels = {
 };
 
 const spStatusVariants = {
-    pending: 'outline',
-    approved: 'default',
+    pending: 'warning',
+    approved: 'success',
     rejected: 'destructive',
 };
+
+const ACTION_BTN = 'h-auto min-h-8 w-full justify-start whitespace-normal text-left';
 
 const entityLabels = {
     teacher: 'Преподаватель',
@@ -241,7 +244,7 @@ function Pagination({ links = [] }) {
     }
 
     return (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
             {links.map((link, index) => (
                 <Button
                     key={`${link.label}-${index}`}
@@ -265,6 +268,7 @@ function Pagination({ links = [] }) {
 
 export default function ModerationQueue({
     pageTitle,
+    eyebrow = 'KPI · Очередь проверки',
     title,
     description,
     queueRoute,
@@ -483,226 +487,242 @@ export default function ModerationQueue({
         myStructuralUnitIds,
     ]);
 
+    const decisionCount = items.filter((entry) => showApproveAction(entry) || showRejectAction(entry)).length;
+    const inactiveCount = items.filter((entry) => !isEntryScopeActive(entry)).length;
+    const searchActive = normalizeSearchText(quickSearch) !== '';
+
+    const tabItems = [
+        { key: 'scope', label: reviewScope?.type === 'department' ? 'Моя кафедра' : 'Мой факультет' },
+        { key: 'unlinked', label: 'Без привязки', count: unlinkedCount > 0 ? unlinkedCount : null },
+    ];
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow={eyebrow}
+                    title={title ?? pageTitle}
+                    description={description}
+                    meta={(
+                        <div className="flex flex-wrap gap-2">
+                            <StatusBadge tone="info">В очереди: {total}</StatusBadge>
+                            {showTabs && unlinkedCount > 0 && <StatusBadge tone="warning">Без привязки: {unlinkedCount}</StatusBadge>}
+                        </div>
+                    )}
+                />
+            )}
+        >
             <Head title={pageTitle} />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего в очереди" value={total} tone="navy" icon={ClipboardList} hint="С учётом выбранных фильтров" />
+                    <StatTile label="На странице" value={items.length} tone="teal" icon={ListChecks} hint={searchActive ? `Найдено быстрым поиском: ${filteredItems.length}` : 'Записей в текущей выдаче'} />
+                    <StatTile label="Ждут решения" value={decisionCount} tone="gold" icon={Hourglass} hint="Доступно утверждение или отклонение" />
+                    {showTabs ? (
+                        <StatTile label="Без привязки" value={unlinkedCount} tone="warning" icon={Link2Off} hint="Записи вне вашей кафедры / факультета" />
+                    ) : (
+                        <StatTile label="Сезон закрыт" value={inactiveCount} tone="neutral" icon={CalendarOff} hint="Действия по этим записям недоступны" />
+                    )}
+                </StatGrid>
+
                 {showTabs && (
-                    <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
-                        <button
-                            type="button"
-                            onClick={() => switchTab('scope')}
-                            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === 'scope' ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                        >
-                            {reviewScope?.type === 'department' ? 'Моя кафедра' : 'Мой факультет'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => switchTab('unlinked')}
-                            className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${activeTab === 'unlinked' ? 'bg-white shadow text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                        >
-                            Без привязки
-                            {unlinkedCount > 0 && (
-                                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-white leading-none">
-                                    {unlinkedCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
+                    <UnderlineTabs items={tabItems} value={activeTab} onChange={switchTab} />
                 )}
 
+                <FilterBar>
+                    <form className="space-y-4" onSubmit={applyFilters}>
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
+                            <Filter className="h-4 w-4 text-teal-700" />
+                            Фильтры очереди
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Учебный год</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.academic_year_id}
+                                    onChange={(event) => filterForm.setData('academic_year_id', event.target.value)}
+                                >
+                                    <option value="">Все учебные годы</option>
+                                    {academicYears.map((year) => (
+                                        <option key={year.id} value={year.id}>{year.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Период</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.period_id}
+                                    onChange={(event) => filterForm.setData('period_id', event.target.value)}
+                                >
+                                    <option value="">Все периоды</option>
+                                    {periods.map((period) => (
+                                        <option key={period.id} value={period.id}>
+                                            {period.name} ({stageLabels[period.stage] ?? period.stage})
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Факультет</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.faculty_id}
+                                    onChange={(event) => filterForm.setData('faculty_id', event.target.value)}
+                                >
+                                    <option value="">Все факультеты</option>
+                                    {faculties.map((faculty) => (
+                                        <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Кафедра</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.department_id}
+                                    onChange={(event) => filterForm.setData('department_id', event.target.value)}
+                                >
+                                    <option value="">Все кафедры</option>
+                                    {departments.map((department) => (
+                                        <option key={department.id} value={department.id}>{department.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Сотрудник</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.user_id}
+                                    onChange={(event) => filterForm.setData('user_id', event.target.value)}
+                                >
+                                    <option value="">Все сотрудники</option>
+                                    {users.map((user) => (
+                                        <option key={user.id} value={user.id}>{user.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Порядок добавления</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={filterForm.data.sort}
+                                    onChange={(event) => filterForm.setData('sort', event.target.value)}
+                                >
+                                    <option value="newest">От нового до старого</option>
+                                    <option value="oldest">От старого до нового</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                            <Button type="submit">Применить</Button>
+                        </div>
+                    </form>
+                </FilterBar>
+
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Filter className="h-4 w-4" />
-                            Фильтры очереди
+                        <CardTitle className="flex items-center gap-2">
+                            <ClipboardList />
+                            Список KPI-записей
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <form className="space-y-4" onSubmit={applyFilters}>
-                            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Учебный год</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.academic_year_id}
-                                        onChange={(event) => filterForm.setData('academic_year_id', event.target.value)}
-                                    >
-                                        <option value="">Все учебные годы</option>
-                                        {academicYears.map((year) => (
-                                            <option key={year.id} value={year.id}>{year.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Период</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.period_id}
-                                        onChange={(event) => filterForm.setData('period_id', event.target.value)}
-                                    >
-                                        <option value="">Все периоды</option>
-                                        {periods.map((period) => (
-                                            <option key={period.id} value={period.id}>
-                                                {period.name} ({stageLabels[period.stage] ?? period.stage})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Факультет</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.faculty_id}
-                                        onChange={(event) => filterForm.setData('faculty_id', event.target.value)}
-                                    >
-                                        <option value="">Все факультеты</option>
-                                        {faculties.map((faculty) => (
-                                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Кафедра</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.department_id}
-                                        onChange={(event) => filterForm.setData('department_id', event.target.value)}
-                                    >
-                                        <option value="">Все кафедры</option>
-                                        {departments.map((department) => (
-                                            <option key={department.id} value={department.id}>{department.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Сотрудник</label>
-                                    <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.user_id}
-                                        onChange={(event) => filterForm.setData('user_id', event.target.value)}
-                                    >
-                                        <option value="">Все сотрудники</option>
-                                        {users.map((user) => (
-                                            <option key={user.id} value={user.id}>{user.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                    <CardContent className="p-0">
+                        <div className="border-b border-slate-200 p-4">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    className="pl-9"
+                                    value={quickSearch}
+                                    onChange={(event) => setQuickSearch(event.target.value)}
+                                    placeholder="Быстрый поиск: сотрудник, показатель, период, структура, привязка, баллы, статус, действия"
+                                />
                             </div>
-
-                            <div className="rounded-xl border bg-muted/20 p-4">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <span className="text-sm font-semibold">Фильтр по добавлениям</span>
-                                    <span className="text-sm font-medium">Порядок</span>
-                                    <select
-                                        className="h-9 w-full sm:w-72 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={filterForm.data.sort}
-                                        onChange={(event) => filterForm.setData('sort', event.target.value)}
-                                    >
-                                        <option value="newest">От нового до старого</option>
-                                        <option value="oldest">От старого до нового</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button type="submit">Применить</Button>
-                                <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">Список KPI-записей</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="mb-4">
-                            <Input
-                                value={quickSearch}
-                                onChange={(event) => setQuickSearch(event.target.value)}
-                                placeholder="Быстрый поиск: сотрудник, показатель, период, структура, привязка, баллы, статус, действия"
-                            />
                         </div>
 
                         {filteredItems.length === 0 ? (
-                            <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-center">
-                                <ShieldAlert className="h-8 w-8 text-muted-foreground" />
-                                <div>
-                                    <p className="font-medium">Записи не найдены</p>
-                                    <p className="text-sm text-muted-foreground">Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди.</p>
-                                </div>
+                            <div className="p-4">
+                                <EmptyState
+                                    title="Записи не найдены"
+                                    description="Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди."
+                                    action={searchActive ? (
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setQuickSearch('')}>Очистить поиск</Button>
+                                    ) : null}
+                                />
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="w-full overflow-hidden">
-                                    <table className="w-full table-fixed text-sm">
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full min-w-[1080px] table-fixed text-sm">
                                         <thead>
-                                            <tr className="border-b text-left text-muted-foreground">
-                                                <th className="w-[13%] py-3 pe-3 font-medium">Сотрудник</th>
-                                                <th className="w-[15%] py-3 pe-3 font-medium">Показатель</th>
-                                                <th className="w-[10%] py-3 pe-3 font-medium">Период</th>
-                                                <th className="w-[10%] py-3 pe-3 font-medium">Структура</th>
-                                                {showBindingColumn && <th className="w-[22%] py-3 pe-3 font-medium">Привязка / подтверждение</th>}
-                                                <th className="w-[6%] py-3 pe-3 font-medium">Баллы</th>
-                                                <th className="w-[8%] py-3 pe-3 font-medium">Статус</th>
-                                                <th className="w-[8%] py-3 pe-3 font-medium">Действия</th>
+                                            <tr className="border-b border-slate-200 text-left">
+                                                <th className="w-[14%] px-4 py-3">Сотрудник</th>
+                                                <th className="w-[16%] px-4 py-3">Показатель</th>
+                                                <th className="w-[11%] px-4 py-3">Период</th>
+                                                <th className="w-[11%] px-4 py-3">Структура</th>
+                                                {showBindingColumn && <th className="w-[20%] px-4 py-3">Привязка / подтверждение</th>}
+                                                <th className="w-[7%] px-4 py-3 text-right">Баллы</th>
+                                                <th className="w-[10%] px-4 py-3">Статус</th>
+                                                <th className="w-[148px] px-4 py-3">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredItems.map((entry) => (
-                                                <tr key={entry.id} className="border-b align-top last:border-0">
-                                                    <td className="py-4 pe-3 break-words">
-                                                        <div className="font-medium leading-6">{entry.user?.name ?? '—'}</div>
-                                                        <div className="mt-1 break-all text-xs text-muted-foreground">{entry.user?.email ?? 'Без email'}</div>
-                                                        <div className="mt-1 text-xs text-muted-foreground">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
+                                                <tr key={entry.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
+                                                    <td className="px-4 py-4 break-words">
+                                                        <div className="font-medium leading-6 text-slate-900">{entry.user?.name ?? '—'}</div>
+                                                        <div className="mt-1 break-all text-xs text-slate-500">{entry.user?.email ?? 'Без email'}</div>
+                                                        <div className="mt-1 text-xs text-slate-500">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
                                                     </td>
-                                                    <td className="py-4 pe-3 break-words">
+                                                    <td className="px-4 py-4 break-words">
                                                         <div className="font-medium leading-6">{entry.indicator?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-muted-foreground">{entry.indicator?.code ?? '—'}</div>
+                                                        <div className="mt-1 text-xs text-slate-500">{entry.indicator?.code ?? '—'}</div>
                                                     </td>
-                                                    <td className="py-4 pe-3 break-words">
+                                                    <td className="px-4 py-4 break-words">
                                                         <div className="font-medium">{entry.period?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-muted-foreground">
+                                                        <div className="mt-1 text-xs text-slate-500">
                                                             {stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'} • {formatDate(entry.period?.start_date)} - {formatDate(entry.period?.end_date)}
                                                         </div>
                                                     </td>
-                                                    <td className="py-4 pe-3 break-words">
+                                                    <td className="px-4 py-4 break-words">
                                                         <div>{entry.faculty?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-muted-foreground">{entry.department?.name ?? '—'}</div>
+                                                        <div className="mt-1 text-xs text-slate-500">{entry.department?.name ?? '—'}</div>
                                                     </td>
                                                     {showBindingColumn && (
-                                                        <td className="py-4 pe-3 break-words">
+                                                        <td className="px-4 py-4 break-words">
                                                             {(() => {
                                                                 const unitNames = resolveStructuralUnits(entry);
                                                                 const confirmations = resolveEntryStructuralConfirmations(entry);
 
                                                                 return (
                                                                     <>
-                                                                        <div className="text-xs text-muted-foreground">Раздел KPI</div>
+                                                                        <div className="qd-field-label text-slate-500">Раздел KPI</div>
                                                                         <div className="font-medium">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</div>
-                                                                        <div className="mt-1 text-xs text-muted-foreground">Привязан к подразделению</div>
+                                                                        <div className="qd-field-label mt-2 text-slate-500">Привязан к подразделению</div>
                                                                         <div className="break-words">{unitNames.length > 0 ? unitNames.join(', ') : 'Не назначено'}</div>
-                                                                        <div className="mt-1 text-xs text-muted-foreground">Кто подтверждает</div>
+                                                                        <div className="qd-field-label mt-2 text-slate-500">Кто подтверждает</div>
                                                                         <div className="font-medium break-words">{resolveResponsibleReviewer(entry, mode)}</div>
                                                                         {mode === 'structural' && confirmations.length > 0 && (
                                                                             <div className="mt-2 space-y-1.5">
                                                                                 {confirmations.map((item) => (
-                                                                                    <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-md border bg-muted/20 p-1.5">
+                                                                                    <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-[10px] border border-slate-200 bg-white p-2">
                                                                                         <div className="flex items-center justify-between gap-2">
-                                                                                            <span className="truncate text-xs text-foreground/80" title={item.name}>{item.name}</span>
+                                                                                            <span className="truncate text-xs text-slate-700" title={item.name}>{item.name}</span>
                                                                                             <Badge variant={spStatusVariants[item.status] ?? 'outline'} className="text-[0.65rem]">
                                                                                                 {spStatusLabels[item.status] ?? item.status}
                                                                                             </Badge>
                                                                                         </div>
                                                                                         {(item.comment || item.confirmed_by) && (
-                                                                                            <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                                                                                            <p className="mt-1 text-[0.7rem] text-slate-500">
                                                                                                 {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
                                                                                                 {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
                                                                                             </p>
@@ -716,18 +736,18 @@ export default function ModerationQueue({
                                                             })()}
                                                         </td>
                                                     )}
-                                                    <td className="py-4 pe-3 font-medium whitespace-nowrap">{resolvePoints(entry)}</td>
-                                                    <td className="py-4 pe-3">
+                                                    <td className="px-4 py-4 text-right font-display text-base font-bold tabular-nums whitespace-nowrap text-[#102945]">{resolvePoints(entry)}</td>
+                                                    <td className="px-4 py-4">
                                                         <Badge variant={statusVariants[entry.status] ?? 'outline'}>
                                                             {statusLabels[entry.status] ?? entry.status}
                                                         </Badge>
                                                     </td>
-                                                    <td className="py-4 pe-3 align-top">
-                                                        <div className="grid w-full min-w-0 max-w-full gap-1.5 overflow-hidden">
-                                                            <Button asChild size="sm" variant="outline" className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight">
+                                                    <td className="px-4 py-4 align-top">
+                                                        <div className="grid w-full min-w-0 gap-1.5">
+                                                            <Button asChild size="sm" variant="outline" className={ACTION_BTN}>
                                                                 <Link href={route('kpi.entries.show', entry.id)}>
                                                                     <Eye className="h-3.5 w-3.5 shrink-0" />
-                                                                    <span className="min-w-0 text-left">Откр.</span>
+                                                                    <span className="min-w-0">Открыть</span>
                                                                 </Link>
                                                             </Button>
 
@@ -740,13 +760,13 @@ export default function ModerationQueue({
                                                                             return (
                                                                                 <Button
                                                                                     size="sm"
-                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    className={ACTION_BTN}
                                                                                     onClick={() => submitAction('kpi.entries.approve', entry.id)}
                                                                                     disabled={!isEntryScopeActive(entry) && !isAdminViewer}
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0 text-left">Утвердить</span>
+                                                                                    <span className="min-w-0">Утвердить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -757,13 +777,13 @@ export default function ModerationQueue({
                                                                             return (
                                                                                 <Button
                                                                                     size="sm"
-                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    className={ACTION_BTN}
                                                                                     onClick={() => submitAction('kpi.entries.approve', entry.id)}
                                                                                     disabled={!isEntryScopeActive(entry) && !isAdminViewer}
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0 text-left">Утвердить</span>
+                                                                                    <span className="min-w-0">Утвердить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -780,7 +800,7 @@ export default function ModerationQueue({
                                                                                 <Button
                                                                                     key={`approve-${entry.id}-${item.structural_unit_id}`}
                                                                                     size="sm"
-                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    className={ACTION_BTN}
                                                                                     variant={isPending ? 'default' : (item.status === 'approved' ? 'secondary' : 'destructive')}
                                                                                     disabled={!isActionable || !canAct || (!isEntryScopeActive(entry) && !isAdminViewer)}
                                                                                     onClick={() => submitAction(
@@ -794,7 +814,7 @@ export default function ModerationQueue({
                                                                                         : `Статус другого СП: ${item.name}`)}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0 text-left">{item.shortName}</span>
+                                                                                    <span className="min-w-0">{item.shortName}</span>
                                                                                 </Button>
                                                                             );
                                                                         });
@@ -804,13 +824,13 @@ export default function ModerationQueue({
                                                                     return (
                                                                         <Button
                                                                             size="sm"
-                                                                            className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                            className={ACTION_BTN}
                                                                             onClick={() => submitAction('kpi.entries.approve', entry.id)}
                                                                             disabled={!isEntryScopeActive(entry) && !isAdminViewer}
                                                                             title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                            <span className="min-w-0 text-left">Утвердить</span>
+                                                                            <span className="min-w-0">Утвердить</span>
                                                                         </Button>
                                                                     );
                                                                 })()
@@ -824,7 +844,7 @@ export default function ModerationQueue({
                                                                             return (
                                                                                 <Button
                                                                                     size="sm"
-                                                                                    className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                    className={ACTION_BTN}
                                                                                     variant="destructive"
                                                                                     onClick={() => submitAction(
                                                                                         'kpi.entries.reject',
@@ -835,7 +855,7 @@ export default function ModerationQueue({
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0 text-left">Отклонить</span>
+                                                                                    <span className="min-w-0">Отклонить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -851,7 +871,7 @@ export default function ModerationQueue({
                                                                         return (
                                                                             <Button
                                                                                 size="sm"
-                                                                                className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                                className={ACTION_BTN}
                                                                                 variant="destructive"
                                                                                 disabled={(!isAdminViewer && !rejectTarget) || (!isEntryScopeActive(entry) && !isAdminViewer)}
                                                                                 onClick={() => submitAction(
@@ -865,7 +885,7 @@ export default function ModerationQueue({
                                                                                 title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                             >
                                                                                 <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                                <span className="min-w-0 text-left">Отклонить</span>
+                                                                                <span className="min-w-0">Отклонить</span>
                                                                             </Button>
                                                                         );
                                                                     }
@@ -873,7 +893,7 @@ export default function ModerationQueue({
                                                                     return (
                                                                         <Button
                                                                             size="sm"
-                                                                            className="h-auto min-h-8 w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal break-words px-1.5 py-1 text-[10px] leading-tight"
+                                                                            className={ACTION_BTN}
                                                                             variant="destructive"
                                                                             onClick={() => submitAction(
                                                                                 mode === 'review' || mode === 'approval'
@@ -886,7 +906,7 @@ export default function ModerationQueue({
                                                                             title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                            <span className="min-w-0 text-left">Отклонить</span>
+                                                                            <span className="min-w-0">Отклонить</span>
                                                                         </Button>
                                                                     );
                                                                 })()
@@ -895,15 +915,16 @@ export default function ModerationQueue({
                                                     </td>
                                                 </tr>
                                             ))}
-
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <div className="mt-4">
-                                    <Pagination links={links} />
-                                </div>
-                            </div>
+                                {links.length > 3 && (
+                                    <div className="border-t border-slate-200 p-4">
+                                        <Pagination links={links} />
+                                    </div>
+                                )}
+                            </>
                         )}
                     </CardContent>
                 </Card>

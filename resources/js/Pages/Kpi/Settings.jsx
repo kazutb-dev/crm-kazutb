@@ -1,5 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, Notice, PageHeader, StatusBadge, UnderlineTabs } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import KpiIndicatorsManager from '@/Pages/Kpi/Partials/KpiIndicatorsManager';
 import KpiPeriodsManager from '@/Pages/Kpi/Partials/KpiPeriodsManager';
-import { Head, useForm } from '@inertiajs/react';
-import { BookOpen, Building2, GraduationCap, KeyRound, Plus, ShieldCheck, Trash2, Users } from 'lucide-react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { BookOpen, Building2, CalendarRange, GraduationCap, KeyRound, ListChecks, Plus, Save, Scale, ShieldCheck, Trash2, UserCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const PAGE_TABS = {
@@ -18,9 +19,23 @@ const PAGE_TABS = {
     access: 'Доступы',
 };
 
+const PAGE_TAB_ICONS = {
+    indicators: ListChecks,
+    seasons: CalendarRange,
+    settings: Scale,
+    access: ShieldCheck,
+};
+
+const PAGE_TAB_DESCRIPTIONS = {
+    indicators: 'Справочник KPI-индикаторов: баллы, уровни, правила подтверждения.',
+    seasons: 'Учебные годы и периоды KPI: план, факт, рассмотрение и окна проверки.',
+    settings: 'Нормативная педагогическая условная нагрузка (НПУ) по должностям ППС, завкафедрами и деканам.',
+    access: 'Назначение и отзыв полного доступа KPI-администратора.',
+};
+
 function PointsBadge({ value }) {
     return (
-        <Badge variant="secondary" className="font-mono text-xs">
+        <Badge variant="secondary" className="font-mono text-xs tabular-nums">
             {value} баллов
         </Badge>
     );
@@ -28,35 +43,36 @@ function PointsBadge({ value }) {
 
 function RuleRow({ rule, index, onChange, onRemove }) {
     return (
-        <div className="grid gap-3 rounded-xl border border-border/70 p-4 lg:grid-cols-[1.1fr_140px_1.2fr_44px]">
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-[#102945]">Должность</label>
+        <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-[1.1fr_140px_1.2fr_auto]">
+            <label className="block space-y-2">
+                <span className="qd-field-label block">Должность</span>
                 <Input
                     value={rule.label}
                     onChange={(e) => onChange(index, 'label', e.target.value)}
                     placeholder="Например: Профессор"
                 />
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-[#102945]">Баллы</label>
+            </label>
+            <label className="block space-y-2">
+                <span className="qd-field-label block">Баллы</span>
                 <Input
                     type="number"
                     min="0"
+                    className="tabular-nums"
                     value={rule.points}
                     onChange={(e) => onChange(index, 'points', e.target.value)}
                 />
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-[#102945]">Ключевые слова</label>
+            </label>
+            <label className="block space-y-2">
+                <span className="qd-field-label block">Ключевые слова</span>
                 <Input
                     value={rule.keywords_text}
                     onChange={(e) => onChange(index, 'keywords_text', e.target.value)}
                     placeholder="через запятую: профессор, и.о. профессора"
                 />
-            </div>
+            </label>
             <div className="flex items-end">
-                <Button type="button" variant="outline" size="icon" onClick={() => onRemove(index)}>
-                    <Trash2 className="h-4 w-4" />
+                <Button type="button" variant="ghost" size="icon" onClick={() => onRemove(index)} aria-label="Удалить правило" title="Удалить правило">
+                    <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
             </div>
         </div>
@@ -180,60 +196,61 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
         setAccessSearchOpen(false);
     };
 
+    const tabItems = Object.entries(PAGE_TABS).map(([key, label]) => ({
+        key,
+        label,
+        icon: PAGE_TAB_ICONS[key],
+        count: key === 'access' ? accessGrants.length : undefined,
+    }));
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Администрирование"
+                    title="Настройки KPI"
+                    description={PAGE_TAB_DESCRIPTIONS[activeTab]}
+                    meta={<StatusBadge tone="info">Раздел: {PAGE_TABS[activeTab]}</StatusBadge>}
+                />
+            )}
+        >
             <Head title="KPI / Настройка НПУ" />
 
-            <div className="admin-page-wrap">
-                <div className="flex items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-1 w-fit">
-                    {Object.entries(PAGE_TABS).map(([key, label]) => {
-                        const isActive = activeTab === key;
-
-                        return (
-                            <button
-                                key={key}
-                                type="button"
-                                onClick={() => setActiveTab(key)}
-                                className={[
-                                    'rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                                    isActive
-                                        ? 'bg-white shadow-sm text-[#102945] border border-border/60'
-                                        : 'text-muted-foreground hover:text-foreground hover:bg-white/60',
-                                ].join(' ')}
-                            >
-                                {label}
-                            </button>
-                        );
-                    })}
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <UnderlineTabs items={tabItems} value={activeTab} onChange={setActiveTab} />
 
                 {activeTab === 'settings' && (
-                    <form className="grid gap-4 xl:grid-cols-[1.4fr_1fr]" onSubmit={submit}>
-                        <Card className="border-border/80 bg-white/90 shadow-sm">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                    <Users className="h-4 w-4 text-[#067a75]" />
+                    <form className="grid gap-6 xl:grid-cols-[1.4fr_1fr]" onSubmit={submit}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users />
                                     ППС: НПУ по должности
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-4 rounded-xl border border-dashed border-border/70 px-4 py-4 lg:grid-cols-[220px_1fr]">
+                            <CardContent className="space-y-5">
+                                <div className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[220px_1fr]">
                                     <div>
-                                        <div className="text-sm font-medium text-[#102945]">НПУ по умолчанию</div>
-                                        <p className="mt-1 text-xs text-muted-foreground">Применяется, если должность не попала ни под одно правило.</p>
+                                        <span className="qd-field-label block">НПУ по умолчанию</span>
+                                        <p className="mt-1 text-xs text-slate-500">Применяется, если должность не попала ни под одно правило.</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Input
                                             type="number"
                                             min="0"
+                                            className="tabular-nums"
                                             value={data.teacher.default_points}
                                             onChange={(e) => setData('teacher', { ...data.teacher, default_points: Number(e.target.value) })}
                                         />
-                                        {errors['teacher.default_points'] && <div className="text-xs text-destructive">{errors['teacher.default_points']}</div>}
+                                        {errors['teacher.default_points'] && <div className="text-xs text-red-700">{errors['teacher.default_points']}</div>}
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="qd-field-label">Правила по должностям</span>
+                                        <span className="text-xs tabular-nums text-slate-500">{data.teacher.rules.length}</span>
+                                    </div>
                                     {data.teacher.rules.map((rule, index) => (
                                         <RuleRow
                                             key={`rule-${index}`}
@@ -243,7 +260,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                             onRemove={removeRule}
                                         />
                                     ))}
-                                    <Button type="button" variant="outline" onClick={addRule} className="gap-2">
+                                    <Button type="button" variant="secondary" onClick={addRule}>
                                         <Plus className="h-4 w-4" />
                                         Добавить правило
                                     </Button>
@@ -251,84 +268,88 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-4">
-                            <Card className="border-border/80 bg-white/90 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                        <GraduationCap className="h-4 w-4 text-[#067a75]" />
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <GraduationCap />
                                         Деканы
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="rounded-xl border border-border/70 px-4 py-3 text-sm space-y-2">
-                                        <div className="mb-2 font-medium text-[#102945]">Фиксированное значение для декана</div>
+                                    <label className="block space-y-2">
+                                        <span className="qd-field-label block">Фиксированное значение для декана</span>
                                         <Input
                                             type="number"
                                             min="0"
+                                            className="tabular-nums"
                                             value={data.dean.points}
                                             onChange={(e) => setData('dean', { points: Number(e.target.value) })}
                                         />
-                                        <div className="text-xs text-muted-foreground">
-                                            Текущее значение: <PointsBadge value={data.dean.points} />
-                                        </div>
+                                    </label>
+                                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                                        Текущее значение: <PointsBadge value={data.dean.points} />
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-border/80 bg-white/90 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                        <Building2 className="h-4 w-4 text-[#067a75]" />
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Building2 />
                                         Завкафедры
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4 text-sm">
-                                    <div className="rounded-xl border border-border/70 px-4 py-3 space-y-2">
-                                        <div className="mb-2 font-medium text-[#102945]">Базовое значение для заведующего кафедрой</div>
+                                <CardContent className="space-y-5 text-sm">
+                                    <label className="block space-y-2 border-b border-slate-200 pb-5">
+                                        <span className="qd-field-label block">Базовое значение для заведующего кафедрой</span>
                                         <Input
                                             type="number"
                                             min="0"
+                                            className="tabular-nums"
                                             value={data.hod.default_points}
                                             onChange={(e) => setData('hod', { ...data.hod, default_points: Number(e.target.value) })}
                                         />
-                                    </div>
+                                    </label>
 
-                                    <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 space-y-3">
-                                        <div className="mb-2 flex items-center gap-2 font-medium text-amber-900">
-                                            <BookOpen className="h-4 w-4" />
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 font-semibold text-[#102945]">
+                                            <BookOpen className="h-4 w-4 text-amber-600" />
                                             Специальное значение для отдельных кафедр
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-amber-900">Льготные баллы</label>
+                                        <label className="block space-y-2">
+                                            <span className="qd-field-label block">Льготные баллы</span>
                                             <Input
                                                 type="number"
                                                 min="0"
+                                                className="tabular-nums"
                                                 value={data.hod.special_points}
                                                 onChange={(e) => setData('hod', { ...data.hod, special_points: Number(e.target.value) })}
                                             />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-amber-900">Коды кафедр</label>
+                                        </label>
+                                        <label className="block space-y-2">
+                                            <span className="qd-field-label block">Коды кафедр</span>
                                             <Textarea
                                                 rows={4}
                                                 value={data.hod.special_department_codes_text}
                                                 onChange={(e) => setData('hod', { ...data.hod, special_department_codes_text: e.target.value })}
                                                 placeholder="Например: ГиИЯ, СГД, ФВ"
                                             />
-                                            <div className="text-xs text-amber-900/80">Можно вводить через запятую или с новой строки.</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
-                                        <div className="text-xs text-muted-foreground">
-                                            Изменения применяются к KPI-сводкам сразу после сохранения.
-                                        </div>
-                                        <Button type="submit" disabled={processing} className="min-w-32">
-                                            {processing ? 'Сохранение...' : (recentlySuccessful ? 'Сохранено' : 'Сохранить')}
-                                        </Button>
+                                            <span className="block text-xs text-slate-500">Можно вводить через запятую или с новой строки.</span>
+                                        </label>
                                     </div>
                                 </CardContent>
                             </Card>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] xl:col-span-2">
+                            <p className="text-sm text-slate-600">
+                                Изменения применяются к KPI-сводкам сразу после сохранения.
+                            </p>
+                            <Button type="submit" disabled={processing} className="min-w-32">
+                                <Save className="h-4 w-4" />
+                                {processing ? 'Сохранение...' : (recentlySuccessful ? 'Сохранено' : 'Сохранить')}
+                            </Button>
                         </div>
                     </form>
                 )}
@@ -336,117 +357,128 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                 {activeTab === 'access' && (
                     <div className="space-y-6">
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between gap-4">
+                            <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <ShieldCheck className="h-5 w-5" />
+                                    <ShieldCheck />
                                     KPI-администраторы
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-4">
                                 {!canManageFullAccess && (
-                                    <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                                    <Notice tone="warning" title="Только просмотр">
                                         Полный KPI-admin доступ могут выдавать только admin, superadmin и governance elevated категории business/technical.
-                                    </div>
+                                    </Notice>
                                 )}
 
-                                <form className="flex flex-wrap items-end gap-3" onSubmit={submitAccess}>
-                                    <div className="min-w-[320px] flex-1 space-y-2">
-                                        <label className="text-sm font-medium">Сотрудник</label>
-                                        <Input
-                                            disabled={!canManageFullAccess}
-                                            value={accessSearch}
-                                            onChange={(e) => {
-                                                setAccessSearch(e.target.value);
-                                                accessForm.setData('user_id', '');
-                                                setAccessSearchOpen(true);
-                                            }}
-                                            onFocus={() => setAccessSearchOpen(true)}
-                                            placeholder="Введите ФИО, подразделение или email"
-                                        />
-                                        {canManageFullAccess && accessSearchOpen && !selectedAccessUser && (
-                                            <div className="max-h-52 overflow-auto rounded-md border border-border bg-background">
-                                                {filteredAccessStaff.length === 0 ? (
-                                                    <div className="px-3 py-2 text-xs text-muted-foreground">Совпадений не найдено.</div>
-                                                ) : (
-                                                    filteredAccessStaff.map((staff) => (
-                                                        <button
-                                                            key={staff.id}
-                                                            type="button"
-                                                            onMouseDown={() => pickAccessUser(staff)}
-                                                            className="w-full border-b border-border/50 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
-                                                        >
-                                                            <div className="font-medium">{staff.name}</div>
-                                                            <div className="text-xs text-muted-foreground">{[staff.department, staff.email].filter(Boolean).join(' • ')}</div>
-                                                        </button>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                        {selectedAccessUser && (
-                                            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                                                Выбран: {selectedAccessUser.name} ({selectedAccessUser.department || 'без подразделения'})
-                                            </div>
-                                        )}
-                                        {accessForm.errors.user_id && <div className="text-xs text-destructive">{accessForm.errors.user_id}</div>}
-                                    </div>
-
-                                    {requiresFullAccessReason && (
-                                        <div className="min-w-[260px] flex-1 space-y-2">
-                                            <label className="text-sm font-medium">Reason</label>
+                                <form className="space-y-4" onSubmit={submitAccess}>
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <span className="qd-field-label block">Сотрудник</span>
                                             <Input
                                                 disabled={!canManageFullAccess}
-                                                value={accessForm.data.reason}
-                                                onChange={(e) => accessForm.setData('reason', e.target.value)}
-                                                placeholder="Не менее 8 символов"
+                                                value={accessSearch}
+                                                onChange={(e) => {
+                                                    setAccessSearch(e.target.value);
+                                                    accessForm.setData('user_id', '');
+                                                    setAccessSearchOpen(true);
+                                                }}
+                                                onFocus={() => setAccessSearchOpen(true)}
+                                                placeholder="Введите ФИО, подразделение или email"
                                             />
-                                            {accessForm.errors.reason && <div className="text-xs text-destructive">{accessForm.errors.reason}</div>}
+                                            {canManageFullAccess && accessSearchOpen && !selectedAccessUser && (
+                                                <div className="max-h-52 overflow-auto rounded-[10px] border border-slate-200 bg-white shadow-[0_8px_24px_0_rgba(25,28,29,0.08)]">
+                                                    {filteredAccessStaff.length === 0 ? (
+                                                        <div className="px-3 py-2 text-xs text-slate-500">Совпадений не найдено.</div>
+                                                    ) : (
+                                                        filteredAccessStaff.map((staff) => (
+                                                            <button
+                                                                key={staff.id}
+                                                                type="button"
+                                                                onMouseDown={() => pickAccessUser(staff)}
+                                                                className="w-full border-b border-slate-200 px-3 py-2 text-left text-sm last:border-b-0 hover:bg-teal-50"
+                                                            >
+                                                                <div className="font-medium text-slate-900">{staff.name}</div>
+                                                                <div className="text-xs text-slate-500">{[staff.department, staff.email].filter(Boolean).join(' • ')}</div>
+                                                            </button>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            )}
+                                            {selectedAccessUser && (
+                                                <div className="flex items-center gap-2 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                                    <UserCheck className="h-4 w-4 shrink-0" />
+                                                    Выбран: {selectedAccessUser.name} ({selectedAccessUser.department || 'без подразделения'})
+                                                </div>
+                                            )}
+                                            {accessForm.errors.user_id && <div className="text-xs text-red-700">{accessForm.errors.user_id}</div>}
                                         </div>
-                                    )}
 
-                                    <Button type="submit" disabled={!canManageFullAccess || accessForm.processing || !accessForm.data.user_id || !accessReasonReady}>
-                                        <KeyRound className="mr-2 h-4 w-4" />
-                                        Назначить KPI-админом
-                                    </Button>
+                                        {requiresFullAccessReason && (
+                                            <label className="block space-y-2">
+                                                <span className="qd-field-label block">Reason</span>
+                                                <Input
+                                                    disabled={!canManageFullAccess}
+                                                    value={accessForm.data.reason}
+                                                    onChange={(e) => accessForm.setData('reason', e.target.value)}
+                                                    placeholder="Не менее 8 символов"
+                                                />
+                                                {accessForm.errors.reason && <span className="block text-xs text-red-700">{accessForm.errors.reason}</span>}
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-end border-t border-slate-200 pt-4">
+                                        <Button type="submit" disabled={!canManageFullAccess || accessForm.processing || !accessForm.data.user_id || !accessReasonReady}>
+                                            <KeyRound className="h-4 w-4" />
+                                            Назначить KPI-админом
+                                        </Button>
+                                    </div>
                                 </form>
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Текущие доступы</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {accessGrants.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Пока никому не назначен KPI-админ доступ.</p>
-                                ) : (
+                        {accessGrants.length === 0 ? (
+                            <EmptyState
+                                title="Текущих доступов нет"
+                                description="Пока никому не назначен KPI-админ доступ. Выберите сотрудника в форме выше."
+                            />
+                        ) : (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users />
+                                        Текущие доступы
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-0">
                                     <div className="overflow-x-auto">
                                         <table className="w-full min-w-[860px] text-sm">
                                             <thead>
-                                                <tr className="border-b text-left text-muted-foreground">
-                                                    <th className="py-3 pe-3 font-medium">Сотрудник</th>
-                                                    <th className="py-3 pe-3 font-medium">Email</th>
-                                                    <th className="py-3 pe-3 font-medium">Подразделение</th>
-                                                    <th className="py-3 pe-3 font-medium">Кем выдано</th>
-                                                    <th className="py-3 pe-3 font-medium">Когда</th>
-                                                    <th className="py-3 text-right font-medium">Действия</th>
+                                                <tr className="border-b border-slate-200 text-left">
+                                                    <th className="px-4 py-3">Сотрудник</th>
+                                                    <th className="px-4 py-3">Email</th>
+                                                    <th className="px-4 py-3">Подразделение</th>
+                                                    <th className="px-4 py-3">Кем выдано</th>
+                                                    <th className="px-4 py-3">Когда</th>
+                                                    <th className="px-4 py-3 text-right">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {accessGrants.map((grant) => (
-                                                    <tr key={grant.id} className="border-b align-top last:border-0">
-                                                        <td className="py-3 pe-3">
-                                                            <div className="font-medium">{grant.user?.display_name || grant.user?.name || '—'}</div>
-                                                            <div className="text-xs text-muted-foreground">{grant.user?.ad_title || 'Без должности'}</div>
+                                                    <tr key={grant.id} className="border-b border-slate-200 align-top last:border-0">
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-medium text-slate-900">{grant.user?.display_name || grant.user?.name || '—'}</div>
+                                                            <div className="text-xs text-slate-500">{grant.user?.ad_title || 'Без должности'}</div>
                                                         </td>
-                                                        <td className="py-3 pe-3">{grant.user?.email || '—'}</td>
-                                                        <td className="py-3 pe-3">{grant.user?.ad_department || '—'}</td>
-                                                        <td className="py-3 pe-3">
+                                                        <td className="px-4 py-3 text-slate-700">{grant.user?.email || '—'}</td>
+                                                        <td className="px-4 py-3 text-slate-700">{grant.user?.ad_department || '—'}</td>
+                                                        <td className="px-4 py-3">
                                                             <Badge variant="outline">{grant.granted_by?.display_name || grant.granted_by?.name || '—'}</Badge>
                                                         </td>
-                                                        <td className="py-3 pe-3">{grant.granted_at ? new Date(grant.granted_at).toLocaleString('ru-RU') : '—'}</td>
-                                                        <td className="py-3 text-right">
+                                                        <td className="px-4 py-3 tabular-nums text-slate-700">{grant.granted_at ? new Date(grant.granted_at).toLocaleString('ru-RU') : '—'}</td>
+                                                        <td className="px-4 py-3 text-right">
                                                             <Button type="button" variant="destructive" size="sm" onClick={() => revokeAccess(grant.id)} disabled={!canManageFullAccess}>
-                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                <Trash2 className="h-4 w-4" />
                                                                 Отозвать
                                                             </Button>
                                                         </td>
@@ -455,9 +487,9 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                             </tbody>
                                         </table>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 )}
 

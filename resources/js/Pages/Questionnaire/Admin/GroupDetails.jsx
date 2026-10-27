@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { FormField, InfoField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, BookOpenText, Building2, GraduationCap, Search, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, BookOpenText, Building2, Check, GraduationCap, Plus, Search, Users, UserPlus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const getAcademicYearOptions = () => {
@@ -436,51 +437,54 @@ export default function GroupDetails({ groupId }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование · Группа"
+                    title={group ? `Группа ${group.name}` : `Группа #${groupId}`}
+                    description={[
+                        getGroupSpecialityRef(group)?.name || group?.speciality,
+                        getGroupDepartment(group)?.name,
+                    ].filter(Boolean).join(' · ') || null}
+                    meta={group?.status ? (
+                        <StatusBadge tone={group.status === 'active' ? 'success' : 'default'}>{group.status}</StatusBadge>
+                    ) : null}
+                    actions={(
+                        <Button asChild variant="outline">
+                            <Link href={route('questionnaire.admin.groups')}>
+                                <ArrowLeft className="h-4 w-4" />
+                                К списку групп
+                            </Link>
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Детали группы" />
 
-            <div className="admin-page-wrap">
-                <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-[#102945] via-[#1b3a60] to-[#245279] text-white shadow-lg">
-                    <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
-                    <div className="pointer-events-none absolute -bottom-24 left-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
-                    <CardContent className="relative flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                {group ? `Группа ${group.name}` : `Группа #${groupId}`}
-                            </h1>
-                        </div>
-                        <Link href={route('questionnaire.admin.groups')} className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">
-                            <ArrowLeft className="h-4 w-4" />
-                            К списку групп
-                        </Link>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
 
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
+                <StatGrid>
+                    <StatTile label="Студентов" value={studentsOfGroup.length} tone="teal" icon={Users} />
+                    <StatTile label="Дисциплин" value={disciplines.length} tone="navy" icon={BookOpenText} />
+                    <StatTile label="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} tone="gold" icon={GraduationCap} />
+                    <StatTile label="Статус" value={group?.status || '—'} tone={group?.status === 'active' ? 'success' : 'neutral'} icon={Building2} />
+                </StatGrid>
 
-                <Card className="border-border/80 bg-white shadow-sm">
-                    <CardContent className="space-y-4 pt-6">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                            <MetricCard title="Студентов" value={studentsOfGroup.length} icon={<Users className="h-5 w-5 text-cyan-600" />} accent="cyan" />
-                            <MetricCard title="Дисциплин" value={disciplines.length} icon={<BookOpenText className="h-5 w-5 text-indigo-600" />} accent="indigo" />
-                            <MetricCard title="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} icon={<GraduationCap className="h-5 w-5 text-emerald-600" />} accent="emerald" />
-                            <MetricCard title="Статус" value={group?.status || '—'} icon={<Building2 className="h-5 w-5 text-amber-600" />} accent="amber" />
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-xl border border-cyan-200/70 bg-cyan-50/60 px-3 py-2 text-sm">
-                                <span className="text-muted-foreground">Специальность: </span>
-                                <span className="font-medium text-[#102945]">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</span>
-                            </div>
-                            <div className="rounded-xl border border-indigo-200/70 bg-indigo-50/60 px-3 py-2 text-sm">
-                                <span className="text-muted-foreground">ОП: </span>
-                                <span className="font-medium text-[#102945]">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</span>
-                            </div>
-                            <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/60 px-3 py-2 text-sm">
-                                <span className="text-muted-foreground">Кафедра: </span>
-                                <span className="font-medium text-[#102945]">{getGroupDepartment(group)?.name || '—'}</span>
-                            </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Building2 />
+                            Академическая привязка
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+                            <InfoField label="Специальность">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</InfoField>
+                            <InfoField label="Образовательная программа">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</InfoField>
+                            <InfoField label="Кафедра">{getGroupDepartment(group)?.name || '—'}</InfoField>
                         </div>
                     </CardContent>
                 </Card>
@@ -509,55 +513,64 @@ export default function GroupDetails({ groupId }) {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form className="space-y-3" onSubmit={submitAssignment}>
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={selectedDisciplineId}
-                                onChange={(e) => {
-                                    const nextDisciplineId = e.target.value;
-                                    setSelectedDisciplineId(nextDisciplineId);
-                                    setAssignmentForm((prev) => ({ ...prev, teacher_discipline_id: '' }));
-                                }}
-                            >
-                                <option value="">Выберите дисциплину</option>
-                                {disciplineOptions.map((discipline) => (
-                                    <option key={discipline.id} value={discipline.id}>{discipline.name}</option>
-                                ))}
-                            </select>
+                        <form className="space-y-4" onSubmit={submitAssignment}>
+                            <FormField label="Дисциплина">
+                                <select
+                                    className={qdFieldClass}
+                                    value={selectedDisciplineId}
+                                    onChange={(e) => {
+                                        const nextDisciplineId = e.target.value;
+                                        setSelectedDisciplineId(nextDisciplineId);
+                                        setAssignmentForm((prev) => ({ ...prev, teacher_discipline_id: '' }));
+                                    }}
+                                >
+                                    <option value="">Выберите дисциплину</option>
+                                    {disciplineOptions.map((discipline) => (
+                                        <option key={discipline.id} value={discipline.id}>{discipline.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
 
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={assignmentForm.teacher_discipline_id}
-                                onChange={(e) => setAssignmentForm((prev) => ({ ...prev, teacher_discipline_id: e.target.value }))}
-                                disabled={!selectedDisciplineId}
-                            >
-                                <option value="">{selectedDisciplineId ? 'Выберите преподавателя' : 'Сначала выберите дисциплину'}</option>
-                                {filteredTeacherDisciplines.map((item) => (
-                                    <option key={item.id} value={item.id}>{item.teacher?.display_name || item.teacher?.name || `ID ${item.teacher_id}`}</option>
-                                ))}
-                            </select>
+                            <FormField label="Преподаватель">
+                                <select
+                                    className={qdFieldClass}
+                                    value={assignmentForm.teacher_discipline_id}
+                                    onChange={(e) => setAssignmentForm((prev) => ({ ...prev, teacher_discipline_id: e.target.value }))}
+                                    disabled={!selectedDisciplineId}
+                                >
+                                    <option value="">{selectedDisciplineId ? 'Выберите преподавателя' : 'Сначала выберите дисциплину'}</option>
+                                    {filteredTeacherDisciplines.map((item) => (
+                                        <option key={item.id} value={item.id}>{item.teacher?.display_name || item.teacher?.name || `ID ${item.teacher_id}`}</option>
+                                    ))}
+                                </select>
+                            </FormField>
 
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={assignmentForm.academic_year}
-                                onChange={(e) => setAssignmentForm((prev) => ({ ...prev, academic_year: e.target.value }))}
-                            >
-                                {academicYearOptions.map((year) => (
-                                    <option key={year} value={year}>{year}</option>
-                                ))}
-                            </select>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField label="Учебный год">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={assignmentForm.academic_year}
+                                        onChange={(e) => setAssignmentForm((prev) => ({ ...prev, academic_year: e.target.value }))}
+                                    >
+                                        {academicYearOptions.map((year) => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                </FormField>
 
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={assignmentForm.semester}
-                                onChange={(e) => setAssignmentForm((prev) => ({ ...prev, semester: e.target.value }))}
-                            >
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                            </select>
+                                <FormField label="Семестр">
+                                    <select
+                                        className={qdFieldClass}
+                                        value={assignmentForm.semester}
+                                        onChange={(e) => setAssignmentForm((prev) => ({ ...prev, semester: e.target.value }))}
+                                    >
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                    </select>
+                                </FormField>
+                            </div>
 
-                            <div className="flex gap-2 pt-1">
-                                <Button type="submit">{editingAssignmentId ? 'Сохранить' : 'Назначить'}</Button>
+                            <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -565,145 +578,151 @@ export default function GroupDetails({ groupId }) {
                                 >
                                     Отмена
                                 </Button>
+                                <Button type="submit">{editingAssignmentId ? 'Сохранить' : 'Назначить'}</Button>
                             </div>
                         </form>
                     </DialogContent>
                 </Dialog>
 
-                <div className="grid gap-6 xl:grid-cols-2 items-start">
-                <Card className="border-border/80 bg-white shadow-sm">
-                    <CardHeader className="pb-2">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                <BookOpenText className="h-4 w-4 text-indigo-600" />
+                <div className="grid items-start gap-6 xl:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpenText />
                                 Дисциплины группы
                             </CardTitle>
-                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                <Button type="button" className="gap-2" onClick={openCreateAssignmentDialog}>
-                                    Назначить дисциплину
-                                </Button>
-                                <div className="relative w-full sm:w-80">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        className="pl-9"
-                                        placeholder="Поиск назначения"
-                                        value={assignmentSearch}
-                                        onChange={(e) => setAssignmentSearch(e.target.value)}
-                                    />
-                                </div>
+                        </CardHeader>
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-xs">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    className="pl-9"
+                                    placeholder="Поиск назначения"
+                                    value={assignmentSearch}
+                                    onChange={(e) => setAssignmentSearch(e.target.value)}
+                                    aria-label="Поиск назначения"
+                                />
                             </div>
+                            <Button type="button" size="sm" onClick={openCreateAssignmentDialog}>
+                                <Plus className="h-4 w-4" />
+                                Назначить дисциплину
+                            </Button>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <p className="text-sm text-muted-foreground">Загрузка...</p>
-                        ) : filteredAssignmentsOfGroup.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">У группы пока нет назначенных дисциплин.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-muted-foreground">
-                                            <th className="px-3 py-2 text-left font-medium">Преподаватель</th>
-                                            <th className="px-3 py-2 text-left font-medium">Дисциплина</th>
-                                            <th className="px-3 py-2 text-left font-medium">Период</th>
-                                            <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                            <th className="px-3 py-2 text-right font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredAssignmentsOfGroup.map((item) => (
-                                            <tr key={item.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
-                                                <td className="px-3 py-2">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
-                                                <td className="px-3 py-2">{item.academic_year} · {item.semester}</td>
-                                                <td className="px-3 py-2">
-                                                    <Badge variant={item.status === 'active' ? 'default' : 'secondary'} className={item.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
-                                                        {item.status}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-3 py-2 text-right">
-                                                    <div className="inline-flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => openEditAssignmentDialog(item)}>
-                                                            Ред.
-                                                        </Button>
-                                                        <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => removeAssignment(item.id)}>
-                                                            Удалить
-                                                        </Button>
-                                                    </div>
-                                                </td>
+                        <CardContent className="p-0">
+                            {loading ? (
+                                <div className="p-5"><LoadingState /></div>
+                            ) : filteredAssignmentsOfGroup.length === 0 ? (
+                                <div className="px-5 py-10 text-center">
+                                    <p className="font-display text-base font-bold text-[#102945]">Нет назначенных дисциплин</p>
+                                    <p className="mt-1 text-sm text-slate-600">У группы пока нет назначенных дисциплин. Нажмите «Назначить дисциплину».</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-200">
+                                                <th className="px-5 py-3 text-left">Преподаватель</th>
+                                                <th className="px-5 py-3 text-left">Дисциплина</th>
+                                                <th className="px-5 py-3 text-left">Период</th>
+                                                <th className="px-5 py-3 text-left">Статус</th>
+                                                <th className="px-5 py-3 text-right">Действия</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        </thead>
+                                        <tbody>
+                                            {filteredAssignmentsOfGroup.map((item) => (
+                                                <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                    <td className="px-5 py-3 font-medium text-slate-900">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
+                                                    <td className="px-5 py-3 text-slate-700">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
+                                                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
+                                                    <td className="px-5 py-3">
+                                                        <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
+                                                            {item.status}
+                                                        </StatusBadge>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-right">
+                                                        <div className="inline-flex gap-2">
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => openEditAssignmentDialog(item)}>
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeAssignment(item.id)}>
+                                                                Удалить
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
 
-                <Card className="border-border/80 bg-white shadow-sm">
-                    <CardHeader className="pb-2">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
-                                <Users className="h-4 w-4 text-cyan-600" />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users />
                                 Студенты группы
                             </CardTitle>
-                            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                                <Button type="button" className="gap-2" onClick={() => setStudentDialogOpen(true)}>
-                                    <UserPlus className="h-4 w-4" />
-                                    Привязать студента
-                                </Button>
-                                <div className="relative w-full sm:w-80">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        className="pl-9"
-                                        placeholder="Поиск студента"
-                                        value={studentSearch}
-                                        onChange={(e) => setStudentSearch(e.target.value)}
-                                    />
-                                </div>
+                        </CardHeader>
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-xs">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    className="pl-9"
+                                    placeholder="Поиск студента"
+                                    value={studentSearch}
+                                    onChange={(e) => setStudentSearch(e.target.value)}
+                                    aria-label="Поиск студента"
+                                />
                             </div>
+                            <Button type="button" size="sm" onClick={() => setStudentDialogOpen(true)}>
+                                <UserPlus className="h-4 w-4" />
+                                Привязать студента
+                            </Button>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? (
-                            <p className="text-sm text-muted-foreground">Загрузка...</p>
-                        ) : studentsOfGroup.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">В этой группе нет студентов.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-muted-foreground">
-                                            <th className="px-3 py-2 text-left font-medium">Студент</th>
-                                            <th className="px-3 py-2 text-left font-medium">Логин</th>
-                                            <th className="px-3 py-2 text-right font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {studentsOfGroup.map((student) => (
-                                            <tr key={student.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2 font-medium text-[#102945]">{student.full_name}</td>
-                                                <td className="px-3 py-2">{student.login || student.user?.ad_login || '—'}</td>
-                                                <td className="px-3 py-2 text-right">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="text-red-700"
-                                                        onClick={() => removeStudentBinding(student.id)}
-                                                    >
-                                                        Отвязать
-                                                    </Button>
-                                                </td>
+                        <CardContent className="p-0">
+                            {loading ? (
+                                <div className="p-5"><LoadingState /></div>
+                            ) : studentsOfGroup.length === 0 ? (
+                                <div className="px-5 py-10 text-center">
+                                    <p className="font-display text-base font-bold text-[#102945]">Нет студентов</p>
+                                    <p className="mt-1 text-sm text-slate-600">В этой группе нет студентов. Нажмите «Привязать студента».</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-200">
+                                                <th className="px-5 py-3 text-left">Студент</th>
+                                                <th className="px-5 py-3 text-left">Логин</th>
+                                                <th className="px-5 py-3 text-right">Действия</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        </thead>
+                                        <tbody>
+                                            {studentsOfGroup.map((student) => (
+                                                <tr key={student.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                    <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
+                                                    <td className="px-5 py-3 text-right">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-red-700 hover:bg-red-50 hover:text-red-800"
+                                                            onClick={() => removeStudentBinding(student.id)}
+                                                        >
+                                                            Отвязать
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 <Dialog
@@ -725,22 +744,24 @@ export default function GroupDetails({ groupId }) {
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form className="space-y-3" onSubmit={submitStudentBinding}>
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    className="pl-9"
-                                    placeholder="Поиск по ФИО, login, email (для AD от 2 символов)"
-                                    value={studentLookupQuery}
-                                    onChange={(e) => setStudentLookupQuery(e.target.value)}
-                                />
-                            </div>
+                        <form className="space-y-4" onSubmit={submitStudentBinding}>
+                            <FormField label="Поиск студента">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        className="pl-9"
+                                        placeholder="Поиск по ФИО, login, email (для AD от 2 символов)"
+                                        value={studentLookupQuery}
+                                        onChange={(e) => setStudentLookupQuery(e.target.value)}
+                                    />
+                                </div>
+                            </FormField>
 
-                            <div className="max-h-64 overflow-y-auto rounded-md border border-input bg-white">
-                                {studentLookupLoading && <p className="px-3 py-2 text-sm text-muted-foreground">Поиск в AD...</p>}
+                            <div className="max-h-64 overflow-y-auto rounded-[12px] border border-slate-200 bg-white">
+                                {studentLookupLoading && <div className="px-3 py-2.5"><LoadingState label="Поиск в AD..." /></div>}
 
                                 {!studentLookupLoading && availableStudentChoices.length === 0 && (
-                                    <p className="px-3 py-2 text-sm text-muted-foreground">Совпадений не найдено.</p>
+                                    <p className="px-3 py-2.5 text-sm text-slate-500">Совпадений не найдено.</p>
                                 )}
 
                                 {!studentLookupLoading && availableStudentChoices.map((choice) => {
@@ -750,33 +771,38 @@ export default function GroupDetails({ groupId }) {
                                         <button
                                             key={choice.key}
                                             type="button"
-                                            className={`flex w-full items-start justify-between gap-3 border-b border-border/60 px-3 py-2 text-left last:border-b-0 hover:bg-muted/40 ${isSelected ? 'bg-muted/50' : ''}`}
+                                            className={`flex w-full items-start justify-between gap-3 border-b border-l-2 border-b-slate-200 px-3 py-2.5 text-left transition-colors last:border-b-0 hover:bg-slate-50 ${isSelected ? 'border-l-teal-600 bg-teal-50' : 'border-l-transparent'}`}
                                             onClick={() => setStudentForm((prev) => ({ ...prev, student_key: choice.key }))}
                                         >
-                                            <span>
-                                                <span className="block text-sm font-medium text-[#102945]">{choice.title}</span>
-                                                <span className="block text-xs text-muted-foreground">{choice.subtitle}</span>
+                                            <span className="flex min-w-0 items-start gap-2">
+                                                {isSelected && <Check className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />}
+                                                <span className="min-w-0">
+                                                    <span className="block text-sm font-medium text-[#102945]">{choice.title}</span>
+                                                    <span className="block text-xs text-slate-500">{choice.subtitle}</span>
+                                                </span>
                                             </span>
-                                            <Badge variant={choice.source === 'ad' ? 'secondary' : 'outline'}>{choice.source.toUpperCase()}</Badge>
+                                            <Badge variant={choice.source === 'ad' ? 'info' : 'outline'}>{choice.source.toUpperCase()}</Badge>
                                         </button>
                                     );
                                 })}
                             </div>
 
-                            <select
-                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                value={studentForm.status}
-                                onChange={(e) => setStudentForm((prev) => ({ ...prev, status: e.target.value }))}
-                            >
-                                <option value="active">active</option>
-                                <option value="inactive">inactive</option>
-                            </select>
+                            <FormField label="Статус">
+                                <select
+                                    className={qdFieldClass}
+                                    value={studentForm.status}
+                                    onChange={(e) => setStudentForm((prev) => ({ ...prev, status: e.target.value }))}
+                                >
+                                    <option value="active">active</option>
+                                    <option value="inactive">inactive</option>
+                                </select>
+                            </FormField>
 
-                            <div className="flex gap-2 pt-1">
-                                <Button type="submit">Привязать</Button>
+                            <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button type="button" variant="outline" onClick={() => setStudentDialogOpen(false)}>
                                     Отмена
                                 </Button>
+                                <Button type="submit">Привязать</Button>
                             </div>
                         </form>
                     </DialogContent>
@@ -792,28 +818,5 @@ export default function GroupDetails({ groupId }) {
                 }}
             />
         </AuthenticatedLayout>
-    );
-}
-
-function MetricCard({ title, value, icon = null, accent = 'cyan' }) {
-    const accentStyles = {
-        cyan: 'from-cyan-500/20 to-cyan-100 border-cyan-200/80',
-        indigo: 'from-indigo-500/20 to-indigo-100 border-indigo-200/80',
-        emerald: 'from-emerald-500/20 to-emerald-100 border-emerald-200/80',
-        amber: 'from-amber-500/20 to-amber-100 border-amber-200/80',
-    };
-
-    const cardTone = accentStyles[accent] || accentStyles.cyan;
-
-    return (
-        <Card className={`overflow-hidden border bg-gradient-to-br ${cardTone} shadow-sm`}>
-            <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
-                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
-                </div>
-                {icon}
-            </CardContent>
-        </Card>
     );
 }

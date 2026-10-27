@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { FilterBar, FormField, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -110,108 +110,123 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <form className="flex items-center gap-2" onSubmit={handleSearch}>
-                    <Input
-                        ref={searchRef}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="ФИО, табельный номер…"
-                        className="h-8 w-64"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="mr-1 h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Сотрудники"
+                    description="Справочник сотрудников из системы контроля доступа: подразделение, должность, дата приёма и статус."
+                    meta={meta?.total != null ? <StatusBadge tone="default">Найдено: {meta.total}</StatusBadge> : null}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="HR / Сотрудники" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
                 {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Division filter */}
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>
-                                {d.name}
-                            </option>
-                        ))}
-                    </select>
-
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-
-                    {meta?.total != null && (
-                        <span className="ml-auto text-sm text-muted-foreground">
-                            Найдено: <strong>{meta.total}</strong>
-                        </span>
-                    )}
-                </div>
+                <FilterBar>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+                            <label className="relative block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    ref={searchRef}
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ФИО, табельный номер…"
+                                    className="pl-9"
+                                />
+                            </label>
+                            <FormField label="Подразделение">
+                                <select
+                                    value={division}
+                                    onChange={handleDivisionChange}
+                                    className={qdFieldClass}
+                                >
+                                    <option value="">Все подразделения</option>
+                                    {divisions.map((d) => (
+                                        <option key={d.id} value={d.id}>
+                                            {d.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormField>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+                            <span className="text-xs font-medium text-slate-500">
+                                {meta?.total != null ? <>Найдено: <span className="tabular-nums">{meta.total}</span></> : null}
+                            </span>
+                            <Button type="submit">
+                                <Search className="h-4 w-4" />
+                                Найти
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
                 {/* Table */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Users className="h-4 w-4" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="shrink-0" />
                             Все сотрудники
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {items.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет данных.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[900px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('hiring_date')}>Дата приёма{sortIndicator('hiring_date')}</button>
+                                            <th className="py-3 pr-3">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('hiring_date')}>Дата приёма{sortIndicator('hiring_date')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium">
-                                                <button type="button" onClick={() => toggleSort('status')}>Статус{sortIndicator('status')}</button>
+                                            <th className="py-3 pr-6">
+                                                <button type="button" className={SORT_BTN} onClick={() => toggleSort('status')}>Статус{sortIndicator('status')}</button>
                                             </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedItems.map((row) => (
-                                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
-                                                <td className="py-3 pl-6 pr-3 font-medium">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3">{fmtDate(row.hiring_date)}</td>
-                                                <td className="py-3 pr-3">
+                                            <tr key={row.id} className="border-b border-slate-200 last:border-0">
+                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">{fullName(row)}</td>
+                                                <td className="py-3 pr-3 text-slate-600">{row.division ?? '—'}</td>
+                                                <td className="py-3 pr-3 text-slate-600">{row.position ?? '—'}</td>
+                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.hiring_date)}</td>
+                                                <td className="py-3 pr-6">
                                                     {row.is_dismissed ? (
-                                                        <Badge variant="destructive" className="text-xs">
+                                                        <StatusBadge tone="danger">
                                                             Уволен{row.dismissed_date ? ' ' + fmtDate(row.dismissed_date) : ''}
-                                                        </Badge>
+                                                        </StatusBadge>
                                                     ) : row.is_active && !row.is_block ? (
-                                                        <Badge variant="outline" className="border-green-600 text-green-700 text-xs">
+                                                        <StatusBadge tone="success">
                                                             Активен
-                                                        </Badge>
+                                                        </StatusBadge>
                                                     ) : (
-                                                        <Badge variant="secondary" className="text-xs">
+                                                        <StatusBadge tone="default">
                                                             Заблокирован
-                                                        </Badge>
+                                                        </StatusBadge>
                                                     )}
                                                 </td>
                                             </tr>
@@ -223,7 +238,7 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
 
                         {/* Pagination */}
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 p-4">
+                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

@@ -1,12 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { DataTable, FormField, LoadingState, Notice, PageHeader, SectionHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { ListChecks, Plus, Save, Search, Settings2, Trash2 } from 'lucide-react';
+import { ListChecks, Pencil, Plus, Save, Search, Settings2, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 const emptyQuestionForm = {
@@ -317,328 +318,415 @@ export default function Questions() {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Опросы, вопросы и опции"
+                    description="Создавайте опросы с привязкой ко всем связкам преподаватель+дисциплина или к конкретной группе, затем наполняйте вопросами."
+                    meta={<StatusBadge tone="default">{questions.length} вопросов</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Анкетирование - Опросы, вопросы и опции" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Опросы, вопросы и опции</h1>
-                            <p className="mt-1 text-sm text-muted-foreground">Создавайте опросы с привязкой ко всем связкам преподаватель+дисциплина или к конкретной группе, затем наполняйте вопросами.</p>
-                        </div>
-                        <Badge variant="secondary" className="w-fit">{questions.length} вопросов</Badge>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-8">
+                <StatGrid>
+                    <StatTile label="Анкет" value={surveys.length} tone="teal" icon={ListChecks} />
+                    <StatTile label="Single choice" value={questionTypeStats.single_choice} tone="navy" hint={`Multiple choice: ${questionTypeStats.multiple_choice}`} />
+                    <StatTile label="Text" value={questionTypeStats.text} tone="gold" />
+                    <StatTile label="Numeric" value={questionTypeStats.numeric} tone="info" />
+                </StatGrid>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">{editingSurveyId ? 'Редактирование опроса' : 'Новый опрос'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form className="space-y-3" onSubmit={submitSurvey}>
-                                <Input
-                                    placeholder="Название опроса"
-                                    value={surveyForm.title}
-                                    onChange={(e) => setSurveyForm((prev) => ({ ...prev, title: e.target.value }))}
-                                />
+                {(error || success) && (
+                    <div className="space-y-3">
+                        {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                        {success && <Notice tone="success">{success}</Notice>}
+                    </div>
+                )}
 
-                                <Input
-                                    placeholder="Описание (необязательно)"
-                                    value={surveyForm.description}
-                                    onChange={(e) => setSurveyForm((prev) => ({ ...prev, description: e.target.value }))}
-                                />
+                <section className="space-y-4">
+                    <SectionHeader compact title="1 · Опросы" description="Период, охват и статус опроса." />
+                    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[420px_1fr]">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    {editingSurveyId ? <Save /> : <Plus />}
+                                    {editingSurveyId ? 'Редактирование опроса' : 'Новый опрос'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form className="space-y-4" onSubmit={submitSurvey}>
+                                    <FormField label="Название опроса">
+                                        <Input
+                                            placeholder="Название опроса"
+                                            value={surveyForm.title}
+                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, title: e.target.value }))}
+                                        />
+                                    </FormField>
 
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <Input
-                                        placeholder="Учебный год (например 2026/2027)"
-                                        value={surveyForm.academic_year}
-                                        onChange={(e) => setSurveyForm((prev) => ({ ...prev, academic_year: e.target.value }))}
-                                    />
+                                    <FormField label="Описание">
+                                        <Input
+                                            placeholder="Описание (необязательно)"
+                                            value={surveyForm.description}
+                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, description: e.target.value }))}
+                                        />
+                                    </FormField>
 
-                                    <Input
-                                        placeholder="Семестр"
-                                        value={surveyForm.semester}
-                                        onChange={(e) => setSurveyForm((prev) => ({ ...prev, semester: e.target.value }))}
-                                    />
-                                </div>
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <FormField label="Учебный год">
+                                            <Input
+                                                placeholder="Например 2026/2027"
+                                                value={surveyForm.academic_year}
+                                                onChange={(e) => setSurveyForm((prev) => ({ ...prev, academic_year: e.target.value }))}
+                                            />
+                                        </FormField>
 
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <select
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        value={surveyForm.target_scope}
-                                        onChange={(e) => setSurveyForm((prev) => ({ ...prev, target_scope: e.target.value, target_group_id: e.target.value === 'group' ? prev.target_group_id : '' }))}
-                                    >
-                                        <option value="global">Общий: все связки преподаватель+дисциплина</option>
-                                        <option value="group">Только конкретная группа</option>
-                                    </select>
+                                        <FormField label="Семестр">
+                                            <Input
+                                                placeholder="Семестр"
+                                                value={surveyForm.semester}
+                                                onChange={(e) => setSurveyForm((prev) => ({ ...prev, semester: e.target.value }))}
+                                            />
+                                        </FormField>
+                                    </div>
 
-                                    <select
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        value={surveyForm.target_group_id}
-                                        onChange={(e) => setSurveyForm((prev) => ({ ...prev, target_group_id: e.target.value }))}
-                                        disabled={surveyForm.target_scope !== 'group'}
-                                    >
-                                        <option value="">Выберите группу</option>
-                                        {groups.map((group) => (
-                                            <option key={group.id} value={group.id}>
-                                                {group.name}{group.course ? ` (курс ${group.course})` : ''}
-                                            </option>
+                                    <FormField label="Охват">
+                                        <select
+                                            className={qdFieldClass}
+                                            value={surveyForm.target_scope}
+                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, target_scope: e.target.value, target_group_id: e.target.value === 'group' ? prev.target_group_id : '' }))}
+                                        >
+                                            <option value="global">Общий: все связки преподаватель+дисциплина</option>
+                                            <option value="group">Только конкретная группа</option>
+                                        </select>
+                                    </FormField>
+
+                                    <FormField label="Группа">
+                                        <select
+                                            className={qdFieldClass}
+                                            value={surveyForm.target_group_id}
+                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, target_group_id: e.target.value }))}
+                                            disabled={surveyForm.target_scope !== 'group'}
+                                        >
+                                            <option value="">Выберите группу</option>
+                                            {groups.map((group) => (
+                                                <option key={group.id} value={group.id}>
+                                                    {group.name}{group.course ? ` (курс ${group.course})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </FormField>
+
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <FormField label="Дата начала">
+                                            <Input
+                                                type="date"
+                                                value={surveyForm.start_date}
+                                                onChange={(e) => setSurveyForm((prev) => ({ ...prev, start_date: e.target.value }))}
+                                            />
+                                        </FormField>
+                                        <FormField label="Дата окончания">
+                                            <Input
+                                                type="date"
+                                                value={surveyForm.end_date}
+                                                onChange={(e) => setSurveyForm((prev) => ({ ...prev, end_date: e.target.value }))}
+                                            />
+                                        </FormField>
+                                    </div>
+
+                                    <FormField label="Статус">
+                                        <select
+                                            className={qdFieldClass}
+                                            value={surveyForm.status}
+                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, status: e.target.value }))}
+                                        >
+                                            <option value="active">active</option>
+                                            <option value="inactive">inactive</option>
+                                        </select>
+                                    </FormField>
+
+                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                        {editingSurveyId && (
+                                            <Button type="button" variant="outline" onClick={() => { setEditingSurveyId(null); setSurveyForm(emptySurveyForm); }}>
+                                                Отмена
+                                            </Button>
+                                        )}
+                                        <Button type="submit">
+                                            {editingSurveyId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                            {editingSurveyId ? 'Сохранить' : 'Создать'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ListChecks />
+                                    Список опросов
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {surveys.length === 0 ? (
+                                    <div className="px-5 py-12 text-center">
+                                        <p className="font-display text-lg font-bold text-[#102945]">Опросы пока не созданы</p>
+                                        <p className="mt-1 text-sm text-slate-600">Заполните форму «Новый опрос», затем добавьте в него вопросы.</p>
+                                    </div>
+                                ) : (
+                                    <ul className="max-h-[560px] divide-y divide-slate-200 overflow-y-auto">
+                                        {surveys.map((survey) => (
+                                            <li key={survey.id} className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between ${editingSurveyId === survey.id ? 'bg-teal-50' : ''}`}>
+                                                <div className="min-w-0 space-y-1">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <p className="font-semibold text-slate-900">{survey.title}</p>
+                                                        <StatusBadge tone={survey.status === 'active' ? 'success' : 'default'}>{survey.status}</StatusBadge>
+                                                    </div>
+                                                    <p className="text-sm text-slate-600">
+                                                        {survey.academic_year}, семестр {survey.semester} ·
+                                                        {' '}
+                                                        {survey.target_scope === 'group'
+                                                            ? `Группа: ${survey.target_group?.name || survey.target_group_id}`
+                                                            : 'Общий для всех групп'}
+                                                    </p>
+                                                    <p className="text-xs tabular-nums text-slate-500">Период: {survey.start_date} - {survey.end_date}</p>
+                                                </div>
+                                                <div className="flex shrink-0 gap-2">
+                                                    <Button type="button" variant="outline" size="sm" onClick={() => startEditSurvey(survey)}>
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        Ред.
+                                                    </Button>
+                                                    <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeSurvey(survey.id)}>
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Удалить
+                                                    </Button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <SectionHeader compact title="2 · Вопросы" description="Вопросы анкеты, их тип и порядок." />
+                    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[420px_1fr]">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    {editingQuestionId ? <Save /> : <Plus />}
+                                    {editingQuestionId ? 'Редактирование вопроса' : 'Новый вопрос'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form className="space-y-4" onSubmit={submitQuestion}>
+                                    <FormField label="Анкета">
+                                        <select className={qdFieldClass} value={questionForm.survey_id} onChange={(e) => setQuestionForm((prev) => ({ ...prev, survey_id: e.target.value }))}>
+                                            <option value="">Выберите анкету</option>
+                                            {surveys.map((survey) => (
+                                                <option key={survey.id} value={survey.id}>
+                                                    {survey.title} ({survey.academic_year}, сем. {survey.semester})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </FormField>
+
+                                    <FormField label="Текст вопроса">
+                                        <Input placeholder="Текст вопроса" value={questionForm.question_text} onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_text: e.target.value }))} />
+                                    </FormField>
+
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_7rem]">
+                                        <FormField label="Тип">
+                                            <select className={qdFieldClass} value={questionForm.question_type} onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_type: e.target.value }))}>
+                                                <option value="single_choice">single_choice</option>
+                                                <option value="multiple_choice">multiple_choice</option>
+                                                <option value="text">text</option>
+                                                <option value="numeric">numeric</option>
+                                            </select>
+                                        </FormField>
+
+                                        <FormField label="Порядок">
+                                            <Input type="number" placeholder="Порядок" value={questionForm.sort_order} onChange={(e) => setQuestionForm((prev) => ({ ...prev, sort_order: e.target.value }))} />
+                                        </FormField>
+                                    </div>
+
+                                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                                        <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={questionForm.is_required} onChange={(e) => setQuestionForm((prev) => ({ ...prev, is_required: e.target.checked }))} />
+                                        Обязательный вопрос
+                                    </label>
+
+                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                        {editingQuestionId && (
+                                            <Button type="button" variant="outline" onClick={() => { setEditingQuestionId(null); setQuestionForm(emptyQuestionForm); }}>
+                                                Отмена
+                                            </Button>
+                                        )}
+                                        <Button type="submit">
+                                            {editingQuestionId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                            {editingQuestionId ? 'Сохранить' : 'Создать'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ListChecks />
+                                    Список вопросов
+                                </CardTitle>
+                            </CardHeader>
+                            <div className="grid gap-4 border-b border-slate-200 px-5 py-4 sm:grid-cols-2">
+                                <FormField label="Поиск">
+                                    <div className="relative">
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                        <Input className="pl-9" placeholder="Поиск вопроса" value={questionSearch} onChange={(e) => setQuestionSearch(e.target.value)} />
+                                    </div>
+                                </FormField>
+                                <FormField label="Анкета">
+                                    <select className={qdFieldClass} value={selectedSurveyId} onChange={(e) => setSelectedSurveyId(e.target.value)}>
+                                        <option value="">Все анкеты</option>
+                                        {surveys.map((survey) => (
+                                            <option key={survey.id} value={survey.id}>{survey.title}</option>
                                         ))}
                                     </select>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    <label className="text-xs text-muted-foreground">
-                                        Дата начала
-                                        <Input
-                                            type="date"
-                                            value={surveyForm.start_date}
-                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, start_date: e.target.value }))}
-                                        />
-                                    </label>
-                                    <label className="text-xs text-muted-foreground">
-                                        Дата окончания
-                                        <Input
-                                            type="date"
-                                            value={surveyForm.end_date}
-                                            onChange={(e) => setSurveyForm((prev) => ({ ...prev, end_date: e.target.value }))}
-                                        />
-                                    </label>
-                                </div>
-
-                                <select
-                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={surveyForm.status}
-                                    onChange={(e) => setSurveyForm((prev) => ({ ...prev, status: e.target.value }))}
-                                >
-                                    <option value="active">active</option>
-                                    <option value="inactive">inactive</option>
-                                </select>
-
-                                <div className="flex gap-2">
-                                    <Button type="submit" className="gap-2">
-                                        {editingSurveyId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                        {editingSurveyId ? 'Сохранить' : 'Создать'}
-                                    </Button>
-                                    {editingSurveyId && (
-                                        <Button type="button" variant="outline" onClick={() => { setEditingSurveyId(null); setSurveyForm(emptySurveyForm); }}>
-                                            Отмена
-                                        </Button>
-                                    )}
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">Список опросов</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                            {surveys.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Опросы пока не созданы.</p>
-                            ) : (
-                                <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
-                                    {surveys.map((survey) => (
-                                        <div key={survey.id} className="rounded-md border border-border/80 p-3">
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                                <p className="text-sm font-semibold text-[#102945]">{survey.title}</p>
-                                                <Badge variant={survey.status === 'active' ? 'secondary' : 'outline'}>{survey.status}</Badge>
-                                            </div>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                {survey.academic_year}, семестр {survey.semester} ·
-                                                {' '}
-                                                {survey.target_scope === 'group'
-                                                    ? `Группа: ${survey.target_group?.name || survey.target_group_id}`
-                                                    : 'Общий для всех групп'}
-                                            </p>
-                                            <p className="mt-1 text-xs text-muted-foreground">Период: {survey.start_date} - {survey.end_date}</p>
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                <Button type="button" variant="outline" size="sm" onClick={() => startEditSurvey(survey)}>Ред.</Button>
-                                                <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => removeSurvey(survey.id)}>
-                                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                                                    Удалить
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Анкет" value={surveys.length} icon={<ListChecks className="h-5 w-5 text-[#067a75]" />} />
-                    <StatCard title="Single choice" value={questionTypeStats.single_choice} />
-                    <StatCard title="Text" value={questionTypeStats.text} />
-                    <StatCard title="Numeric" value={questionTypeStats.numeric} />
-                </div>
-
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_1fr]">
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#102945]">{editingQuestionId ? 'Редактирование вопроса' : 'Новый вопрос'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form className="space-y-3" onSubmit={submitQuestion}>
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={questionForm.survey_id} onChange={(e) => setQuestionForm((prev) => ({ ...prev, survey_id: e.target.value }))}>
-                                    <option value="">Выберите анкету</option>
-                                    {surveys.map((survey) => (
-                                        <option key={survey.id} value={survey.id}>
-                                            {survey.title} ({survey.academic_year}, сем. {survey.semester})
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <Input placeholder="Текст вопроса" value={questionForm.question_text} onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_text: e.target.value }))} />
-
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={questionForm.question_type} onChange={(e) => setQuestionForm((prev) => ({ ...prev, question_type: e.target.value }))}>
-                                    <option value="single_choice">single_choice</option>
-                                    <option value="multiple_choice">multiple_choice</option>
-                                    <option value="text">text</option>
-                                    <option value="numeric">numeric</option>
-                                </select>
-
-                                <Input type="number" placeholder="Порядок" value={questionForm.sort_order} onChange={(e) => setQuestionForm((prev) => ({ ...prev, sort_order: e.target.value }))} />
-
-                                <label className="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" checked={questionForm.is_required} onChange={(e) => setQuestionForm((prev) => ({ ...prev, is_required: e.target.checked }))} />
-                                    Обязательный вопрос
-                                </label>
-
-                                <div className="flex gap-2">
-                                    <Button type="submit" className="gap-2">
-                                        {editingQuestionId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                        {editingQuestionId ? 'Сохранить' : 'Создать'}
-                                    </Button>
-                                    {editingQuestionId && (
-                                        <Button type="button" variant="outline" onClick={() => { setEditingQuestionId(null); setQuestionForm(emptyQuestionForm); }}>
-                                            Отмена
-                                        </Button>
-                                    )}
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-border/80 bg-white/90 shadow-sm">
-                        <CardHeader className="pb-2">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#102945]">Список вопросов</CardTitle>
-                                <div className="relative w-full sm:w-72">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input className="pl-9" placeholder="Поиск вопроса" value={questionSearch} onChange={(e) => setQuestionSearch(e.target.value)} />
-                                </div>
+                                </FormField>
                             </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={selectedSurveyId} onChange={(e) => setSelectedSurveyId(e.target.value)}>
-                                <option value="">Все анкеты</option>
-                                {surveys.map((survey) => (
-                                    <option key={survey.id} value={survey.id}>{survey.title}</option>
-                                ))}
-                            </select>
-
-                            {loading ? (
-                                <p className="text-sm text-muted-foreground">Загрузка...</p>
-                            ) : selectedQuestions.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Вопросы не найдены.</p>
-                            ) : (
-                                <div className="max-h-[460px] space-y-2 overflow-y-auto pr-1">
-                                    {selectedQuestions.map((question) => (
-                                        <div key={question.id} className="rounded-md border border-border/80 p-3">
-                                            <p className="text-sm font-medium text-[#102945]">{question.question_text}</p>
-                                            <p className="mt-1 text-xs text-muted-foreground">Тип: {question.question_type} · Анкета: {question.survey?.title || question.survey_id}</p>
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                <Button type="button" variant="outline" size="sm" onClick={() => startEditQuestion(question)}>Ред.</Button>
-                                                <Button type="button" variant="outline" size="sm" onClick={() => { setSelectedQuestionId(String(question.id)); setOptionForm((prev) => ({ ...prev, question_id: String(question.id) })); }}>
-                                                    <Settings2 className="mr-1 h-3.5 w-3.5" />
-                                                    Опции
-                                                </Button>
-                                                <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => removeQuestion(question.id)}>
-                                                    <Trash2 className="mr-1 h-3.5 w-3.5" />
-                                                    Удалить
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base text-[#102945]">Опции вопроса</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-5" onSubmit={submitOption}>
-                            <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={optionForm.question_id} onChange={(e) => { setOptionForm((prev) => ({ ...prev, question_id: e.target.value })); setSelectedQuestionId(e.target.value); }}>
-                                <option value="">Выберите вопрос</option>
-                                {questions.map((question) => (
-                                    <option key={question.id} value={question.id}>{question.question_text}</option>
-                                ))}
-                            </select>
-                            <Input className="lg:col-span-2" placeholder="Текст опции" value={optionForm.option_text} onChange={(e) => setOptionForm((prev) => ({ ...prev, option_text: e.target.value }))} />
-                            <Input type="number" step="0.01" placeholder="Балл" value={optionForm.score} onChange={(e) => setOptionForm((prev) => ({ ...prev, score: e.target.value }))} />
-                            <Input type="number" placeholder="Порядок" value={optionForm.sort_order} onChange={(e) => setOptionForm((prev) => ({ ...prev, sort_order: e.target.value }))} />
-
-                            <div className="lg:col-span-5 flex gap-2">
-                                <Button type="submit" className="gap-2">
-                                    {editingOptionId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                    {editingOptionId ? 'Сохранить опцию' : 'Создать опцию'}
-                                </Button>
-                                {editingOptionId && (
-                                    <Button type="button" variant="outline" onClick={() => { setEditingOptionId(null); setOptionForm((prev) => ({ ...emptyOptionForm, question_id: prev.question_id })); }}>
-                                        Отмена
-                                    </Button>
-                                )}
-                            </div>
-                        </form>
-
-                        {options.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Выберите вопрос, чтобы увидеть опции.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b text-muted-foreground">
-                                            <th className="px-3 py-2 text-left font-medium">Опция</th>
-                                            <th className="px-3 py-2 text-left font-medium">Балл</th>
-                                            <th className="px-3 py-2 text-left font-medium">Порядок</th>
-                                            <th className="px-3 py-2 text-right font-medium">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {options.map((option) => (
-                                            <tr key={option.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2">{option.option_text}</td>
-                                                <td className="px-3 py-2">{option.score ?? '—'}</td>
-                                                <td className="px-3 py-2">{option.sort_order ?? 0}</td>
-                                                <td className="px-3 py-2 text-right">
-                                                    <div className="inline-flex gap-2">
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => startEditOption(option)}>Ред.</Button>
-                                                        <Button type="button" variant="outline" size="sm" className="text-red-700" onClick={() => removeOption(option.id)}>
-                                                            <Trash2 className="mr-1 h-3.5 w-3.5" />
+                            <CardContent className="p-0">
+                                {loading ? (
+                                    <div className="p-5"><LoadingState /></div>
+                                ) : selectedQuestions.length === 0 ? (
+                                    <div className="px-5 py-12 text-center">
+                                        <p className="font-display text-lg font-bold text-[#102945]">Вопросы не найдены</p>
+                                        <p className="mt-1 text-sm text-slate-600">Измените фильтр или создайте вопрос в форме слева.</p>
+                                    </div>
+                                ) : (
+                                    <ul className="max-h-[560px] divide-y divide-slate-200 overflow-y-auto">
+                                        {selectedQuestions.map((question) => {
+                                            const isSelected = String(selectedQuestionId) === String(question.id);
+                                            return (
+                                                <li key={question.id} className={`flex flex-col gap-3 border-l-2 px-5 py-4 lg:flex-row lg:items-start lg:justify-between ${isSelected ? 'border-l-teal-600 bg-teal-50' : 'border-l-transparent'}`}>
+                                                    <div className="min-w-0 space-y-1.5">
+                                                        <p className="font-medium text-slate-900">{question.question_text}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                                            <Badge variant="secondary" className="font-mono">{question.question_type}</Badge>
+                                                            <span>Анкета: {question.survey?.title || question.survey_id}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex shrink-0 flex-wrap gap-2">
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => startEditQuestion(question)}>
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                            Ред.
+                                                        </Button>
+                                                        <Button type="button" variant={isSelected ? 'secondary' : 'outline'} size="sm" onClick={() => { setSelectedQuestionId(String(question.id)); setOptionForm((prev) => ({ ...prev, question_id: String(question.id) })); }}>
+                                                            <Settings2 className="h-3.5 w-3.5" />
+                                                            Опции
+                                                        </Button>
+                                                        <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeQuestion(question.id)}>
+                                                            <Trash2 className="h-3.5 w-3.5" />
                                                             Удалить
                                                         </Button>
                                                     </div>
-                                                </td>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <SectionHeader compact title="3 · Опции вопроса" description="Варианты ответа и их баллы для выбранного вопроса." />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Settings2 />
+                                Опции вопроса
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <form className="grid grid-cols-1 gap-4 lg:grid-cols-6" onSubmit={submitOption}>
+                                <div className="lg:col-span-2">
+                                    <FormField label="Вопрос">
+                                        <select className={qdFieldClass} value={optionForm.question_id} onChange={(e) => { setOptionForm((prev) => ({ ...prev, question_id: e.target.value })); setSelectedQuestionId(e.target.value); }}>
+                                            <option value="">Выберите вопрос</option>
+                                            {questions.map((question) => (
+                                                <option key={question.id} value={question.id}>{question.question_text}</option>
+                                            ))}
+                                        </select>
+                                    </FormField>
+                                </div>
+                                <div className="lg:col-span-2">
+                                    <FormField label="Текст опции">
+                                        <Input placeholder="Текст опции" value={optionForm.option_text} onChange={(e) => setOptionForm((prev) => ({ ...prev, option_text: e.target.value }))} />
+                                    </FormField>
+                                </div>
+                                <FormField label="Балл">
+                                    <Input type="number" step="0.01" placeholder="Балл" value={optionForm.score} onChange={(e) => setOptionForm((prev) => ({ ...prev, score: e.target.value }))} />
+                                </FormField>
+                                <FormField label="Порядок">
+                                    <Input type="number" placeholder="Порядок" value={optionForm.sort_order} onChange={(e) => setOptionForm((prev) => ({ ...prev, sort_order: e.target.value }))} />
+                                </FormField>
+
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 lg:col-span-6">
+                                    {editingOptionId && (
+                                        <Button type="button" variant="outline" onClick={() => { setEditingOptionId(null); setOptionForm((prev) => ({ ...emptyOptionForm, question_id: prev.question_id })); }}>
+                                            Отмена
+                                        </Button>
+                                    )}
+                                    <Button type="submit">
+                                        {editingOptionId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                        {editingOptionId ? 'Сохранить опцию' : 'Создать опцию'}
+                                    </Button>
+                                </div>
+                            </form>
+
+                            {options.length === 0 ? (
+                                <Notice tone="info">Выберите вопрос, чтобы увидеть опции.</Notice>
+                            ) : (
+                                <DataTable>
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-slate-200">
+                                                <th className="px-5 py-3 text-left">Опция</th>
+                                                <th className="px-5 py-3 text-right">Балл</th>
+                                                <th className="px-5 py-3 text-right">Порядок</th>
+                                                <th className="px-5 py-3 text-right">Действия</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                        </thead>
+                                        <tbody>
+                                            {options.map((option) => (
+                                                <tr key={option.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingOptionId === option.id ? 'bg-teal-50' : ''}`}>
+                                                    <td className="px-5 py-3 font-medium text-slate-900">{option.option_text}</td>
+                                                    <td className="px-5 py-3 text-right tabular-nums text-slate-700">{option.score ?? '—'}</td>
+                                                    <td className="px-5 py-3 text-right tabular-nums text-slate-700">{option.sort_order ?? 0}</td>
+                                                    <td className="px-5 py-3 text-right">
+                                                        <div className="inline-flex gap-2">
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEditOption(option)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeOption(option.id)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                Удалить
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </DataTable>
+                            )}
+                        </CardContent>
+                    </Card>
+                </section>
             </div>
             <ConfirmDialog
                 open={confirmState.open}
@@ -650,19 +738,5 @@ export default function Questions() {
                 }}
             />
         </AuthenticatedLayout>
-    );
-}
-
-function StatCard({ title, value, icon = null }) {
-    return (
-        <Card className="border-border/80 bg-white/90 shadow-sm">
-            <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
-                </div>
-                {icon}
-            </CardContent>
-        </Card>
     );
 }

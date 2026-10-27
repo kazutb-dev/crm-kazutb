@@ -186,12 +186,10 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
     };
 
     return (
-        <AuthenticatedLayout>
-            <Head title="Проверка знаний языка — Вопросы" />
-
-            <div className="admin-page-wrap space-y-5">
+        <AuthenticatedLayout
+            header={(
                 <PageHeader
-                    eyebrow="Language Testing"
+                    eyebrow="Проверка знаний языка"
                     title={`Вопросы: ${test?.name ?? ''}`}
                     description="Управляйте банком вопросов, вариантами ответов и порядком показа через drag & drop."
                     actions={(
@@ -217,10 +215,14 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                         </div>
                     )}
                 />
+            )}
+        >
+            <Head title="Проверка знаний языка — Вопросы" />
 
+            <div className="admin-page-wrap space-y-6">
                 <FilterBar>
                     <form
-                        className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]"
+                        className="space-y-4"
                         onSubmit={(event) => {
                             event.preventDefault();
                             applyFilters();
@@ -232,14 +234,14 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                 <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Введите текст вопроса" />
                             </div>
                         </FormField>
-                        <div className="flex items-end gap-2">
-                            <Button type="submit">Применить</Button>
-                            <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+                            <StatusBadge tone="default">Активных фильтров: {activeFilterCount}</StatusBadge>
+                            <div className="ml-auto flex items-center gap-2">
+                                <Button type="submit">Применить</Button>
+                                <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
+                            </div>
                         </div>
                     </form>
-                    <div className="mt-3 text-xs text-muted-foreground">
-                        <StatusBadge tone="default">Активных фильтров: {activeFilterCount}</StatusBadge>
-                    </div>
                 </FilterBar>
 
                 {localQuestions.length === 0 ? (
@@ -251,7 +253,7 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                 ) : (
                     <DataTable>
                         <table className="min-w-full text-sm">
-                            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.08em] text-slate-500">
+                            <thead className="text-left">
                                 <tr>
                                     <th className="px-4 py-3 w-12"></th>
                                     <th className="px-4 py-3">Вопрос</th>
@@ -265,7 +267,7 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                 {localQuestions.map((question) => (
                                     <tr
                                         key={question.id}
-                                        className={`border-t align-top hover:bg-slate-50/70 ${draggingQuestionId === question.id ? 'opacity-60' : ''}`}
+                                        className={`border-t border-slate-200 align-top hover:bg-slate-50 ${draggingQuestionId === question.id ? 'opacity-60' : ''}`}
                                         onDragOver={(event) => event.preventDefault()}
                                         onDrop={(event) => handleDrop(event, question.id)}
                                     >
@@ -276,7 +278,8 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                                     draggable
                                                     onDragStart={(event) => handleDragStart(event, question.id)}
                                                     onDragEnd={() => setDraggingQuestionId(null)}
-                                                    className="rounded-md border border-slate-200 p-2 text-slate-500 hover:bg-slate-100"
+                                                    aria-label="Перетащить для изменения порядка"
+                                                    className="cursor-grab rounded-[10px] border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 active:cursor-grabbing"
                                                 >
                                                     <GripVertical className="h-4 w-4" />
                                                 </button>
@@ -287,24 +290,24 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                                 <p className="font-medium text-slate-900">{question.question}</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {(question.options ?? []).map((option) => (
-                                                        <span key={option.id} className={`rounded-full px-2.5 py-1 text-xs ${option.is_correct ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                        <span key={option.id} className={`rounded-full border px-2.5 py-0.5 text-xs ${option.is_correct ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
                                                             {option.text}
                                                         </span>
                                                     ))}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4 text-center">{question.points}</td>
-                                        <td className="px-4 py-4 text-center">{question.sort_order}</td>
+                                        <td className="px-4 py-4 text-center tabular-nums">{question.points}</td>
+                                        <td className="px-4 py-4 text-center tabular-nums">{question.sort_order}</td>
                                         <td className="px-4 py-4 text-slate-700">{(question.options ?? []).find((option) => option.is_correct)?.text ?? '—'}</td>
                                         <td className="px-4 py-4">
                                             <div className="flex justify-end gap-2">
                                                 {canManage ? (
                                                     <>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(question)}>
+                                                        <Button type="button" variant="outline" size="sm" aria-label="Редактировать" title="Редактировать" onClick={() => openEditDialog(question)}>
                                                             <Pencil className="h-4 w-4" />
                                                         </Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => setDeleteTarget(question)}>
+                                                        <Button type="button" variant="ghost" size="sm" aria-label="Удалить" title="Удалить" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => setDeleteTarget(question)}>
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </>
@@ -318,13 +321,13 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                     </DataTable>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <div>Показано {localQuestions.length} из {pagination.total ?? localQuestions.length}</div>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <div className="tabular-nums">Показано {localQuestions.length} из {pagination.total ?? localQuestions.length}</div>
                     <div className="flex items-center gap-2">
                         <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span>Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
+                        <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
                         <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -341,10 +344,12 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
 
                     <form onSubmit={submitForm} className="space-y-4">
                         <FormGrid>
-                            <FormField label="Текст вопроса" className="md:col-span-2">
-                                <Textarea value={form.data.question} onChange={(event) => form.setData('question', event.target.value)} rows={4} />
-                                {form.errors.question ? <p className="text-xs text-red-600">{form.errors.question}</p> : null}
-                            </FormField>
+                            <div className="md:col-span-2">
+                                <FormField label="Текст вопроса">
+                                    <Textarea value={form.data.question} onChange={(event) => form.setData('question', event.target.value)} rows={4} />
+                                    {form.errors.question ? <p className="text-xs text-red-700">{form.errors.question}</p> : null}
+                                </FormField>
+                            </div>
                             <FormField label="Баллы">
                                 <Input type="number" min="1" max="100" value={form.data.points} onChange={(event) => form.setData('points', Number(event.target.value))} />
                             </FormField>
@@ -353,21 +358,24 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                             </FormField>
                         </FormGrid>
 
-                        <div className="space-y-3 rounded-2xl border border-slate-200 p-4">
+                        <div className="space-y-3 border-t border-slate-200 pt-4">
                             <div className="flex items-center justify-between">
-                                <p className="text-sm font-semibold text-slate-900">Варианты ответов</p>
-                                <Button type="button" variant="outline" size="sm" onClick={addOption} disabled={form.data.options.length >= 10}>Добавить вариант</Button>
+                                <p className="qd-field-label">Варианты ответов</p>
+                                <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={addOption} disabled={form.data.options.length >= 10}>
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Добавить вариант
+                                </Button>
                             </div>
-                            {form.errors.options ? <p className="text-xs text-red-600">{form.errors.options}</p> : null}
-                            <div className="space-y-3">
+                            {form.errors.options ? <p className="text-xs text-red-700">{form.errors.options}</p> : null}
+                            <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
                                 {form.data.options.map((option, index) => (
-                                    <div key={`option-${index}`} className="grid gap-3 rounded-xl border border-slate-200 p-3 md:grid-cols-[1fr_auto_auto] md:items-center">
+                                    <div key={`option-${index}`} className={`grid gap-3 p-3 md:grid-cols-[1fr_auto_auto] md:items-center ${option.is_correct ? 'bg-emerald-50' : 'bg-white'}`}>
                                         <Input value={option.text} onChange={(event) => updateOption(index, { text: event.target.value })} placeholder={`Вариант ${index + 1}`} />
                                         <label className="flex items-center gap-2 text-sm text-slate-700">
-                                            <input type="radio" name="correct-option" checked={option.is_correct} onChange={() => setCorrectOption(index)} />
+                                            <input type="radio" name="correct-option" className="h-4 w-4 accent-teal-700" checked={option.is_correct} onChange={() => setCorrectOption(index)} />
                                             Правильный
                                         </label>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => removeOption(index)} disabled={form.data.options.length <= 2}>
+                                        <Button type="button" variant="ghost" size="sm" aria-label="Удалить вариант" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeOption(index)} disabled={form.data.options.length <= 2}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
