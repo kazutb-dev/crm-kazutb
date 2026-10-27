@@ -128,14 +128,6 @@
     @apply h-8;
   }
 
-  .admin-shell-topbar {
-    @apply sticky top-0 z-20 border-b border-border/70 bg-white/90 backdrop-blur-xl;
-  }
-
-  .admin-shell-topbar-row {
-    @apply flex min-h-16 items-center gap-3 px-4 sm:px-6;
-  }
-
   .admin-toolbar {
     @apply mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-2.5;
   }
@@ -319,23 +311,6 @@
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--qd-ink);
-  }
-
-  :where(.qd-panel) .admin-shell-topbar {
-    border-bottom-color: var(--qd-border);
-    background: rgba(255, 255, 255, 0.92);
-  }
-
-  :where(.qd-panel) .admin-shell-topbar-row {
-    min-height: 4.75rem;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-  }
-
-  @media (min-width: 640px) {
-    :where(.qd-panel) .admin-shell-topbar-row {
-      padding: 0.75rem 2rem;
-    }
   }
 
   :where(.qd-panel) .admin-header-actions :is(button, a) {
