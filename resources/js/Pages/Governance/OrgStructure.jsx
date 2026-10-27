@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { FilterBar, FormField, Notice, PageHeader, qdFieldClass, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,36 +15,8 @@ import {
 } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 
-function SummaryCard({ title, value, subtitle, tone = 'slate', icon: Icon }) {
-    const tones = {
-        slate: 'border-slate-200 bg-white',
-        blue: 'border-blue-200 bg-blue-50/35',
-        amber: 'border-amber-200 bg-amber-50/35',
-        red: 'border-red-200 bg-red-50/35',
-    };
-
-    return (
-        <Card className={`border shadow-sm ${tones[tone] ?? tones.slate}`}>
-            <CardContent className="pt-4">
-                <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</p>
-                        <p className="mt-1 text-3xl font-semibold text-slate-900">{(value ?? 0).toLocaleString('ru-RU')}</p>
-                        {subtitle ? <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p> : null}
-                    </div>
-                    {Icon ? (
-                        <div className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600">
-                            <Icon className="h-4 w-4" />
-                        </div>
-                    ) : null}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
 function TypeBadge({ label }) {
-    return <Badge className="border-slate-200 bg-slate-100 text-slate-700">{label}</Badge>;
+    return <Badge variant="secondary">{label}</Badge>;
 }
 
 function TreeNode({ node, level = 0, expanded, onToggle }) {
@@ -54,29 +26,29 @@ function TreeNode({ node, level = 0, expanded, onToggle }) {
     return (
         <div>
             <div
-                className="group flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50"
+                className="group flex items-start gap-2.5 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-slate-50"
                 style={{ paddingLeft: `${Math.min(level * 16, 96) + 8}px` }}
             >
                 <button
                     type="button"
                     onClick={() => onToggle(node.id)}
-                    className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded border border-slate-200 bg-white text-slate-500"
+                    className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-teal-700 transition-colors hover:border-teal-600 disabled:border-transparent disabled:bg-transparent"
                     disabled={!hasChildren}
                 >
-                    {hasChildren ? (isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <span className="h-3 w-3" />}
+                    {hasChildren ? (isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />) : <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />}
                 </button>
 
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-slate-900">{node.name}</span>
+                        <span className={`text-slate-900 ${level === 0 ? 'font-semibold text-[#102945]' : 'font-medium'}`}>{node.name}</span>
                         <TypeBadge label={node.unit_type_label} />
                         {node.code ? <Badge variant="outline">{node.code}</Badge> : null}
                         {node.metadata?.transitional_mapping ? (
-                            <Badge className="border-amber-200 bg-amber-50 text-amber-800">Переходное сопоставление</Badge>
+                            <Badge variant="warning">Переходное сопоставление</Badge>
                         ) : null}
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>Дочерние: {node.children_count ?? 0}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                        <span className="tabular-nums">Дочерние: {node.children_count ?? 0}</span>
                         <span>Руководитель: {node.leader_name ?? 'не назначен'}</span>
                     </div>
                 </div>
@@ -228,128 +200,123 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
         setExpanded(new Set());
     };
 
-    return (
-        <AuthenticatedLayout>
-            <Head title="Оргструктура" />
+    const currentPage = pagination.current_page ?? 1;
+    const lastPage = pagination.last_page ?? 1;
 
-            <div className="admin-page-wrap space-y-5">
+    return (
+        <AuthenticatedLayout
+            header={(
                 <PageHeader
                     eyebrow="Управление доступом"
                     title="Оргструктура"
                     description="Формальный организационный каталог для governance, scope и approvals."
                     actions={(
-                        <Button variant="outline" size="sm" onClick={() => router.visit(route('governance.role-access'))}>
-                            <Shield className="h-4 w-4" />
-                            Ролевой доступ
-                        </Button>
-                    )}
-                    meta={<StatusBadge tone="info">Базовый уровень</StatusBadge>}
-                />
-
-                {canManageFoundation ? (
-                    <Card className="border-red-200 bg-red-50/40 shadow-sm">
-                        <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                            <div>
-                                <p className="text-sm font-semibold text-red-900">Управление оргструктурой</p>
-                                <p className="text-xs text-red-800">Создание, редактирование и удаление выполняются администратором. Все изменения логируются.</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
+                        <>
+                            {canManageFoundation ? (
                                 <Button size="sm" onClick={() => setCreateOpen(true)}>
                                     <Plus className="mr-1.5 h-3.5 w-3.5" />
                                     Создать единицу
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
-                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы</Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            ) : null}
+                            <Button variant="outline" size="sm" onClick={() => router.visit(route('governance.role-access'))}>
+                                <Shield className="h-4 w-4" />
+                                Ролевой доступ
+                            </Button>
+                        </>
+                    )}
+                    meta={<StatusBadge tone="info">Базовый уровень</StatusBadge>}
+                />
+            )}
+        >
+            <Head title="Оргструктура" />
+
+            <div className="admin-page-wrap space-y-6">
+                {canManageFoundation ? (
+                    <Notice tone="danger" title="Управление оргструктурой">
+                        Создание, редактирование и удаление выполняются администратором. Все изменения логируются.
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы</Button>
+                        </div>
+                    </Notice>
                 ) : null}
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <SummaryCard title="Всего орг-юнитов" value={summary.total_units} tone="blue" icon={Building2} />
-                    <SummaryCard title="Корневые ветки" value={summary.root_units} tone="slate" icon={GitBranch} />
-                    <SummaryCard title="Без руководителя" value={summary.without_leader} tone="amber" icon={User} />
-                    <SummaryCard title="Переходные сопоставления" value={summary.transitional_mappings} tone="red" icon={AlertTriangle} />
-                </div>
+                <StatGrid>
+                    <StatTile label="Всего орг-юнитов" value={(summary.total_units ?? 0).toLocaleString('ru-RU')} tone="navy" icon={Building2} />
+                    <StatTile label="Корневые ветки" value={(summary.root_units ?? 0).toLocaleString('ru-RU')} tone="teal" icon={GitBranch} />
+                    <StatTile label="Без руководителя" value={(summary.without_leader ?? 0).toLocaleString('ru-RU')} tone="warning" icon={User} />
+                    <StatTile label="Переходные сопоставления" value={(summary.transitional_mappings ?? 0).toLocaleString('ru-RU')} tone="danger" icon={AlertTriangle} />
+                </StatGrid>
 
                 {setupRequired ? (
-                    <Card className="border-amber-200 bg-amber-50">
-                        <CardContent className="pt-4 text-sm text-amber-900">
-                            Каталог оргструктуры еще не инициализирован в этой БД. Примените миграции, чтобы загрузить таблицу org_units.
-                        </CardContent>
-                    </Card>
+                    <Notice tone="warning" title="Каталог не инициализирован">
+                        Каталог оргструктуры еще не инициализирован в этой БД. Примените миграции, чтобы загрузить таблицу org_units.
+                    </Notice>
                 ) : null}
 
                 <FilterBar>
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                        <div className="text-base font-semibold text-foreground">Фильтры каталога</div>
+                    <div className="mb-4 flex items-center justify-between gap-2">
+                        <div className="text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">Фильтры каталога</div>
                         <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                            <div className="relative xl:col-span-2">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    value={form.q}
-                                    onChange={(e) => updateFilters({ q: e.target.value })}
-                                    className="pl-9"
-                                    placeholder="Поиск: unit, code, руководитель"
-                                />
-                            </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                        <label className="relative block space-y-2 md:col-span-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                            <Input
+                                value={form.q}
+                                onChange={(e) => updateFilters({ q: e.target.value })}
+                                className="pl-9"
+                                placeholder="Поиск: unit, code, руководитель"
+                            />
+                        </label>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.unit_type}
-                                onChange={(e) => updateFilters({ unit_type: e.target.value })}
-                            >
+                        <FormField label="Тип">
+                            <select className={qdFieldClass} value={form.unit_type} onChange={(e) => updateFilters({ unit_type: e.target.value })}>
                                 <option value="">Все типы</option>
                                 {typeOptions.map((item) => (
                                     <option key={item.value} value={item.value}>{item.label}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={form.missing_leader}
-                                onChange={(e) => updateFilters({ missing_leader: e.target.value })}
-                            >
+                        <FormField label="Руководитель">
+                            <select className={qdFieldClass} value={form.missing_leader} onChange={(e) => updateFilters({ missing_leader: e.target.value })}>
                                 <option value="">Руководитель: все</option>
                                 <option value="1">Только без руководителя</option>
                             </select>
+                        </FormField>
 
-                            <div className="flex gap-2">
-                                <select
-                                    className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"
-                                    value={form.transitional}
-                                    onChange={(e) => updateFilters({ transitional: e.target.value })}
-                                >
-                                    <option value="">Сопоставление: все</option>
-                                    <option value="1">Только переходные</option>
-                                </select>
-                                <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
-                            </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">Активно фильтров: {activeFilterCount}</div>
+                        <FormField label="Сопоставление">
+                            <select className={qdFieldClass} value={form.transitional} onChange={(e) => updateFilters({ transitional: e.target.value })}>
+                                <option value="">Сопоставление: все</option>
+                                <option value="1">Только переходные</option>
+                            </select>
+                        </FormField>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+                        <div className="text-xs font-medium text-slate-500">Активно фильтров: {activeFilterCount}</div>
+                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Сбросить</Button>
                     </div>
                 </FilterBar>
 
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-                    <Card className="admin-surface xl:col-span-3">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="flex items-center justify-between gap-3 text-base">
-                                <span>Дерево структуры</span>
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                    <Card className="xl:col-span-3">
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2"><GitBranch className="h-4 w-4" />Дерево структуры</CardTitle>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={expandAll}>Развернуть</Button>
-                                    <Button variant="outline" size="sm" onClick={collapseAll}>Свернуть</Button>
+                                    <Button variant="ghost" size="sm" onClick={expandAll}>Развернуть</Button>
+                                    <Button variant="ghost" size="sm" onClick={collapseAll}>Свернуть</Button>
                                 </div>
-                            </CardTitle>
+                            </div>
                         </CardHeader>
                         <CardContent className="max-h-[760px] overflow-auto pr-2">
                             {tree.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Данные оргструктуры пока не загружены.</p>
+                                <p className="py-6 text-center text-sm text-slate-500">Данные оргструктуры пока не загружены.</p>
                             ) : (
-                                <div className="space-y-1">
+                                <div className="divide-y divide-slate-100">
                                     {tree.map((node) => (
                                         <TreeNode key={node.id} node={node} expanded={expanded} onToggle={toggleNode} />
                                     ))}
@@ -358,57 +325,63 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-4 xl:col-span-2">
-                        <Card className="admin-surface">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base">Риски и пробелы</CardTitle>
+                    <div className="space-y-6 xl:col-span-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Риски и пробелы</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-5">
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Без назначенного руководителя</p>
-                                    <div className="space-y-1">
+                                    <p className="qd-field-label mb-2 flex items-center gap-2 text-slate-500">
+                                        <span className="h-2 w-2 rounded-full bg-amber-500" />
+                                        Без назначенного руководителя
+                                    </p>
+                                    <div>
                                         {(unknowns.without_leader ?? []).slice(0, 8).map((item) => (
-                                            <div key={item.id} className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900">
+                                            <div key={item.id} className="border-b border-slate-200 py-2 text-sm text-slate-800 last:border-0">
                                                 {item.name}
                                             </div>
                                         ))}
                                         {(unknowns.without_leader ?? []).length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">Нет записей.</p>
+                                            <p className="text-sm text-slate-500">Нет записей.</p>
                                         ) : null}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Переходное сопоставление</p>
-                                    <div className="space-y-1">
+                                    <p className="qd-field-label mb-2 flex items-center gap-2 text-slate-500">
+                                        <span className="h-2 w-2 rounded-full bg-red-600" />
+                                        Переходное сопоставление
+                                    </p>
+                                    <div>
                                         {(unknowns.transitional_mappings ?? []).slice(0, 8).map((item) => (
-                                            <div key={item.id} className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-900">
-                                                <div className="font-medium">{item.name}</div>
+                                            <div key={item.id} className="border-b border-slate-200 py-2 text-sm last:border-0">
+                                                <div className="font-medium text-slate-900">{item.name}</div>
                                                 {item.metadata?.legacy_mapping_from ? (
-                                                    <div className="text-[11px]">legacy: {item.metadata.legacy_mapping_from}</div>
+                                                    <div className="text-xs text-slate-500">legacy: {item.metadata.legacy_mapping_from}</div>
                                                 ) : null}
                                                 {item.metadata?.note ? (
-                                                    <div className="text-[11px]">{item.metadata.note}</div>
+                                                    <div className="text-xs text-red-700">{item.metadata.note}</div>
                                                 ) : null}
                                             </div>
                                         ))}
                                         {(unknowns.transitional_mappings ?? []).length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">Нет переходных сопоставлений.</p>
+                                            <p className="text-sm text-slate-500">Нет переходных сопоставлений.</p>
                                         ) : null}
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="admin-surface">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base">Type breakdown</CardTitle>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Type breakdown</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-1">
+                            <CardContent>
                                 {(summary.type_breakdown ?? []).map((item) => (
-                                    <div key={item.type} className="flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-xs">
-                                        <span>{item.label}</span>
-                                        <span className="font-semibold text-slate-800">{item.count}</span>
+                                    <div key={item.type} className="flex items-center justify-between border-b border-slate-200 py-2 text-sm last:border-0">
+                                        <span className="text-slate-700">{item.label}</span>
+                                        <span className="font-display text-base font-bold tabular-nums text-[#102945]">{item.count}</span>
                                     </div>
                                 ))}
                             </CardContent>
@@ -416,52 +389,52 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                     </div>
                 </div>
 
-                <Card className="admin-surface">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base">Каталог (плоский вид)</CardTitle>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Каталог (плоский вид)</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                        <div className="overflow-x-auto rounded-xl border border-slate-200">
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                             <table className="w-full min-w-[960px] text-sm">
-                                <thead className="bg-slate-50 text-xs uppercase tracking-[0.08em] text-slate-500">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left font-semibold">Орг-юнит</th>
-                                        <th className="px-3 py-2 text-left font-semibold">Тип</th>
-                                        <th className="px-3 py-2 text-left font-semibold">Родитель</th>
-                                        {canManageFoundation && <th className="px-3 py-2 text-left font-semibold">Действия</th>}
-                                        <th className="px-3 py-2 text-left font-semibold">Код</th>
-                                        <th className="px-3 py-2 text-left font-semibold">Руководитель</th>
-                                        <th className="px-3 py-2 text-left font-semibold">Статус</th>
+                                <thead className="text-left">
+                                    <tr className="border-b border-slate-200">
+                                        <th className="px-5 py-3">Орг-юнит</th>
+                                        <th className="px-3 py-3">Тип</th>
+                                        <th className="px-3 py-3">Родитель</th>
+                                        <th className="px-3 py-3">Код</th>
+                                        <th className="px-3 py-3">Руководитель</th>
+                                        <th className="px-3 py-3">Статус</th>
+                                        {canManageFoundation && <th className="px-5 py-3 text-right">Действия</th>}
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-slate-200">
                                     {units.map((item) => (
-                                        <tr key={item.id} className="border-t border-slate-100 align-top">
-                                            <td className="px-3 py-2">
+                                        <tr key={item.id} className="align-top hover:bg-slate-50">
+                                            <td className="px-5 py-3">
                                                 <div className="font-medium text-slate-900">{item.name}</div>
-                                                <div className="text-xs text-slate-500">ID: {item.id}</div>
+                                                <div className="text-xs tabular-nums text-slate-500">ID: {item.id}</div>
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-3">
                                                 <TypeBadge label={item.unit_type_label} />
                                             </td>
-                                            <td className="px-3 py-2 text-slate-600">{item.parent_id ?? 'Корень'}</td>
-                                            <td className="px-3 py-2 text-slate-700">{item.code}</td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-3 tabular-nums text-slate-600">{item.parent_id ?? 'Корень'}</td>
+                                            <td className="px-3 py-3 font-mono text-xs text-slate-700">{item.code}</td>
+                                            <td className="px-3 py-3">
                                                 {item.leader_name ? (
                                                     <div>
                                                         <div className="font-medium text-slate-900">{item.leader_name}</div>
                                                         <div className="text-xs text-slate-500">{item.leader_title ?? '—'}</div>
                                                     </div>
                                                 ) : (
-                                                    <Badge className="border-amber-200 bg-amber-50 text-amber-800">Не назначен</Badge>
+                                                    <Badge variant="warning">Не назначен</Badge>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-3 py-3">
                                                 <div className="flex flex-wrap gap-1">
                                                     {item.metadata?.transitional_mapping ? (
-                                                        <Badge className="border-red-200 bg-red-50 text-red-800">Переходной</Badge>
+                                                        <Badge variant="destructive">Переходной</Badge>
                                                     ) : (
-                                                        <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800">Базовый</Badge>
+                                                        <Badge variant="success">Базовый</Badge>
                                                     )}
                                                     {!item.is_active ? (
                                                         <Badge variant="outline">Неактивен</Badge>
@@ -469,12 +442,12 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                                 </div>
                                             </td>
                                             {canManageFoundation && (
-                                                <td className="px-3 py-2">
-                                                    <div className="flex items-center gap-1">
-                                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(item)} title="Редактировать">
+                                                <td className="px-5 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(item)} title="Редактировать">
                                                             <Pencil className="h-3.5 w-3.5" />
                                                         </Button>
-                                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-600 hover:text-red-700" onClick={() => setDeleteTarget(item)} title="Удалить">
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 hover:text-red-700" onClick={() => setDeleteTarget(item)} title="Удалить">
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
                                                     </div>
@@ -484,21 +457,22 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                     ))}
                                     {units.length === 0 ? (
                                         <tr>
-                                            <td className="px-3 py-6 text-sm text-muted-foreground" colSpan={6}>Нет записей по текущим фильтрам.</td>
+                                            <td className="px-5 py-10 text-center text-sm text-slate-500" colSpan={canManageFoundation ? 7 : 6}>Нет записей по текущим фильтрам.</td>
                                         </tr>
                                     ) : null}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="text-xs text-slate-600">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-5 py-3">
+                            <div className="text-xs font-medium tabular-nums text-slate-500">
                                 Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                             </div>
 
                             <div className="flex items-center gap-2">
+                                <span className="qd-field-label text-slate-500">На странице</span>
                                 <select
-                                    className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs"
+                                    className={`${qdFieldClass} h-8 w-auto px-2 text-xs`}
                                     value={form.per_page}
                                     onChange={(e) => updateFilters({ per_page: Number(e.target.value) })}
                                 >
@@ -507,23 +481,11 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                     <option value={100}>100</option>
                                 </select>
 
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={(pagination.current_page ?? 1) <= 1}
-                                    onClick={() => goToPage((pagination.current_page ?? 1) - 1)}
-                                >
+                                <Button type="button" size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <Badge variant="outline">{pagination.current_page ?? 1} / {pagination.last_page ?? 1}</Badge>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)}
-                                    onClick={() => goToPage((pagination.current_page ?? 1) + 1)}
-                                >
+                                <span className="text-sm tabular-nums text-slate-600">{currentPage} / {lastPage}</span>
+                                <Button type="button" size="sm" variant="outline" disabled={currentPage >= lastPage} onClick={() => goToPage(currentPage + 1)}>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -596,9 +558,9 @@ function OrgUnitFormFields({ form, typeOptions, units, excludeId }) {
     return (
         <>
             <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Название *</label>
+                <label className="qd-field-label mb-2 block">Название *</label>
                 <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className={qdFieldClass}
                     value={form.data.name}
                     onChange={(e) => form.setData('name', e.target.value)}
                     required
@@ -607,17 +569,17 @@ function OrgUnitFormFields({ form, typeOptions, units, excludeId }) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Код</label>
+                    <label className="qd-field-label mb-2 block">Код</label>
                     <input
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        className={qdFieldClass}
                         value={form.data.code}
                         onChange={(e) => form.setData('code', e.target.value)}
                     />
                 </div>
                 <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">Тип</label>
+                    <label className="qd-field-label mb-2 block">Тип</label>
                     <select
-                        className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                        className={qdFieldClass}
                         value={form.data.unit_type}
                         onChange={(e) => form.setData('unit_type', e.target.value)}
                     >
@@ -626,9 +588,9 @@ function OrgUnitFormFields({ form, typeOptions, units, excludeId }) {
                 </div>
             </div>
             <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Родительская единица</label>
+                <label className="qd-field-label mb-2 block">Родительская единица</label>
                 <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className={qdFieldClass}
                     value={form.data.parent_id}
                     onChange={(e) => form.setData('parent_id', e.target.value)}
                 >
@@ -637,9 +599,9 @@ function OrgUnitFormFields({ form, typeOptions, units, excludeId }) {
                 </select>
             </div>
             <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Руководитель (ФИО)</label>
+                <label className="qd-field-label mb-2 block">Руководитель (ФИО)</label>
                 <input
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className={qdFieldClass}
                     value={form.data.leader_name}
                     onChange={(e) => form.setData('leader_name', e.target.value)}
                     placeholder="Введите ФИО руководителя"

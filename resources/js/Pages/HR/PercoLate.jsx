@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FilterBar, FormField, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -150,168 +151,129 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <form className="flex items-center gap-2" onSubmit={handleSearch}>
-                    <Input
-                        ref={searchRef}
-                        value={q}
-                        onChange={(e) => setQ(e.target.value)}
-                        placeholder="ФИО, табельный номер…"
-                        className="h-8 w-64"
-                    />
-                    <Button size="sm" type="submit">
-                        <Search className="mr-1 h-4 w-4" />
-                        Найти
-                    </Button>
-                </form>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Опоздавшие"
+                    description="Кто и сколько раз опоздал: события опозданий по сотрудникам и подразделениям за выбранный период."
+                    meta={meta?.total != null ? <StatusBadge tone="default">Сотрудников в рейтинге: {meta.total}</StatusBadge> : null}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="HR / Опоздавшие" />
 
-            <div className="admin-page-wrap">
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Division filter */}
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>
-                                {d.name}
-                            </option>
-                        ))}
-                    </select>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form onSubmit={handleSearch} className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                            <label className="relative block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    ref={searchRef}
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="ФИО, табельный номер…"
+                                    className="pl-9"
+                                />
+                            </label>
+                            <FormField label="Подразделение">
+                                <select value={division} onChange={handleDivisionChange} className={qdFieldClass}>
+                                    <option value="">Все подразделения</option>
+                                    {divisions.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                            <FormField label="Период">
+                                <select value={days} onChange={handleDaysChange} className={qdFieldClass}>
+                                    <option value="1">Сегодня</option>
+                                    <option value="-1">Вчера</option>
+                                    <option value="7">За 7 дней</option>
+                                    <option value="14">За 14 дней</option>
+                                    <option value="30">За 30 дней</option>
+                                    <option value="0">За все время</option>
+                                </select>
+                            </FormField>
+                            <FormField label="С даты">
+                                <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
+                            </FormField>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit">
+                                <Search className="h-4 w-4" />
+                                Найти
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                    <select
-                        value={days}
-                        onChange={handleDaysChange}
-                        className="h-9 rounded-md border bg-background px-3 py-1.5 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                        <option value="1">Сегодня</option>
-                        <option value="-1">Вчера</option>
-                        <option value="7">За 7 дней</option>
-                        <option value="14">За 14 дней</option>
-                        <option value="30">За 30 дней</option>
-                        <option value="0">За все время</option>
-                    </select>
-
-                    <Input
-                        type="date"
-                        value={fromDate}
-                        onChange={handleFromDateChange}
-                        className="h-9 w-[160px]"
-                    />
-
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-
-                    {meta?.total != null && (
-                        <span className="ml-auto text-sm text-muted-foreground">
-                            Сотрудников в рейтинге: <strong>{meta.total}</strong>
-                        </span>
-                    )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Событий опоздания</p>
-                                <p className="text-2xl font-semibold">{totalEvents}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-orange-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Опоздавших сотрудников</p>
-                                <p className="text-2xl font-semibold">{totalPeople}</p>
-                            </div>
-                            <Users className="h-5 w-5 text-blue-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Суммарно, минут</p>
-                                <p className="text-2xl font-semibold">{totalLateMinutes}</p>
-                            </div>
-                            <AlertCircle className="h-5 w-5 text-red-600" />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Среднее опоздание, минут</p>
-                                <p className="text-2xl font-semibold">{avgLateMinutes}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-purple-600" />
-                        </CardContent>
-                    </Card>
-                </div>
+                <StatGrid>
+                    <StatTile label="Событий опоздания" value={totalEvents} icon={Clock3} tone="copper" />
+                    <StatTile label="Опоздавших сотрудников" value={totalPeople} icon={Users} tone="info" />
+                    <StatTile label="Суммарно, минут" value={totalLateMinutes} icon={AlertCircle} tone="danger" />
+                    <StatTile label="Среднее опоздание, минут" value={avgLateMinutes} icon={Clock3} tone="navy" />
+                </StatGrid>
 
                 {totalEvents === 0 && latestLateDateLabel && (
-                    <Card className="border-orange-200 bg-orange-50/60">
-                        <CardContent className="p-4 text-sm text-orange-900">
-                            За выбранный период данных об опозданиях нет. Последняя доступная дата в PERCo: <strong>{latestLateDateLabel}</strong>.
-                        </CardContent>
-                    </Card>
+                    <Notice tone="warning">
+                        За выбранный период данных об опозданиях нет. Последняя доступная дата в PERCo: <strong>{latestLateDateLabel}</strong>.
+                    </Notice>
                 )}
 
                 {/* Table */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <AlertCircle className="h-4 w-4 text-orange-600" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <AlertCircle className="shrink-0" />
                             Dashboard опозданий: кто сколько раз опоздал
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {items.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет данных.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1000px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium"><button type="button" onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('late_count')}>Кол-во опозданий{sortIndicator('late_count')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('total_late_time')}>Суммарно (мин){sortIndicator('total_late_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('avg_late_time')}>Среднее (мин){sortIndicator('avg_late_time')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('last_late_date')}>Последнее опоздание{sortIndicator('last_late_date')}</button></th>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_count')}>Кол-во опозданий{sortIndicator('late_count')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('total_late_time')}>Суммарно (мин){sortIndicator('total_late_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('avg_late_time')}>Среднее (мин){sortIndicator('avg_late_time')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_late_date')}>Последнее опоздание{sortIndicator('last_late_date')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedItems.map((row) => (
-                                            <tr key={row.id} className="border-b last:border-0 hover:bg-muted/30">
-                                                <td className="py-3 pl-6 pr-3 font-medium">
+                                            <tr key={row.id} className="border-b border-slate-200 last:border-0">
+                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">
                                                     <button
                                                         type="button"
                                                         onClick={() => openEmployee(row)}
-                                                        className="text-left text-blue-700 hover:underline"
+                                                        className="text-left font-medium text-teal-700 hover:text-[#102945] hover:underline"
                                                     >
                                                         {fullName(row)}
                                                     </button>
                                                 </td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-muted-foreground">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 font-semibold">{row.late_count ?? 0}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{row.late_count ?? 0}</td>
                                                 <td className="py-3 pr-3 font-semibold text-red-600">{fmtMinutes(row.total_late_time)}</td>
-                                                <td className="py-3 pr-3">{fmtMinutes(row.avg_late_time)}</td>
-                                                <td className="py-3 pr-3">{fmtDate(row.last_late_date)}</td>
+                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtMinutes(row.avg_late_time)}</td>
+                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.last_late_date)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -321,7 +283,7 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
 
                         {/* Pagination */}
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 p-4">
+                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}
@@ -338,14 +300,14 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
                 </Card>
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Подразделения с наибольшим числом опозданий</CardTitle>
+                    <CardHeader>
+                        <CardTitle>Подразделения с наибольшим числом опозданий</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {divisionStats.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Нет данных по подразделениям.</p>
+                            <p className="text-sm text-slate-500">Нет данных по подразделениям.</p>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {divisionStats.map((row, idx) => {
                                     const events = Number(row.late_events ?? 0);
                                     const people = Number(row.late_people ?? 0);
@@ -354,11 +316,11 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
                                     return (
                                         <div key={`${row.division}-${idx}`}>
                                             <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                                                <span className="truncate font-medium">{row.division || 'Без подразделения'}</span>
-                                                <span className="text-muted-foreground">{events} опозданий • {people} сотрудников</span>
+                                                <span className="truncate font-medium text-slate-900">{row.division || 'Без подразделения'}</span>
+                                                <span className="text-slate-500">{events} опозданий • {people} сотрудников</span>
                                             </div>
-                                            <div className="h-2 rounded bg-muted">
-                                                <div className="h-2 rounded bg-orange-500" style={{ width: `${width}%` }} />
+                                            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                                                <div className="h-2 rounded-full bg-orange-500" style={{ width: `${width}%` }} />
                                             </div>
                                         </div>
                                     );

@@ -117,7 +117,7 @@ export default function CatalogCombobox({
 
     return (
         <div className="space-y-2">
-            <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">{label}<MissingMark id={id} /></label>
+            <label htmlFor={id} className="qd-field-label mb-2 block text-[#102945]">{label}<MissingMark id={id} /></label>
             <Combobox value={hasValue ? value : null} onChange={select} by={(a, b) => keyOf(a) === keyOf(b)} disabled={disabled} immediate>
                 <div className="relative">
                     <ComboboxInput
@@ -130,26 +130,26 @@ export default function CatalogCombobox({
                     />
                     <div className="absolute inset-y-0 right-1 flex items-center gap-0.5">
                         {hasValue && !disabled && (
-                            <button type="button" onClick={clear} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Очистить">
+                            <button type="button" onClick={clear} className="rounded-[8px] p-1 text-slate-400 hover:bg-slate-100 hover:text-[#102945]" title="Очистить">
                                 <X className="h-4 w-4" />
                             </button>
                         )}
-                        <ComboboxButton className="rounded-md px-1 text-slate-400 hover:text-slate-600">
+                        <ComboboxButton className="rounded-[8px] px-1 text-slate-400 hover:text-[#102945]">
                             <ChevronsUpDown className="h-4 w-4" />
                         </ComboboxButton>
                     </div>
                 </div>
                 <ComboboxOptions
                     anchor="bottom start"
-                    className="z-50 mt-1 max-h-72 w-[var(--input-width)] overflow-auto rounded-xl border border-slate-200 bg-white p-1 text-sm shadow-lg empty:invisible"
+                    className="z-50 mt-1 max-h-72 w-[var(--input-width)] overflow-auto rounded-[12px] border border-slate-200 bg-white p-1 text-sm shadow-[0_12px_32px_0_rgba(25,28,29,0.10)] empty:invisible"
                 >
                     {items.map((item) => (
                         <ComboboxOption
                             key={item.id}
                             value={item}
-                            className="flex cursor-pointer flex-col gap-0.5 rounded-lg px-3 py-2 data-[focus]:bg-teal-50"
+                            className="flex cursor-pointer flex-col gap-0.5 rounded-[10px] px-3 py-2 data-[focus]:bg-teal-50"
                         >
-                            <span className="text-slate-900">{item.name_ru}</span>
+                            <span className="font-medium text-slate-900">{item.name_ru}</span>
                             <span className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 {item.type_label && <span>{item.type_label}</span>}
                                 <VerifiedBadge verified={item.verified} />
@@ -159,7 +159,7 @@ export default function CatalogCombobox({
                     {typed !== '' && !exactMatch && (
                         <ComboboxOption
                             value={{ manual: true, name_ru: typed }}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-teal-800 data-[focus]:bg-teal-50"
+                            className="flex cursor-pointer items-center gap-2 rounded-[10px] border-t border-slate-100 px-3 py-2 font-semibold text-teal-700 data-[focus]:bg-teal-50"
                         >
                             <PencilLine className="h-4 w-4 shrink-0" />
                             <span>Ввести вручную: «{typed}»</span>
@@ -170,55 +170,55 @@ export default function CatalogCombobox({
                     )}
                 </ComboboxOptions>
             </Combobox>
-            {error && <p className="text-xs text-rose-600">{error}</p>}
+            {error && <p className="text-xs text-red-700">{error}</p>}
 
             {folded && (
                 <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     Из справочника, формы для документов заполнены
                     <VerifiedBadge verified={value.verified} />
-                    <button type="button" onClick={() => setFormsOpen(true)} className="font-medium text-teal-700 hover:underline">
+                    <button type="button" onClick={() => setFormsOpen(true)} className="font-semibold text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline">
                         {hasGaps ? 'Изменить формы' : 'Показать формы'}
                     </button>
                 </p>
             )}
 
             {hasValue && !folded && (
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <div className="space-y-3 rounded-xl border border-slate-200 border-l-[3px] border-l-teal-500 bg-white p-4">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span className="font-medium text-slate-700">Формы для текста документов.</span>
+                        <span className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-[#102945]">Формы для текста документов</span>
                         {isManual ? 'Введено вручную: сохранится в записи о приёме.' : 'Из справочника.'}
                         {!isManual && <VerifiedBadge verified={value.verified} />}
                         {!isManual && formsComplete && (
-                            <button type="button" onClick={() => setFormsOpen(false)} className="ml-auto font-medium text-teal-700 hover:underline">Скрыть</button>
+                            <button type="button" onClick={() => setFormsOpen(false)} className="ml-auto font-semibold text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline">Скрыть</button>
                         )}
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                         {forms.map((form) => {
                             const formValue = value[form.key] ?? '';
                             return (
                                 <div key={form.key}>
-                                    <label htmlFor={`${id}-${form.key}`} className="mb-1 block text-xs font-medium text-slate-600">{form.label}<MissingMark id={`${id}-${form.key}`} /></label>
+                                    <label htmlFor={`${id}-${form.key}`} className="mb-1.5 block text-xs font-semibold text-slate-600">{form.label}<MissingMark id={`${id}-${form.key}`} /></label>
                                     <input
                                         id={`${id}-${form.key}`}
                                         value={formValue}
                                         onChange={(event) => setForm(form.key, event.target.value)}
                                         readOnly={Boolean(locked[form.key])}
                                         placeholder={form.placeholder}
-                                        className={`${inputClassName} ${formValue === '' ? 'border-amber-300 bg-amber-50/60' : ''}`}
+                                        className={`${inputClassName} ${formValue === '' ? 'border-amber-300 bg-amber-50' : ''} read-only:bg-slate-50 read-only:text-slate-600`}
                                     />
-                                    {form.hint && <p className="mt-1 text-[11px] text-slate-400">{form.hint}</p>}
-                                    {errors[`${errorPrefix}.${form.key}`] && <p className="mt-1 text-xs text-rose-600">{errors[`${errorPrefix}.${form.key}`]}</p>}
+                                    {form.hint && <p className="mt-1 text-[11px] text-slate-500">{form.hint}</p>}
+                                    {errors[`${errorPrefix}.${form.key}`] && <p className="mt-1 text-xs text-red-700">{errors[`${errorPrefix}.${form.key}`]}</p>}
                                 </div>
                             );
                         })}
                     </div>
                     {canAddToCatalog && (isManual || hasGaps) && (
-                        <label className="flex items-center gap-2 text-xs text-slate-700">
+                        <label className="flex items-center gap-2 border-t border-slate-200 pt-3 text-xs font-medium text-slate-700">
                             <input
                                 type="checkbox"
                                 checked={Boolean(value.add_to_catalog)}
                                 onChange={(event) => onChange({ ...value, add_to_catalog: event.target.checked })}
-                                className="rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30"
                             />
                             {isManual ? 'Добавить в справочник' : 'Сохранить формы в справочнике'}
                         </label>

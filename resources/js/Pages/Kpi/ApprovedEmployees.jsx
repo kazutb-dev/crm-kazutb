@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, FilterBar, FormField, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,52 +42,37 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
         { value: 'dean', label: 'Декан' },
     ];
 
+    const approvedTotal = employees.reduce((sum, emp) => sum + (Number(emp.approved_count) || 0), 0);
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Проверка"
+                    title="Сотрудники, прошедшие полную проверку"
+                    description="Список сотрудников, у которых есть KPI-записи со статусом «Утверждено» (прошли все этапы проверки). Используйте фильтры для отображения по категории, учебному году и периоду."
+                />
+            )}
+        >
             <Head title="KPI — Прошедшие полную проверку" />
 
-            <div className="admin-page-wrap">
-                {/* Заголовок */}
-                <Card className="border-0 bg-gradient-to-r from-emerald-50 via-white to-teal-50 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                            KPI — Сотрудники, прошедшие полную проверку
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-                        <p className="text-sm text-muted-foreground">
-                            Список сотрудников, у которых есть KPI-записи со статусом «Утверждено» (прошли все этапы проверки).
-                            Используйте фильтры для отображения по категории, учебному году и периоду.
-                        </p>
-                        <div className="rounded-xl border bg-white/80 p-4 shadow-sm text-center">
-                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Сотрудников</p>
-                            <p className="mt-2 text-3xl font-bold text-emerald-600">{employees.length}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid className="xl:grid-cols-3">
+                    <StatTile label="Сотрудников" value={employees.length} tone="success" icon={CheckCircle2} hint={entityTypeLabels[filters.entity_type] ?? 'Все категории'} />
+                    <StatTile label="Утверждённых записей" value={approvedTotal} tone="teal" icon={Users} hint="Суммарно по списку" />
+                </StatGrid>
 
-                {/* Фильтры */}
-                <Card>
-                    <CardContent className="pt-6 space-y-4">
-                        {/* Вкладки по типу */}
-                        <div className="flex flex-wrap gap-2">
-                            {entityTypes.map((et) => (
-                                <Button
-                                    key={et.value}
-                                    size="sm"
-                                    variant={filters.entity_type === et.value ? 'default' : 'outline'}
-                                    onClick={() => applyFilter({ entity_type: et.value, search: '' })}
-                                >
-                                    {et.label}
-                                </Button>
-                            ))}
-                        </div>
+                <UnderlineTabs
+                    items={entityTypes.map((et) => ({ key: et.value, label: et.label }))}
+                    value={filters.entity_type}
+                    onChange={(key) => applyFilter({ entity_type: key, search: '' })}
+                />
 
-                        {/* Год + период + поиск */}
-                        <div className="flex flex-wrap gap-3">
+                <FilterBar>
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr]">
+                        <FormField label="Учебный год">
                             <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                                className={qdFieldClass}
                                 value={filters.academic_year_id ?? ''}
                                 onChange={(e) => applyFilter({ academic_year_id: e.target.value || undefined, period_id: undefined })}
                             >
@@ -95,9 +81,11 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                                     <option key={y.id} value={y.id}>{y.name}</option>
                                 ))}
                             </select>
+                        </FormField>
 
+                        <FormField label="Период">
                             <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
+                                className={qdFieldClass}
                                 value={filters.period_id ?? ''}
                                 onChange={(e) => applyFilter({ period_id: e.target.value || undefined })}
                             >
@@ -106,74 +94,78 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </select>
+                        </FormField>
 
-                            <form onSubmit={handleSearch} className="flex gap-2">
-                                <div className="relative">
+                        <form onSubmit={handleSearch} className="space-y-2 md:col-span-2 xl:col-span-1">
+                            <span className="qd-field-label block">Поиск</span>
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         ref={searchRef}
                                         type="text"
                                         placeholder="Поиск по имени, email, кафедре..."
                                         defaultValue={filters.search ?? ''}
-                                        className="w-64 pr-8"
+                                        className="pl-9"
                                     />
-                                    <Search className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                                 </div>
-                                <Button type="submit" size="sm" variant="outline">Найти</Button>
-                            </form>
-                        </div>
-                    </CardContent>
-                </Card>
+                                <Button type="submit">Найти</Button>
+                            </div>
+                        </form>
+                    </div>
+                </FilterBar>
 
-                {/* Таблица */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Users className="h-5 w-5" />
+                            <Users className="h-4 w-4" />
                             {entityTypeLabels[filters.entity_type] ?? 'Сотрудники'}: {employees.length} чел.
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {employees.length === 0 ? (
-                            <div className="py-12 text-center text-muted-foreground">
-                                <CheckCircle2 className="mx-auto mb-3 h-10 w-10 opacity-30" />
-                                <p>Нет сотрудников с утверждёнными KPI-записями по выбранным фильтрам</p>
+                            <div className="p-5">
+                                <EmptyState
+                                    title="Список пуст"
+                                    description="Нет сотрудников с утверждёнными KPI-записями по выбранным фильтрам"
+                                />
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="border-b bg-muted/50">
+                                    <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th className="px-4 py-3 text-left font-semibold">#</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Сотрудник</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Кафедра / Факультет</th>
-                                            <th className="px-4 py-3 text-center font-semibold">Утверждённых записей</th>
-                                            <th className="px-4 py-3 text-center font-semibold">Итого баллов</th>
-                                            <th className="px-4 py-3 text-center font-semibold">Последнее утверждение</th>
+                                            <th className="px-5 py-3 text-left">#</th>
+                                            <th className="px-5 py-3 text-left">Сотрудник</th>
+                                            <th className="px-5 py-3 text-left">Кафедра / Факультет</th>
+                                            <th className="px-5 py-3 text-right">Утверждённых записей</th>
+                                            <th className="px-5 py-3 text-right">Итого баллов</th>
+                                            <th className="px-5 py-3 text-right">Последнее утверждение</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {employees.map((emp, index) => (
-                                            <tr key={`${emp.user_id}-${emp.kpi_period_id}`} className="border-b hover:bg-muted/30 transition-colors">
-                                                <td className="px-4 py-3 text-muted-foreground">{index + 1}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-medium">{emp.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{emp.email}</div>
+                                            <tr key={`${emp.user_id}-${emp.kpi_period_id}`} className="border-b border-slate-200 last:border-0 transition-colors hover:bg-slate-50">
+                                                <td className="px-5 py-3 tabular-nums text-slate-500">{index + 1}</td>
+                                                <td className="px-5 py-3">
+                                                    <div className="font-medium text-slate-900">{emp.name}</div>
+                                                    <div className="text-xs text-slate-500">{emp.email}</div>
                                                     {emp.ad_title && (
-                                                        <div className="text-xs text-muted-foreground">{emp.ad_title}</div>
+                                                        <div className="text-xs text-slate-500">{emp.ad_title}</div>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
+                                                <td className="px-5 py-3 text-slate-600">
                                                     {emp.department ?? emp.faculty ?? emp.ad_department ?? '—'}
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <Badge variant="secondary">{emp.approved_count}</Badge>
+                                                <td className="px-5 py-3 text-right">
+                                                    <Badge variant="secondary" className="tabular-nums">{emp.approved_count}</Badge>
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className="font-semibold text-emerald-700">
+                                                <td className="px-5 py-3 text-right">
+                                                    <span className="font-display text-base font-bold tabular-nums text-emerald-700">
                                                         {Number(emp.total_points).toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-center text-muted-foreground text-xs">
+                                                <td className="px-5 py-3 text-right text-xs tabular-nums text-slate-500">
                                                     {formatDate(emp.last_approved_at)}
                                                 </td>
                                             </tr>

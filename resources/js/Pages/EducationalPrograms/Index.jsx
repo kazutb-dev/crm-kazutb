@@ -1,8 +1,8 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -13,13 +13,25 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Building2, CalendarDays, GraduationCap, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+
+function Field({ label, error, children }) {
+    return (
+        <div className="space-y-2">
+            <Label className="block">{label}</Label>
+            {children}
+            {error && <p className="text-sm text-red-700">{error}</p>}
+        </div>
+    );
+}
 
 export default function Index({ programs, departments, academicYears, degreeOptions }) {
     const items = programs?.data ?? [];
     const links = programs?.links ?? [];
+    const total = programs?.total ?? items.length;
 
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
@@ -103,135 +115,114 @@ export default function Index({ programs, departments, academicYears, degreeOpti
         return option?.label ?? value;
     };
 
+    const degreeSummary = useMemo(() => degreeOptions
+        .map((option) => ({ label: option.label, count: items.filter((program) => program.degree === option.value).length }))
+        .filter((entry) => entry.count > 0)
+        .map((entry) => `${entry.label}: ${entry.count}`)
+        .join(' · '), [degreeOptions, items]);
+
+    const renderFields = (form) => (
+        <>
+            <Field label="Название" error={form.errors.name}>
+                <Input
+                    value={form.data.name}
+                    onChange={(e) => form.setData('name', e.target.value)}
+                    placeholder={form === createForm ? 'Например: Информационные системы' : undefined}
+                />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Код" error={form.errors.code}>
+                    <Input
+                        value={form.data.code}
+                        onChange={(e) => form.setData('code', e.target.value)}
+                        placeholder={form === createForm ? 'IS-01' : undefined}
+                    />
+                </Field>
+                <Field label="Степень" error={form.errors.degree}>
+                    <select
+                        className={qdFieldClass}
+                        value={form.data.degree}
+                        onChange={(e) => form.setData('degree', e.target.value)}
+                    >
+                        {degreeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Кафедра" error={form.errors.department_id}>
+                    <select
+                        className={qdFieldClass}
+                        value={form.data.department_id}
+                        onChange={(e) => form.setData('department_id', e.target.value)}
+                    >
+                        <option value="">Выберите кафедру</option>
+                        {departments.map((department) => (
+                            <option key={department.id} value={department.id}>
+                                {department.name}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+                <Field label="Учебный год" error={form.errors.academic_year_id}>
+                    <select
+                        className={qdFieldClass}
+                        value={form.data.academic_year_id}
+                        onChange={(e) => form.setData('academic_year_id', e.target.value)}
+                    >
+                        <option value="">Выберите учебный год</option>
+                        {academicYears.map((year) => (
+                            <option key={year.id} value={year.id}>
+                                {year.name}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+            </div>
+        </>
+    );
+
     return (
         <AuthenticatedLayout
-            headerRight={
-                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button size="sm">
-                            <Plus />
-                            Добавить программу
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Новая образовательная программа</DialogTitle>
-                            <DialogDescription>
-                                Укажите основные данные программы.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form className="space-y-4" onSubmit={submitCreate}>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Название</label>
-                                <Input
-                                    value={createForm.data.name}
-                                    onChange={(e) =>
-                                        createForm.setData('name', e.target.value)
-                                    }
-                                    placeholder="Например: Информационные системы"
-                                />
-                                {createForm.errors.name && (
-                                    <p className="text-sm text-destructive">
-                                        {createForm.errors.name}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Код</label>
-                                    <Input
-                                        value={createForm.data.code}
-                                        onChange={(e) =>
-                                            createForm.setData('code', e.target.value)
-                                        }
-                                        placeholder="IS-01"
-                                    />
-                                    {createForm.errors.code && (
-                                        <p className="text-sm text-destructive">
-                                            {createForm.errors.code}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Степень</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.data.degree}
-                                        onChange={(e) =>
-                                            createForm.setData('degree', e.target.value)
-                                        }
-                                    >
-                                        {degreeOptions.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {createForm.errors.degree && (
-                                        <p className="text-sm text-destructive">
-                                            {createForm.errors.degree}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Кафедра</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.data.department_id}
-                                        onChange={(e) =>
-                                            createForm.setData('department_id', e.target.value)
-                                        }
-                                    >
-                                        <option value="">Выберите кафедру</option>
-                                        {departments.map((department) => (
-                                            <option key={department.id} value={department.id}>
-                                                {department.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {createForm.errors.department_id && (
-                                        <p className="text-sm text-destructive">
-                                            {createForm.errors.department_id}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Учебный год</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.data.academic_year_id}
-                                        onChange={(e) =>
-                                            createForm.setData('academic_year_id', e.target.value)
-                                        }
-                                    >
-                                        <option value="">Выберите учебный год</option>
-                                        {academicYears.map((year) => (
-                                            <option key={year.id} value={year.id}>
-                                                {year.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {createForm.errors.academic_year_id && (
-                                        <p className="text-sm text-destructive">
-                                            {createForm.errors.academic_year_id}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <DialogFooter>
-                                <Button type="submit" disabled={createForm.processing}>
-                                    Сохранить
+            header={(
+                <PageHeader
+                    eyebrow="Справочники"
+                    title="Образовательные программы"
+                    description="Программы бакалавриата и магистратуры с привязкой к кафедре и учебному году."
+                    actions={(
+                        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <Plus />
+                                    Добавить программу
                                 </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
-            }
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Новая образовательная программа</DialogTitle>
+                                    <DialogDescription>
+                                        Укажите основные данные программы.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form className="space-y-4" onSubmit={submitCreate}>
+                                    {renderFields(createForm)}
+                                    <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Отмена</Button>
+                                        <Button type="submit" disabled={createForm.processing}>
+                                            Сохранить
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                />
+            )}
         >
             <Head title="Образовательные программы" />
 
@@ -252,95 +243,9 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                         </DialogDescription>
                     </DialogHeader>
                     <form className="space-y-4" onSubmit={submitEdit}>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Название</label>
-                            <Input
-                                value={editForm.data.name}
-                                onChange={(e) => editForm.setData('name', e.target.value)}
-                            />
-                            {editForm.errors.name && (
-                                <p className="text-sm text-destructive">{editForm.errors.name}</p>
-                            )}
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Код</label>
-                                <Input
-                                    value={editForm.data.code}
-                                    onChange={(e) => editForm.setData('code', e.target.value)}
-                                />
-                                {editForm.errors.code && (
-                                    <p className="text-sm text-destructive">{editForm.errors.code}</p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Степень</label>
-                                <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={editForm.data.degree}
-                                    onChange={(e) => editForm.setData('degree', e.target.value)}
-                                >
-                                    {degreeOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                {editForm.errors.degree && (
-                                    <p className="text-sm text-destructive">{editForm.errors.degree}</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Кафедра</label>
-                                <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={editForm.data.department_id}
-                                    onChange={(e) =>
-                                        editForm.setData('department_id', e.target.value)
-                                    }
-                                >
-                                    <option value="">Выберите кафедру</option>
-                                    {departments.map((department) => (
-                                        <option key={department.id} value={department.id}>
-                                            {department.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {editForm.errors.department_id && (
-                                    <p className="text-sm text-destructive">
-                                        {editForm.errors.department_id}
-                                    </p>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Учебный год</label>
-                                <select
-                                    className="flex h-9 w-full rounded-md border border-input bg-background/70 px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={editForm.data.academic_year_id}
-                                    onChange={(e) =>
-                                        editForm.setData('academic_year_id', e.target.value)
-                                    }
-                                >
-                                    <option value="">Выберите учебный год</option>
-                                    {academicYears.map((year) => (
-                                        <option key={year.id} value={year.id}>
-                                            {year.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {editForm.errors.academic_year_id && (
-                                    <p className="text-sm text-destructive">
-                                        {editForm.errors.academic_year_id}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-
+                        {renderFields(editForm)}
                         <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Отмена</Button>
                             <Button type="submit" disabled={editForm.processing}>
                                 Сохранить изменения
                             </Button>
@@ -349,96 +254,99 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap">
-                <Card className="admin-surface">
-                    <CardHeader>
-                        <CardTitle>Список образовательных программ</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {items.length === 0 ? (
-                            <div className="admin-empty-state">
-                                Пока нет образовательных программ.
-                            </div>
-                        ) : (
-                            <div className="admin-table-wrap">
-                                <table className="admin-data-table min-w-[900px]">
-                                    <thead>
-                                        <tr>
-                                            <th>Название</th>
-                                            <th>Код</th>
-                                            <th>Степень</th>
-                                            <th>Кафедра</th>
-                                            <th>Учебный год</th>
-                                            <th className="text-right">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.map((program) => (
-                                            <tr key={program.id}>
-                                                <td className="py-3 pe-3 font-medium">{program.name}</td>
-                                                <td className="py-3 pe-3">
-                                                    <Badge variant="outline">{program.code}</Badge>
-                                                </td>
-                                                <td className="py-3 pe-3">
-                                                    {degreeLabel(program.degree)}
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {program.department?.name ?? '-'}
-                                                </td>
-                                                <td className="py-3 pe-3 text-muted-foreground">
-                                                    {program.academic_year?.name ?? '-'}
-                                                </td>
-                                                <td className="py-3 text-right">
-                                                    <div className="admin-row-actions">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openEditDialog(program)}
-                                                        >
-                                                            <Pencil />
-                                                            Редактировать
-                                                        </Button>
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() => handleDelete(program)}
-                                                        >
-                                                            <Trash2 />
-                                                            Удалить
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего программ" value={total} icon={GraduationCap} tone="teal" hint="Во всём справочнике" />
+                    <StatTile label="На странице" value={items.length} icon={Layers} tone="navy" hint={degreeSummary || 'По степеням — нет данных'} />
+                    <StatTile label="Кафедр" value={(departments ?? []).length} icon={Building2} tone="info" hint="Доступны для привязки" />
+                    <StatTile label="Учебных лет" value={(academicYears ?? []).length} icon={CalendarDays} tone="gold" hint="Доступны для привязки" />
+                </StatGrid>
 
-                        {links.length > 3 && (
-                            <div className="admin-pagination">
-                                {links.map((link, index) => (
-                                    <Button
-                                        key={`${link.label}-${index}`}
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url}
-                                        asChild={Boolean(link.url)}
-                                    >
-                                        {link.url ? (
-                                            <Link
-                                                href={link.url}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
-                                        ) : (
-                                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                        )}
-                                    </Button>
-                                ))}
-                            </div>
+                {items.length === 0 ? (
+                    <EmptyState
+                        title="Пока нет образовательных программ"
+                        description="Добавьте первую программу и привяжите её к кафедре и учебному году."
+                        action={(
+                            <Button onClick={() => setCreateOpen(true)}>
+                                <Plus />
+                                Добавить программу
+                            </Button>
                         )}
-                    </CardContent>
-                </Card>
+                    />
+                ) : (
+                    <DataTable>
+                        <table className="w-full min-w-[900px] text-sm">
+                            <thead>
+                                <tr>
+                                    <th className="px-5 text-left">Название</th>
+                                    <th className="px-5 text-left">Код</th>
+                                    <th className="px-5 text-left">Степень</th>
+                                    <th className="px-5 text-left">Кафедра</th>
+                                    <th className="px-5 text-left">Учебный год</th>
+                                    <th className="px-5 text-right">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((program) => (
+                                    <tr key={program.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                        <td className="px-5 py-3.5 font-medium text-slate-900">{program.name}</td>
+                                        <td className="px-5 py-3.5">
+                                            <Badge variant="outline">{program.code}</Badge>
+                                        </td>
+                                        <td className="px-5 py-3.5">
+                                            <Badge variant={program.degree === 'master' ? 'info' : 'default'}>
+                                                {degreeLabel(program.degree)}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-5 py-3.5 text-slate-600">
+                                            {program.department?.name ?? '—'}
+                                        </td>
+                                        <td className="px-5 py-3.5 tabular-nums text-slate-600">
+                                            {program.academic_year?.name ?? '—'}
+                                        </td>
+                                        <td className="px-5 py-3.5 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => openEditDialog(program)}>
+                                                    <Pencil />
+                                                    Редактировать
+                                                </Button>
+                                                <Button variant="destructive" size="sm" onClick={() => handleDelete(program)}>
+                                                    <Trash2 />
+                                                    Удалить
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DataTable>
+                )}
+
+                {links.length > 3 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs font-medium text-slate-500">
+                            Показано {programs?.from ?? 0}–{programs?.to ?? 0} из {total}
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                            {links.map((link, index) => (
+                                <Button
+                                    key={`${link.label}-${index}`}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="sm"
+                                    disabled={!link.url}
+                                    asChild={Boolean(link.url)}
+                                >
+                                    {link.url ? (
+                                        <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                    ) : (
+                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                    )}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
             <ConfirmDialog
                 open={confirmState.open}

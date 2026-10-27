@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { InfoField, PageHeader, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
@@ -77,102 +78,84 @@ export default function PercoLateEmployee({ employee = null, events = [], filter
         });
     };
 
+    const SORT_BTN = 'inline-flex items-center gap-1 uppercase hover:text-teal-700';
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="HR · Карточка опозданий"
+                    title={fullName || 'Сотрудник'}
+                    description={[employee?.division, employee?.position].filter(Boolean).join(' · ') || null}
+                    actions={(
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => router.get(route('hr.perco.late'), filters, { preserveScroll: true })}
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                                Назад
+                            </Button>
+                            <Button variant="outline" type="button" onClick={handleExport}>
+                                <Download className="h-4 w-4" />
+                                Экспорт в Excel
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="HR / Карточка опозданий сотрудника" />
 
-            <div className="admin-page-wrap">
-                <div className="flex items-center gap-3">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => router.get(route('hr.perco.late'), filters, { preserveScroll: true })}
-                    >
-                        <ArrowLeft className="mr-1 h-4 w-4" />
-                        Назад
-                    </Button>
-                    <Button size="sm" variant="outline" type="button" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-                </div>
-
+            <div className="admin-page-wrap space-y-6">
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <UserRound className="h-4 w-4 text-blue-600" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserRound className="shrink-0" />
                             Карточка сотрудника
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
-                        <div>
-                            <p className="text-xs text-muted-foreground">ФИО</p>
-                            <p className="font-semibold">{fullName}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Подразделение</p>
-                            <p className="font-semibold">{employee?.division ?? '—'}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Должность</p>
-                            <p className="font-semibold">{employee?.position ?? '—'}</p>
-                        </div>
+                    <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-3">
+                        <InfoField label="ФИО">{fullName}</InfoField>
+                        <InfoField label="Подразделение">{employee?.division ?? '—'}</InfoField>
+                        <InfoField label="Должность">{employee?.position ?? '—'}</InfoField>
                     </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Кол-во опозданий</p>
-                                <p className="text-2xl font-semibold">{employee?.late_count ?? 0}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-orange-600" />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Суммарно (мин)</p>
-                                <p className="text-2xl font-semibold">{fmtMinutes(employee?.total_late_time ?? 0)}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-red-600" />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="flex items-center justify-between p-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground">Среднее (мин)</p>
-                                <p className="text-2xl font-semibold">{fmtMinutes(employee?.avg_late_time ?? 0)}</p>
-                            </div>
-                            <Clock3 className="h-5 w-5 text-purple-600" />
-                        </CardContent>
-                    </Card>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <StatTile label="Кол-во опозданий" value={employee?.late_count ?? 0} icon={Clock3} tone="copper" />
+                    <StatTile label="Суммарно (мин)" value={fmtMinutes(employee?.total_late_time ?? 0)} icon={Clock3} tone="danger" />
+                    <StatTile label="Среднее (мин)" value={fmtMinutes(employee?.avg_late_time ?? 0)} icon={Clock3} tone="navy" />
                 </div>
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Полная информация по опозданиям</CardTitle>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Clock3 className="shrink-0" />
+                            Полная информация по опозданиям
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {events.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">За выбранный период опозданий нет.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">За выбранный период опозданий нет.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[720px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium"><button type="button" onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
-                                            <th className="py-3 pr-3 font-medium"><button type="button" onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
-                                            <th className="py-3 pr-6 font-medium"><button type="button" onClick={() => toggleSort('late_time')}>На сколько опоздал (мин){sortIndicator('late_time')}</button></th>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
+                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
+                                            <th className="py-3 pr-6 text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>На сколько опоздал (мин){sortIndicator('late_time')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedEvents.map((row, idx) => (
-                                            <tr key={`${row.late_date}-${idx}`} className="border-b last:border-0 hover:bg-muted/30">
-                                                <td className="py-3 pl-6 pr-3">{fmtDate(row.late_date)}</td>
-                                                <td className="py-3 pr-3 font-semibold">{fmtTime(row.first_enter_time)}</td>
-                                                <td className="py-3 pr-6 font-semibold text-red-600">{fmtMinutes(row.late_time)}</td>
+                                            <tr key={`${row.late_date}-${idx}`} className="border-b border-slate-200 last:border-0">
+                                                <td className="py-3 pl-6 pr-3 font-medium tabular-nums text-slate-900">{fmtDate(row.late_date)}</td>
+                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{fmtTime(row.first_enter_time)}</td>
+                                                <td className="py-3 pr-6 text-right">
+                                                    <StatusBadge tone="danger" className="tabular-nums">{fmtMinutes(row.late_time)}</StatusBadge>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

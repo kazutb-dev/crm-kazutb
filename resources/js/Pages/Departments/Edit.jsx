@@ -1,8 +1,12 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { FormField, PageHeader } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 
 export default function Edit({ department }) {
     const { data, setData, patch, processing, errors } = useForm({
@@ -18,53 +22,72 @@ export default function Edit({ department }) {
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="text-2xl font-semibold tracking-tight">Редактирование кафедры</h2>}
+            header={(
+                <PageHeader
+                    eyebrow="Справочники · Кафедры"
+                    title="Редактирование кафедры"
+                    description={department.name}
+                    meta={department.code ? <Badge variant="outline">{department.code}</Badge> : null}
+                    actions={(
+                        <Button variant="outline" asChild>
+                            <Link href={route('departments.index')}>
+                                <ArrowLeft />
+                                К списку кафедр
+                            </Link>
+                        </Button>
+                    )}
+                />
+            )}
         >
             <Head title="Редактирование кафедры" />
 
             <div className="admin-page-wrap">
-                <Card className="max-w-2xl">
+                <Card className="max-w-3xl">
                     <CardHeader>
-                        <CardTitle>{department.name}</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Pencil className="shrink-0" />
+                            {department.name}
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <form className="space-y-5" onSubmit={submit}>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Название</label>
-                                <Input
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                />
-                                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                            <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_200px]">
+                                <div>
+                                    <FormField label="Название">
+                                        <Input
+                                            value={data.name}
+                                            onChange={(e) => setData('name', e.target.value)}
+                                        />
+                                    </FormField>
+                                    {errors.name && <p className="mt-1.5 text-sm text-red-700">{errors.name}</p>}
+                                </div>
+                                <div>
+                                    <FormField label="Код">
+                                        <Input
+                                            value={data.code}
+                                            onChange={(e) => setData('code', e.target.value)}
+                                        />
+                                    </FormField>
+                                    {errors.code && <p className="mt-1.5 text-sm text-red-700">{errors.code}</p>}
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Код</label>
-                                <Input
-                                    value={data.code}
-                                    onChange={(e) => setData('code', e.target.value)}
-                                />
-                                {errors.code && <p className="text-sm text-destructive">{errors.code}</p>}
+                            <div>
+                                <FormField label="Описание">
+                                    <Textarea
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                    />
+                                </FormField>
+                                {errors.description && <p className="mt-1.5 text-sm text-red-700">{errors.description}</p>}
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Описание</label>
-                                <textarea
-                                    className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                />
-                                {errors.description && (
-                                    <p className="text-sm text-destructive">{errors.description}</p>
-                                )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Button type="submit" disabled={processing}>
-                                    Сохранить изменения
-                                </Button>
+                            <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-5">
                                 <Button variant="outline" asChild>
                                     <Link href={route('departments.index')}>Отмена</Link>
+                                </Button>
+                                <Button type="submit" disabled={processing}>
+                                    Сохранить изменения
                                 </Button>
                             </div>
                         </form>

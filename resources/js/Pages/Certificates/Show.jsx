@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link } from '@inertiajs/react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { InfoField, PageHeader } from '@/components/platform';
+import { ArrowLeft, Award, Eye, Printer, ShieldCheck } from 'lucide-react';
 
 export default function CertificateShow({ certificate }) {
     const canvasWidth = Number(certificate?.template_canvas_width ?? 1600);
@@ -43,50 +45,62 @@ export default function CertificateShow({ certificate }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Сертификат
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Просмотр и печать сертификата
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={openVerify}>Проверка</Button>
-                        <Button onClick={printCertificate}>Печать</Button>
-                        <Button asChild variant="outline">
-                            <Link href={route('certificates.registry.page')}>Назад</Link>
-                        </Button>
-                    </div>
+                <div className="print:hidden">
+                    <PageHeader
+                        eyebrow="Сертификаты"
+                        title="Сертификат"
+                        description="Просмотр и печать сертификата"
+                        actions={(
+                            <>
+                                <Button asChild variant="ghost" className="gap-2">
+                                    <Link href={route('certificates.registry.page')}>
+                                        <ArrowLeft className="h-4 w-4" />
+                                        Назад
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" onClick={openVerify} className="gap-2">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    Проверка
+                                </Button>
+                                <Button onClick={printCertificate} className="gap-2">
+                                    <Printer className="h-4 w-4" />
+                                    Печать
+                                </Button>
+                            </>
+                        )}
+                    />
                 </div>
             }
         >
             <Head title="Сертификат" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
                 <Card className="print:shadow-none print:border-none">
                     <CardHeader className="print:pb-2">
-                        <CardTitle>Карточка сертификата</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Award className="h-4 w-4" />
+                            Карточка сертификата
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-4 md:grid-cols-2 print:grid-cols-1">
-                        <div className="space-y-2 text-sm">
-                            <div><span className="font-medium">ФИО:</span> {certificate?.recipient_full_name}</div>
-                        </div>
+                    <CardContent className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto] print:grid-cols-1">
+                        <InfoField label="ФИО">{certificate?.recipient_full_name}</InfoField>
 
-                        <div className="print:hidden flex flex-col items-center justify-center gap-2 rounded-md border bg-white p-4">
+                        <div className="print:hidden flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
                             <QRCodeCanvas value={certificate?.qr_payload ?? ''} size={180} includeMargin />
-                            <div className="text-xs text-muted-foreground">QR проверки сертификата</div>
+                            <div className="qd-field-label text-slate-500">QR проверки сертификата</div>
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card className="print:shadow-none print:border-none">
                     <CardHeader className="print:hidden">
-                        <CardTitle>Визуальный сертификат по шаблону</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
+                            Визуальный сертификат по шаблону
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="overflow-auto rounded-md border bg-muted/10 p-3 print:border-none print:bg-white print:p-0">
+                        <div className="overflow-auto rounded-xl border border-slate-200 bg-slate-100 p-3 print:border-none print:bg-white print:p-0">
                             <div
                                 className="relative mx-auto"
                                 style={{

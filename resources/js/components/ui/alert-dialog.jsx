@@ -1,38 +1,47 @@
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import * as React from 'react';
 
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants, panelButtonVariants } from '@/components/ui/button';
+import { usePanelDesign } from '@/components/ui/panel-design';
 import { cn } from '@/lib/utils';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-const AlertDialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
-    <AlertDialogPrimitive.Overlay
-        className={cn(
-            'fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            className,
-        )}
-        {...props}
-        ref={ref}
-    />
-));
-AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
-
-const AlertDialogContent = React.forwardRef(({ className, ...props }, ref) => (
-    <AlertDialogPortal>
-        <AlertDialogOverlay />
-        <AlertDialogPrimitive.Content
-            ref={ref}
+const AlertDialogOverlay = React.forwardRef(({ className, ...props }, ref) => {
+    const panel = usePanelDesign();
+    return (
+        <AlertDialogPrimitive.Overlay
             className={cn(
-                'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg',
+                'fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+                panel && 'bg-[rgba(8,40,52,0.45)] backdrop-blur-[2px]',
                 className,
             )}
             {...props}
+            ref={ref}
         />
-    </AlertDialogPortal>
-));
+    );
+});
+AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
+
+const AlertDialogContent = React.forwardRef(({ className, ...props }, ref) => {
+    const panel = usePanelDesign();
+    return (
+        <AlertDialogPortal>
+            <AlertDialogOverlay />
+            <AlertDialogPrimitive.Content
+                ref={ref}
+                className={cn(
+                    'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg',
+                    panel && 'qd-scope border-slate-200 bg-white shadow-[0_2px_4px_0_rgba(25,28,29,0.04),0_18px_44px_0_rgba(25,28,29,0.08)] sm:rounded-[20px]',
+                    className,
+                )}
+                {...props}
+            />
+        </AlertDialogPortal>
+    );
+});
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
 const AlertDialogHeader = ({ className, ...props }) => (
@@ -45,9 +54,16 @@ const AlertDialogFooter = ({ className, ...props }) => (
 );
 AlertDialogFooter.displayName = 'AlertDialogFooter';
 
-const AlertDialogTitle = React.forwardRef(({ className, ...props }, ref) => (
-    <AlertDialogPrimitive.Title ref={ref} className={cn('text-lg font-semibold', className)} {...props} />
-));
+const AlertDialogTitle = React.forwardRef(({ className, ...props }, ref) => {
+    const panel = usePanelDesign();
+    return (
+        <AlertDialogPrimitive.Title
+            ref={ref}
+            className={cn('text-lg font-semibold', panel && 'font-display text-xl font-bold text-[#102945]', className)}
+            {...props}
+        />
+    );
+});
 AlertDialogTitle.displayName = AlertDialogPrimitive.Title.displayName;
 
 const AlertDialogDescription = React.forwardRef(({ className, ...props }, ref) => (
@@ -55,18 +71,22 @@ const AlertDialogDescription = React.forwardRef(({ className, ...props }, ref) =
 ));
 AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
-const AlertDialogAction = React.forwardRef(({ className, ...props }, ref) => (
-    <AlertDialogPrimitive.Action ref={ref} className={cn(buttonVariants(), className)} {...props} />
-));
+const AlertDialogAction = React.forwardRef(({ className, ...props }, ref) => {
+    const variants = usePanelDesign() ? panelButtonVariants : buttonVariants;
+    return <AlertDialogPrimitive.Action ref={ref} className={cn(variants(), className)} {...props} />;
+});
 AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 
-const AlertDialogCancel = React.forwardRef(({ className, ...props }, ref) => (
-    <AlertDialogPrimitive.Cancel
-        ref={ref}
-        className={cn(buttonVariants({ variant: 'outline' }), 'mt-2 sm:mt-0', className)}
-        {...props}
-    />
-));
+const AlertDialogCancel = React.forwardRef(({ className, ...props }, ref) => {
+    const variants = usePanelDesign() ? panelButtonVariants : buttonVariants;
+    return (
+        <AlertDialogPrimitive.Cancel
+            ref={ref}
+            className={cn(variants({ variant: 'outline' }), 'mt-2 sm:mt-0', className)}
+            {...props}
+        />
+    );
+});
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName;
 
 export {

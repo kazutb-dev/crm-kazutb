@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { InfoField, PageHeader, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
@@ -47,83 +48,95 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="HR · История проходов за день"
+                    title={fullName || 'Сотрудник'}
+                    description={`История проходов за ${fmtDate(date)}`}
+                    meta={<StatusBadge tone="default">Событий: {events.length}</StatusBadge>}
+                    actions={(
+                        <>
+                            <Button variant="outline" onClick={goBack}>
+                                <ArrowLeft className="h-4 w-4" />
+                                Назад
+                            </Button>
+                            <Button variant="outline" type="button" onClick={handleExport}>
+                                <Download className="h-4 w-4" />
+                                Экспорт в Excel
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="HR / История проходов за день" />
 
-            <div className="admin-page-wrap">
-                <div className="flex items-center gap-3">
-                    <Button size="sm" variant="outline" onClick={goBack}>
-                        <ArrowLeft className="mr-1 h-4 w-4" />
-                        Назад
-                    </Button>
-                    <Button size="sm" variant="outline" type="button" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-                </div>
-
+            <div className="admin-page-wrap space-y-6">
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <UserRound className="h-4 w-4 text-blue-600" />
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserRound className="shrink-0" />
                             История проходов за {fmtDate(date)}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
-                        <div>
-                            <p className="text-xs text-muted-foreground">ФИО</p>
-                            <p className="font-semibold">{fullName}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Подразделение</p>
-                            <p className="font-semibold">{employee?.division ?? '—'}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Должность</p>
-                            <p className="font-semibold">{employee?.position ?? '—'}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground">Событий</p>
-                            <p className="font-semibold">{events.length}</p>
-                        </div>
+                    <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-2 xl:grid-cols-4">
+                        <InfoField label="ФИО">{fullName}</InfoField>
+                        <InfoField label="Подразделение">{employee?.division ?? '—'}</InfoField>
+                        <InfoField label="Должность">{employee?.position ?? '—'}</InfoField>
+                        <InfoField label="Событий"><span className="tabular-nums">{events.length}</span></InfoField>
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base">Все проходы за день</CardTitle>
+                    <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <Clock3 className="shrink-0" />
+                                Все проходы за день
+                            </CardTitle>
+                            <div className="flex items-center gap-4 text-xs text-slate-600">
+                                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Вход</span>
+                                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-red-500" />Выход</span>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         {events.length === 0 ? (
-                            <p className="p-6 text-sm text-muted-foreground">Нет событий за выбранный день.</p>
+                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет событий за выбранный день.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[980px] text-sm">
                                     <thead>
-                                        <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                                            <th className="py-3 pl-6 pr-3 font-medium">Время прохода</th>
-                                            <th className="py-3 pr-3 font-medium">Выход из</th>
-                                            <th className="py-3 pr-3 font-medium">Вход в</th>
-                                            <th className="py-3 pr-3 font-medium">Устройство</th>
-                                            <th className="py-3 pr-6 font-medium">Тип события</th>
+                                        <tr className="text-left">
+                                            <th className="py-3 pl-6 pr-3">Время прохода</th>
+                                            <th className="py-3 pr-3">Выход из</th>
+                                            <th className="py-3 pr-3">Вход в</th>
+                                            <th className="py-3 pr-3">Устройство</th>
+                                            <th className="py-3 pr-6">Тип события</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {events.map((row) => {
                                             const rowClass = row.direction === 'exit'
-                                                ? 'bg-red-100/60 hover:bg-red-100/80'
+                                                ? 'bg-red-50 hover:bg-red-100/70'
                                                 : row.direction === 'enter'
-                                                    ? 'bg-emerald-100/60 hover:bg-emerald-100/80'
-                                                    : 'hover:bg-muted/30';
+                                                    ? 'bg-emerald-50 hover:bg-emerald-100/70'
+                                                    : '';
+                                            const railClass = row.direction === 'exit'
+                                                ? 'border-l-red-500'
+                                                : row.direction === 'enter'
+                                                    ? 'border-l-emerald-500'
+                                                    : 'border-l-transparent';
 
                                             return (
-                                                <tr key={row.id} className={`border-b last:border-0 ${rowClass}`}>
-                                                    <td className="py-3 pl-6 pr-3 font-mono text-xs sm:text-sm">{fmtTime(row.time_label)}</td>
-                                                    <td className="py-3 pr-3 font-medium text-red-600">{row.zone_exit || '—'}</td>
+                                                <tr key={row.id} className={`border-b border-slate-200 last:border-0 ${rowClass}`}>
+                                                    <td className={`border-l-[3px] py-3 pl-6 pr-3 font-mono text-xs font-semibold text-[#102945] sm:text-sm ${railClass}`}>{fmtTime(row.time_label)}</td>
+                                                    <td className="py-3 pr-3 font-medium text-red-700">{row.zone_exit || '—'}</td>
                                                     <td className="py-3 pr-3 font-medium text-emerald-700">{row.zone_enter || '—'}</td>
-                                                    <td className="py-3 pr-3">{row.device_id ? `#${row.device_id}` : '—'}</td>
+                                                    <td className="py-3 pr-3 tabular-nums text-slate-600">{row.device_id ? `#${row.device_id}` : '—'}</td>
                                                     <td className="py-3 pr-6">
-                                                        <span className={row.ignored ? 'text-orange-600' : 'text-foreground'}>
+                                                        <span className={row.ignored ? 'text-orange-700' : 'text-slate-900'}>
                                                             {row.event_type || '—'}{row.ignored ? ' (игнор)' : ''}
                                                         </span>
                                                     </td>

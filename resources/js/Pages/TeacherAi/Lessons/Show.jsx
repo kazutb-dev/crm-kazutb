@@ -1,5 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Notice, PageHeader, underlineTabClass } from '@/components/platform';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { LessonStatusBadge, StepProgress, isLessonInProgress, pluralSlides, pluralRu } from '@/components/teacher-ai/lesson-shared';
 import SlideCanvas from '@/components/teacher-ai/slides/SlideCanvas';
 import { Link, router } from '@inertiajs/react';
@@ -134,7 +137,7 @@ function buildLectureText(lecture, lesson) {
 }
 
 function SectionHeading({ children }) {
-    return <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{children}</h4>;
+    return <h4 className="qd-field-label text-teal-700">{children}</h4>;
 }
 
 function Paragraphs({ text, className = '' }) {
@@ -165,8 +168,8 @@ function LectureSection({ section, index, inProgress }) {
 
     return (
         <section id={`section-${index + 1}`} className="scroll-mt-24">
-            <h3 className="break-words text-xl font-semibold text-slate-900">
-                <span className="mr-2 text-teal-700">{index + 1}.</span>
+            <h3 className="break-words font-display text-xl font-bold text-[#102945]">
+                <span className="mr-2 tabular-nums text-teal-700">{index + 1}.</span>
                 {title}
             </h3>
 
@@ -175,10 +178,10 @@ function LectureSection({ section, index, inProgress }) {
                     <Paragraphs text={paragraphs.map(asText).join('\n\n')} className="mt-4" />
 
                     {keyTerms.length > 0 && (
-                        <dl className="mt-5 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+                        <dl className="mt-5 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
                             {keyTerms.map((term, termIndex) => (
                                 <div key={termIndex} className="min-w-0">
-                                    <dt className="break-words text-sm font-semibold text-slate-900">{asText(term?.term)}</dt>
+                                    <dt className="break-words text-sm font-semibold text-[#102945]">{asText(term?.term)}</dt>
                                     <dd className="mt-0.5 break-words text-sm leading-6 text-slate-700">{asText(term?.definition)}</dd>
                                 </div>
                             ))}
@@ -186,23 +189,23 @@ function LectureSection({ section, index, inProgress }) {
                     )}
 
                     {examples.map((example, exampleIndex) => (
-                        <div key={exampleIndex} className="mt-4 flex items-start gap-2 rounded-xl bg-teal-50 p-4 text-sm text-teal-900">
-                            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
+                        <div key={exampleIndex} className="mt-4 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 p-4 text-sm text-[#102945]">
+                            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
                             <p className="whitespace-pre-line break-words leading-6">
-                                <span className="font-medium">Пример{examples.length > 1 ? ` ${exampleIndex + 1}` : ''}: </span>
+                                <span className="font-semibold">Пример{examples.length > 1 ? ` ${exampleIndex + 1}` : ''}: </span>
                                 {asText(example)}
                             </p>
                         </div>
                     ))}
 
                     {summary && (
-                        <p className="mt-4 break-words rounded-xl border-l-4 border-slate-300 bg-slate-50 px-4 py-3 text-sm italic leading-6 text-slate-700">
+                        <p className="mt-4 break-words border-l-[3px] border-teal-600 bg-slate-50 px-4 py-3 text-sm italic leading-6 text-slate-700">
                             {summary}
                         </p>
                     )}
                 </>
             ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4">
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
                     {keyPoints.length > 0 && (
                         <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-slate-600">
                             {keyPoints.map((point, pointIndex) => (
@@ -213,12 +216,12 @@ function LectureSection({ section, index, inProgress }) {
                     <div className={`flex items-center gap-2 text-sm text-slate-500 ${keyPoints.length > 0 ? 'mt-3' : ''}`}>
                         {inProgress ? (
                             <>
-                                <LoaderCircle className="h-4 w-4 animate-spin text-sky-600" />
+                                <LoaderCircle className="h-4 w-4 animate-spin text-teal-700" />
                                 Генерируется…
                             </>
                         ) : (
                             <>
-                                <XCircle className="h-4 w-4 text-rose-500" />
+                                <XCircle className="h-4 w-4 text-red-600" />
                                 Текст раздела не сгенерирован. Нажмите «Повторить», чтобы продолжить.
                             </>
                         )}
@@ -239,7 +242,7 @@ function LectureTab({ lesson, inProgress }) {
 
     if (!lecture) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-600">
                 Лекция ещё не готова.
             </div>
         );
@@ -254,11 +257,11 @@ function LectureTab({ lesson, inProgress }) {
     const wordCount = Number(lesson?.word_count ?? 0);
 
     return (
-        <section className="space-y-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <section className="space-y-8 rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-8">
             <header className="space-y-2">
-                <h3 className="break-words text-2xl font-semibold text-slate-900">{asText(lecture.title) || asText(lesson?.title)}</h3>
+                <h3 className="break-words font-display text-2xl font-bold leading-tight text-[#102945]">{asText(lecture.title) || asText(lesson?.title)}</h3>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                    {wordCount > 0 && <span>≈ {numberFormat.format(wordCount)} слов</span>}
+                    {wordCount > 0 && <span className="tabular-nums">≈ {numberFormat.format(wordCount)} слов</span>}
                     {sections.length > 0 && <span>{sections.length} {pluralRu(sections.length, ['раздел', 'раздела', 'разделов'])}</span>}
                     {lesson?.model && <span className="text-slate-400">Модель: {lesson.model}</span>}
                 </div>
@@ -267,7 +270,7 @@ function LectureTab({ lesson, inProgress }) {
             {objectives.length > 0 && (
                 <div>
                     <SectionHeading>Цели обучения</SectionHeading>
-                    <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                    <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
                         {objectives.map((objective, index) => (
                             <li key={index} className="break-words">{asText(objective)}</li>
                         ))}
@@ -298,7 +301,7 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {sections.length > 0 && (
-                <div className="space-y-10 border-t border-slate-100 pt-8">
+                <div className="space-y-10 border-t border-slate-200 pt-8">
                     {sections.map((section, index) => (
                         <LectureSection key={index} section={section} index={index} inProgress={inProgress} />
                     ))}
@@ -306,7 +309,7 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {asText(lecture.conclusion) && (
-                <div className="border-t border-slate-100 pt-8">
+                <div className="border-t border-slate-200 pt-8">
                     <SectionHeading>Заключение</SectionHeading>
                     <Paragraphs text={lecture.conclusion} className="mt-3" />
                 </div>
@@ -328,8 +331,8 @@ function LectureTab({ lesson, inProgress }) {
                     <SectionHeading>Глоссарий</SectionHeading>
                     <dl className="mt-3 grid gap-3 sm:grid-cols-2">
                         {glossary.map((item, index) => (
-                            <div key={index} className="min-w-0 rounded-2xl border border-slate-200 p-4">
-                                <dt className="break-words text-sm font-semibold text-slate-900">{asText(item?.term)}</dt>
+                            <div key={index} className="min-w-0 rounded-xl border border-slate-200 p-4">
+                                <dt className="break-words text-sm font-semibold text-[#102945]">{asText(item?.term)}</dt>
                                 <dd className="mt-1 break-words text-sm leading-6 text-slate-700">{asText(item?.definition)}</dd>
                             </div>
                         ))}
@@ -340,10 +343,9 @@ function LectureTab({ lesson, inProgress }) {
             {references.length > 0 && (
                 <div>
                     <SectionHeading>Рекомендуемая литература</SectionHeading>
-                    <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                        <p>Список литературы сформирован ИИ — проверьте источники.</p>
-                    </div>
+                    <Notice tone="warning" className="mt-3">
+                        Список литературы сформирован ИИ — проверьте источники.
+                    </Notice>
                     <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
                         {references.map((reference, index) => (
                             <li key={index} className="break-words">{asText(reference)}</li>
@@ -357,7 +359,7 @@ function LectureTab({ lesson, inProgress }) {
                     <SectionHeading>Ключевые слова</SectionHeading>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {keywords.map((keyword, index) => (
-                            <span key={index} className="max-w-full break-words rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                            <span key={index} className="max-w-full break-words rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
                                 {asText(keyword)}
                             </span>
                         ))}
@@ -440,7 +442,7 @@ function PresentationTab({ lesson, inProgress }) {
 
     if (!presentation || total === 0) {
         return (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-600">
                 {inProgress ? 'Презентация готовится…' : 'Презентация ещё не готова.'}
             </div>
         );
@@ -464,19 +466,19 @@ function PresentationTab({ lesson, inProgress }) {
         }
     };
 
-    const navButtonClassName = 'inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white';
+    
 
     return (
         <section className="space-y-6">
             <div className="min-w-0">
-                <h3 className="break-words text-xl font-semibold text-slate-900">{asText(presentation.title) || asText(lesson?.title)}</h3>
+                <h3 className="break-words font-display text-xl font-bold text-[#102945]">{asText(presentation.title) || asText(lesson?.title)}</h3>
                 {asText(presentation.subtitle) && (
                     <p className="mt-1 break-words text-sm text-slate-500">{presentation.subtitle}</p>
                 )}
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-                    <span>{total} {pluralSlides(total)}</span>
+                    <span className="tabular-nums">{total} {pluralSlides(total)}</span>
                     {pendingImages > 0 && (
-                        <span className="inline-flex items-center gap-1.5 text-indigo-700">
+                        <span className="inline-flex items-center gap-1.5 text-teal-700">
                             <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
                             Иллюстрации генерируются: осталось {pendingImages}
                         </span>
@@ -501,28 +503,28 @@ function PresentationTab({ lesson, inProgress }) {
                 </div>
 
                 <nav aria-label="Навигация по слайдам" className="flex items-center justify-between gap-3">
-                    <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0} className={navButtonClassName}>
+                    <Button type="button" variant="outline" onClick={() => goTo(index - 1)} disabled={index === 0} className="gap-1.5">
                         <ArrowLeft className="h-4 w-4" />
                         Назад
-                    </button>
+                    </Button>
                     <span className="text-sm font-medium tabular-nums text-slate-600" aria-live="polite">
                         {index + 1} / {total}
                     </span>
-                    <button type="button" onClick={() => goTo(index + 1)} disabled={index >= total - 1} className={navButtonClassName}>
+                    <Button type="button" variant="outline" onClick={() => goTo(index + 1)} disabled={index >= total - 1} className="gap-1.5">
                         Далее
                         <ArrowRight className="h-4 w-4" />
-                    </button>
+                    </Button>
                 </nav>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-                    <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                        <MessageSquareText className="h-4 w-4 text-slate-500" />
+                <div className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
+                    <h4 className="qd-field-label flex items-center gap-2 text-[#102945]">
+                        <MessageSquareText className="h-4 w-4 text-teal-700" />
                         Заметки докладчика
                     </h4>
                     {notes ? (
                         <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{notes}</p>
                     ) : (
-                        <p className="mt-2 text-sm text-slate-400">Для этого слайда заметок нет.</p>
+                        <p className="mt-2 text-sm text-slate-500">Для этого слайда заметок нет.</p>
                     )}
                 </div>
             </div>
@@ -539,12 +541,12 @@ function PresentationTab({ lesson, inProgress }) {
                             onClick={() => selectSlide(slideIndex)}
                             aria-label={`Слайд ${slideIndex + 1}`}
                             aria-current={active ? 'true' : undefined}
-                            className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${active ? 'border-indigo-500 ring-2 ring-indigo-500' : 'border-slate-200 hover:border-slate-300 hover:shadow'}`}
+                            className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${active ? 'border-teal-600 ring-2 ring-teal-600' : 'border-slate-200 hover:border-slate-400'}`}
                         >
                             <div className="pointer-events-none w-full select-none">
                                 <SlideCanvas slide={item} presentation={presentation} language={lesson?.language} />
                             </div>
-                            <div className={`flex w-full min-w-0 items-center gap-2 border-t px-2.5 py-1.5 text-xs ${active ? 'border-indigo-100 bg-indigo-50 text-indigo-900' : 'border-slate-100 text-slate-600'}`}>
+                            <div className={`flex w-full min-w-0 items-center gap-2 border-t px-2.5 py-1.5 text-xs ${active ? 'border-teal-200 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-600'}`}>
                                 <span className="font-semibold tabular-nums">{slideIndex + 1}</span>
                                 <span className="min-w-0 truncate">{slideCaption(item, presentation)}</span>
                             </div>
@@ -641,88 +643,105 @@ export default function Show({ lesson }) {
         { key: 'presentation', label: 'Презентация', Icon: Presentation, disabled: !hasPresentation, hint: !hasPresentation && inProgress ? 'готовится…' : null },
     ];
 
+    const slidesTotal = asList(safeLesson.presentation?.slides).length;
+
     return (
         <AuthenticatedLayout
             header={(
-                <div className="space-y-2">
-                    <Link
-                        href={route('teacher-ai.lessons.index')}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 hover:text-teal-900"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Все материалы
-                    </Link>
-                    <h2 className="break-words text-2xl font-semibold text-slate-900">{safeLesson.title || safeLesson.topic || 'Материалы занятия'}</h2>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
-                        <LessonStatusBadge status={safeLesson.status} />
-                        {safeLesson.subject && <span className="break-words">{safeLesson.subject}</span>}
-                        {safeLesson.language_label && <span>{safeLesson.language_label}</span>}
-                        {Number(safeLesson.duration_minutes) > 0 && <span>{safeLesson.duration_minutes} мин</span>}
-                        {hasPresentation
-                            ? <span>{asList(safeLesson.presentation?.slides).length} {pluralSlides(asList(safeLesson.presentation?.slides).length)}</span>
-                            : Number(safeLesson.slides_count) > 0 && <span>Запрошено: {safeLesson.slides_count} {pluralSlides(safeLesson.slides_count)}</span>}
-                        {safeLesson.created_at && <span>{safeLesson.created_at}</span>}
-                    </div>
-                </div>
+                <PageHeader
+                    eyebrow={(
+                        <Link
+                            href={route('teacher-ai.lessons.index')}
+                            className="inline-flex items-center gap-1.5 hover:text-[#102945]"
+                        >
+                            <ArrowLeft className="h-3.5 w-3.5" />
+                            Все материалы
+                        </Link>
+                    )}
+                    title={<span className="break-words">{safeLesson.title || safeLesson.topic || 'Материалы занятия'}</span>}
+                    description={(
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {safeLesson.subject && <span className="break-words">{safeLesson.subject}</span>}
+                            {safeLesson.language_label && <span>{safeLesson.language_label}</span>}
+                            {Number(safeLesson.duration_minutes) > 0 && <span className="tabular-nums">{safeLesson.duration_minutes} мин</span>}
+                            {hasPresentation
+                                ? <span className="tabular-nums">{slidesTotal} {pluralSlides(slidesTotal)}</span>
+                                : Number(safeLesson.slides_count) > 0 && <span className="tabular-nums">Запрошено: {safeLesson.slides_count} {pluralSlides(safeLesson.slides_count)}</span>}
+                            {safeLesson.created_at && <span className="tabular-nums">{safeLesson.created_at}</span>}
+                        </span>
+                    )}
+                    meta={<LessonStatusBadge status={safeLesson.status} />}
+                    actions={(
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setConfirmDelete(true)}
+                            disabled={busy}
+                            className="gap-2"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Удалить материалы
+                        </Button>
+                    )}
+                />
             )}
         >
-            <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-                <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <Info className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
-                    <p>
-                        Это черновик, сгенерированный ИИ. Проверяйте факты, формулы, даты и список литературы
-                        перед использованием на занятии.
-                    </p>
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <Notice tone="brand">
+                    Это черновик, сгенерированный ИИ. Проверяйте факты, формулы, даты и список литературы
+                    перед использованием на занятии.
+                </Notice>
 
                 {inProgress && (
-                    <div className="rounded-3xl border border-sky-200 bg-sky-50 px-6 py-8">
-                        <div className="flex flex-col items-center text-center">
-                            <LoaderCircle className="h-10 w-10 animate-spin text-sky-600" />
-                            <h3 className="mt-4 text-lg font-semibold text-sky-900">
-                                {safeLesson.status === 'pending' ? 'Занятие в очереди на генерацию' : 'ИИ готовит материалы'}
-                            </h3>
-                            <p className="mt-1 max-w-md text-sm text-sky-800">
-                                Обычно это занимает 2–5 минут. Страница обновится сама, можно её не закрывать.
-                            </p>
-                        </div>
-                        <div className="mt-6 rounded-2xl bg-white/70 p-4">
-                            <StepProgress lesson={safeLesson} />
-                        </div>
-                    </div>
+                    <Card>
+                        <CardContent className="space-y-6 py-8">
+                            <div className="flex flex-col items-center text-center">
+                                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                    <LoaderCircle className="h-8 w-8 animate-spin" />
+                                </span>
+                                <h3 className="mt-4 font-display text-lg font-bold text-[#102945]">
+                                    {safeLesson.status === 'pending' ? 'Занятие в очереди на генерацию' : 'ИИ готовит материалы'}
+                                </h3>
+                                <p className="mt-1 max-w-md text-sm text-slate-600">
+                                    Обычно это занимает 2–5 минут. Страница обновится сама, можно её не закрывать.
+                                </p>
+                            </div>
+                            <div className="border-t border-slate-200 pt-6">
+                                <StepProgress lesson={safeLesson} />
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {safeLesson.status === 'failed' && (
-                    <div className="space-y-5 rounded-3xl border border-rose-200 bg-rose-50 p-6">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-start gap-3">
-                                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-                                <div className="min-w-0">
-                                    <h3 className="font-semibold text-rose-900">Генерация не завершена</h3>
-                                    <p className="mt-1 break-words text-sm text-rose-800">{safeLesson.error_message ?? 'Попробуйте ещё раз позже.'}</p>
-                                </div>
-                            </div>
-                            {safeLesson.can_retry && (
-                                <button
-                                    type="button"
-                                    onClick={retry}
-                                    disabled={busy}
-                                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
-                                >
-                                    <RotateCcw className="h-4 w-4" />
-                                    Повторить
-                                </button>
-                            )}
-                        </div>
-                        <div className="rounded-2xl bg-white/70 p-4">
+                    <Card className="border-red-200">
+                        <CardContent className="space-y-5">
+                            <Notice
+                                tone="danger"
+                                title="Генерация не завершена"
+                                action={safeLesson.can_retry ? (
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={retry}
+                                        disabled={busy}
+                                        className="shrink-0 gap-2"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                        Повторить
+                                    </Button>
+                                ) : null}
+                            >
+                                <span className="break-words">{safeLesson.error_message ?? 'Попробуйте ещё раз позже.'}</span>
+                            </Notice>
                             <StepProgress lesson={safeLesson} />
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {(hasLecture || hasPresentation || inProgress) && (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div role="tablist" aria-label="Материалы занятия" className="inline-flex flex-wrap gap-1 self-start rounded-xl border border-slate-200 bg-white p-1">
+                    <div className="flex flex-col gap-3 border-b border-slate-200 lg:flex-row lg:items-end lg:justify-between">
+                        <div role="tablist" aria-label="Материалы занятия" className="flex flex-wrap gap-x-6 gap-y-1">
                             {tabs.map(({ key, label, Icon, disabled, hint }) => (
                                 <button
                                     key={key}
@@ -732,7 +751,7 @@ export default function Show({ lesson }) {
                                     disabled={disabled}
                                     title={disabled && !hint ? 'Ещё не готова' : undefined}
                                     aria-selected={activeTab === key}
-                                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition ${activeTab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent`}
+                                    className={`${underlineTabClass(activeTab === key)} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-transparent`}
                                 >
                                     <Icon className="h-4 w-4" />
                                     {label}
@@ -741,35 +760,29 @@ export default function Show({ lesson }) {
                             ))}
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 pb-3">
                             {/* Downloads are real files: plain anchors trigger a browser download, Inertia would try to parse the body. */}
                             {downloads.lecture && (
-                                <a
-                                    href={downloads.lecture}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    Скачать лекцию (DOCX)
-                                </a>
+                                <Button asChild size="sm" className="gap-2">
+                                    <a href={downloads.lecture}>
+                                        <Download className="h-4 w-4" />
+                                        Скачать лекцию (DOCX)
+                                    </a>
+                                </Button>
                             )}
                             {downloads.presentation && (
-                                <a
-                                    href={downloads.presentation}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-[#1E3A5F] px-3.5 py-2 text-sm font-medium text-white transition hover:bg-[#2a4d7a]"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    Скачать презентацию (PPTX)
-                                </a>
+                                <Button asChild size="sm" variant="ink" className="gap-2">
+                                    <a href={downloads.presentation}>
+                                        <Download className="h-4 w-4" />
+                                        Скачать презентацию (PPTX)
+                                    </a>
+                                </Button>
                             )}
                             {lectureComplete && (
-                                <button
-                                    type="button"
-                                    onClick={copyLecture}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                                >
+                                <Button type="button" size="sm" variant="outline" onClick={copyLecture} className="gap-2">
                                     <Copy className="h-4 w-4" />
                                     Копировать текст лекции
-                                </button>
+                                </Button>
                             )}
                         </div>
                     </div>
@@ -784,23 +797,11 @@ export default function Show({ lesson }) {
                 )}
 
                 {safeLesson.notes && (
-                    <p className="break-words text-sm text-slate-500">
-                        <span className="font-medium text-slate-700">Ваши пожелания для ИИ: </span>
-                        {safeLesson.notes}
-                    </p>
+                    <div className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
+                        <p className="qd-field-label text-slate-500">Ваши пожелания для ИИ</p>
+                        <p className="mt-1.5 break-words text-sm text-slate-700">{safeLesson.notes}</p>
+                    </div>
                 )}
-
-                <div className="flex justify-end">
-                    <button
-                        type="button"
-                        onClick={() => setConfirmDelete(true)}
-                        disabled={busy}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Удалить материалы
-                    </button>
-                </div>
             </div>
 
             <ConfirmDialog

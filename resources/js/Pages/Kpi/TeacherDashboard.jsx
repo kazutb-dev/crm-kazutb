@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EmptyState, FilterBar, Notice, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
+import { Award, BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, CircleX, Clock, FileText, Filter, LoaderCircle, Paperclip, Pencil, Plus, Search, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const SECTION_SHORT = {
@@ -42,15 +43,15 @@ const SECTION_LABELS = {
 };
 
 const SECTION_ICON_COLOR = {
-    teaching: 'bg-blue-50 text-blue-700',
-    science: 'bg-violet-50 text-violet-700',
-    social: 'bg-emerald-50 text-emerald-700',
-    qualification: 'bg-amber-50 text-amber-700',
-    survey: 'bg-cyan-50 text-cyan-700',
-    educational: 'bg-pink-50 text-pink-700',
-    staff: 'bg-indigo-50 text-indigo-700',
-    international: 'bg-teal-50 text-teal-700',
-    other: 'bg-muted text-muted-foreground',
+    teaching: 'bg-teal-100 text-teal-700',
+    science: 'bg-blue-100 text-blue-700',
+    social: 'bg-emerald-100 text-emerald-700',
+    qualification: 'bg-amber-100 text-amber-700',
+    survey: 'bg-orange-100 text-orange-700',
+    educational: 'bg-slate-200 text-slate-700',
+    staff: 'bg-blue-50 text-blue-800',
+    international: 'bg-teal-50 text-teal-800',
+    other: 'bg-slate-100 text-slate-600',
 };
 
 const statusLabels = {
@@ -67,12 +68,12 @@ const statusLabels = {
 
 const statusVariants = {
     draft: 'outline',
-    submitted: 'secondary',
-    returned: 'secondary',
+    submitted: 'info',
+    returned: 'warning',
     reviewed: 'secondary',
-    pending_dean: 'secondary',
-    pending_structural: 'secondary',
-    approved: 'default',
+    pending_dean: 'info',
+    pending_structural: 'default',
+    approved: 'success',
     rejected: 'destructive',
     locked: 'destructive',
 };
@@ -84,8 +85,8 @@ const spStatusLabels = {
 };
 
 const spStatusVariants = {
-    pending: 'outline',
-    approved: 'default',
+    pending: 'warning',
+    approved: 'success',
     rejected: 'destructive',
 };
 
@@ -596,8 +597,11 @@ function buildRuleFormulaPreview(indicator, formData, ruleSpec, computedPoints) 
     return `Баллы = Кол-во × Коэффициент = ${formatScore(quantity)} × ${formatScore(selectedPoints)} = ${formatScore(computedPoints)} б.`;
 }
 
-const SELECT_CLS =
-    'h-9 rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors hover:border-ring focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+const SELECT_CLS = qdFieldClass;
+const FIELD_LABEL = 'qd-field-label block';
+const FIELD_ERROR = 'text-sm text-red-700';
+const SUBBOX = 'rounded-xl border border-slate-200 bg-white p-3';
+const SUBBOX_LABEL = 'qd-field-label mb-2 block text-slate-500';
 
 const ACTION_LABELS = {
     return: 'Возвращено',
@@ -610,10 +614,10 @@ const ACTION_LABELS = {
 const ACTION_COLORS = {
     submit: 'text-blue-700 bg-blue-50 border-blue-200',
     return: 'text-orange-700 bg-orange-50 border-orange-200',
-    review: 'text-violet-700 bg-violet-50 border-violet-200',
+    review: 'text-teal-700 bg-teal-50 border-teal-200',
     approve: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     reject: 'text-red-700 bg-red-50 border-red-200',
-    lock: 'text-muted-foreground bg-muted/40 border-border',
+    lock: 'text-slate-600 bg-slate-100 border-slate-200',
 };
 
 // ─── result score card ───────────────────────────────────────────────────────
@@ -624,82 +628,54 @@ function ResultScoreCard({ result }) {
     const hasAnyScore = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].some((k) => result[k] > 0);
 
     return (
-        <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
-                <div>
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">Итоговый рейтинг R</p>
-                    <p className={['text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50'].join(' ')}>
-                        {formatScore(rVal)}
-                    </p>
-                </div>
-                {hasAnyScore && (
-                    <div className="flex gap-4">
-                        {['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].map((k, i) => (
-                            <div key={k} className="text-center min-w-[2.5rem]">
-                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">K{i + 1}</p>
-                                <p className={['text-sm font-bold tabular-nums', result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40'].join(' ')}>
-                                    {formatScore(result[k])}
-                                </p>
-                            </div>
-                        ))}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Award />
+                    Итоговый рейтинг
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
+                    <div>
+                        <p className="qd-field-label text-slate-500">Рейтинг R</p>
+                        <p className={['mt-2 font-display text-5xl font-bold leading-none tabular-nums', rVal > 0 ? 'text-teal-700' : 'text-slate-300'].join(' ')}>
+                            {formatScore(rVal)}
+                        </p>
                     </div>
-                )}
-                {result.approved_entries !== undefined && (
-                    <div className="ml-auto text-right">
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
-                        <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-// ─── stat card ───────────────────────────────────────────────────────────────
-
-const ACCENT_TOP = {
-    green: 'before:bg-emerald-500', blue: 'before:bg-blue-500',
-    amber: 'before:bg-amber-500', red: 'before:bg-red-500', teal: 'before:bg-teal-500',
-    default: 'before:bg-border/60',
-};
-const ACCENT_VALUE = {
-    green: 'text-emerald-600', blue: 'text-blue-600',
-    amber: 'text-amber-600', red: 'text-red-600', teal: 'text-teal-600',
-    default: 'text-foreground',
-};
-
-function StatCard({ icon: Icon, label, value, accent = 'default' }) {
-    const isEmpty = value === 0 || value === '0.00';
-    return (
-        <div className={[
-            'relative overflow-hidden rounded-xl border border-border/80 bg-white/90 px-4 py-3.5 backdrop-blur',
-            'before:absolute before:inset-x-0 before:top-0 before:h-0.5',
-            ACCENT_TOP[accent] ?? ACCENT_TOP.default,
-            'shadow-[0_6px_18px_rgba(15,36,63,0.07)]',
-        ].join(' ')}>
-            <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80 mb-1">{label}</p>
-                    <p className={['text-2xl font-bold tabular-nums leading-none', isEmpty ? 'text-muted-foreground/60' : (ACCENT_VALUE[accent] ?? 'text-foreground')].join(' ')}>
-                        {value}
-                    </p>
+                    {hasAnyScore && (
+                        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-6">
+                            {['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].map((k, i) => (
+                                <div key={k} className="min-w-[4.5rem] bg-white px-3 py-2 text-center">
+                                    <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-500">K{i + 1}</p>
+                                    <p className={['mt-1 font-display text-lg font-bold tabular-nums', result[k] > 0 ? 'text-[#102945]' : 'text-slate-300'].join(' ')}>
+                                        {formatScore(result[k])}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {result.approved_entries !== undefined && (
+                        <div className="ml-auto text-right">
+                            <p className="qd-field-label text-slate-500">Утв. записей</p>
+                            <p className="mt-2 font-display text-3xl font-bold leading-none tabular-nums text-emerald-700">{result.approved_entries}</p>
+                        </div>
+                    )}
                 </div>
-                {Icon && <div className="shrink-0 rounded-lg bg-muted/50 p-1.5"><Icon className="h-4 w-4 text-muted-foreground/60" /></div>}
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }
 
 function EntryHistory({ history }) {
     if (!history?.length) {
-        return <p className="text-xs text-muted-foreground italic">История действий отсутствует.</p>;
+        return <p className="text-xs text-slate-500">История действий отсутствует.</p>;
     }
 
     return (
         <div className="mt-3 space-y-1.5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">История утверждения</p>
-            <div className="relative pl-4 before:absolute before:left-1.5 before:top-1 before:bottom-1 before:w-px before:bg-border/60 space-y-2">
+            <p className={SUBBOX_LABEL}>История утверждения</p>
+            <div className="relative space-y-2 pl-4 before:absolute before:bottom-1 before:left-1.5 before:top-1 before:w-px before:bg-slate-200">
                 {history.map((log, i) => (
                     <div key={log.id ?? i} className="relative flex items-start gap-2.5">
                         <span className={[
@@ -707,21 +683,21 @@ function EntryHistory({ history }) {
                             log.action === 'approve' ? 'bg-emerald-500 ring-emerald-300' :
                                 log.action === 'reject' ? 'bg-red-500 ring-red-300' :
                                     log.action === 'return' ? 'bg-orange-500 ring-orange-300' :
-                                        'bg-muted-foreground/40 ring-border',
+                                        'bg-slate-400 ring-slate-200',
                         ].join(' ')} />
                         <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-1.5">
                                 <span className={[
-                                    'inline-flex items-center rounded border px-1.5 py-0.5 text-[0.65rem] font-semibold',
+                                    'inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium',
                                     ACTION_COLORS[log.action] ?? ACTION_COLORS.lock,
                                 ].join(' ')}>
                                     {ACTION_LABELS[log.action] ?? log.action}
                                 </span>
-                                <span className="text-xs font-medium text-foreground/80">{log.actor_name}</span>
-                                <span className="text-[0.65rem] text-muted-foreground">{fmtDateTime(log.created_at)}</span>
+                                <span className="text-xs font-medium text-slate-800">{log.actor_name}</span>
+                                <span className="text-[0.6875rem] tabular-nums text-slate-500">{fmtDateTime(log.created_at)}</span>
                             </div>
                             {log.comment && (
-                                <p className="mt-0.5 text-xs text-muted-foreground italic">"{log.comment}"</p>
+                                <p className="mt-0.5 text-xs italic text-slate-600">"{log.comment}"</p>
                             )}
                         </div>
                     </div>
@@ -770,27 +746,27 @@ function EntryStructuralConfirmations({ confirmations = [] }) {
 
     return (
         <div className="mt-3 space-y-1.5">
-            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Подтверждения СП</p>
+            <p className={SUBBOX_LABEL}>Подтверждения СП</p>
             <div className="space-y-2">
                 {confirmations.map((item, i) => (
                     <div
                         key={`${item.structural_unit_id ?? i}-${i}`}
                         className={[
-                            'rounded-md border p-2',
+                            'rounded-[10px] border bg-white p-2.5',
                             item.status === 'approved'
-                                ? 'border-emerald-200 bg-emerald-50/40'
+                                ? 'border-emerald-200'
                                 : item.status === 'rejected'
-                                    ? 'border-red-200 bg-red-50/40'
-                                    : 'border-border bg-muted/20',
+                                    ? 'border-red-200'
+                                    : 'border-slate-200',
                         ].join(' ')}
                     >
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-xs font-medium text-foreground/90">{resolveUnitName(item)}</p>
+                            <p className="text-xs font-medium text-slate-900">{resolveUnitName(item)}</p>
                             <Badge variant={spStatusVariants[item.status] ?? 'outline'} className="text-[0.65rem]">
                                 {spStatusLabels[item.status] ?? item.status}
                             </Badge>
                         </div>
-                        <p className="mt-1 text-[0.7rem] text-muted-foreground">
+                        <p className="mt-1 text-[0.7rem] text-slate-500">
                             {item.status === 'rejected'
                                 ? `Отклонил: ${resolveActorName(item)}`
                                 : item.status === 'approved'
@@ -800,7 +776,7 @@ function EntryStructuralConfirmations({ confirmations = [] }) {
                             {fmtDateTime(item.confirmed_at)}
                         </p>
                         {item.comment && (
-                            <p className="mt-1 text-[0.7rem] italic text-muted-foreground">"{item.comment}"</p>
+                            <p className="mt-1 text-[0.7rem] italic text-slate-600">"{item.comment}"</p>
                         )}
                     </div>
                 ))}
@@ -815,33 +791,33 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
     return (
         <>
             <tr
-                className="border-b hover:bg-muted/50 cursor-pointer"
+                className={`cursor-pointer border-b border-slate-200 transition-colors hover:bg-slate-50 ${expanded ? 'bg-slate-50' : ''}`}
                 onClick={() => setExpanded((v) => !v)}
             >
                 <td className="ps-3 py-3">
                     <div className="flex items-center gap-1">
                         {expanded ? (
-                            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-teal-700" />
                         ) : (
-                            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         )}
                     </div>
                 </td>
-                <td className="py-3 text-xs font-mono text-muted-foreground">{entry.indicator?.code ?? '—'}</td>
-                <td className="py-3 font-medium">{entry.indicator?.name ?? '—'}</td>
-                <td className="py-3 text-right tabular-nums text-sm">{entry.indicator?.base_points ?? '—'}</td>
-                <td className="py-3 text-right tabular-nums text-sm">{entry.fact_value ?? '—'}</td>
-                <td className="py-3 text-right tabular-nums font-semibold text-sm">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
+                <td className="py-3 font-mono text-xs text-slate-500">{entry.indicator?.code ?? '—'}</td>
+                <td className="py-3 font-medium text-slate-900">{entry.indicator?.name ?? '—'}</td>
+                <td className="py-3 text-right text-sm tabular-nums text-slate-700">{entry.indicator?.base_points ?? '—'}</td>
+                <td className="py-3 text-right text-sm tabular-nums text-slate-700">{entry.fact_value ?? '—'}</td>
+                <td className="py-3 text-right font-display text-base font-bold tabular-nums text-[#102945]">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
                 <td className="py-3">
                     <Badge variant={statusVariants[entry.status] ?? 'outline'} className="text-[0.7rem]">
                         {statusLabels[entry.status] ?? entry.status}
                     </Badge>
-                    {isFileMissing && <p className="mt-1 text-[0.65rem] text-amber-700 font-semibold">Нужен файл</p>}
+                    {isFileMissing && <Badge variant="warning" className="mt-1 text-[0.65rem]">Нужен файл</Badge>}
                 </td>
                 <td className="pe-3 py-3 text-right">
                     <div className="flex justify-end gap-1">
                         <Button asChild size="sm" variant="outline">
-                            <Link href={route('kpi.entries.show', entry.id)}>Открыть</Link>
+                            <Link href={route('kpi.entries.show', entry.id)} onClick={(e) => e.stopPropagation()}>Открыть</Link>
                         </Button>
                         {isEditable && (
                             (entry.status === 'draft' || entry.status === 'returned' || entry.status === 'rejected') ? (
@@ -850,13 +826,13 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                                     {entry.status === 'draft' ? 'Редактировать' : 'Исправить'}
                                 </Button>
                             ) : (
-                                <Button size="sm" onClick={(e) => { e.stopPropagation(); submitEntry(entry.id); }} disabled={isFileMissing}>
+                                <Button size="sm" onClick={(e) => { e.stopPropagation(); submitEntry(entry.id); }} disabled={isFileMissing} title="Отправить на проверку" aria-label="Отправить на проверку">
                                     <Send className="h-3 w-3" />
                                 </Button>
                             )
                         )}
                         {entry.status !== 'approved' && (
-                            <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); deleteEntry(entry); }}>
+                            <Button size="sm" variant="ghost" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={(e) => { e.stopPropagation(); deleteEntry(entry); }} title="Удалить запись" aria-label="Удалить запись">
                                 <Trash2 className="h-3 w-3" />
                             </Button>
                         )}
@@ -864,9 +840,9 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                 </td>
             </tr>
             {expanded && (
-                <tr className="bg-muted/20 border-b">
-                    <td colSpan={8} className="ps-3 py-3">
-                        <div className="grid gap-3 sm:grid-cols-2">
+                <tr className="border-b border-slate-200 bg-slate-50">
+                    <td colSpan={8} className="px-4 py-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
                             <div className="sm:col-span-2">
                                 <EntryHistory history={entry.history} />
                                 <EntryStructuralConfirmations
@@ -880,7 +856,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                             {(Array.isArray(entry.calculation_details?.external_source_urls)
                                 && entry.calculation_details.external_source_urls.filter((url) => String(url ?? '').trim() !== '').length > 0) || entry.external_source_url ? (
                                 <div>
-                                    <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Источник</p>
+                                    <p className={SUBBOX_LABEL}>Источник</p>
                                     <div className="space-y-1">
                                         {(Array.isArray(entry.calculation_details?.external_source_urls)
                                             ? entry.calculation_details.external_source_urls
@@ -893,7 +869,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                                                 href={link}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="block text-xs text-sky-700 underline-offset-2 hover:underline break-all"
+                                                className="block break-all text-xs font-medium text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline"
                                             >
                                                 {link}
                                             </a>
@@ -902,7 +878,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                                 </div>
                             ) : null}
                             <div>
-                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Файлы</p>
+                                <p className={SUBBOX_LABEL}>Файлы</p>
                                 {(entry.files?.length ?? 0) > 0 ? (
                                     <div className="space-y-1">
                                         {entry.files.map((file) => (
@@ -911,19 +887,19 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                                                 href={file.file_url}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="flex items-center gap-2 text-xs text-sky-700 underline-offset-2 hover:underline"
+                                                className="flex items-center gap-2 text-xs font-medium text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline"
                                             >
                                                 <Paperclip className="h-3 w-3 shrink-0" />
                                                 <span className="truncate">{file.file_name}</span>
-                                                <span className="text-muted-foreground">({formatFileSize(file.file_size)})</span>
+                                                <span className="font-normal text-slate-500">({formatFileSize(file.file_size)})</span>
                                             </a>
                                         ))}
                                     </div>
                                 ) : (
-                                    <p className="text-xs text-muted-foreground">{entry.indicator?.requires_file ? 'Файл обязателен' : 'Не прикреплены'}</p>
+                                    <p className={`text-xs ${entry.indicator?.requires_file ? 'font-medium text-amber-700' : 'text-slate-500'}`}>{entry.indicator?.requires_file ? 'Файл обязателен' : 'Не прикреплены'}</p>
                                 )}
                                 {isEditable && (
-                                    <label className="mt-2 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-sky-700">
+                                    <label className="mt-2 inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-[10px] border border-slate-300 bg-white px-3 text-xs font-bold uppercase tracking-[0.08em] text-[#102945] transition-colors hover:border-teal-600 hover:text-teal-700" onClick={(e) => e.stopPropagation()}>
                                         {uploadingEntryId === entry.id ? (
                                             <LoaderCircle className="h-3 w-3 animate-spin" />
                                         ) : (
@@ -971,21 +947,21 @@ function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, u
         <div className="space-y-6">
             {allSections.map(([section, entries]) => {
                 const sectionTotal = entries.reduce((s, e) => s + Number(e.points_for_display ?? e.manual_points ?? e.calculated_points ?? 0), 0);
-                const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-muted text-muted-foreground';
+                const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-slate-100 text-slate-600';
 
                 return (
                     <div key={section}>
-                        <div className="mb-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${iconCls}`}>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                                <span className={`inline-flex h-7 min-w-9 items-center justify-center rounded-[8px] px-2 text-xs font-bold tracking-[0.06em] ${iconCls}`}>
                                     {SECTION_SHORT[section] ?? section}
                                 </span>
-                                <span className="text-sm font-medium text-foreground/80">
+                                <span className="font-display text-base font-bold text-[#102945]">
                                     {SECTION_LABELS[section] ?? section}
                                 </span>
                             </div>
-                            <span className="text-xs font-semibold text-muted-foreground">
-                                Итого: <span className="text-foreground">{formatScore(sectionTotal)}</span> б.
+                            <span className="text-xs font-semibold text-slate-500">
+                                Итого: <span className="font-display text-base font-bold tabular-nums text-[#102945]">{formatScore(sectionTotal)}</span> б.
                             </span>
                         </div>
                         <div className="admin-table-wrap">
@@ -999,7 +975,7 @@ function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, u
                                         <th className="w-20 text-right">Факт</th>
                                         <th className="w-20 text-right">Баллы</th>
                                         <th className="w-28">Статус</th>
-                                        <th className="w-32 text-right pe-3">Действия</th>
+                                        <th className="w-40 text-right pe-3">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1594,8 +1570,36 @@ export default function TeacherDashboard({
         });
     }, [entrySearch, items]);
 
+    const heroMeta = [currentUser.title, currentUser.faculty_name, currentUser.department_name].filter(Boolean);
+    if (!currentUser.faculty_name && !currentUser.department_name && currentUser.division) {
+        heroMeta.push(currentUser.division);
+    }
+
     return (
         <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Мои показатели"
+                    title={currentUser.name ?? 'KPI — Мои показатели'}
+                    description={heroMeta.length > 0 ? heroMeta.join(' · ') : null}
+                    meta={(activeSeason?.label || academicYear) ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="gap-1.5">
+                                <CalendarRange className="h-3.5 w-3.5 text-teal-700" />
+                                {activeSeason?.label ?? academicYear?.name}
+                            </Badge>
+                            {(period?.status === 'active' || activeSeason) && (
+                                <Badge variant="success">Активный</Badge>
+                            )}
+                        </div>
+                    ) : (
+                        <Badge variant="warning" className="gap-1.5">
+                            <CalendarRange className="h-3.5 w-3.5" />
+                            Сезон не выбран
+                        </Badge>
+                    )}
+                />
+            )}
             headerRight={
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
@@ -1617,25 +1621,26 @@ export default function TeacherDashboard({
                         <form className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2" data-error-field="evidence">
                                 <div className="space-y-2 sm:col-span-2" data-error-field="academic_year_id">
-                                    <label className="text-sm font-medium">Сезон</label>
-                                    <div className="h-9 w-full rounded-md border border-input bg-muted/20 px-3 text-sm shadow-sm flex items-center text-foreground">
+                                    <label className={FIELD_LABEL}>Сезон</label>
+                                    <div className="flex h-10 w-full items-center gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-[#102945]">
+                                        <CalendarRange className="h-4 w-4 shrink-0 text-teal-700" />
                                         {activeSeason?.label ?? academicYear?.name ?? 'Нет активного сезона'}
                                     </div>
                                     <input type="hidden" value={createForm.data.academic_year_id} readOnly />
                                     {!hasActiveSeason && !editingEntryId && (
-                                        <p className="text-xs text-amber-600">
+                                        <Notice tone="warning">
                                             Нет активных KPI-сезонов. Обратитесь к администратору.
-                                        </p>
+                                        </Notice>
                                     )}
                                     {createForm.errors.academic_year_id && (
-                                        <p className="text-sm text-destructive">{createForm.errors.academic_year_id}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.academic_year_id}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2" data-error-field="module">
-                                    <label className="text-sm font-medium">Модуль</label>
+                                    <label className={FIELD_LABEL}>Модуль</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className={SELECT_CLS}
                                         value={createForm.data.module}
                                         onChange={(event) => {
                                             createForm.setData('module', event.target.value);
@@ -1656,13 +1661,13 @@ export default function TeacherDashboard({
                                             <option key={item.value} value={item.value}>{item.label}</option>
                                         ))}
                                     </select>
-                                    {createForm.errors.module && <p className="text-sm text-destructive">{createForm.errors.module}</p>}
+                                    {createForm.errors.module && <p className={FIELD_ERROR}>{createForm.errors.module}</p>}
                                 </div>
 
                                 <div className="space-y-2" data-error-field="group_code">
-                                    <label className="text-sm font-medium">Код блока</label>
+                                    <label className={FIELD_LABEL}>Код блока</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className={SELECT_CLS}
                                         value={createForm.data.group_code}
                                         onChange={(event) => {
                                             createForm.setData('group_code', event.target.value);
@@ -1682,13 +1687,13 @@ export default function TeacherDashboard({
                                             <option key={item.value} value={item.value}>{item.label}</option>
                                         ))}
                                     </select>
-                                    {createForm.errors.group_code && <p className="text-sm text-destructive">{createForm.errors.group_code}</p>}
+                                    {createForm.errors.group_code && <p className={FIELD_ERROR}>{createForm.errors.group_code}</p>}
                                 </div>
 
                                 <div className="space-y-2" data-error-field="indicator_id">
-                                    <label className="text-sm font-medium">Код показателя</label>
+                                    <label className={FIELD_LABEL}>Код показателя</label>
                                     <select
-                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                        className={SELECT_CLS}
                                         value={createForm.data.indicator_id}
                                         onChange={(event) => {
                                             createForm.setData('indicator_id', event.target.value);
@@ -1709,18 +1714,18 @@ export default function TeacherDashboard({
                                             </option>
                                         ))}
                                     </select>
-                                    {createForm.errors.indicator_id && <p className="text-sm text-destructive">{createForm.errors.indicator_id}</p>}
+                                    {createForm.errors.indicator_id && <p className={FIELD_ERROR}>{createForm.errors.indicator_id}</p>}
                                 </div>
                                 {selectedIndicator && (
                                     <div className="space-y-2 sm:col-span-2">
-                                        <label className="text-sm font-medium">Описание показателя</label>
-                                        <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-sm whitespace-pre-line text-foreground/90">
+                                        <label className={FIELD_LABEL}>Описание показателя</label>
+                                        <div className="whitespace-pre-line rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700">
                                             {selectedIndicator.description || 'Описание не указано'}
                                         </div>
                                     </div>
                                 )}
                                 <div className="space-y-2" data-error-field="value">
-                                    <label className="text-sm font-medium">Значение</label>
+                                    <label className={FIELD_LABEL}>Значение</label>
                                     <div className="flex items-center gap-2">
                                         <Input
                                             type="number"
@@ -1732,22 +1737,22 @@ export default function TeacherDashboard({
                                             onChange={handleCreateValueChange}
                                             onKeyDown={handleCreateValueKeyDown}
                                         />
-                                        <span className="shrink-0 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        <span className="flex h-10 shrink-0 items-center rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600">
                                             {selectedIndicator?.unit || 'без ед.'}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Единица измерения: <span className="font-medium text-foreground">{selectedIndicator?.unit || 'не указана'}</span>
+                                    <p className="text-xs text-slate-500">
+                                        Единица измерения: <span className="font-medium text-slate-900">{selectedIndicator?.unit || 'не указана'}</span>
                                     </p>
-                                    <p className="text-xs text-muted-foreground">Значение KPI должно быть целым числом больше 0.</p>
-                                    {createForm.errors.value && <p className="text-sm text-destructive">{createForm.errors.value}</p>}
+                                    <p className="text-xs text-slate-500">Значение KPI должно быть целым числом больше 0.</p>
+                                    {createForm.errors.value && <p className={FIELD_ERROR}>{createForm.errors.value}</p>}
                                 </div>
 
                                 {selectedRuleSpec.kind === 'podium' && (
                                     <div className="space-y-2" data-error-field="rule_place_points">
-                                        <label className="text-sm font-medium">Место</label>
+                                        <label className={FIELD_LABEL}>Место</label>
                                         <select
-                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            className={SELECT_CLS}
                                             value={createForm.data.rule_place_points}
                                             onChange={(event) => createForm.setData('rule_place_points', event.target.value)}
                                         >
@@ -1756,15 +1761,15 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
-                                        {createForm.errors.rule_place_points && <p className="text-sm text-destructive">{createForm.errors.rule_place_points}</p>}
+                                        {createForm.errors.rule_place_points && <p className={FIELD_ERROR}>{createForm.errors.rule_place_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'improvement' && (
                                     <div className="space-y-2" data-error-field="rule_improvement_rate">
-                                        <label className="text-sm font-medium">Тип изменения позиции</label>
+                                        <label className={FIELD_LABEL}>Тип изменения позиции</label>
                                         <select
-                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            className={SELECT_CLS}
                                             value={createForm.data.rule_improvement_rate}
                                             onChange={(event) => createForm.setData('rule_improvement_rate', event.target.value)}
                                         >
@@ -1773,14 +1778,14 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
-                                        {createForm.errors.rule_improvement_rate && <p className="text-sm text-destructive">{createForm.errors.rule_improvement_rate}</p>}
+                                        {createForm.errors.rule_improvement_rate && <p className={FIELD_ERROR}>{createForm.errors.rule_improvement_rate}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'coauthors' && (
                                     <>
                                         <div className="space-y-2" data-error-field="rule_sheet_count">
-                                            <label className="text-sm font-medium">Количество печатных листов</label>
+                                            <label className={FIELD_LABEL}>Количество печатных листов</label>
                                             <Input
                                                 type="number"
                                                 step="1"
@@ -1791,10 +1796,10 @@ export default function TeacherDashboard({
                                                 onChange={(event) => createForm.setData('rule_sheet_count', toPositiveIntegerInput(event.target.value))}
                                                 onKeyDown={handleCreateValueKeyDown}
                                             />
-                                            {createForm.errors.rule_sheet_count && <p className="text-sm text-destructive">{createForm.errors.rule_sheet_count}</p>}
+                                            {createForm.errors.rule_sheet_count && <p className={FIELD_ERROR}>{createForm.errors.rule_sheet_count}</p>}
                                         </div>
                                         <div className="space-y-2" data-error-field="rule_coauthors_count">
-                                            <label className="text-sm font-medium">Количество соавторов</label>
+                                            <label className={FIELD_LABEL}>Количество соавторов</label>
                                             <Input
                                                 type="number"
                                                 step="1"
@@ -1805,16 +1810,16 @@ export default function TeacherDashboard({
                                                 onChange={(event) => createForm.setData('rule_coauthors_count', toPositiveIntegerInput(event.target.value))}
                                                 onKeyDown={handleCreateValueKeyDown}
                                             />
-                                            {createForm.errors.rule_coauthors_count && <p className="text-sm text-destructive">{createForm.errors.rule_coauthors_count}</p>}
+                                            {createForm.errors.rule_coauthors_count && <p className={FIELD_ERROR}>{createForm.errors.rule_coauthors_count}</p>}
                                         </div>
                                     </>
                                 )}
 
                                 {selectedRuleSpec.kind === 'roleSplit' && (
                                     <div className="space-y-2" data-error-field="rule_role_points">
-                                        <label className="text-sm font-medium">Ваша роль</label>
+                                        <label className={FIELD_LABEL}>Ваша роль</label>
                                         <select
-                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            className={SELECT_CLS}
                                             value={createForm.data.rule_role_points}
                                             onChange={(event) => createForm.setData('rule_role_points', event.target.value)}
                                         >
@@ -1823,15 +1828,15 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
-                                        {createForm.errors.rule_role_points && <p className="text-sm text-destructive">{createForm.errors.rule_role_points}</p>}
+                                        {createForm.errors.rule_role_points && <p className={FIELD_ERROR}>{createForm.errors.rule_role_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'quartile' && (
                                     <div className="space-y-2" data-error-field="rule_tier_points">
-                                        <label className="text-sm font-medium">Категория публикации</label>
+                                        <label className={FIELD_LABEL}>Категория публикации</label>
                                         <select
-                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            className={SELECT_CLS}
                                             value={createForm.data.rule_tier_points}
                                             onChange={(event) => createForm.setData('rule_tier_points', event.target.value)}
                                         >
@@ -1840,15 +1845,15 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
-                                        {createForm.errors.rule_tier_points && <p className="text-sm text-destructive">{createForm.errors.rule_tier_points}</p>}
+                                        {createForm.errors.rule_tier_points && <p className={FIELD_ERROR}>{createForm.errors.rule_tier_points}</p>}
                                     </div>
                                 )}
 
                                 {selectedRuleSpec.kind === 'optionRate' && (
                                     <div className="space-y-2 sm:col-span-2" data-error-field="rule_option_points">
-                                        <label className="text-sm font-medium">Категория/условие</label>
+                                        <label className={FIELD_LABEL}>Категория/условие</label>
                                         <select
-                                            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+                                            className={SELECT_CLS}
                                             value={createForm.data.rule_option_points}
                                             onChange={(event) => createForm.setData('rule_option_points', event.target.value)}
                                         >
@@ -1857,44 +1862,40 @@ export default function TeacherDashboard({
                                                 <option key={item.value + item.label} value={item.value}>{item.label}</option>
                                             ))}
                                         </select>
-                                        {createForm.errors.rule_option_points && <p className="text-sm text-destructive">{createForm.errors.rule_option_points}</p>}
+                                        {createForm.errors.rule_option_points && <p className={FIELD_ERROR}>{createForm.errors.rule_option_points}</p>}
                                     </div>
                                 )}
                             </div>
 
                             {selectedIndicator?.scoring_rules && (
-                                <div className="rounded-md border border-border/70 bg-muted/20 p-3 text-xs text-muted-foreground">
-                                    <p className="mb-1 font-medium text-foreground">Правила баллов</p>
-                                    <p>{selectedIndicator.scoring_rules}</p>
-                                </div>
+                                <Notice tone="info" title="Правила баллов">
+                                    <span className="whitespace-pre-line text-xs">{selectedIndicator.scoring_rules}</span>
+                                </Notice>
                             )}
 
                             {calculatedManualPoints !== null && (
-                                <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                                    Расчет по правилу: <span className="font-semibold">{formatScore(calculatedManualPoints)} б.</span>
-                                    {ruleFormulaPreview && (
-                                        <p className="mt-1 text-xs text-emerald-900/80">{ruleFormulaPreview}</p>
-                                    )}
-                                </div>
+                                <Notice tone="success" title={`Расчет по правилу: ${formatScore(calculatedManualPoints)} б.`}>
+                                    {ruleFormulaPreview ? <span className="text-xs">{ruleFormulaPreview}</span> : null}
+                                </Notice>
                             )}
 
                             <div className="space-y-2" data-error-field="comment">
-                                <label className="text-sm font-medium">Комментарий</label>
+                                <label className={FIELD_LABEL}>Комментарий</label>
                                 <textarea
-                                    className="min-h-24 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+                                    className={`${qdFieldClass} h-auto min-h-24 py-2`}
                                     value={createForm.data.comment}
                                     onChange={(event) => createForm.setData('comment', event.target.value)}
                                     placeholder="Комментарий к записи"
                                 />
-                                {createForm.errors.comment && <p className="text-sm text-destructive">{createForm.errors.comment}</p>}
+                                {createForm.errors.comment && <p className={FIELD_ERROR}>{createForm.errors.comment}</p>}
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2" data-error-field="external_source_url">
-                                    <label className="text-sm font-medium">Ссылка на внешний источник</label>
+                                    <label className={FIELD_LABEL}>Ссылка на внешний источник</label>
                                     {editingEntryId && (createForm.data.external_source_urls ?? []).some((url) => String(url ?? '').trim() !== '') && (
-                                        <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
-                                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Текущие ссылки</p>
+                                        <div className={SUBBOX}>
+                                            <p className={SUBBOX_LABEL}>Текущие ссылки</p>
                                             <div className="space-y-1">
                                                 {(createForm.data.external_source_urls ?? [])
                                                     .map((url) => String(url ?? '').trim())
@@ -1905,15 +1906,15 @@ export default function TeacherDashboard({
                                                                 href={link}
                                                                 target="_blank"
                                                                 rel="noreferrer"
-                                                                className="block flex-1 break-all text-xs text-sky-700 underline-offset-2 hover:underline"
+                                                                className="block flex-1 break-all text-xs font-medium text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline"
                                                             >
                                                                 {link}
                                                             </a>
                                                             <Button
                                                                 type="button"
                                                                 size="icon"
-                                                                variant="outline"
-                                                                className="h-7 w-7"
+                                                                variant="ghost"
+                                                                className="h-7 w-7 text-red-700"
                                                                 onClick={() => {
                                                                     const next = (createForm.data.external_source_urls ?? [])
                                                                         .filter((_, idx) => idx !== index);
@@ -1952,7 +1953,7 @@ export default function TeacherDashboard({
                                                             type="button"
                                                             variant="outline"
                                                             size="icon"
-                                                            className="h-9 w-9 shrink-0"
+                                                            className="h-10 w-10 shrink-0"
                                                             onClick={() => createForm.setData('external_source_urls', [
                                                                 ...(createForm.data.external_source_urls ?? ['']),
                                                                 '',
@@ -1966,7 +1967,7 @@ export default function TeacherDashboard({
                                                             type="button"
                                                             variant="outline"
                                                             size="icon"
-                                                            className="h-9 w-9 shrink-0"
+                                                            className="h-10 w-10 shrink-0"
                                                             onClick={() => {
                                                                 if (!canRemove) {
                                                                     return;
@@ -1985,28 +1986,28 @@ export default function TeacherDashboard({
                                             );
                                         })}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs text-slate-500">
                                         Можно добавить до {MAX_EXTERNAL_LINKS} ссылок. Пустые строки не отправляются.
                                     </p>
                                     {createForm.errors.external_source_url && (
-                                        <p className="text-sm text-destructive">{createForm.errors.external_source_url}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.external_source_url}</p>
                                     )}
                                     {createForm.errors.external_source_urls && (
-                                        <p className="text-sm text-destructive">{createForm.errors.external_source_urls}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.external_source_urls}</p>
                                     )}
                                     {createForm.errors['external_source_urls.0'] && (
-                                        <p className="text-sm text-destructive">{createForm.errors['external_source_urls.0']}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors['external_source_urls.0']}</p>
                                     )}
                                     {createForm.errors.evidence && (
-                                        <p className="text-sm text-destructive">{createForm.errors.evidence}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.evidence}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2" data-error-field="files">
-                                    <label className="text-sm font-medium">Файл подтверждения</label>
+                                    <label className={FIELD_LABEL}>Файл подтверждения</label>
                                     {editingEntryId && editingEntryFiles.length > 0 && (
-                                        <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
-                                            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Уже прикреплены</p>
+                                        <div className={SUBBOX}>
+                                            <p className={SUBBOX_LABEL}>Уже прикреплены</p>
                                             <div className="space-y-1">
                                                 {editingEntryFiles.map((file) => (
                                                     <div key={`editing-file-${file.id}`} className="flex items-center gap-2">
@@ -2014,17 +2015,17 @@ export default function TeacherDashboard({
                                                             href={file.file_url}
                                                             target="_blank"
                                                             rel="noreferrer"
-                                                            className="flex min-w-0 flex-1 items-center gap-2 text-xs text-sky-700 underline-offset-2 hover:underline"
+                                                            className="flex min-w-0 flex-1 items-center gap-2 text-xs font-medium text-teal-700 underline-offset-2 hover:text-[#102945] hover:underline"
                                                         >
                                                             <Paperclip className="h-3 w-3 shrink-0" />
                                                             <span className="truncate">{file.file_name}</span>
-                                                            <span className="text-muted-foreground">({formatFileSize(file.file_size)})</span>
+                                                            <span className="font-normal text-slate-500">({formatFileSize(file.file_size)})</span>
                                                         </a>
                                                         <Button
                                                             type="button"
                                                             size="icon"
-                                                            variant="outline"
-                                                            className="h-7 w-7"
+                                                            variant="ghost"
+                                                            className="h-7 w-7 text-red-700"
                                                             onClick={() => removeEditingFile(file.id)}
                                                             aria-label="Удалить файл"
                                                         >
@@ -2039,7 +2040,7 @@ export default function TeacherDashboard({
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="h-10 w-full justify-between"
+                                            className="w-full justify-between border-dashed"
                                             onClick={() => createFileInputRef.current?.click()}
                                         >
                                             <span>Добавить файл</span>
@@ -2063,54 +2064,54 @@ export default function TeacherDashboard({
 
                                         {/* Display selected files list */}
                                         {createFilesList.length > 0 && (
-                                            <div className="rounded-md border border-border/70 bg-muted/20 p-2.5">
-                                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            <div className={SUBBOX}>
+                                                <p className={SUBBOX_LABEL}>
                                                     Выбранные файлы ({createFilesList.length})
                                                 </p>
                                                 <div className="space-y-1">
                                                     {createFilesList.map((file, index) => (
                                                         <div key={`new-file-${index}`} className="flex items-center gap-2 text-xs">
-                                                            <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                                            <span className="min-w-0 flex-1 truncate">{file.name}</span>
-                                                            <span className="shrink-0 text-muted-foreground">({formatFileSize(file.size)})</span>
+                                                            <Paperclip className="h-3 w-3 shrink-0 text-slate-400" />
+                                                            <span className="min-w-0 flex-1 truncate text-slate-800">{file.name}</span>
+                                                            <span className="shrink-0 tabular-nums text-slate-500">({formatFileSize(file.size)})</span>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <div className="mt-2 border-t border-border/50 pt-2 text-xs">
-                                                    <div className="flex justify-between text-muted-foreground">
+                                                <div className="mt-2 border-t border-slate-200 pt-2 text-xs">
+                                                    <div className="flex justify-between text-slate-500">
                                                         <span>Всего:</span>
-                                                        <span className={isTotalFileSizeExceeded ? 'text-red-600 font-semibold' : ''}>
+                                                        <span className={isTotalFileSizeExceeded ? 'font-semibold tabular-nums text-red-700' : 'tabular-nums'}>
                                                             {formatFileSize(totalUploadedFileSize)} / {formatFileSize(totalMaxFileSize)}
                                                         </span>
                                                     </div>
                                                     {isTotalFileSizeExceeded && (
-                                                        <p className="mt-1 text-red-600 font-medium">Превышен общий лимит размера файлов</p>
+                                                        <p className="mt-1 font-medium text-red-700">Превышен общий лимит размера файлов</p>
                                                     )}
                                                 </div>
                                             </div>
                                         )}
 
                                         {createFilesList.length === 0 && (
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-xs text-slate-500">
                                                 Файлы не выбраны (до 100 МБ суммарно)
                                             </p>
                                         )}
                                     </div>
                                     {(createForm.errors.files || createForm.errors['files.0']) && (
-                                        <p className="text-sm text-destructive">{createForm.errors.files || createForm.errors['files.0']}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.files || createForm.errors['files.0']}</p>
                                     )}
                                     {createForm.errors.evidence && (
-                                        <p className="text-sm text-destructive">{createForm.errors.evidence}</p>
+                                        <p className={FIELD_ERROR}>{createForm.errors.evidence}</p>
                                     )}
                                 </div>
                             </div>
 
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-slate-500">
                                 Файл можно прикрепить сразу при создании записи.
                                 {selectedIndicator?.requires_file ? ' Для выбранного показателя файл обязателен.' : ''}
                             </p>
 
-                            <DialogFooter className="gap-2">
+                            <DialogFooter className="gap-2 border-t border-slate-200 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -2135,176 +2136,110 @@ export default function TeacherDashboard({
         >
             <Head title="KPI — Мои показатели" />
 
-            <div className="admin-page-wrap">
-
-                {/* ── Header ─────────────────────────────────────────── */}
-                <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
-                    <div className="flex items-center gap-3.5">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#139AA4] to-[#1a6bb5] shadow-sm">
-                            <User className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold leading-tight text-[#132844]">
-                                {currentUser.name ?? 'KPI — Мои показатели'}
-                            </h1>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                {currentUser.title && <span>{currentUser.title}</span>}
-                                {currentUser.faculty_name && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="text-muted-foreground/40">·</span>
-                                        {currentUser.faculty_name}
-                                    </span>
-                                )}
-                                {currentUser.department_name && (
-                                    <span className="flex items-center gap-1">
-                                        <span className="text-muted-foreground/40">·</span>
-                                        {currentUser.department_name}
-                                    </span>
-                                )}
-                                {!currentUser.faculty_name && !currentUser.department_name && currentUser.division && (
-                                    <span className="text-muted-foreground/70">{currentUser.division}</span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-2">
-                            {(activeSeason?.label || academicYear) ? (
-                                <>
-                                    <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground">
-                                        <strong className="text-foreground">{activeSeason?.label ?? academicYear?.name}</strong>
-                                    </span>
-                                    {(period?.status === 'active' || activeSeason) && (
-                                        <Badge variant="default" className="h-5 text-[0.65rem] px-2">Активный</Badge>
-                                    )}
-                                </>
-                            ) : (
-                                <span className="text-xs text-amber-600 flex items-center gap-1">
-                                    <CalendarRange className="h-3.5 w-3.5" />
-                                    Сезон не выбран
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            <div className="admin-page-wrap space-y-6">
 
                 {/* ── Faculty/Department binding reminder ──────────────── */}
                 {(!currentUser?.faculty_name || !currentUser?.department_name) && (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm text-blue-800">
-                        <div className="mt-0.5 h-5 w-5 shrink-0 text-blue-600">ℹ️</div>
-                        <div>
-                            <strong>Требуется привязка к структурным подразделениям:</strong>
-                            <p className="mt-1">Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.</p>
-                            <p className="mt-2">
-                                <Link href={route('profile.edit')} className="font-semibold underline decoration-blue-400 underline-offset-2 hover:text-blue-900">
-                                    Перейти в профиль →
-                                </Link>
-                            </p>
-                        </div>
-                    </div>
+                    <Notice
+                        tone="info"
+                        title="Требуется привязка к структурным подразделениям"
+                        action={(
+                            <Button asChild size="sm" variant="outline" className="shrink-0">
+                                <Link href={route('profile.edit')}>Перейти в профиль</Link>
+                            </Button>
+                        )}
+                    >
+                        Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.
+                    </Notice>
                 )}
+
+                {/* ── Stat tiles ─────────────────────────────────────── */}
+                <StatGrid className="xl:grid-cols-5">
+                    <StatTile icon={BarChart3} label="Всего записей" value={summary.total_entries ?? 0} tone="navy" />
+                    <StatTile icon={TrendingUp} label="Утверждено" value={summary.approved_entries ?? 0} tone="success" />
+                    <StatTile icon={CircleX} label="Отклоненные" value={summary.rejected_entries ?? 0} tone="danger" />
+                    <StatTile icon={Clock} label="На проверке" value={summary.pending_entries ?? 0} tone="warning" />
+                    <StatTile icon={Award} label="Баллов" value={formatScore(summary.total_points)} tone="gold" />
+                </StatGrid>
 
                 {/* ── Result score card ──────────────────────────────── */}
                 {result ? (
                     <ResultScoreCard result={result} />
                 ) : (
-                    <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-muted/30 px-3.5 py-2.5 text-sm text-muted-foreground">
-                        <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
-                        Итоговый рейтинг ещё не сформирован — период не закрыт или расчёт не завершён.
-                    </div>
+                    <Notice tone="brand" title="Итоговый рейтинг ещё не сформирован">
+                        Период не закрыт или расчёт не завершён.
+                    </Notice>
                 )}
 
-                {/* ── Stat cards ─────────────────────────────────────── */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    <StatCard icon={BarChart3} label="Всего записей" value={summary.total_entries ?? 0} />
-                    <StatCard icon={TrendingUp} label="Утверждено" value={summary.approved_entries ?? 0} accent="green" />
-                    <StatCard label="Отклоненные" value={summary.rejected_entries ?? 0} accent="red" />
-                    <StatCard icon={Clock} label="На проверке" value={summary.pending_entries ?? 0} accent="amber" />
-                    <StatCard label="Баллов" value={formatScore(summary.total_points)} accent="teal" />
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={activeMainTab === 'entries' ? 'default' : 'outline'}
-                        onClick={() => setActiveMainTab('entries')}
-                    >
-                        Показатели
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant={activeMainTab === 'reference' ? 'default' : 'outline'}
-                        onClick={() => setActiveMainTab('reference')}
-                        disabled={indicatorReferenceItems.length === 0}
-                    >
-                        Справочник индикаторов
-                    </Button>
-                </div>
+                <UnderlineTabs
+                    items={[
+                        { key: 'entries', label: 'Показатели', icon: FileText, count: items.length },
+                        { key: 'reference', label: 'Справочник индикаторов', icon: BookOpen, count: indicatorReferenceItems.length, disabled: indicatorReferenceItems.length === 0 },
+                    ]}
+                    value={activeMainTab}
+                    onChange={(key) => {
+                        if (key === 'reference' && indicatorReferenceItems.length === 0) {
+                            return;
+                        }
+                        setActiveMainTab(key);
+                    }}
+                />
 
                 {activeMainTab === 'reference' && indicatorReferenceItems.length > 0 && (
-                    <Card className="admin-surface">
-                        <CardHeader className="pb-3 pt-4">
-                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                                <BookOpen className="h-4 w-4 text-[#139AA4]" />
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpen />
                                 Справочник KPI-индикаторов
-                                <span className="ml-auto font-normal text-xs text-muted-foreground">
-                                    Дополнительный раздел ({userLevelLabel})
-                                </span>
                             </CardTitle>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                Дополнительный раздел ({userLevelLabel})
+                                <Badge variant="outline">{indicatorReferenceItems.length} индикаторов</Badge>
+                            </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="rounded-xl border border-border/70 bg-background/60 p-3 sm:p-4">
-                                <div className="mb-3 flex items-center justify-between gap-2">
-                                    <h3 className="text-sm font-semibold text-[#132844]">Индикаторы для роли: {userLevelLabel}</h3>
-                                    <Badge variant="outline">{indicatorReferenceItems.length} индикаторов</Badge>
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[980px] text-sm">
-                                        <thead>
-                                            <tr className="border-b text-left text-muted-foreground">
-                                                <th className="py-2.5 pe-3 font-medium">Секция</th>
-                                                <th className="py-2.5 pe-3 font-medium">Структурное подразделение (проверяющее)</th>
-                                                <th className="py-2.5 pe-3 font-medium">Код</th>
-                                                <th className="py-2.5 pe-3 font-medium">Название</th>
-                                                <th className="py-2.5 pe-3 font-medium">Баллы</th>
-                                                <th className="py-2.5 pe-3 font-medium">Правила баллов</th>
-                                                <th className="py-2.5 pe-3 font-medium">Описание</th>
-                                                <th className="py-2.5 pe-3 font-medium">Статус</th>
+                        <CardContent className="p-0">
+                            <p className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-[#102945]">Индикаторы для роли: {userLevelLabel}</p>
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[980px] text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 text-left">
+                                            <th className="px-4 py-3">Секция</th>
+                                            <th className="px-4 py-3">Структурное подразделение (проверяющее)</th>
+                                            <th className="px-4 py-3">Код</th>
+                                            <th className="px-4 py-3">Название</th>
+                                            <th className="px-4 py-3 text-right">Баллы</th>
+                                            <th className="px-4 py-3">Правила баллов</th>
+                                            <th className="px-4 py-3">Описание</th>
+                                            <th className="px-4 py-3">Статус</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {indicatorReferenceItems.map((indicator) => (
+                                            <tr key={indicator.id} className="border-b border-slate-200 align-top last:border-0">
+                                                <td className="px-4 py-3 text-slate-700">{indicator.module_label ?? SECTION_LABELS[indicator.section] ?? indicator.section}</td>
+                                                <td className="px-4 py-3 text-slate-700">
+                                                    {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
+                                                        ? indicator.structural_units
+                                                            .map((unit) => unit?.name)
+                                                            .filter(Boolean)
+                                                            .join(', ')
+                                                        : (indicator.checker_structural_unit?.name ?? 'Не указано')}
+                                                </td>
+                                                <td className="px-4 py-3 font-mono text-xs text-slate-600">{indicator.code}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-medium text-slate-900">{indicator.name}</div>
+                                                    <div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
+                                                <td className="max-w-[260px] whitespace-pre-line px-4 py-3 text-slate-600">{indicator.scoring_rules || '—'}</td>
+                                                <td className="px-4 py-3 text-slate-700">{indicator.description || '—'}</td>
+                                                <td className="px-4 py-3">
+                                                    {indicator.is_active ? <Badge variant="success">Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {indicatorReferenceItems.map((indicator) => (
-                                                <tr key={indicator.id} className="border-b align-top last:border-0">
-                                                    <td className="py-2.5 pe-3">{indicator.module_label ?? SECTION_LABELS[indicator.section] ?? indicator.section}</td>
-                                                    <td className="py-2.5 pe-3">
-                                                        {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
-                                                            ? indicator.structural_units
-                                                                .map((unit) => unit?.name)
-                                                                .filter(Boolean)
-                                                                .join(', ')
-                                                            : (indicator.checker_structural_unit?.name ?? 'Не указано')}
-                                                    </td>
-                                                    <td className="py-2.5 pe-3 font-mono">{indicator.code}</td>
-                                                    <td className="py-2.5 pe-3">
-                                                        <div className="font-medium">{indicator.name}</div>
-                                                        <div className="text-xs text-muted-foreground">{indicator.unit || 'без единиц'}</div>
-                                                    </td>
-                                                    <td className="py-2.5 pe-3">{indicator.base_points}</td>
-                                                    <td className="py-2.5 pe-3 whitespace-pre-line text-muted-foreground max-w-[260px]">{indicator.scoring_rules || '—'}</td>
-                                                    <td className="py-2.5 pe-3">{indicator.description || '—'}</td>
-                                                    <td className="py-2.5 pe-3">
-                                                        {indicator.is_active ? <Badge>Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </CardContent>
                     </Card>
@@ -2312,95 +2247,113 @@ export default function TeacherDashboard({
 
                 {/* ── Entries by section ─────────────────────────────── */}
                 {activeMainTab === 'entries' && (
-                    <Card className="admin-surface">
-                        <CardHeader className="pb-3 pt-4">
-                            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-[#132844]">
-                                <FileText className="h-4 w-4 text-[#139AA4]" />
-                                Мои записи KPI по разделам
-                                <span className="ml-auto font-normal text-xs text-muted-foreground">
-                                    Нажмите на строку для истории утверждения
-                                </span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {/* Entry filter bar */}
-                            <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={applyFilters}>
-                                <div>
-                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Этап</p>
-                                    <select
-                                        className={SELECT_CLS}
-                                        value={filterForm.data.stage}
-                                        onChange={(e) => filterForm.setData('stage', e.target.value)}
-                                    >
-                                        <option value="plan">План</option>
-                                        <option value="fact">Факт</option>
-                                        <option value="review">Рассмотрение</option>
-                                    </select>
+                    <>
+                        <FilterBar>
+                            <form className="space-y-4" onSubmit={applyFilters}>
+                                <div className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
+                                    <Filter className="h-4 w-4 text-teal-700" />
+                                    Фильтры записей
                                 </div>
-                                <div>
-                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Модуль</p>
-                                    <select
-                                        className={SELECT_CLS}
-                                        value={filterForm.data.module}
-                                        onChange={(e) => filterForm.setData('module', e.target.value)}
-                                    >
-                                        <option value="">Все</option>
-                                        {modules.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <p className="mb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">Статус</p>
-                                    <select
-                                        className={SELECT_CLS}
-                                        value={filterForm.data.status}
-                                        onChange={(e) => filterForm.setData('status', e.target.value)}
-                                    >
-                                        <option value="">Все</option>
-                                        {statusOptions.map((s) => <option key={s} value={s}>{statusLabels[s] ?? s}</option>)}
-                                    </select>
-                                </div>
-                                <Button type="submit" size="sm">Применить</Button>
-                                <Button type="button" size="sm" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                            </form>
-
-                            <div className="mb-4">
-                                <Input
-                                    value={entrySearch}
-                                    onChange={(event) => setEntrySearch(event.target.value)}
-                                    placeholder="Быстрый поиск по моим KPI-записям: показатель, код, статус, баллы, комментарий, действия"
-                                />
-                            </div>
-
-                            {filteredItems.length === 0 ? (
-                                <div className="admin-empty-state">
-                                    <BookOpen className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                                    Записи не найдены. Измените фильтры или очистите быстрый поиск.
-                                </div>
-                            ) : (
-                                <EntriesBySection items={filteredItems} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
-                            )}
-
-                            {links.length > 3 && (
-                                <div className="mt-6 flex flex-wrap gap-2">
-                                    {links.map((link, index) => (
-                                        <Button
-                                            key={`${link.label}-${index}`}
-                                            variant={link.active ? 'default' : 'outline'}
-                                            size="sm"
-                                            disabled={!link.url}
-                                            asChild={Boolean(link.url)}
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <label className="block space-y-2">
+                                        <span className={FIELD_LABEL}>Этап</span>
+                                        <select
+                                            className={SELECT_CLS}
+                                            value={filterForm.data.stage}
+                                            onChange={(e) => filterForm.setData('stage', e.target.value)}
                                         >
-                                            {link.url ? (
-                                                <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                            ) : (
-                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                            )}
-                                        </Button>
-                                    ))}
+                                            <option value="plan">План</option>
+                                            <option value="fact">Факт</option>
+                                            <option value="review">Рассмотрение</option>
+                                        </select>
+                                    </label>
+                                    <label className="block space-y-2">
+                                        <span className={FIELD_LABEL}>Модуль</span>
+                                        <select
+                                            className={SELECT_CLS}
+                                            value={filterForm.data.module}
+                                            onChange={(e) => filterForm.setData('module', e.target.value)}
+                                        >
+                                            <option value="">Все</option>
+                                            {modules.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                                        </select>
+                                    </label>
+                                    <label className="block space-y-2">
+                                        <span className={FIELD_LABEL}>Статус</span>
+                                        <select
+                                            className={SELECT_CLS}
+                                            value={filterForm.data.status}
+                                            onChange={(e) => filterForm.setData('status', e.target.value)}
+                                        >
+                                            <option value="">Все</option>
+                                            {statusOptions.map((st) => <option key={st} value={st}>{statusLabels[st] ?? st}</option>)}
+                                        </select>
+                                    </label>
+                                    <label className="block space-y-2">
+                                        <span className={FIELD_LABEL}>Быстрый поиск</span>
+                                        <span className="relative block">
+                                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                            <Input
+                                                className="pl-9"
+                                                value={entrySearch}
+                                                onChange={(event) => setEntrySearch(event.target.value)}
+                                                placeholder="Показатель, код, статус, баллы, комментарий, действия"
+                                            />
+                                        </span>
+                                    </label>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                                    <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                                    <Button type="submit">Применить</Button>
+                                </div>
+                            </form>
+                        </FilterBar>
+
+                        {filteredItems.length === 0 ? (
+                            <EmptyState
+                                title="Записи не найдены"
+                                description="Измените фильтры или очистите быстрый поиск. Новую KPI-запись можно создать кнопкой «Создать запись» в шапке страницы."
+                                action={entrySearch !== '' ? (
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setEntrySearch('')}>Очистить поиск</Button>
+                                ) : null}
+                            />
+                        ) : (
+                            <Card>
+                                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <FileText />
+                                        Мои записи KPI по разделам
+                                    </CardTitle>
+                                    <span className="text-xs text-slate-500">
+                                        Нажмите на строку для истории утверждения
+                                    </span>
+                                </CardHeader>
+                                <CardContent>
+                                    <EntriesBySection items={filteredItems} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
+
+                                    {links.length > 3 && (
+                                        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+                                            {links.map((link, index) => (
+                                                <Button
+                                                    key={`${link.label}-${index}`}
+                                                    variant={link.active ? 'default' : 'outline'}
+                                                    size="sm"
+                                                    disabled={!link.url}
+                                                    asChild={Boolean(link.url)}
+                                                >
+                                                    {link.url ? (
+                                                        <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                    ) : (
+                                                        <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                    )}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                    </>
                 )}
             </div>
             <ConfirmDialog

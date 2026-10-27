@@ -6,6 +6,7 @@ import StepEmployee from '@/components/hr-hiring/StepEmployee';
 import { fieldElementId, fieldId, fullNameAccusative, missingFields, parseIin } from '@/components/hr-hiring/logic';
 import { buttonClassName, MissingFieldsContext, StatusBadge, validationErrors } from '@/components/hr-hiring/ui';
 import { Head, Link, router } from '@inertiajs/react';
+import { PageHeader } from '@/components/platform';
 import axios from 'axios';
 import { ArrowLeft, ArrowRight, Check, CircleAlert, FlaskConical, FolderOpen, LoaderCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -313,19 +314,18 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
     };
 
     return (
-        <AuthenticatedLayout>
-            <Head title={`${fullName || 'Новый приём'} — приём на работу`} />
-            <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="min-w-0">
-                        <Link href={route('hr.hiring.index')} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-                            <ArrowLeft className="h-4 w-4" /> Все приёмы
-                        </Link>
-                        <h2 className="mt-1 flex flex-wrap items-center gap-3 text-2xl font-semibold text-slate-900">
-                            {fullName || 'Новый приём'}
-                            <StatusBadge status={hiring.status} label={hiring.status_label} />
-                        </h2>
-                    </div>
+        <AuthenticatedLayout
+            header={(
+                <div className="space-y-3">
+                    <Link href={route('hr.hiring.index')} className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.08em] text-teal-700 hover:text-[#102945]">
+                        <ArrowLeft className="h-4 w-4" /> Все приёмы
+                    </Link>
+                    <PageHeader
+                        eyebrow="Отдел кадров · Оформление приёма"
+                        title={fullName || 'Новый приём'}
+                        description={current.hint}
+                        meta={<StatusBadge status={hiring.status} label={hiring.status_label} />}
+                        actions={(
                     <div className="flex flex-wrap items-center gap-3 text-sm">
                         <SaveIndicator saveState={saveState} hasFieldErrors={Object.keys(errors).length > 0} onShowError={showFirstError} onRetry={() => runSave().catch(() => {})} />
                         {abilities.rights && hiring.status === 'draft' && (
@@ -337,9 +337,14 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                             <FolderOpen className="h-4 w-4" /> Карточка приёма
                         </Link>
                     </div>
+                        )}
+                    />
                 </div>
-
-                <nav role="tablist" aria-label="Шаги оформления" className="grid grid-cols-3 gap-2">
+            )}
+        >
+            <Head title={`${fullName || 'Новый приём'} — приём на работу`} />
+            <div className="admin-page-wrap space-y-6">
+                <nav role="tablist" aria-label="Шаги оформления" className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
                     {STEPS.map((item) => {
                         const active = step === item.value;
                         const count = stepCounts[item.value];
@@ -350,14 +355,14 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                                 role="tab"
                                 aria-selected={active}
                                 onClick={() => changeStep(item.value)}
-                                className={`flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-2.5 text-center transition sm:flex-row sm:gap-3 sm:px-4 sm:py-3 sm:text-left ${active ? 'border-teal-500 bg-white shadow-sm ring-1 ring-teal-500/30' : 'border-slate-200 bg-white/70 hover:border-slate-300 hover:bg-white'}`}
+                                className={`-mb-px flex flex-col items-center gap-1.5 border-b-[3px] border-l border-l-slate-200 px-2 py-3 text-center transition-colors first:border-l-0 sm:flex-row sm:gap-3 sm:px-5 sm:py-4 sm:text-left ${active ? 'border-b-teal-600 bg-teal-50/60' : 'border-b-transparent hover:bg-slate-50'}`}
                             >
-                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${active ? 'bg-teal-600 text-white' : count === 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-base font-bold ${active ? 'bg-teal-700 text-white' : count === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                                     {count === 0 && !active ? <Check className="h-4 w-4" /> : item.value}
                                 </span>
                                 <span className="min-w-0">
-                                    <span className="block text-xs font-semibold text-slate-900 sm:text-sm">{item.label}</span>
-                                    <span className={`hidden text-xs sm:block ${count > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                                    <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[#102945]">{item.label}</span>
+                                    <span className={`mt-0.5 hidden text-xs font-medium sm:block ${count > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                                         {count > 0 ? `Нужно заполнить: ${count}` : 'Всё заполнено'}
                                     </span>
                                 </span>
@@ -367,9 +372,9 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                 </nav>
 
                 <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
-                    <section aria-label="Данные приёма" className="min-w-0 space-y-4">
+                    <section aria-label="Данные приёма" className="min-w-0 space-y-6">
                         <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
-                            <span>{current.hint}</span>
+                            <span className="qd-kicker">Шаг {step} · {current.label}</span>
                             <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
                                 <span className="h-2 w-2 rounded-full bg-amber-400" /> — нужно для документов
                             </span>
@@ -389,11 +394,11 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                             {step === 3 && <StepContract {...stepProps} onGoTo={goTo} />}
                         </MissingFieldsContext.Provider>
 
-                        <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
-                            <button type="button" disabled={step === 1} onClick={() => changeStep(step - 1)} className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 disabled:invisible">
+                        <div className="sticky bottom-3 z-20 flex items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_12px_32px_0_rgba(25,28,29,0.10)]">
+                            <button type="button" disabled={step === 1} onClick={() => changeStep(step - 1)} className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] text-slate-600 hover:text-[#102945] disabled:invisible">
                                 <ArrowLeft className="h-4 w-4" /> Назад
                             </button>
-                            <span className="hidden text-xs text-slate-500 sm:block">Шаг {step} из {STEPS.length}</span>
+                            <span className="hidden text-xs font-medium tabular-nums text-slate-500 sm:block">Шаг {step} из {STEPS.length}</span>
                             {step < STEPS.length ? (
                                 <button type="button" onClick={() => changeStep(step + 1)} className={buttonClassName.primary}>
                                     Далее: {STEPS[step].label} <ArrowRight className="h-4 w-4" />
@@ -448,14 +453,14 @@ function closestFieldElement(field) {
 
 function SaveIndicator({ saveState, hasFieldErrors, onShowError, onRetry }) {
     if (saveState.status === 'saving') {
-        return <span className="inline-flex items-center gap-1.5 text-slate-500"><LoaderCircle className="h-4 w-4 animate-spin" /> Сохранение…</span>;
+        return <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600"><LoaderCircle className="h-4 w-4 animate-spin" /> Сохранение…</span>;
     }
     if (saveState.status === 'dirty') {
-        return <span className="text-slate-500">Изменения сохранятся автоматически</span>;
+        return <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Изменения сохранятся автоматически</span>;
     }
     if (saveState.status === 'error') {
         return (
-            <span className="inline-flex items-center gap-1.5 text-rose-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-700">
                 <CircleAlert className="h-4 w-4" /> {saveState.message}
                 {hasFieldErrors
                     ? <button type="button" onClick={onShowError} className="font-medium underline hover:no-underline">Показать</button>
@@ -465,7 +470,7 @@ function SaveIndicator({ saveState, hasFieldErrors, onShowError, onRetry }) {
     }
 
     return (
-        <span className="inline-flex items-center gap-1.5 text-emerald-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
             <Check className="h-4 w-4" />
             {saveState.at ? `Сохранено в ${saveState.at.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}` : 'Сохранено'}
         </span>

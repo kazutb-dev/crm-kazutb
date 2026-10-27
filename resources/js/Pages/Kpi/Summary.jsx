@@ -1,19 +1,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, Notice, PageHeader, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
 import {
-    Bot,
     BarChart3,
     BookOpen,
     Building2,
     CalendarRange,
-    Copy,
-    FileDown,
+    FileSpreadsheet,
     FileText,
     GraduationCap,
-    Sparkles,
     TrendingUp,
     Users,
 } from 'lucide-react';
@@ -40,12 +38,12 @@ const SECTION_SHORT = {
 };
 
 const SECTION_ICON_COLOR = {
-    teaching: 'bg-blue-50 text-blue-700',
-    science: 'bg-violet-50 text-violet-700',
-    social: 'bg-emerald-50 text-emerald-700',
-    qualification: 'bg-amber-50 text-amber-700',
-    survey: 'bg-cyan-50 text-cyan-700',
-    other: 'bg-muted text-muted-foreground',
+    teaching: 'border-blue-200 bg-blue-50 text-blue-700',
+    science: 'border-teal-200 bg-teal-50 text-teal-700',
+    social: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    qualification: 'border-amber-200 bg-amber-50 text-amber-800',
+    survey: 'border-orange-200 bg-orange-50 text-orange-700',
+    other: 'border-slate-200 bg-slate-100 text-slate-600',
 };
 
 const STATUS_LABELS = {
@@ -60,16 +58,16 @@ const STATUS_LABELS = {
     locked: 'Заблокировано',
 };
 
-const STATUS_VARIANTS = {
-    draft: 'secondary',
-    submitted: 'outline',
-    returned: 'destructive',
-    reviewed: 'secondary',
-    pending_dean: 'outline',
-    pending_structural: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
-    locked: 'secondary',
+const STATUS_TONES = {
+    draft: 'default',
+    submitted: 'info',
+    returned: 'warning',
+    reviewed: 'info',
+    pending_dean: 'info',
+    pending_structural: 'info',
+    approved: 'success',
+    rejected: 'danger',
+    locked: 'default',
 };
 
 const ROLE_TABS = {
@@ -113,10 +111,10 @@ const SP_STATUS_LABELS = {
     rejected: 'Отклонено СП',
 };
 
-const SP_STATUS_VARIANTS = {
-    pending: 'outline',
-    approved: 'default',
-    rejected: 'destructive',
+const SP_STATUS_TONES = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
 };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -424,57 +422,39 @@ function buildMinePpsRow(summary) {
     };
 }
 
-const SELECT_CLS =
-    'h-9 rounded-md border border-input bg-background/70 px-3 text-sm shadow-sm transition-colors hover:border-ring focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+const SELECT_CLS = qdFieldClass;
 
 // ─── stat card ───────────────────────────────────────────────────────────────
 
-const ACCENT_TOP = {
-    green: 'before:bg-emerald-500',
-    blue: 'before:bg-blue-500',
-    amber: 'before:bg-amber-500',
-    teal: 'before:bg-teal-500',
-    default: 'before:bg-border/60',
-};
-
-const ACCENT_VALUE = {
-    green: 'text-emerald-600',
-    blue: 'text-blue-600',
-    amber: 'text-amber-600',
-    teal: 'text-teal-600',
-    default: 'text-foreground',
+const ACCENT_TONE = {
+    green: 'success',
+    blue: 'info',
+    amber: 'warning',
+    teal: 'teal',
+    default: 'navy',
 };
 
 function StatCard({ icon: Icon, label, value, sub, accent = 'default' }) {
-    const isEmpty = value === 0 || value === '0.00';
     return (
-        <div
-            className={[
-                'relative overflow-hidden rounded-xl border border-border/80 bg-white/90 px-4 py-3.5 backdrop-blur',
-                'before:absolute before:inset-x-0 before:top-0 before:h-0.5',
-                ACCENT_TOP[accent] ?? ACCENT_TOP.default,
-                'shadow-[0_6px_18px_rgba(15,36,63,0.07)]',
-            ].join(' ')}
-        >
-            <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground/80 mb-1">{label}</p>
-                    <p className={[
-                        'text-2xl font-bold tabular-nums leading-none',
-                        isEmpty ? 'text-muted-foreground/60' : (ACCENT_VALUE[accent] ?? 'text-foreground'),
-                    ].join(' ')}>
-                        {value}
-                    </p>
-                    {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
-                </div>
-                {Icon && (
-                    <div className="shrink-0 rounded-lg bg-muted/50 p-1.5">
-                        <Icon className="h-4 w-4 text-muted-foreground/60" />
-                    </div>
-                )}
-            </div>
-        </div>
+        <StatTile
+            icon={Icon}
+            label={label}
+            value={value}
+            hint={sub}
+            tone={ACCENT_TONE[accent] ?? 'navy'}
+        />
     );
+}
+
+function StatRow({ children, cols = 4 }) {
+    const colsClass = {
+        3: 'sm:grid-cols-3',
+        4: 'sm:grid-cols-2 xl:grid-cols-4',
+        5: 'sm:grid-cols-3 xl:grid-cols-5',
+        6: 'sm:grid-cols-3 xl:grid-cols-6',
+    }[cols] ?? 'sm:grid-cols-2 xl:grid-cols-4';
+
+    return <div className={`grid gap-4 ${colsClass}`}>{children}</div>;
 }
 
 // ─── result score card ───────────────────────────────────────────────────────
@@ -485,29 +465,26 @@ function ResultScoreCard({ result, label = 'Итоговый рейтинг R' }
     const rVal = Number(result.rank_score ?? 0);
 
     return (
-        <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
-            {/* accent bar */}
-            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
-                {/* R score */}
+        <div className="relative overflow-hidden rounded-[14px] bg-[#082834] p-6 text-white">
+            <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" aria-hidden="true" />
+            <div className="relative flex flex-wrap items-end gap-x-10 gap-y-6">
                 <div>
-                    <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
+                    <p className="qd-kicker text-teal-300">{label}</p>
                     <p className={[
-                        'text-4xl font-bold tabular-nums leading-none',
-                        rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50',
+                        'mt-3 font-display text-5xl font-bold tabular-nums leading-none',
+                        rVal > 0 ? 'text-white' : 'text-white/40',
                     ].join(' ')}>
                         {fmt(rVal)}
                     </p>
                 </div>
-                {/* K scores */}
                 {hasAnyScore && (
-                    <div className="flex gap-4">
+                    <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-6">
                         {['k1', 'k2', 'k3', 'k4', 'k5', 'k6'].map((k, i) => (
-                            <div key={k} className="text-center min-w-[2.5rem]">
-                                <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">K{i + 1}</p>
+                            <div key={k} className="min-w-[3.5rem] bg-[#082834] px-3 py-2 text-center">
+                                <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/55">K{i + 1}</p>
                                 <p className={[
-                                    'text-sm font-bold tabular-nums',
-                                    result[k] > 0 ? 'text-foreground' : 'text-muted-foreground/40',
+                                    'mt-0.5 text-sm font-bold tabular-nums',
+                                    result[k] > 0 ? 'text-white' : 'text-white/35',
                                 ].join(' ')}>
                                     {fmt(result[k])}
                                 </p>
@@ -517,8 +494,8 @@ function ResultScoreCard({ result, label = 'Итоговый рейтинг R' }
                 )}
                 {result.approved_entries !== undefined && (
                     <div className="ml-auto text-right">
-                        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground/70 mb-0.5">Утв. записей</p>
-                        <p className="text-lg font-bold text-emerald-600">{result.approved_entries}</p>
+                        <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-white/60">Утв. записей</p>
+                        <p className="mt-2 font-display text-2xl font-bold tabular-nums text-amber-300">{result.approved_entries}</p>
                     </div>
                 )}
             </div>
@@ -532,84 +509,83 @@ function SectionEntriesTable({ sections }) {
     const allSections = Object.entries(sections ?? {});
     if (allSections.length === 0) {
         return (
-            <div className="admin-empty-state">
-                <BarChart3 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                Нет показателей KPI за выбранный период.<br />
-                <span className="text-xs">Записи появятся после заполнения формы KPI.</span>
-            </div>
+            <EmptyState
+                title="Нет показателей KPI за выбранный период"
+                description="Записи появятся после заполнения формы KPI."
+            />
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5">
             {allSections.map(([section, entries]) => {
                 const sectionTotal = entries.reduce((s, e) => s + Number(e.points ?? 0), 0);
-                const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-muted text-muted-foreground';
+                const iconCls = SECTION_ICON_COLOR[section] ?? SECTION_ICON_COLOR.other;
                 return (
-                    <div key={section}>
-                        <div className="mb-2.5 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold ${iconCls}`}>
+                    <div key={section} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-2.5">
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${iconCls}`}>
                                     {SECTION_SHORT[section] ?? section}
                                 </span>
-                                <span className="text-sm font-medium text-foreground/80">
+                                <span className="truncate text-sm font-semibold text-[#102945]">
                                     {SECTION_LABELS[section] ?? section}
                                 </span>
                             </div>
-                            <span className="text-xs font-semibold text-muted-foreground">
-                                Итого: <span className="text-foreground">{fmt(sectionTotal)}</span> б.
+                            <span className="text-xs font-semibold text-slate-500">
+                                Итого: <span className="font-display text-base font-bold tabular-nums text-[#102945]">{fmt(sectionTotal)}</span> б.
                             </span>
                         </div>
-                        <div className="admin-table-wrap">
-                            <table className="admin-data-table min-w-[640px]">
-                                <thead>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[640px] text-sm">
+                                <thead className="border-b border-slate-200">
                                     <tr>
-                                        <th className="ps-3 w-16">Код</th>
-                                        <th>Показатель</th>
-                                        <th className="w-14 text-right">Ед.</th>
-                                        <th className="w-14 text-right">План</th>
-                                        <th className="w-14 text-right">Факт</th>
-                                        <th className="w-20 text-right">Баллы</th>
-                                        <th className="w-[26rem]">Согласование СП</th>
-                                        <th className="w-28 text-right pe-3">Статус</th>
+                                        <th className="w-16 px-3 py-2.5 text-left">Код</th>
+                                        <th className="px-3 py-2.5 text-left">Показатель</th>
+                                        <th className="w-14 px-3 py-2.5 text-right">Ед.</th>
+                                        <th className="w-14 px-3 py-2.5 text-right">План</th>
+                                        <th className="w-14 px-3 py-2.5 text-right">Факт</th>
+                                        <th className="w-20 px-3 py-2.5 text-right">Баллы</th>
+                                        <th className="w-[26rem] px-3 py-2.5 text-left">Согласование СП</th>
+                                        <th className="w-28 px-3 py-2.5 text-right">Статус</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {entries.map((entry) => (
-                                        <tr key={entry.id}>
-                                            <td className="ps-3 text-xs text-muted-foreground font-mono">{entry.code ?? '—'}</td>
-                                            <td className="font-medium">{entry.name}</td>
-                                            <td className="text-right text-muted-foreground">{entry.unit ?? '—'}</td>
-                                            <td className="text-right tabular-nums">
+                                        <tr key={entry.id} className="border-b border-slate-200 align-top last:border-0">
+                                            <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{entry.code ?? '—'}</td>
+                                            <td className="px-3 py-2.5 font-medium text-slate-900">{entry.name}</td>
+                                            <td className="px-3 py-2.5 text-right text-slate-500">{entry.unit ?? '—'}</td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">
                                                 <div>{fmtValue(entry.plan_display_value ?? entry.plan_value)}</div>
                                                 {entry.plan_source === 'fact_fallback' && (
-                                                    <div className="text-[0.65rem] text-amber-600">авто из факта</div>
+                                                    <div className="text-[0.65rem] font-medium text-amber-700">авто из факта</div>
                                                 )}
                                             </td>
-                                            <td className="text-right tabular-nums">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
-                                            <td className="text-right tabular-nums font-semibold">
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-slate-700">{fmtValue(entry.fact_display_value ?? entry.fact_value)}</td>
+                                            <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-[#102945]">
                                                 <div>{fmt(entry.points)}</div>
                                                 {entry.points_formula && (
-                                                    <div className="text-[0.65rem] text-muted-foreground font-normal leading-tight mt-0.5 max-w-[18rem] ms-auto">
+                                                    <div className="ms-auto mt-0.5 max-w-[18rem] text-[0.65rem] font-normal leading-tight text-slate-500">
                                                         {entry.points_formula}
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="text-xs align-top">
+                                            <td className="px-3 py-2.5 text-xs">
                                                 {(entry.structural_confirmations ?? []).length > 0 ? (
-                                                    <div className="space-y-1">
+                                                    <div className="space-y-1.5">
                                                         {(entry.structural_confirmations ?? []).map((item) => (
-                                                            <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-md border border-border/70 bg-muted/20 p-1.5">
+                                                            <div key={`${entry.id}-${item.structural_unit_id}`} className="rounded-[10px] border border-slate-200 bg-white p-2">
                                                                 <div className="flex items-center justify-between gap-2">
-                                                                    <span className="truncate text-[0.7rem] font-medium text-foreground/80" title={formatStructuralUnitName(item)}>
+                                                                    <span className="truncate text-[0.7rem] font-medium text-slate-800" title={formatStructuralUnitName(item)}>
                                                                         {formatStructuralUnitName(item)}
                                                                     </span>
-                                                                    <Badge variant={SP_STATUS_VARIANTS[item.status] ?? 'outline'} className="text-[0.65rem]">
+                                                                    <StatusBadge tone={SP_STATUS_TONES[item.status] ?? 'default'} className="text-[0.65rem]">
                                                                         {SP_STATUS_LABELS[item.status] ?? item.status}
-                                                                    </Badge>
+                                                                    </StatusBadge>
                                                                 </div>
                                                                 {(item.comment || item.confirmed_by || item.confirmed_at) && (
-                                                                    <p className="mt-0.5 text-[0.65rem] text-muted-foreground">
+                                                                    <p className="mt-0.5 text-[0.65rem] text-slate-500">
                                                                         {item.comment ? `Комментарий: ${item.comment}` : 'Без комментария'}
                                                                         {item.confirmed_by ? ` · ${item.confirmed_by}` : ''}
                                                                         {item.confirmed_at ? ` · ${fmtDateTime(item.confirmed_at)}` : ''}
@@ -619,13 +595,13 @@ function SectionEntriesTable({ sections }) {
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-muted-foreground">—</span>
+                                                    <span className="text-slate-400">—</span>
                                                 )}
                                             </td>
-                                            <td className="text-right pe-3">
-                                                <Badge variant={STATUS_VARIANTS[entry.status] ?? 'secondary'} className="text-[0.7rem]">
+                                            <td className="px-3 py-2.5 text-right">
+                                                <StatusBadge tone={STATUS_TONES[entry.status] ?? 'default'} className="text-[0.7rem]">
                                                     {STATUS_LABELS[entry.status] ?? entry.status}
-                                                </Badge>
+                                                </StatusBadge>
                                             </td>
                                         </tr>
                                     ))}
@@ -644,29 +620,16 @@ function SectionEntriesTable({ sections }) {
 function TotalsChips({ totals }) {
     if (!totals) return null;
     return (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2.5 py-0.5 text-xs">
-                <span className="text-muted-foreground">Всего:</span>
-                <span className="font-semibold text-foreground">{totals.total}</span>
-            </span>
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+            <StatusBadge tone="default">Всего: <strong className="ml-1 tabular-nums">{totals.total}</strong></StatusBadge>
             {totals.submitted > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2.5 py-0.5 text-xs">
-                    <span className="text-muted-foreground">Подано:</span>
-                    <span className="font-semibold text-foreground">{totals.submitted}</span>
-                </span>
+                <StatusBadge tone="info">Подано: <strong className="ml-1 tabular-nums">{totals.submitted}</strong></StatusBadge>
             )}
             {totals.pending > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50/60 px-2.5 py-0.5 text-xs">
-                    <span className="text-amber-700">На проверке: <strong>{totals.pending}</strong></span>
-                </span>
+                <StatusBadge tone="warning">На проверке: <strong className="ml-1 tabular-nums">{totals.pending}</strong></StatusBadge>
             )}
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50/60 px-2.5 py-0.5 text-xs">
-                <span className="text-emerald-700">Утверждено: <strong>{totals.approved}</strong></span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2.5 py-0.5 text-xs">
-                <span className="text-muted-foreground">Баллов:</span>
-                <span className="font-semibold text-foreground">{fmt(totals.total_points)}</span>
-            </span>
+            <StatusBadge tone="success">Утверждено: <strong className="ml-1 tabular-nums">{totals.approved}</strong></StatusBadge>
+            <StatusBadge tone="default">Баллов: <strong className="ml-1 tabular-nums">{fmt(totals.total_points)}</strong></StatusBadge>
         </div>
     );
 }
@@ -676,11 +639,10 @@ function TotalsChips({ totals }) {
 function RankingTable({ teachers, showFaculty = false, showDept = false, showKScores = false, source }) {
     if (!teachers || teachers.length === 0) {
         return (
-            <div className="admin-empty-state">
-                <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                Нет данных о ППС за выбранный период.<br />
-                <span className="text-xs">Данные появятся после формирования KPI-записей.</span>
-            </div>
+            <EmptyState
+                title="Нет данных о ППС за выбранный период"
+                description="Данные появятся после формирования KPI-записей."
+            />
         );
     }
 
@@ -689,13 +651,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
     return (
         <div>
             {isLive && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-800">
-                    <CalendarRange className="h-3.5 w-3.5 shrink-0" />
+                <Notice tone="warning" className="mb-4">
                     Отображаются оперативные данные — период ещё не закрыт. Финальный рейтинг R появится после утверждения.
-                </div>
+                </Notice>
             )}
             <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-slate-500">
                     {teachers.length} чел. найдено
                 </span>
             </div>
@@ -716,12 +677,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                     <th className="w-12 text-right">K4</th>
                                     <th className="w-12 text-right">K5</th>
                                     <th className="w-12 text-right">НПУ</th>
-                                    <th className="w-16 text-right pe-3 text-[#139AA4]">R</th>
+                                    <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
                                 </>
                             ) : (
                                 <>
                                     <th className="w-16 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#139AA4]">
+                                    <th className="w-20 text-right pe-3 text-[#067a75]">
                                         {isLive ? 'Баллы' : 'R'}
                                     </th>
                                 </>
@@ -731,11 +692,11 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                     <tbody>
                         {teachers.map((t, i) => (
                             <tr key={t.id ?? i}>
-                                <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="font-medium">{t.name}</td>
-                                {showDept && <td className="text-sm text-muted-foreground">{t.department_name ?? '—'}</td>}
-                                {showFaculty && <td className="text-sm text-muted-foreground">{t.faculty_name ?? '—'}</td>}
-                                <td className="text-sm text-muted-foreground max-w-[200px] truncate">{t.title ?? '—'}</td>
+                                {showDept && <td className="text-sm text-slate-500">{t.department_name ?? '—'}</td>}
+                                {showFaculty && <td className="text-sm text-slate-500">{t.faculty_name ?? '—'}</td>}
+                                <td className="text-sm text-slate-500 max-w-[200px] truncate">{t.title ?? '—'}</td>
                                 {showKScores ? (
                                     <>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k1)}</td>
@@ -744,12 +705,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k5)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k6)}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 ) : (
                                     <>
                                         <td className="text-right tabular-nums font-medium text-emerald-600">{t.approved_entries}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 )}
                             </tr>
@@ -763,21 +724,14 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
 
 function ReportHeading({ text, academicYear, period }) {
     return (
-        <div className="mb-4 overflow-hidden rounded-lg border border-[#132844]/20 bg-[#132844]/5">
-            <div className="flex items-center gap-2.5 border-b border-[#132844]/10 bg-[#132844]/8 px-4 py-2">
-                <FileText className="h-3.5 w-3.5 shrink-0 text-[#132844]/60" />
-                <span className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#132844]/70">
-                    Официальный отчёт
-                </span>
-            </div>
-            <div className="px-4 py-3 text-center">
-                <p className="text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#132844]">
-                    {text}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[#139AA4]">
-                    {academicYear?.name ?? '—'}
-                </p>
-            </div>
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-4 text-center">
+            <p className="qd-kicker justify-center">Официальный отчёт</p>
+            <p className="mt-2 text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#102945]">
+                {text}
+            </p>
+            <p className="mt-1 font-display text-base font-bold text-teal-700">
+                {academicYear?.name ?? '—'}
+            </p>
         </div>
     );
 }
@@ -836,10 +790,10 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
 
     if (!displayRows.length) {
         return (
-            <div className="admin-empty-state">
-                <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                Нет данных для выбранной формы отчёта.
-            </div>
+            <EmptyState
+                title="Нет данных"
+                description="Нет данных для выбранной формы отчёта."
+            />
         );
     }
 
@@ -854,7 +808,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-44">Кафедра</th>
                             <th className="w-44">ФИО зав.каф.</th>
                             <th className="w-16 text-right">НПУ</th>
-                            <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
+                            <th className="w-20 text-right text-[#067a75]">Рейтинг</th>
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
@@ -865,15 +819,15 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                         {displayRows.map((row, i) => (
                             <tr
                                 key={row.id ?? i}
-                                className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
+                                className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                                 onClick={() => onRowClick && row.id && onRowClick(row)}
                             >
-                                <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="text-sm max-w-[10rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="text-sm max-w-[11rem] truncate" title={row.department_name ?? ''}>{row.department_name ?? '—'}</td>
                                 <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                                 <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
-                                <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
+                                <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
@@ -896,7 +850,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-52">Факультет</th>
                             <th className="w-52">ФИО декана</th>
                             <th className="w-16 text-right">НПУ</th>
-                            <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
+                            <th className="w-20 text-right text-[#067a75]">Рейтинг</th>
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
@@ -907,14 +861,14 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                         {displayRows.map((row, i) => (
                             <tr
                                 key={row.id ?? i}
-                                className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
+                                className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                                 onClick={() => onRowClick && row.id && onRowClick(row)}
                             >
-                                <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                                <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                                 <td className="text-sm max-w-[13rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="font-medium max-w-[13rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                                 <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
-                                <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
+                                <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
@@ -941,19 +895,19 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                         <th className="w-14 text-right">К4 (УПК)</th>
                         <th className="w-14 text-right">К5 (Опрос)</th>
                         <th className="w-14 text-right">НПУ</th>
-                        <th className="w-20 text-right text-[#139AA4]">Рейтинг (R)</th>
+                        <th className="w-20 text-right text-[#067a75]">Рейтинг (R)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {displayRows.map((row, i) => (
                         <tr
                             key={row.id ?? i}
-                            className={onRowClick && row.id ? 'cursor-pointer hover:bg-muted/20' : ''}
+                            className={onRowClick && row.id ? 'cursor-pointer hover:bg-teal-50/60' : ''}
                             onClick={() => onRowClick && row.id && onRowClick(row)}
                         >
-                            <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                            <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                             <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
-                            <td className="text-sm text-muted-foreground max-w-[220px] truncate">{row.title ?? '—'}</td>
+                            <td className="text-sm text-slate-500 max-w-[220px] truncate">{row.title ?? '—'}</td>
                             <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                             <td className="text-right tabular-nums">{fmt(row.k3)}</td>
@@ -962,7 +916,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <td className="text-right tabular-nums">{fmt(row.npu_threshold ?? getRateValue(row))}</td>
                             <td className={[
                                 'pe-3 text-right tabular-nums font-bold',
-                                Number(row.rank_score ?? 0) < 0 ? 'text-red-500' : 'text-[#139AA4]',
+                                Number(row.rank_score ?? 0) < 0 ? 'text-red-700' : 'text-[#067a75]',
                             ].join(' ')}>
                                 {fmt(row.rank_score)}
                             </td>
@@ -980,12 +934,12 @@ function RankBandGrid({ groups = [] }) {
     }
 
     return (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {groups.map((group) => (
-                <div key={group.key} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{group.label}</p>
-                    <p className="mt-1 text-xl font-semibold text-[#132844]">{Number(group.count ?? 0)}</p>
-                    <p className="text-[11px] text-muted-foreground">сотрудников</p>
+                <div key={group.key} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">{group.label}</p>
+                    <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-[#102945]">{Number(group.count ?? 0)}</p>
+                    <p className="text-[11px] text-slate-500">сотрудников</p>
                 </div>
             ))}
         </div>
@@ -1010,7 +964,7 @@ function PositionGroupTable({ groups = [] }) {
                     {groups.map((group) => (
                         <tr key={group.key}>
                             <td className="ps-3 font-medium">{group.label}</td>
-                            <td className="pe-3 text-right tabular-nums font-semibold text-[#139AA4]">{Number(group.count ?? 0)}</td>
+                            <td className="pe-3 text-right tabular-nums font-semibold text-[#067a75]">{Number(group.count ?? 0)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -1105,7 +1059,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             <InfoBar>
                 <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
                 K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК, K5 — Анкетирование. НПУ вычитается из суммы как отдельный показатель. Нажмите на строку для просмотра карточки сотрудника.
@@ -1118,20 +1072,12 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                 actions={
                     onExportExcel
                         ? (
-                            <button
-                                type="button"
-                                onClick={handleExportClick}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                                title="Экспортировать таблицу ППС в Excel"
-                            >
-                                <FileText className="h-3.5 w-3.5" />
-                                Excel
-                            </button>
+                            <ExcelButton onClick={handleExportClick} title="Экспортировать таблицу ППС в Excel" />
                         )
                         : null
                 }
             >
-                <div className="mb-4">
+                <div className="mb-5">
                     <RatingFormulaBar
                         formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
                         note="НПУ определяется по степени (настройки НПУ)"
@@ -1139,55 +1085,64 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                 </div>
 
                 {rankGroups.length > 0 && (
-                    <div className="mb-4 space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                    <div className="mb-5 space-y-2">
+                        <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
                         <RankBandGrid groups={rankGroups} />
                     </div>
                 )}
 
                 {positionGroups.length > 0 && (
-                    <div className="mb-4 space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Списки по должностям</p>
+                    <div className="mb-5 space-y-2">
+                        <p className="qd-field-label text-slate-500">Списки по должностям</p>
                         <PositionGroupTable groups={positionGroups} />
                     </div>
                 )}
 
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <select
-                        className={SELECT_CLS + ' pe-8'}
-                        value={facultyFilter}
-                        onChange={(e) => {
-                            setFacultyFilter(e.target.value);
-                            setDepartmentFilter('');
-                        }}
-                    >
-                        <option value="">Все факультеты</option>
-                        {facultyOptions.map((faculty) => (
-                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
-                        ))}
-                    </select>
+                <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr]">
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Факультет</span>
+                            <select
+                                className={SELECT_CLS}
+                                value={facultyFilter}
+                                onChange={(e) => {
+                                    setFacultyFilter(e.target.value);
+                                    setDepartmentFilter('');
+                                }}
+                            >
+                                <option value="">Все факультеты</option>
+                                {facultyOptions.map((faculty) => (
+                                    <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                ))}
+                            </select>
+                        </label>
 
-                    <select
-                        className={SELECT_CLS + ' pe-8'}
-                        value={departmentFilter}
-                        onChange={(e) => setDepartmentFilter(e.target.value)}
-                    >
-                        <option value="">Все кафедры</option>
-                        {departmentOptions.map((department) => (
-                            <option key={department.id} value={department.id}>{department.name}</option>
-                        ))}
-                    </select>
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Кафедра</span>
+                            <select
+                                className={SELECT_CLS}
+                                value={departmentFilter}
+                                onChange={(e) => setDepartmentFilter(e.target.value)}
+                            >
+                                <option value="">Все кафедры</option>
+                                {departmentOptions.map((department) => (
+                                    <option key={department.id} value={department.id}>{department.name}</option>
+                                ))}
+                            </select>
+                        </label>
 
-                    <Input
-                        className="w-full sm:w-96"
-                        value={tableSearch}
-                        onChange={(e) => setTableSearch(e.target.value)}
-                        placeholder="Быстрый поиск: сотрудник, показатель, период, структура, баллы, статус"
-                    />
-
-                    <span className="ml-auto text-xs text-muted-foreground">
-                        Показано: {filteredRows.length} из {allRows.length}
-                    </span>
+                        <label className="block space-y-2 md:col-span-2 xl:col-span-1">
+                            <span className="qd-field-label block">Быстрый поиск</span>
+                            <Input
+                                value={tableSearch}
+                                onChange={(e) => setTableSearch(e.target.value)}
+                                placeholder="Быстрый поиск: сотрудник, показатель, период, структура, баллы, статус"
+                            />
+                        </label>
+                    </div>
+                    <div className="mt-4 border-t border-slate-200 pt-3 text-right text-xs font-medium text-slate-500">
+                        Показано: <span className="tabular-nums">{filteredRows.length}</span> из <span className="tabular-nums">{allRows.length}</span>
+                    </div>
                 </div>
 
                 <ReportHeading
@@ -1206,10 +1161,10 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
 function DeptTable({ departments, showFaculty = false }) {
     if (!departments || departments.length === 0) {
         return (
-            <div className="admin-empty-state">
-                <Building2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                Нет данных по кафедрам за выбранный период.
-            </div>
+            <EmptyState
+                title="Нет данных по кафедрам"
+                description="Нет данных по кафедрам за выбранный период."
+            />
         );
     }
 
@@ -1224,19 +1179,19 @@ function DeptTable({ departments, showFaculty = false }) {
                         <th className="w-14 text-right">ППС</th>
                         <th className="w-20 text-right">Записей</th>
                         <th className="w-20 text-right">Утв.</th>
-                        <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                        <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                     </tr>
                 </thead>
                 <tbody>
                     {departments.map((d, i) => (
                         <tr key={d.id ?? i}>
-                            <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                            <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                             <td className="font-medium">{d.name}</td>
-                            {showFaculty && <td className="text-sm text-muted-foreground">{d.faculty_name ?? '—'}</td>}
+                            {showFaculty && <td className="text-sm text-slate-500">{d.faculty_name ?? '—'}</td>}
                             <td className="text-right tabular-nums">{d.teacher_count ?? d.user_count ?? '—'}</td>
                             <td className="text-right tabular-nums">{d.total_entries ?? d.approved_entries ?? '—'}</td>
                             <td className="text-right tabular-nums font-semibold text-emerald-600">{d.approved ?? d.approved_entries ?? '—'}</td>
-                            <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                            <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                 {d.rank_score != null ? fmt(d.rank_score) : '—'}
                             </td>
                         </tr>
@@ -1247,77 +1202,36 @@ function DeptTable({ departments, showFaculty = false }) {
     );
 }
 
-// ─── filter bar ───────────────────────────────────────────────────────────────
-
-function FilterBar({ filters, filterOptions }) {
-    const handleChange = (key, value) => {
-        const params = {};
-        params.academic_year_id = value || undefined;
-        router.get(route('kpi.summary'), params, { preserveScroll: true, replace: true });
-    };
-
-    return (
-        <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-                <select
-                    className={SELECT_CLS + ' pe-8'}
-                    value={filters.academic_year_id ?? ''}
-                    onChange={(e) => handleChange('academic_year_id', e.target.value)}
-                >
-                    <option value="">— Учебный год —</option>
-                    {(filterOptions.academicYears ?? []).map((y) => (
-                        <option key={y.id} value={y.id}>{y.name}</option>
-                    ))}
-                </select>
-            </div>
-        </div>
-    );
-}
-
 // ─── tab nav ─────────────────────────────────────────────────────────────────
 
 function TabNav({ tabs, active, onChange }) {
     return (
-        <div className="mb-5 flex items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-1">
-            {tabs.map((tab) => {
-                const Icon = TAB_ICONS[tab];
-                const isActive = active === tab;
-                return (
-                    <button
-                        key={tab}
-                        type="button"
-                        onClick={() => onChange(tab)}
-                        className={[
-                            'flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all',
-                            isActive
-                                ? 'bg-white shadow-sm text-[#132844] border border-border/60'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-white/60',
-                        ].join(' ')}
-                    >
-                        {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-[#139AA4]' : ''}`} />}
-                        {TAB_LABELS[tab] ?? tab}
-                    </button>
-                );
-            })}
-        </div>
+        <UnderlineTabs
+            className="mb-6"
+            items={tabs.map((tab) => ({ key: tab, label: TAB_LABELS[tab] ?? tab, icon: TAB_ICONS[tab] }))}
+            value={active}
+            onChange={onChange}
+        />
     );
 }
 
 // ─── section card ─────────────────────────────────────────────────────────────
 
-function ReportCard({ icon: Icon, title, subtitle, children, accent, actions }) {
+function ReportCard({ icon: Icon, title, subtitle, children, actions }) {
     return (
-        <Card className="admin-surface">
-            <CardHeader className="pb-3 pt-4">
-                <CardTitle className="flex items-center justify-between gap-3 text-sm font-semibold text-[#132844]">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex flex-wrap items-center justify-between gap-3">
                     <span className="flex items-center gap-2">
-                        {Icon && <Icon className="h-4 w-4 text-[#139AA4]" />}
+                        {Icon && <Icon className="h-4 w-4" />}
                         {title}
                     </span>
-                    <span className="flex items-center gap-2">
-                        {subtitle && <span className="font-normal text-muted-foreground text-xs">{subtitle}</span>}
-                        {actions}
-                    </span>
+                    {(subtitle || actions) && (
+                        <span className="flex items-center gap-3">
+                            {subtitle && <span className="text-xs font-medium normal-case tracking-normal text-slate-500">{subtitle}</span>}
+                            {actions}
+                        </span>
+                    )}
                 </CardTitle>
             </CardHeader>
             <CardContent>{children}</CardContent>
@@ -1325,11 +1239,20 @@ function ReportCard({ icon: Icon, title, subtitle, children, accent, actions }) 
     );
 }
 
+function ExcelButton({ onClick, title }) {
+    return (
+        <Button type="button" size="sm" variant="outline" onClick={onClick} title={title}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Excel
+        </Button>
+    );
+}
+
 // ─── role-specific notice bar ─────────────────────────────────────────────────
 
 function InfoBar({ children }) {
     return (
-        <div className="flex items-start gap-2.5 rounded-lg border border-border/70 bg-muted/30 px-3.5 py-2.5 text-sm text-muted-foreground">
+        <div className="flex items-start gap-3 rounded-[14px] border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm leading-relaxed text-slate-700 [&>svg]:text-teal-700">
             {children}
         </div>
     );
@@ -1340,9 +1263,9 @@ function RatingFormulaBar({ formula, note }) {
         <InfoBar>
             <FileText className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
-                <span className="font-medium text-foreground">Формула рейтинга: </span>
-                <span className="font-semibold text-[#132844]">{formula}</span>
-                {note && <span className="text-muted-foreground"> · {note}</span>}
+                <span className="font-medium text-slate-700">Формула рейтинга: </span>
+                <span className="font-semibold text-[#102945]">{formula}</span>
+                {note && <span className="text-slate-500"> · {note}</span>}
             </div>
         </InfoBar>
     );
@@ -1355,7 +1278,7 @@ function TeacherView({ summary }) {
     const mineRatingRow = useMemo(() => buildMinePpsRow(summary), [summary]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             {summary.result ? (
                 <ResultScoreCard result={summary.result} label="Мой итоговый рейтинг R" />
             ) : (
@@ -1365,13 +1288,13 @@ function TeacherView({ summary }) {
                 </InfoBar>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatRow cols={5}>
                 <StatCard icon={BarChart3} label="Всего записей" value={summary.totals?.total ?? 0} />
                 <StatCard icon={TrendingUp} label="Утверждено" value={summary.totals?.approved ?? 0} accent="green" />
                 <StatCard label="На проверке" value={(summary.totals?.submitted ?? 0) + (summary.totals?.pending ?? 0)} accent="amber" />
                 <StatCard label="Отклонено" value={summary.totals?.rejected ?? 0} accent="default" />
                 <StatCard label="Баллов" value={fmt(summary.totals?.total_points)} accent="teal" />
-            </div>
+            </StatRow>
 
             <ReportCard
                 icon={FileText}
@@ -1382,7 +1305,7 @@ function TeacherView({ summary }) {
                     formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
                     note="K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК"
                 />
-                <div className="mt-3">
+                <div className="mt-4">
                     <ProfessionalRatingTable rows={[mineRatingRow]} mode="pps" />
                 </div>
             </ReportCard>
@@ -1394,10 +1317,10 @@ function TeacherView({ summary }) {
                         <SectionEntriesTable sections={summary.entries} />
                     </>
                 ) : (
-                    <div className="admin-empty-state">
-                        Нет показателей KPI за выбранный период.<br />
-                        <span className="text-xs">Перейдите в «KPI — Мои показатели» для заполнения формы.</span>
-                    </div>
+                    <EmptyState
+                        title="Нет показателей KPI за выбранный период"
+                        description="Перейдите в «KPI — Мои показатели» для заполнения формы."
+                    />
                 )}
             </ReportCard>
         </div>
@@ -1414,7 +1337,7 @@ function HodView({ summary, academicYear, period, filters }) {
             <TabNav tabs={tabs} active={validTab} onChange={setTab} />
 
             {validTab === 'mine' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {summary.own_result ? (
                         <ResultScoreCard result={summary.own_result} label="Мой рейтинг R (зав. кафедрой)" />
                     ) : (
@@ -1423,12 +1346,12 @@ function HodView({ summary, academicYear, period, filters }) {
                             Итоговый рейтинг ещё не сформирован. Формула: R = (K1 + K2 + K3 + K4) - НПУ. Отображаются текущие данные.
                         </InfoBar>
                     )}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatRow cols={4}>
                         <StatCard icon={BarChart3} label="Всего записей" value={summary.own_totals?.total ?? 0} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={summary.own_totals?.approved ?? 0} accent="green" />
                         <StatCard label="На проверке" value={(summary.own_totals?.submitted ?? 0) + (summary.own_totals?.pending ?? 0)} accent="amber" />
                         <StatCard label="Баллов" value={fmt(summary.own_totals?.total_points)} accent="teal" />
-                    </div>
+                    </StatRow>
                     <ReportCard icon={BarChart3} title="KPI — Мои показатели">
                         <TotalsChips totals={summary.own_totals} />
                         <SectionEntriesTable sections={summary.own_entries ?? {}} />
@@ -1437,7 +1360,7 @@ function HodView({ summary, academicYear, period, filters }) {
             )}
 
             {validTab === 'department' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {summary.dept_result ? (
                         <ResultScoreCard result={summary.dept_result} label={`Рейтинг кафедры: ${summary.department?.name ?? ''}`} />
                     ) : (
@@ -1450,7 +1373,7 @@ function HodView({ summary, academicYear, period, filters }) {
                         icon={Building2}
                         title={summary.department?.name ?? 'Кафедра'}
                     >
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid gap-4 sm:grid-cols-2">
                             <StatCard icon={Users} label="ППС кафедры" value={summary.teachers?.length ?? 0} />
                             <StatCard
                                 label="Сдали KPI"
@@ -1485,7 +1408,7 @@ function DeanView({ summary, academicYear, period, filters }) {
             <TabNav tabs={tabs} active={validTab} onChange={setTab} />
 
             {validTab === 'mine' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {summary.own_result ? (
                         <ResultScoreCard result={summary.own_result} label="Мой рейтинг R (декан)" />
                     ) : (
@@ -1494,12 +1417,12 @@ function DeanView({ summary, academicYear, period, filters }) {
                             Итоговый рейтинг ещё не сформирован. Формула: R = (K1 + K2 + K3 + K4) - НПУ. Отображаются текущие данные.
                         </InfoBar>
                     )}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatRow cols={4}>
                         <StatCard icon={BarChart3} label="Всего записей" value={summary.own_totals?.total ?? 0} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={summary.own_totals?.approved ?? 0} accent="green" />
                         <StatCard label="На проверке" value={(summary.own_totals?.submitted ?? 0) + (summary.own_totals?.pending ?? 0)} accent="amber" />
                         <StatCard label="Баллов" value={fmt(summary.own_totals?.total_points)} accent="teal" />
-                    </div>
+                    </StatRow>
                     <ReportCard icon={BarChart3} title="KPI — Мои показатели">
                         <TotalsChips totals={summary.own_totals} />
                         <SectionEntriesTable sections={summary.own_entries ?? {}} />
@@ -1508,7 +1431,7 @@ function DeanView({ summary, academicYear, period, filters }) {
             )}
 
             {validTab === 'departments' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {summary.faculty_result && (
                         <ResultScoreCard result={summary.faculty_result} label={`Рейтинг факультета: ${summary.faculty?.name ?? ''}`} />
                     )}
@@ -1538,14 +1461,14 @@ function DeanView({ summary, academicYear, period, filters }) {
 // ─── donut chart (pure SVG, no dependencies) ─────────────────────────────────
 
 const STATUS_CHART_COLORS = {
-    approved: '#10b981',
-    submitted: '#3b82f6',
-    reviewed: '#8b5cf6',
-    pending_dean: '#f59e0b',
-    pending_structural: '#f97316',
-    returned: '#ef4444',
-    rejected: '#dc2626',
-    locked: '#6b7280',
+    approved: '#3fb57a',
+    submitted: '#09bab2',
+    reviewed: '#2c5a86',
+    pending_dean: '#e2b53e',
+    pending_structural: '#067a75',
+    returned: '#d9853f',
+    rejected: '#d64540',
+    locked: '#102945',
 };
 
 const STATUS_CHART_LABELS = {
@@ -1566,14 +1489,14 @@ function DonutChart({ segments, size = 140, thickness = 30 }) {
     if (!total) {
         return (
             <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-xs text-slate-400">—</span>
             </div>
         );
     }
     let cumulative = 0;
     return (
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={thickness} />
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef2f1" strokeWidth={thickness} />
             {segments
                 .filter((s) => s.value > 0)
                 .map((seg, i) => {
@@ -1600,15 +1523,15 @@ function DonutChart({ segments, size = 140, thickness = 30 }) {
 
 // ─── horizontal bar helper ────────────────────────────────────────────────────
 
-function HBar({ label, value, maxValue, displayValue, barClass = 'bg-[#139AA4]' }) {
+function HBar({ label, value, maxValue, displayValue, barClass = 'bg-teal-600' }) {
     const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
     return (
         <div>
-            <div className="mb-0.5 flex items-center justify-between">
-                <span className="max-w-[60%] truncate text-xs font-medium text-foreground/80">{label}</span>
-                <span className="tabular-nums text-xs font-semibold text-[#139AA4]">{displayValue ?? value}</span>
+            <div className="mb-1 flex items-center justify-between">
+                <span className="max-w-[60%] truncate text-xs font-medium text-slate-700">{label}</span>
+                <span className="text-xs font-semibold tabular-nums text-teal-700">{displayValue ?? value}</span>
             </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted/50">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
                     className={`h-2 rounded-full transition-all duration-500 ${barClass}`}
                     style={{ width: `${Math.max(pct, value > 0 ? 2 : 0)}%` }}
@@ -1621,11 +1544,11 @@ function HBar({ label, value, maxValue, displayValue, barClass = 'bg-[#139AA4]' 
 // ─── section bar colors ───────────────────────────────────────────────────────
 
 const SECTION_BAR_COLORS = {
-    teaching: 'bg-blue-500',
-    science: 'bg-violet-500',
+    teaching: 'bg-blue-600',
+    science: 'bg-teal-600',
     social: 'bg-emerald-500',
-    qualification: 'bg-amber-500',
-    survey: 'bg-cyan-500',
+    qualification: 'bg-amber-400',
+    survey: 'bg-orange-500',
     other: 'bg-slate-400',
 };
 
@@ -1694,12 +1617,9 @@ function OverviewTab({ summary }) {
         return t.slice(0, 10);
     }, [summary.top_teachers, topFilter]);
 
-    const card = 'rounded-xl border border-border/80 bg-white/90 shadow-[0_6px_18px_rgba(15,36,63,0.07)] p-4';
-
     return (
-        <div className="space-y-4">
-            {/* ── Stat row ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="space-y-6">
+            <StatRow cols={6}>
                 <StatCard icon={BarChart3} label="Всего записей" value={nonDraftTotal} />
                 <StatCard
                     icon={TrendingUp}
@@ -1712,196 +1632,226 @@ function OverviewTab({ summary }) {
                 <StatCard label="На проверке" value={pendingCount} accent="amber" />
                 <StatCard label="Возвращено" value={returnedCount} />
                 <StatCard label="Черновики" value={statusCounts.draft ?? 0} />
-            </div>
+            </StatRow>
 
-            {/* ── Charts row ── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Status donut */}
-                <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Распределение по статусам</p>
-                    <div className="flex items-center gap-4">
-                        <div className="relative shrink-0">
-                            <DonutChart segments={donutSegments} size={120} thickness={26} />
-                            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-xl font-bold leading-none text-foreground">{approvalRate}%</span>
-                                <span className="mt-0.5 text-[0.6rem] uppercase tracking-wide text-muted-foreground">Утв.</span>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Распределение по статусам</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-5">
+                            <div className="relative shrink-0">
+                                <DonutChart segments={donutSegments} size={120} thickness={26} />
+                                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                                    <span className="font-display text-xl font-bold leading-none tabular-nums text-[#102945]">{approvalRate}%</span>
+                                    <span className="mt-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-slate-500">Утв.</span>
+                                </div>
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                                {donutSegments.map((seg) => (
+                                    <div key={seg.key} className="flex items-center gap-1.5">
+                                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: seg.color }} />
+                                        <span className="min-w-0 truncate text-xs text-slate-600">{seg.label}</span>
+                                        <span className="ml-auto text-xs font-semibold tabular-nums text-[#102945]">{seg.value}</span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div className="min-w-0 space-y-1.5">
-                            {donutSegments.map((seg) => (
-                                <div key={seg.key} className="flex items-center gap-1.5">
-                                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: seg.color }} />
-                                    <span className="min-w-0 truncate text-xs text-muted-foreground">{seg.label}</span>
-                                    <span className="ml-auto tabular-nums text-xs font-semibold">{seg.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
 
-                {/* Section distribution */}
-                <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Записи по разделам KPI</p>
-                    {sectionItems.length > 0 ? (
-                        <div className="space-y-3">
-                            {sectionItems.map((s) => (
-                                <div key={s.key}>
-                                    <div className="mb-0.5 flex items-center justify-between">
-                                        <span className="text-xs font-medium text-foreground/80">{s.shortLabel}</span>
-                                        <div className="flex items-center gap-3 text-xs">
-                                            <span className="text-muted-foreground">{s.value} зап.</span>
-                                            <span className="font-semibold text-emerald-600">{s.approved} утв.</span>
-                                        </div>
-                                    </div>
-                                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted/50">
-                                        <div
-                                            className={`h-2 rounded-full transition-all duration-500 ${s.barClass}`}
-                                            style={{ width: `${Math.max((s.value / maxSectionTotal) * 100, s.value > 0 ? 2 : 0)}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-xs text-muted-foreground">Нет данных</p>
-                    )}
-                </div>
-
-                {/* Faculty approved bars */}
-                <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Факультеты — утверждено / всего</p>
-                    {faculties.length > 0 ? (
-                        <div className="space-y-2.5">
-                            {[...faculties]
-                                .sort((a, b) => b.approved - a.approved)
-                                .map((f) => (
-                                    <HBar
-                                        key={f.id}
-                                        label={f.name}
-                                        value={f.approved}
-                                        maxValue={maxFacultyApproved}
-                                        displayValue={`${f.approved} / ${f.total_entries}`}
-                                        barClass="bg-gradient-to-r from-[#139AA4] to-[#1a6bb5]"
-                                    />
-                                ))}
-                        </div>
-                    ) : (
-                        <p className="text-xs text-muted-foreground">Нет данных</p>
-                    )}
-                </div>
-            </div>
-
-            {/* ── Faculty rating with progress bars ── */}
-            <div className={card}>
-                <p className="mb-3 text-sm font-semibold text-[#132844]">Рейтинг факультетов</p>
-                {faculties.length > 0 ? (
-                    <div className="space-y-3">
-                        {[...faculties]
-                            .sort((a, b) => (b.rank_score ?? b.approved) - (a.rank_score ?? a.approved))
-                            .map((f, i) => (
-                                <div key={f.id} className="flex items-center gap-3">
-                                    <span className="w-5 shrink-0 text-right text-xs text-muted-foreground">{i + 1}</span>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="mb-0.5 flex items-center justify-between gap-2">
-                                            <span className="truncate text-xs font-medium">{f.name}</span>
-                                            <div className="flex shrink-0 items-center gap-3 text-xs">
-                                                <span className="text-muted-foreground">{f.user_count} чел.</span>
-                                                <span className="font-semibold text-emerald-600">{f.approved} утв.</span>
-                                                {f.rank_score != null && (
-                                                    <span className="w-16 text-right font-bold tabular-nums text-[#139AA4]">
-                                                        R {fmt(f.rank_score)}
-                                                    </span>
-                                                )}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Записи по разделам KPI</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {sectionItems.length > 0 ? (
+                            <div className="space-y-3">
+                                {sectionItems.map((s) => (
+                                    <div key={s.key}>
+                                        <div className="mb-1 flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-slate-700">{s.shortLabel}</span>
+                                            <div className="flex items-center gap-3 text-xs tabular-nums">
+                                                <span className="text-slate-500">{s.value} зап.</span>
+                                                <span className="font-semibold text-emerald-700">{s.approved} утв.</span>
                                             </div>
                                         </div>
-                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
+                                        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                                             <div
-                                                className="h-1.5 rounded-full bg-gradient-to-r from-[#139AA4] to-[#1a6bb5]"
-                                                style={{ width: `${(f.approved / maxFacultyApproved) * 100}%` }}
+                                                className={`h-2 rounded-full transition-all duration-500 ${s.barClass}`}
+                                                style={{ width: `${Math.max((s.value / maxSectionTotal) * 100, s.value > 0 ? 2 : 0)}%` }}
                                             />
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                    </div>
-                ) : (
-                    <p className="text-xs text-muted-foreground">Нет данных</p>
-                )}
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-500">Нет данных</p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Факультеты — утверждено / всего</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {faculties.length > 0 ? (
+                            <div className="space-y-3">
+                                {[...faculties]
+                                    .sort((a, b) => b.approved - a.approved)
+                                    .map((f) => (
+                                        <HBar
+                                            key={f.id}
+                                            label={f.name}
+                                            value={f.approved}
+                                            maxValue={maxFacultyApproved}
+                                            displayValue={`${f.approved} / ${f.total_entries}`}
+                                            barClass="bg-teal-600"
+                                        />
+                                    ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-500">Нет данных</p>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
-            {/* ── Top-10 ПС ── */}
-            <div className={card}>
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-[#132844]">Топ-10 ППС</p>
-                    <div className="ml-auto flex flex-wrap gap-2">
-                        <select
-                            className={SELECT_CLS + ' pe-8'}
-                            value={topFilter.faculty}
-                            onChange={(e) => setTopFilter((f) => ({ ...f, faculty: e.target.value }))}
-                        >
-                            <option value="">Все факультеты</option>
-                            {facultyNames.map((fac) => (
-                                <option key={fac} value={fac}>{fac}</option>
-                            ))}
-                        </select>
-                        <select
-                            className={SELECT_CLS + ' pe-8'}
-                            value={topFilter.section}
-                            onChange={(e) => setTopFilter((f) => ({ ...f, section: e.target.value }))}
-                        >
-                            <option value="">По общему рейтингу R</option>
-                            {Object.entries(SECTION_SHORT)
-                                .filter(([k]) => k !== 'other')
-                                .map(([k, label]) => (
-                                    <option key={k} value={k}>{label} — {SECTION_LABELS[k]}</option>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4" />
+                        Рейтинг факультетов
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className={faculties.length > 0 ? 'p-0' : ''}>
+                    {faculties.length > 0 ? (
+                        <div>
+                            {[...faculties]
+                                .sort((a, b) => (b.rank_score ?? b.approved) - (a.rank_score ?? a.approved))
+                                .map((f, i) => (
+                                    <div key={f.id} className="flex items-center gap-4 border-b border-slate-200 px-5 py-3 last:border-0">
+                                        <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
+                                            {i + 1}
+                                        </span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                                                <span className="truncate text-sm font-medium text-slate-900">{f.name}</span>
+                                                <div className="flex shrink-0 items-center gap-3 text-xs tabular-nums">
+                                                    <span className="text-slate-500">{f.user_count} чел.</span>
+                                                    <span className="font-semibold text-emerald-700">{f.approved} утв.</span>
+                                                    {f.rank_score != null && (
+                                                        <span className="w-20 text-right font-bold text-[#067a75]">
+                                                            R {fmt(f.rank_score)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                                                <div
+                                                    className="h-1.5 rounded-full bg-teal-600"
+                                                    style={{ width: `${(f.approved / maxFacultyApproved) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
-                        </select>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-500">Нет данных</p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Топ-10 ППС
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Факультет</span>
+                            <select
+                                className={SELECT_CLS}
+                                value={topFilter.faculty}
+                                onChange={(e) => setTopFilter((f) => ({ ...f, faculty: e.target.value }))}
+                            >
+                                <option value="">Все факультеты</option>
+                                {facultyNames.map((fac) => (
+                                    <option key={fac} value={fac}>{fac}</option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Сортировка</span>
+                            <select
+                                className={SELECT_CLS}
+                                value={topFilter.section}
+                                onChange={(e) => setTopFilter((f) => ({ ...f, section: e.target.value }))}
+                            >
+                                <option value="">По общему рейтингу R</option>
+                                {Object.entries(SECTION_SHORT)
+                                    .filter(([k]) => k !== 'other')
+                                    .map(([k, label]) => (
+                                        <option key={k} value={k}>{label} — {SECTION_LABELS[k]}</option>
+                                    ))}
+                            </select>
+                        </label>
                     </div>
-                </div>
-                {top10.length > 0 ? (
-                    <div className="admin-table-wrap">
-                        <table className="admin-data-table min-w-[700px]">
-                            <thead>
-                                <tr>
-                                    <th className="ps-3 w-9 text-center">№</th>
-                                    <th>ФИО</th>
-                                    <th>Факультет</th>
-                                    <th>Кафедра</th>
-                                    <th className="w-14 text-right">УМР</th>
-                                    <th className="w-14 text-right">НИР</th>
-                                    <th className="w-14 text-right">СВР</th>
-                                    <th className="w-14 text-right">УПК</th>
-                                    <th className="w-16 text-right pe-3 text-[#139AA4]">R</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {top10.map((t, i) => (
-                                    <tr key={t.id ?? i}>
-                                        <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
-                                        <td className="font-medium">{t.name}</td>
-                                        <td className="max-w-[9rem] truncate text-sm text-muted-foreground" title={t.faculty_name ?? ''}>
-                                            {t.faculty_name ?? '—'}
-                                        </td>
-                                        <td className="max-w-[9rem] truncate text-sm text-muted-foreground" title={t.department_name ?? ''}>
-                                            {t.department_name ?? '—'}
-                                        </td>
-                                        <td className="text-right tabular-nums text-sm">{fmt(t.k1)}</td>
-                                        <td className="text-right tabular-nums text-sm">{fmt(t.k2)}</td>
-                                        <td className="text-right tabular-nums text-sm">{fmt(t.k3)}</td>
-                                        <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                    {top10.length > 0 ? (
+                        <div className="admin-table-wrap">
+                            <table className="admin-data-table min-w-[700px]">
+                                <thead>
+                                    <tr>
+                                        <th className="ps-3 w-9 text-center">№</th>
+                                        <th>ФИО</th>
+                                        <th>Факультет</th>
+                                        <th>Кафедра</th>
+                                        <th className="w-14 text-right">УМР</th>
+                                        <th className="w-14 text-right">НИР</th>
+                                        <th className="w-14 text-right">СВР</th>
+                                        <th className="w-14 text-right">УПК</th>
+                                        <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <div className="admin-empty-state">
-                        <Users className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
-                        Нет данных для выбранных фильтров.
-                    </div>
-                )}
-            </div>
+                                </thead>
+                                <tbody>
+                                    {top10.map((t, i) => (
+                                        <tr key={t.id ?? i}>
+                                            <td className="ps-3 text-center">
+                                                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {i + 1}
+                                                </span>
+                                            </td>
+                                            <td className="font-medium text-slate-900">{t.name}</td>
+                                            <td className="max-w-[9rem] truncate text-sm text-slate-500" title={t.faculty_name ?? ''}>
+                                                {t.faculty_name ?? '—'}
+                                            </td>
+                                            <td className="max-w-[9rem] truncate text-sm text-slate-500" title={t.department_name ?? ''}>
+                                                {t.department_name ?? '—'}
+                                            </td>
+                                            <td className="text-right tabular-nums text-sm">{fmt(t.k1)}</td>
+                                            <td className="text-right tabular-nums text-sm">{fmt(t.k2)}</td>
+                                            <td className="text-right tabular-nums text-sm">{fmt(t.k3)}</td>
+                                            <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
+                                            <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <EmptyState
+                            title="Нет данных"
+                            description="Нет данных для выбранных фильтров."
+                        />
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
@@ -1922,17 +1872,17 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
             <TabNav tabs={tabs} active={tab} onChange={setTab} />
 
             {tab === 'overview' && (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="mb-6 space-y-6">
+                    <StatRow cols={4}>
                         <StatCard icon={BarChart3} label="Всего (без черновиков)" value={nonDraftTotal} />
                         <StatCard icon={TrendingUp} label="Утверждено" value={statusCounts.approved ?? 0} accent="green" />
                         <StatCard label="Подано" value={statusCounts.submitted ?? 0} accent="blue" />
                         <StatCard label="На утверждении" value={(statusCounts.pending_structural ?? 0) + (statusCounts.pending_dean ?? 0)} accent="amber" />
-                    </div>
+                    </StatRow>
 
                     <ReportCard icon={GraduationCap} title="Факультеты — обзор">
                         {!summary.faculties?.length ? (
-                            <div className="admin-empty-state">Нет данных.</div>
+                            <p className="py-4 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="admin-table-wrap">
                                 <table className="admin-data-table min-w-[480px]">
@@ -1943,7 +1893,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                             <th className="w-20 text-right">Записей</th>
                                             <th className="w-20 text-right">Утв.</th>
                                             <th className="w-14 text-right">%</th>
-                                            <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                                            <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1953,8 +1903,8 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                                 <td className="text-right tabular-nums">{f.user_count}</td>
                                                 <td className="text-right tabular-nums">{f.total_entries}</td>
                                                 <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                                <td className="text-right tabular-nums text-muted-foreground text-xs">{pct(f.approved, f.total_entries)}</td>
-                                                <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                                                <td className="text-right text-xs tabular-nums text-slate-500">{pct(f.approved, f.total_entries)}</td>
+                                                <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                                     {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                                 </td>
                                             </tr>
@@ -1979,18 +1929,18 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                     <th className="w-20 text-right">ППС</th>
                                     <th className="w-20 text-right">Записей</th>
                                     <th className="w-20 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                                    <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(summary.faculties ?? []).map((f, i) => (
                                     <tr key={f.id}>
-                                        <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                                        <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                                         <td className="font-medium">{f.name}</td>
                                         <td className="text-right tabular-nums">{f.user_count}</td>
                                         <td className="text-right tabular-nums">{f.total_entries}</td>
                                         <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                             {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                         </td>
                                     </tr>
@@ -2025,15 +1975,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                     title="Результаты рейтинга зав. кафедрами"
                     subtitle={(summary.top_hods?.length ?? 0) + ' чел.'}
                     actions={
-                        <button
-                            type="button"
-                            onClick={() => onExportRatingExcel?.('hods')}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            title="Экспортировать таблицу зав. кафедрами в Excel"
-                        >
-                            <FileText className="h-3.5 w-3.5" />
-                            Excel
-                        </button>
+                        <ExcelButton onClick={() => onExportRatingExcel?.('hods')} title="Экспортировать таблицу зав. кафедрами в Excel" />
                     }
                 >
                     <ReportHeading
@@ -2049,11 +1991,12 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                     </div>
                     {(summary.hod_rank_groups?.length ?? 0) > 0 && (
                         <div className="mb-4 space-y-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
                             <RankBandGrid groups={summary.hod_rank_groups ?? []} />
                         </div>
                     )}
-                    <div className="mb-4">
+                    <div className="mb-4 space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
                         <Input
                             value={hodSearch}
                             onChange={(e) => setHodSearch(e.target.value)}
@@ -2080,15 +2023,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                     title="Результаты рейтинга деканов"
                     subtitle={(summary.top_deans?.length ?? 0) + ' чел.'}
                     actions={
-                        <button
-                            type="button"
-                            onClick={() => onExportRatingExcel?.('deans')}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-white/80 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-white hover:border-border transition-colors"
-                            title="Экспортировать таблицу деканов в Excel"
-                        >
-                            <FileText className="h-3.5 w-3.5" />
-                            Excel
-                        </button>
+                        <ExcelButton onClick={() => onExportRatingExcel?.('deans')} title="Экспортировать таблицу деканов в Excel" />
                     }
                 >
                     <ReportHeading
@@ -2104,11 +2039,12 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                     </div>
                     {(summary.dean_rank_groups?.length ?? 0) > 0 && (
                         <div className="mb-4 space-y-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Группировка рейтинга по диапазонам</p>
+                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
                             <RankBandGrid groups={summary.dean_rank_groups ?? []} />
                         </div>
                     )}
-                    <div className="mb-4">
+                    <div className="mb-4 space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
                         <Input
                             value={deanSearch}
                             onChange={(e) => setDeanSearch(e.target.value)}
@@ -2157,12 +2093,12 @@ function StructuralView({ summary }) {
                             <tbody>
                                 {(summary.faculties ?? []).map((f, i) => (
                                     <tr key={f.id}>
-                                        <td className="ps-3 text-center text-xs text-muted-foreground">{i + 1}</td>
+                                        <td className="ps-3 text-center text-xs text-slate-500">{i + 1}</td>
                                         <td className="font-medium">{f.name}</td>
                                         <td className="text-right tabular-nums">{f.user_count}</td>
                                         <td className="text-right tabular-nums">{f.total_entries}</td>
                                         <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                        <td className="pe-3 text-right tabular-nums font-semibold text-amber-600">{f.pending}</td>
+                                        <td className="pe-3 text-right tabular-nums font-semibold text-amber-700">{f.pending}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -2258,10 +2194,33 @@ export default function Summary({
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI"
+                    title="KPI — Сводка"
+                    description={SCOPE_DESC[normalizedRole] ?? ''}
+                    meta={period ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge tone="default">
+                                <CalendarRange className="mr-1 h-3.5 w-3.5" />
+                                {academicYear?.name ? `${academicYear.name} · ` : ''}{period.name}
+                            </StatusBadge>
+                            {period.status === 'active' && <StatusBadge tone="success">Активный</StatusBadge>}
+                            {period.status === 'closed' && <StatusBadge tone="info">Закрыт</StatusBadge>}
+                        </div>
+                    ) : (academicYear?.name ? (
+                        <StatusBadge tone="default">
+                            <CalendarRange className="mr-1 h-3.5 w-3.5" />
+                            {academicYear.name}
+                        </StatusBadge>
+                    ) : null)}
+                />
+            )}
+        >
             <Head title="KPI — Сводка" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
                 {renderContent()}
             </div>
         </AuthenticatedLayout>

@@ -2,8 +2,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { buttonClassName, inputClassName, Notice, VerifiedBadge } from '@/components/hr-hiring/ui';
 import { DOCUMENT_TYPES } from '@/components/hr-hiring/logic';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { PageHeader, Segmented, UnderlineTabs } from '@/components/platform';
 import axios from 'axios';
-import { BookOpenCheck, Building2, Download, FileUp, KeyRound, Search, ShieldCheck, UserRound } from 'lucide-react';
+import { BookOpenCheck, Building2, Download, FileText, FileUp, Hash, KeyRound, Search, ShieldCheck, UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 const TABS = [
@@ -28,33 +29,23 @@ export default function Settings(props) {
     return (
         <AuthenticatedLayout
             header={(
-                <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">Отдел кадров · Приём на работу</p>
-                        <h2 className="text-2xl font-semibold text-slate-900">Настройки модуля</h2>
-                    </div>
-                    <Link href={route('hr.hiring.index')} className={buttonClassName.secondary}>К списку приёмов</Link>
-                </div>
+                <PageHeader
+                    eyebrow="Отдел кадров · Приём на работу"
+                    title="Настройки модуля"
+                    description="Реквизиты работодателя и нумерация приказов, шаблоны документов, справочник подразделений и должностей, права сотрудников."
+                    actions={<Link href={route('hr.hiring.index')} className={buttonClassName.secondary}>К списку приёмов</Link>}
+                />
             )}
         >
             <Head title="Настройки приёма на работу" />
-            <div className="w-full space-y-4 px-4 py-6 sm:px-6 lg:px-8">
-                <div role="tablist" className="flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1 sm:w-fit">
-                    {tabs.map((item) => (
-                        <button
-                            key={item.value}
-                            type="button"
-                            role="tab"
-                            aria-selected={tab === item.value}
-                            onClick={() => select(item.value)}
-                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${tab === item.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
-                        >
-                            <item.icon className="h-4 w-4" /> {item.label}
-                        </button>
-                    ))}
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <UnderlineTabs
+                    items={tabs.map((item) => ({ key: item.value, label: item.label, icon: item.icon }))}
+                    value={tab}
+                    onChange={select}
+                />
                 {tab === 'employer' && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <NumberingCard numbering={props.numbering} />
                         <EmployerTab {...props} />
                     </div>
@@ -76,24 +67,25 @@ function EmployerTab({ employer, employerFields }) {
     };
 
     return (
-        <form onSubmit={submit} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-slate-600">Реквизиты подставляются в преамбулу, раздел 11 договора и приказ. Перерыв — значение по умолчанию для новых договоров.</p>
-            <div className="grid gap-4 md:grid-cols-2">
+        <Panel as="form" onSubmit={submit} icon={Building2} title="Реквизиты работодателя" description="Реквизиты подставляются в преамбулу, раздел 11 договора и приказ. Перерыв — значение по умолчанию для новых договоров.">
+            <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
                 {Object.entries(employerFields).map(([key, label]) => (
                     <div key={key} className={MULTILINE.includes(key) ? 'md:col-span-1' : ''}>
-                        <label htmlFor={`employer-${key}`} className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
+                        <label htmlFor={`employer-${key}`} className="qd-field-label mb-2 block text-[#102945]">{label}</label>
                         {MULTILINE.includes(key) ? (
                             <textarea id={`employer-${key}`} rows={2} value={form.data[key] ?? ''} onChange={(event) => form.setData(key, event.target.value)} className={inputClassName} />
                         ) : (
                             <input id={`employer-${key}`} value={form.data[key] ?? ''} onChange={(event) => form.setData(key, event.target.value)} className={inputClassName} />
                         )}
-                        {form.errors[key] && <p className="mt-1 text-xs text-rose-600">{form.errors[key]}</p>}
+                        {form.errors[key] && <p className="mt-1.5 text-xs text-red-700">{form.errors[key]}</p>}
                     </div>
                 ))}
             </div>
-            <p className="text-xs text-slate-500">В многострочных полях перенос строки сохраняется в документе (как в образце договора).</p>
-            <button type="submit" disabled={form.processing} className={buttonClassName.primary}>Сохранить</button>
-        </form>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                <p className="text-xs text-slate-500">В многострочных полях перенос строки сохраняется в документе (как в образце договора).</p>
+                <button type="submit" disabled={form.processing} className={buttonClassName.primary}>Сохранить</button>
+            </div>
+        </Panel>
     );
 }
 
@@ -110,28 +102,29 @@ function NumberingCard({ numbering }) {
     };
 
     return (
-        <form onSubmit={submit} className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="font-semibold text-slate-900">Нумерация приказов «-К»</h3>
-            <p className="text-sm text-slate-600">
-                Другие кадровые приказы «-К» нумеруются вне системы. Укажите последний выданный номер — подсказка следующего номера
-                приказа о приёме продолжит с него. Номер действует для указанного года; с 1 января счёт начинается заново.
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
+        <Panel
+            as="form"
+            onSubmit={submit}
+            icon={Hash}
+            title="Нумерация приказов «-К»"
+            description="Другие кадровые приказы «-К» нумеруются вне системы. Укажите последний выданный номер — подсказка следующего номера приказа о приёме продолжит с него. Номер действует для указанного года; с 1 января счёт начинается заново."
+        >
+            <div className="flex flex-wrap items-end gap-4">
                 <div>
-                    <label htmlFor="numbering-year" className="mb-1 block text-xs font-medium text-slate-600">Год</label>
+                    <label htmlFor="numbering-year" className="qd-field-label mb-2 block text-[#102945]">Год</label>
                     <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputClassName} w-28`} />
                 </div>
                 <div>
-                    <label htmlFor="numbering-last" className="mb-1 block text-xs font-medium text-slate-600">Последний номер приказа вне системы</label>
-                    <div className="flex items-center gap-1">
+                    <label htmlFor="numbering-last" className="qd-field-label mb-2 block text-[#102945]">Последний номер приказа вне системы</label>
+                    <div className="flex items-center gap-2">
                         <input id="numbering-last" inputMode="numeric" value={form.data.last_order_number} onChange={(event) => form.setData('last_order_number', event.target.value.replace(/\D/g, ''))} placeholder="например, 415" className={`${inputClassName} w-40 font-mono`} />
-                        <span className="text-sm text-slate-500">-К</span>
+                        <span className="font-mono text-sm font-semibold text-slate-600">-К</span>
                     </div>
                 </div>
                 <button type="submit" disabled={form.processing} className={buttonClassName.secondary}>Сохранить</button>
             </div>
-            {(form.errors.year || form.errors.last_order_number) && <p className="text-xs text-rose-600">{form.errors.year ?? form.errors.last_order_number}</p>}
-        </form>
+            {(form.errors.year || form.errors.last_order_number) && <p className="text-xs text-red-700">{form.errors.year ?? form.errors.last_order_number}</p>}
+        </Panel>
     );
 }
 
@@ -160,17 +153,16 @@ function TemplatesTab({ templates }) {
     };
 
     return (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <div className="space-y-4">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+            <div className="space-y-6">
                 {DOCUMENT_TYPES.map((type) => (
-                    <section key={type.value} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <h3 className="mb-3 font-semibold text-slate-900">{type.label}</h3>
-                        <ul className="divide-y divide-slate-100 text-sm">
+                    <Panel key={type.value} icon={FileText} title={type.label} flush>
+                        <ul className="divide-y divide-slate-200 text-sm">
                             {(templates[type.value] ?? []).map((template) => (
-                                <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                                <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 sm:px-6">
                                     <span className="min-w-0">
-                                        <span className="font-medium text-slate-800">Версия {template.version}</span>
-                                        {template.is_active && <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">активна</span>}
+                                        <span className="font-semibold text-slate-900">Версия {template.version}</span>
+                                        {template.is_active && <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">активна</span>}
                                         <span className="block text-xs text-slate-500">
                                             {template.built_in ? 'встроенный шаблон' : `${template.original_name} · ${template.uploaded_by ?? '—'} · ${template.uploaded_at}`}
                                             {template.comment && !template.built_in && ` · ${template.comment}`}
@@ -187,23 +179,26 @@ function TemplatesTab({ templates }) {
                                 </li>
                             ))}
                         </ul>
-                    </section>
+                    </Panel>
                 ))}
             </div>
-            <form onSubmit={submit} className="h-fit space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="font-semibold text-slate-900">Загрузить новую версию</h3>
-                <p className="text-sm text-slate-600">
-                    Скачайте текущую версию, измените её в Word и загрузите. Система проверит теги; шаблон с ошибками не принимается.
-                    Список тегов — в инструкции ОУП (docs/hr-module/README-ОУП.md).
-                </p>
+            <Panel
+                as="form"
+                onSubmit={submit}
+                icon={FileUp}
+                title="Загрузить новую версию"
+                description="Скачайте текущую версию, измените её в Word и загрузите. Система проверит теги; шаблон с ошибками не принимается. Список тегов — в инструкции ОУП (docs/hr-module/README-ОУП.md)."
+                className="xl:sticky xl:top-4"
+            >
+                <span className="qd-field-label -mb-2 block text-[#102945]">Документ</span>
                 <select value={form.data.type} onChange={(event) => form.setData('type', event.target.value)} className={inputClassName} aria-label="Документ">
                     {DOCUMENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                 </select>
-                <input key={fileKey} type="file" accept=".docx" onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)} className="block w-full text-sm" aria-label="Файл шаблона .docx" />
-                {form.errors.type && <p className="text-xs text-rose-600">{form.errors.type}</p>}
+                <input key={fileKey} type="file" accept=".docx" onChange={(event) => form.setData('file', event.target.files?.[0] ?? null)} className="block w-full rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-700 file:mr-3 file:rounded-[8px] file:border-0 file:bg-teal-700 file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:tracking-[0.08em] file:text-white hover:file:bg-[#102945]" aria-label="Файл шаблона .docx" />
+                {form.errors.type && <p className="text-xs text-red-700">{form.errors.type}</p>}
                 <input value={form.data.comment} onChange={(event) => form.setData('comment', event.target.value)} placeholder="Комментарий (что изменено)" className={inputClassName} maxLength={255} aria-label="Комментарий" />
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" checked={form.data.activate} onChange={(event) => form.setData('activate', event.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
+                    <input type="checkbox" checked={form.data.activate} onChange={(event) => form.setData('activate', event.target.checked)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30" />
                     Сразу сделать активной
                 </label>
                 {problems.length > 0 && (
@@ -212,8 +207,10 @@ function TemplatesTab({ templates }) {
                         <ul className="list-disc space-y-0.5 pl-4">{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
                     </Notice>
                 )}
-                <button type="submit" disabled={!form.data.file || form.processing} className={buttonClassName.primary}><FileUp className="h-4 w-4" /> Загрузить и проверить</button>
-            </form>
+                <div className="border-t border-slate-200 pt-4">
+                    <button type="submit" disabled={!form.data.file || form.processing} className={buttonClassName.primary}><FileUp className="h-4 w-4" /> Загрузить и проверить</button>
+                </div>
+            </Panel>
         </div>
     );
 }
@@ -227,34 +224,34 @@ function CatalogTab({ units, positions, categories, abilities }) {
     const unverifiedCount = rows.filter((row) => !row.verified).length;
 
     return (
-        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Panel icon={BookOpenCheck} title="Справочник подразделений и должностей">
             {!abilities.catalog && <Notice icon={ShieldCheck}>Изменять формы и пополнять справочник могут сотрудники с отдельным правом. Вы видите справочник только для чтения.</Notice>}
             <div className="flex flex-wrap items-center gap-3">
-                <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-                    {[['units', 'Подразделения'], ['positions', 'Должности']].map(([value, label]) => (
-                        <button key={value} type="button" onClick={() => setKind(value)} className={`rounded-lg px-3 py-1.5 text-sm ${kind === value ? 'bg-white shadow-sm' : 'text-slate-600'}`}>{label}</button>
-                    ))}
-                </div>
+                <Segmented
+                    items={[{ key: 'units', label: 'Подразделения' }, { key: 'positions', label: 'Должности' }]}
+                    value={kind}
+                    onChange={setKind}
+                />
                 <label className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                     <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Поиск" className={`${inputClassName} w-64 pl-9`} />
                 </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" checked={onlyUnverified} onChange={(event) => setOnlyUnverified(event.target.checked)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
+                    <input type="checkbox" checked={onlyUnverified} onChange={(event) => setOnlyUnverified(event.target.checked)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30" />
                     Только непроверенные ({unverifiedCount})
                 </label>
             </div>
             <p className="text-xs text-slate-500">
                 Формы, заполненные автоматически, отмечены «не проверены ОУП» — у документа с ними будет предупреждение. Проверьте написание и отметьте «Проверено».
             </p>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-200 border-t border-slate-200">
                 {filtered.map((row) => (
                     <CatalogRow key={`${kind}-${row.id}`} kind={kind} row={row} categories={categories} editable={abilities.catalog} />
                 ))}
                 {filtered.length === 0 && <p className="py-6 text-center text-sm text-slate-500">Ничего не найдено.</p>}
             </div>
             {kind === 'positions' && abilities.catalog && <NewPosition categories={categories} />}
-        </section>
+        </Panel>
     );
 }
 
@@ -277,10 +274,10 @@ function CatalogRow({ kind, row, categories, editable }) {
     };
 
     return (
-        <div className="grid gap-2 py-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto] lg:items-end">
+        <div className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto] lg:items-center">
             <div className="min-w-0">
-                <p className="font-medium text-slate-900">{row.name}</p>
-                <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <p className="font-semibold text-slate-900">{row.name}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     {isUnit ? [row.type_label, row.parent].filter(Boolean).join(' · ') : (categories[row.staff_category] ?? 'без категории')}
                     <VerifiedBadge verified={row.verified} />
                 </p>
@@ -294,7 +291,7 @@ function CatalogRow({ kind, row, categories, editable }) {
                 )}
                 {fields.map(([key, label, placeholder]) => (
                     <input key={key} disabled={!editable} value={form.data[key]} onChange={(event) => form.setData(key, event.target.value)} placeholder={placeholder} title={label} aria-label={label}
-                        className={`${inputClassName} ${!form.data[key] ? 'border-amber-300 bg-amber-50/60' : ''}`} />
+                        className={`${inputClassName} ${!form.data[key] ? 'border-amber-300 bg-amber-50' : ''}`} />
                 ))}
             </div>
             {editable && (
@@ -316,8 +313,8 @@ function NewPosition({ categories }) {
     };
 
     return (
-        <form onSubmit={submit} className="space-y-2 rounded-2xl border border-dashed border-slate-300 p-4">
-            <p className="text-sm font-medium text-slate-800">Новая должность</p>
+        <form onSubmit={submit} className="space-y-3 rounded-xl border border-dashed border-teal-300 bg-teal-50/40 p-4">
+            <p className="qd-kicker">Новая должность</p>
             <div className="grid gap-2 md:grid-cols-[minmax(0,1.3fr)_6rem_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <input value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} placeholder="Название" className={inputClassName} aria-label="Название должности" />
                 <select value={form.data.staff_category} onChange={(event) => form.setData('staff_category', event.target.value)} className={inputClassName} aria-label="Категория">
@@ -327,7 +324,7 @@ function NewPosition({ categories }) {
                 <input value={form.data.name_kz_poss} onChange={(event) => form.setData('name_kz_poss', event.target.value)} placeholder="Форма на казахском" className={inputClassName} aria-label="Форма на казахском" />
                 <button type="submit" disabled={form.processing || form.data.name.trim() === ''} className={buttonClassName.primary}>Добавить</button>
             </div>
-            {Object.values(form.errors).map((message) => <p key={message} className="text-xs text-rose-600">{message}</p>)}
+            {Object.values(form.errors).map((message) => <p key={message} className="text-xs text-red-700">{message}</p>)}
         </form>
     );
 }
@@ -370,50 +367,51 @@ function RightsTab({ members, capabilities }) {
     const rows = [...members, ...found.filter((user) => !members.some((member) => member.id === user.id)).map((user) => ({ ...user, rights: [] }))];
 
     return (
-        <section className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <Panel icon={KeyRound} title="Права сотрудников">
             <Notice>
                 Модуль открыт роли «Отдел кадров» и администраторам. Любому другому пользователю его открывает право «Доступ к модулю» —
                 роль при этом не меняется, модуль просто добавляется в его меню. Остальные права действуют только вместе с доступом;
                 у администраторов они есть всегда.
             </Notice>
-            <form onSubmit={search} className="flex flex-wrap gap-2">
+            <form onSubmit={search} className="flex flex-wrap items-end gap-2">
                 <div className="w-full max-w-md">
+                    <span className="qd-field-label mb-2 block text-[#102945]">Пользователь</span>
                     <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти пользователя: ФИО или e-mail" className={inputClassName} aria-label="Найти пользователя" />
                 </div>
                 <button type="submit" disabled={searchState.status === 'loading'} className={buttonClassName.secondary}><Search className="h-4 w-4" /> Найти</button>
-                {searchState.message && <p className="w-full text-xs text-rose-600">{searchState.message}</p>}
+                {searchState.message && <p className="w-full text-xs text-red-700">{searchState.message}</p>}
             </form>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="min-w-full text-sm">
-                    <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
-                        <tr>
-                            <th className="py-2 pr-4">Пользователь</th>
-                            {Object.entries(capabilities).map(([key, label]) => <th key={key} className="px-3 py-2">{label}</th>)}
+                    <thead className="text-left">
+                        <tr className="border-b border-slate-200">
+                            <th className="px-4 py-3">Пользователь</th>
+                            {Object.entries(capabilities).map(([key, label]) => <th key={key} className="px-3 py-3">{label}</th>)}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-200">
                         {rows.map((user) => (
                             <tr key={user.id}>
-                                <td className="py-2 pr-4">
-                                    <span className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" />{user.name}</span>
+                                <td className="px-4 py-3">
+                                    <span className="flex items-center gap-2 font-medium text-slate-900"><UserRound className="h-4 w-4 text-teal-700" />{user.name}</span>
                                     <span className="block text-xs text-slate-500">{user.email} · роль: {user.role}{user.can_use_module === false && ' (модуль закрыт)'}</span>
                                 </td>
                                 {Object.keys(capabilities).map((capability) => {
                                     const granted = (user.rights ?? []).includes(capability);
                                     if (capability === 'hr.access' && user.role_access) {
                                         return (
-                                            <td key={capability} className="px-3 py-2">
+                                            <td key={capability} className="px-3 py-3">
                                                 <label className="flex items-center gap-2" title="Модуль открыт ролью пользователя">
-                                                    <input type="checkbox" checked disabled className="rounded border-slate-300 text-teal-600 opacity-60" />
+                                                    <input type="checkbox" checked disabled className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 opacity-60" />
                                                     <span className="text-xs text-slate-600">по роли</span>
                                                 </label>
                                             </td>
                                         );
                                     }
                                     return (
-                                        <td key={capability} className="px-3 py-2">
+                                        <td key={capability} className="px-3 py-3">
                                             <label className="flex items-center gap-2">
-                                                <input type="checkbox" checked={granted} disabled={saving !== null} onChange={() => toggle(user.id, capability, granted)} className="rounded border-slate-300 text-teal-600 focus:ring-teal-500 disabled:opacity-60" />
+                                                <input type="checkbox" checked={granted} disabled={saving !== null} onChange={() => toggle(user.id, capability, granted)} className="h-4 w-4 rounded-[4px] border-slate-300 text-teal-700 focus:ring-teal-600/30 disabled:opacity-60" />
                                                 <span className="text-xs text-slate-600">{granted ? 'выдано' : 'нет'}</span>
                                             </label>
                                         </td>
@@ -421,10 +419,26 @@ function RightsTab({ members, capabilities }) {
                                 })}
                             </tr>
                         ))}
-                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="py-6 text-center text-slate-500">Сотрудников с доступом к модулю пока нет. Найдите пользователя выше.</td></tr>}
+                        {rows.length === 0 && <tr><td colSpan={Object.keys(capabilities).length + 1} className="px-4 py-8 text-center text-slate-500">Сотрудников с доступом к модулю пока нет. Найдите пользователя выше.</td></tr>}
                     </tbody>
                 </table>
             </div>
-        </section>
+        </Panel>
+    );
+}
+
+/** Qadam card: strip header (spaced-capitals title, teal icon, optional description), padded body. */
+function Panel({ as: Tag = 'section', icon: Icon, title, description = null, flush = false, className = '', children, ...props }) {
+    return (
+        <Tag className={`overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] ${className}`} {...props}>
+            <header className="border-b border-slate-200 bg-slate-50 px-5 py-3.5 sm:px-6">
+                <h3 className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
+                    {Icon && <Icon className="h-4 w-4 text-teal-700" />}
+                    {title}
+                </h3>
+                {description && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">{description}</p>}
+            </header>
+            <div className={flush ? '' : 'space-y-4 p-5 sm:p-6'}>{children}</div>
+        </Tag>
     );
 }

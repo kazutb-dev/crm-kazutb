@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, Notice, PageHeader, Segmented, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,20 +18,20 @@ const MONTH_NAMES    = ['Январь','Февраль','Март','Апрель
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 08–18
 
 const EVENT_STYLE = {
-    confirmed: { bg: 'bg-blue-500/15 border-blue-500',   text: 'text-blue-700 dark:text-blue-300',   label: 'Подтверждена' },
-    pending:   { bg: 'bg-yellow-500/15 border-yellow-500', text: 'text-yellow-700 dark:text-yellow-300', label: 'Ожидает' },
-    conflict:  { bg: 'bg-red-500/15 border-red-500',     text: 'text-red-700 dark:text-red-300',     label: 'Конфликт' },
-    completed: { bg: 'bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-600', text: 'text-muted-foreground', label: 'Завершена' },
+    confirmed: { bg: 'bg-blue-50 border-blue-600',   text: 'text-blue-800',  label: 'Подтверждена' },
+    pending:   { bg: 'bg-amber-50 border-amber-500', text: 'text-amber-800', label: 'Ожидает' },
+    conflict:  { bg: 'bg-red-50 border-red-600',     text: 'text-red-800',   label: 'Конфликт' },
+    completed: { bg: 'bg-slate-100 border-slate-300', text: 'text-slate-500', label: 'Завершена' },
 };
 
 const TYPE_META = {
-    meeting:       { label: 'Встреча',           bg: 'bg-blue-500/15 border-blue-500',    text: 'text-blue-700 dark:text-blue-300' },
-    vacation:      { label: 'Отпуск',            bg: 'bg-green-500/15 border-green-500',  text: 'text-green-700 dark:text-green-300' },
-    business_trip: { label: 'Командировка',      bg: 'bg-violet-500/15 border-violet-500', text: 'text-violet-700 dark:text-violet-300' },
-    sick_leave:    { label: 'Больничный',         bg: 'bg-orange-500/15 border-orange-400', text: 'text-orange-700 dark:text-orange-300' },
-    personal:      { label: 'Личное',            bg: 'bg-pink-500/15 border-pink-400',    text: 'text-pink-700 dark:text-pink-300' },
-    remote:        { label: 'Удалённая работа',  bg: 'bg-teal-500/15 border-teal-500',    text: 'text-teal-700 dark:text-teal-300' },
-    other:         { label: 'Другое',            bg: 'bg-gray-200 border-gray-400',       text: 'text-gray-700 dark:text-gray-300' },
+    meeting:       { label: 'Встреча',           bg: 'bg-blue-50 border-blue-600',       text: 'text-blue-800',    dot: 'bg-blue-600' },
+    vacation:      { label: 'Отпуск',            bg: 'bg-emerald-50 border-emerald-600', text: 'text-emerald-800', dot: 'bg-emerald-600' },
+    business_trip: { label: 'Командировка',      bg: 'bg-orange-50 border-orange-600',   text: 'text-orange-800',  dot: 'bg-orange-600' },
+    sick_leave:    { label: 'Больничный',         bg: 'bg-amber-50 border-amber-500',     text: 'text-amber-800',   dot: 'bg-amber-500' },
+    personal:      { label: 'Личное',            bg: 'bg-slate-100 border-[#102945]',    text: 'text-[#102945]',   dot: 'bg-[#102945]' },
+    remote:        { label: 'Удалённая работа',  bg: 'bg-teal-50 border-teal-600',       text: 'text-teal-800',    dot: 'bg-teal-600' },
+    other:         { label: 'Другое',            bg: 'bg-slate-100 border-slate-400',    text: 'text-slate-700',   dot: 'bg-slate-400' },
 };
 
 function getMonthCells(year, month) {
@@ -90,10 +91,10 @@ function EventChip({ event, small = false }) {
             ? TYPE_META[event.type]
             : (EVENT_STYLE[event.status] ?? EVENT_STYLE.confirmed));
     return (
-        <div className={`rounded border-l-[3px] px-1.5 py-0.5 ${s.bg} ${small ? 'text-[10px]' : 'text-xs'}`}>
+        <div className={`rounded-[6px] border-l-[3px] px-1.5 py-0.5 ${s.bg} ${small ? 'text-[10px]' : 'text-xs'}`}>
             <p className={`font-medium truncate ${s.text}`}>{event.title}</p>
-            {!small && <p className="text-muted-foreground truncate">{fmtTime(event.starts_at)}–{fmtTime(event.ends_at)}</p>}
-            {!small && event.with_name && <p className="text-muted-foreground truncate">{event.with_name}</p>}
+            {!small && <p className="text-slate-500 tabular-nums truncate">{fmtTime(event.starts_at)}–{fmtTime(event.ends_at)}</p>}
+            {!small && event.with_name && <p className="text-slate-500 truncate">{event.with_name}</p>}
         </div>
     );
 }
@@ -125,9 +126,9 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="grid grid-cols-7 border-b">
+                <div className="grid grid-cols-7 border-b border-slate-200">
                     {WEEKDAYS_SHORT.map((wd, i) => (
-                        <div key={wd} className={`py-2 text-center text-xs font-medium text-muted-foreground ${i >= 5 ? 'text-destructive/60' : ''}`}>{wd}</div>
+                        <div key={wd} className={`py-2 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>{wd}</div>
                     ))}
                 </div>
                 <div className="grid grid-cols-7">
@@ -146,20 +147,20 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
                                 onClick={() => day && onDayClick(day)}
                                 onDoubleClick={() => day && onDayDoubleClick && onDayDoubleClick(day)}
                                 className={[
-                                    'min-h-[80px] border-b border-r p-1.5 flex flex-col gap-1 last:border-r-0',
-                                    day ? 'cursor-pointer hover:bg-muted/40 transition-colors' : 'bg-muted/10',
-                                    isPastDay ? 'bg-gray-100/80 text-muted-foreground' : '',
-                                    isSelected ? 'bg-primary/5 ring-1 ring-inset ring-primary/20' : '',
+                                    'min-h-[88px] border-b border-r border-slate-200 p-1.5 flex flex-col gap-1 last:border-r-0 [&:nth-child(7n)]:border-r-0',
+                                    day ? 'cursor-pointer hover:bg-teal-50/60 transition-colors' : 'bg-slate-50',
+                                    isPastDay ? 'bg-slate-50 text-slate-400' : '',
+                                    isSelected ? 'bg-teal-50 ring-1 ring-inset ring-teal-600/40' : '',
                                 ].join(' ')}
                             >
                                 {day && (
                                     <>
-                                        <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full shrink-0 ${isToday ? 'bg-primary text-primary-foreground' : isPastDay ? 'text-muted-foreground' : isHoliday || isWeekend ? 'text-destructive/70' : ''}`}>
+                                        <span className={`text-xs font-semibold tabular-nums w-7 h-7 flex items-center justify-center rounded-full shrink-0 ${isToday ? 'bg-teal-700 text-white' : isPastDay ? 'text-slate-400' : isHoliday || isWeekend ? 'text-red-600/80' : 'text-slate-800'}`}>
                                             {day}
                                         </span>
                                         {dayEvts.slice(0, 2).map((e, i) => <EventChip key={i} event={e} small/>)}
                                         {dayEvts.length > 2 && (
-                                            <span className="text-[10px] text-muted-foreground">+{dayEvts.length - 2} ещё</span>
+                                            <span className="text-[10px] font-medium text-slate-500">+{dayEvts.length - 2} ещё</span>
                                         )}
                                     </>
                                 )}
@@ -193,22 +194,22 @@ function WeekView({ year, month, day, events }) {
             <CardContent className="p-0 overflow-x-auto">
                 <div className="min-w-[640px]">
                     {/* Header */}
-                    <div className="grid border-b" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
-                        <div className="border-r"/>
+                    <div className="grid border-b border-slate-200" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+                        <div className="border-r border-slate-200"/>
                         {weekDates.map((d, i) => {
                             const isToday = today.toDateString() === d.toDateString();
                             return (
-                                <div key={i} className={`text-center py-2 border-r last:border-r-0 ${isToday ? 'bg-primary/5' : ''}`}>
-                                    <p className={`text-xs text-muted-foreground`}>{WEEKDAYS_SHORT[(d.getDay()+6)%7]}</p>
-                                    <p className={`text-sm font-semibold ${isToday ? 'text-primary' : ''}`}>{d.getDate()}</p>
+                                <div key={i} className={`text-center py-2 border-r border-slate-200 last:border-r-0 ${isToday ? 'bg-teal-50' : ''}`}>
+                                    <p className="text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-500">{WEEKDAYS_SHORT[(d.getDay()+6)%7]}</p>
+                                    <p className={`font-display text-base font-bold tabular-nums ${isToday ? 'text-teal-700' : 'text-[#102945]'}`}>{d.getDate()}</p>
                                 </div>
                             );
                         })}
                     </div>
                     {/* Hour rows */}
                     {HOURS.map(h => (
-                        <div key={h} className="grid border-b" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
-                            <div className="border-r px-1 py-1 text-right text-[10px] text-muted-foreground">{String(h).padStart(2,'0')}:00</div>
+                        <div key={h} className="grid border-b border-slate-200 last:border-b-0" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
+                            <div className="border-r border-slate-200 px-1.5 py-1 text-right text-[10px] tabular-nums text-slate-500">{String(h).padStart(2,'0')}:00</div>
                             {weekDates.map((d, i) => {
                                 const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
                                 const slotEvts = (byDayHour[key] ?? []).filter(e => {
@@ -216,7 +217,7 @@ function WeekView({ year, month, day, events }) {
                                     return hour === h;
                                 });
                                 return (
-                                    <div key={i} className="border-r last:border-r-0 min-h-[48px] p-0.5 space-y-0.5">
+                                    <div key={i} className="border-r border-slate-200 last:border-r-0 min-h-[48px] p-0.5 space-y-0.5">
                                         {slotEvts.map((e, j) => <EventChip key={j} event={e} small/>)}
                                     </div>
                                 );
@@ -240,13 +241,13 @@ function DayView({ year, month, day, events }) {
     return (
         <Card>
             <CardContent className="p-0">
-                <div className="border-b px-4 py-2 text-sm font-medium">{fmtDate(date)}</div>
+                <div className="border-b border-slate-200 px-5 py-3 font-display text-base font-bold text-[#102945]">{fmtDate(date)}</div>
                 <div>
                     {HOURS.map(h => {
                         const slotEvts = dayEvts.filter(e => new Date(e.starts_at).getHours() === h);
                         return (
-                            <div key={h} className="flex border-b min-h-[56px]">
-                                <div className="w-14 shrink-0 border-r px-2 py-1 text-right text-xs text-muted-foreground">{String(h).padStart(2,'0')}:00</div>
+                            <div key={h} className="flex border-b border-slate-200 last:border-b-0 min-h-[56px]">
+                                <div className="w-16 shrink-0 border-r border-slate-200 px-2 py-1.5 text-right text-xs tabular-nums text-slate-500">{String(h).padStart(2,'0')}:00</div>
                                 <div className="flex-1 p-1 space-y-1">
                                     {slotEvts.map((e, i) => <EventChip key={i} event={e}/>)}
                                 </div>
@@ -262,34 +263,34 @@ function DayView({ year, month, day, events }) {
 // ── Agenda view ─────────────────────────────────────────────────────────────
 function AgendaView({ events }) {
     if (events.length === 0) {
-        return <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Нет событий</CardContent></Card>;
+        return <EmptyState title="Нет событий" description="Добавьте событие кнопкой «Добавить событие» или дважды щёлкните по дню в режиме «Месяц»." />;
     }
     return (
         <Card>
-            <CardContent className="p-0 divide-y">
+            <CardContent className="p-0 divide-y divide-slate-200">
                 {events.map(e => {
                     const s = e.status === 'conflict'
                         ? EVENT_STYLE.conflict
                         : (e.type && TYPE_META[e.type] ? TYPE_META[e.type] : (EVENT_STYLE[e.status] ?? EVENT_STYLE.confirmed));
                     const typeLabel = e.type && TYPE_META[e.type] ? TYPE_META[e.type].label : null;
                     return (
-                        <div key={e.id} className="flex gap-4 p-3 hover:bg-muted/30">
-                            <div className="w-24 shrink-0 text-xs text-muted-foreground pt-0.5">
-                                <p>{fmt(e.starts_at, { day: '2-digit', month: 'short' })}</p>
-                                <p>{fmtTime(e.starts_at)}</p>
+                        <div key={e.id} className="flex gap-4 px-5 py-3.5 hover:bg-slate-50">
+                            <div className="w-24 shrink-0 pt-0.5">
+                                <p className="text-sm font-semibold text-[#102945]">{fmt(e.starts_at, { day: '2-digit', month: 'short' })}</p>
+                                <p className="text-xs tabular-nums text-slate-500">{fmtTime(e.starts_at)}</p>
                             </div>
-                            <div className={`flex-1 rounded-lg border-l-[3px] px-3 py-2 ${s.bg}`}>
+                            <div className={`flex-1 rounded-[10px] border-l-[3px] px-3 py-2 ${s.bg}`}>
                                 <p className={`font-medium text-sm ${s.text}`}>{e.title}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    {typeLabel && <Badge variant="outline" className="text-[10px] py-0">{typeLabel}</Badge>}
-                                    {e.with_name && <span className="text-xs text-muted-foreground">{e.with_name}</span>}
+                                    {typeLabel && <Badge variant="outline" className="bg-white">{typeLabel}</Badge>}
+                                    {e.with_name && <span className="text-xs text-slate-600">{e.with_name}</span>}
                                     {e.format === 'online' && e.zoom_join_url && (
-                                        <a href={e.zoom_join_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-500">
+                                        <a href={e.zoom_join_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-[#102945]">
                                             <Video className="size-3"/>Zoom
                                         </a>
                                     )}
                                 </div>
-                                {e.room && <p className="text-xs text-muted-foreground mt-0.5">Кабинет: {e.room}</p>}
+                                {e.room && <p className="text-xs text-slate-600 mt-0.5">Кабинет: {e.room}</p>}
                             </div>
                         </div>
                     );
@@ -366,7 +367,7 @@ function CreateEventModal({ open, onClose, defaultDate, employees = [] }) {
                     <DialogTitle>Добавить событие</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={submit} className="space-y-4">
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <Label>Тип события</Label>
                         <NativeSelect
                             value={data.type}
@@ -375,7 +376,7 @@ function CreateEventModal({ open, onClose, defaultDate, employees = [] }) {
                         />
                     </div>
                     {data.type === 'meeting' && (
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>С кем встреча</Label>
                             <NativeSelect
                                 value={String(data.attendee_id ?? '')}
@@ -407,25 +408,25 @@ function CreateEventModal({ open, onClose, defaultDate, employees = [] }) {
                             )}
                         </div>
                     )}
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <Label>Название</Label>
                         <Input value={data.title} onChange={e => setData('title', e.target.value)} required/>
                         {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Начало</Label>
                             <Input type="datetime-local" min={minDateTime} value={data.starts_at} onChange={e => setData('starts_at', e.target.value)} required/>
                             {errors.starts_at && <p className="text-xs text-destructive">{errors.starts_at}</p>}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                             <Label>Конец</Label>
                             <Input type="datetime-local" min={data.starts_at || minDateTime} value={data.ends_at} onChange={e => setData('ends_at', e.target.value)} required/>
                             {errors.ends_at && <p className="text-xs text-destructive">{errors.ends_at}</p>}
                         </div>
                     </div>
-                    <div className="space-y-1">
-                        <Label>Комментарий / причина <span className="text-muted-foreground text-xs">(необязательно)</span></Label>
+                    <div className="space-y-2">
+                        <Label>Комментарий / причина <span className="text-xs font-normal normal-case tracking-normal text-slate-500">(необязательно)</span></Label>
                         <Textarea rows={3} value={data.description} onChange={e => setData('description', e.target.value)} placeholder="Например: ежегодный отпуск, деловая поездка в Алматы…"/>
                     </div>
                     <DialogFooter>
@@ -501,43 +502,77 @@ export default function CalendarMy({ events = [], meetingNotifications = [], slo
     const hasMeetingNotifications = meetingNotifications.length > 0;
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Мой календарь"
+                    description="Встречи, отпуска, командировки и другие события. Двойной щелчок по дню в режиме «Месяц» — новое событие на этот день."
+                    meta={hasMeetingNotifications ? (
+                        <StatusBadge tone="warning">
+                            <Bell className="mr-1 h-3 w-3" />
+                            Уведомлений: {meetingNotifications.length}
+                        </StatusBadge>
+                    ) : null}
+                    actions={(
+                        <Button onClick={() => { setCreateDate(null); setCreateOpen(true); }}>
+                            <Plus className="size-4"/>Добавить событие
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="Smart Calendar — Мой Календарь" />
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
                 {!!flash?.warning && (
-                    <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">
-                        {flash.warning}
-                    </div>
+                    <Notice tone="warning">{flash.warning}</Notice>
                 )}
                 {!!flash?.success && (
-                    <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">
-                        {flash.success}
-                    </div>
+                    <Notice tone="success">{flash.success}</Notice>
                 )}
+
+                {hasMeetingNotifications && (
+                    <Card className="border-amber-200">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Bell className="shrink-0" />
+                                Уведомления о встречах
+                                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold leading-none tabular-nums text-white">
+                                    {meetingNotifications.length}
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="py-1">
+                            <div className="divide-y divide-slate-200">
+                                {meetingNotifications.map((meeting) => (
+                                    <div key={meeting.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-slate-900">{meeting.title}</p>
+                                            <p className="text-xs text-slate-600">С кем: {meeting.organizer_name ?? 'Не указан'}</p>
+                                        </div>
+                                        <div className="shrink-0 space-y-0.5 text-xs text-slate-600 sm:text-right">
+                                            <p className="tabular-nums">{fmtDate(meeting.starts_at)}, {fmtTime(meeting.starts_at)}–{fmtTime(meeting.ends_at)}</p>
+                                            <p className="inline-flex items-center gap-1">
+                                                <MapPin className="size-3 text-teal-700" />
+                                                {meeting.room ? `Где: ${meeting.room}` : (meeting.format === 'online' ? 'Где: Online (Zoom)' : 'Где: не указано')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Toolbar */}
-                <div className="flex flex-wrap items-center gap-2 justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={prev}><ChevronLeft className="size-4"/></Button>
-                        <span className="text-sm font-semibold min-w-[200px] text-center">{periodLabel}</span>
-                        <Button variant="outline" size="icon" onClick={next}><ChevronRight className="size-4"/></Button>
+                        <Button variant="outline" size="icon" onClick={prev} aria-label="Назад"><ChevronLeft className="size-4"/></Button>
+                        <Button variant="outline" size="icon" onClick={next} aria-label="Вперёд"><ChevronRight className="size-4"/></Button>
+                        <h2 className="ml-2 min-w-[200px] font-display text-xl font-bold text-[#102945]">{periodLabel}</h2>
                         <Button variant="outline" size="sm" onClick={goToday}>Сегодня</Button>
                     </div>
-                    <div className="flex items-center gap-2">
-                    <Button size="sm" onClick={() => { setCreateDate(null); setCreateOpen(true); }}>
-                        <Plus className="size-4 mr-1"/>Добавить событие
-                    </Button>
-                    <div className="flex rounded-lg border overflow-hidden">
-                        {VIEWS.map(v => (
-                            <button
-                                key={v.key}
-                                onClick={() => setView(v.key)}
-                                className={`px-3 py-1.5 text-xs font-medium border-r last:border-r-0 transition-colors ${view === v.key ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
-                            >
-                                {v.label}
-                            </button>
-                        ))}
-                    </div>
-                    </div>
+                    <Segmented items={VIEWS} value={view} onChange={setView} />
                 </div>
 
                 {/* View */}
@@ -546,36 +581,13 @@ export default function CalendarMy({ events = [], meetingNotifications = [], slo
                 {view === 'day'    && <DayView   year={year} month={month} day={day} events={events}/>}
                 {view === 'agenda' && <AgendaView events={events}/>}
 
-                {hasMeetingNotifications && (
-                    <Card className="border-amber-300/70 bg-amber-50/70">
-                        <CardContent className="p-3 space-y-2">
-                            <div className="flex items-center gap-2 text-amber-800">
-                                <div className="relative">
-                                    <Bell className="size-4" />
-                                    <span className="absolute -top-1.5 -right-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none text-white">
-                                        {meetingNotifications.length}
-                                    </span>
-                                </div>
-                                <p className="text-sm font-medium">Уведомления о встречах</p>
-                            </div>
-                            <div className="space-y-1.5">
-                                {meetingNotifications.map((meeting) => (
-                                    <div key={meeting.id} className="rounded-md border border-amber-200 bg-white/70 px-2.5 py-2 text-sm">
-                                        <p className="font-medium text-foreground">{meeting.title}</p>
-                                        <p className="text-muted-foreground text-xs">
-                                            {fmtDate(meeting.starts_at)}, {fmtTime(meeting.starts_at)}–{fmtTime(meeting.ends_at)}
-                                        </p>
-                                        <p className="text-muted-foreground text-xs">С кем: {meeting.organizer_name ?? 'Не указан'}</p>
-                                        <p className="text-muted-foreground text-xs inline-flex items-center gap-1">
-                                            <MapPin className="size-3" />
-                                            {meeting.room ? `Где: ${meeting.room}` : (meeting.format === 'online' ? 'Где: Online (Zoom)' : 'Где: не указано')}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                {/* Legend */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-600">
+                    {Object.entries(TYPE_META).map(([key, meta]) => (
+                        <span key={key} className="flex items-center gap-1.5"><span className={`h-2 w-2 rounded-full ${meta.dot}`} />{meta.label}</span>
+                    ))}
+                    <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-600" />Конфликт</span>
+                </div>
 
                 <CreateEventModal open={createOpen} onClose={() => setCreateOpen(false)} defaultDate={createDate} employees={employees}/>
             </div>

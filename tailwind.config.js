@@ -1,5 +1,32 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+import colors from 'tailwindcss/colors';
+
+// Inside the panel's main block (.qd-scope in resources/css/panel.css) these stock Tailwind families
+// read the Qadam palette from --pal-* variables; everywhere else (public pages, login, the sidebar)
+// the fallback keeps the stock colour, so those screens render exactly as before.
+const PANEL_THEMED_FAMILIES = [
+    'slate', 'gray', 'zinc', 'neutral', 'stone',
+    'red', 'rose', 'orange', 'amber', 'yellow',
+    'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo',
+];
+
+const hexToRgbChannels = (hex) => {
+    const value = parseInt(hex.slice(1), 16);
+    return `${(value >> 16) & 255} ${(value >> 8) & 255} ${value & 255}`;
+};
+
+const panelThemedColors = Object.fromEntries(
+    PANEL_THEMED_FAMILIES.map((family) => [
+        family,
+        Object.fromEntries(
+            Object.entries(colors[family]).map(([shade, hex]) => [
+                shade,
+                `rgb(var(--pal-${family}-${shade}, ${hexToRgbChannels(hex)}) / <alpha-value>)`,
+            ]),
+        ),
+    ]),
+);
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -14,6 +41,8 @@ export default {
     theme: {
     	extend: {
     		fontFamily: {
+    			// Qadam headings in the panel's main block
+    			display: ['Literata', 'Georgia', 'Times New Roman', 'serif'],
     			sans: [
     				'Google Sans',
                     ...defaultTheme.fontFamily.sans
@@ -30,6 +59,7 @@ export default {
     			sm: 'calc(var(--radius) - 4px)'
     		},
     		colors: {
+    			...panelThemedColors,
     			background: 'hsl(var(--background))',
     			foreground: 'hsl(var(--foreground))',
     			card: {

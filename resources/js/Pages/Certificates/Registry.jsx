@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable, FilterBar, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Award, Download, QrCode, Search } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -32,7 +33,12 @@ const statusLabel = {
     revoked: 'Отозван',
 };
 
-const inputClassName = 'h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200';
+const STATUS_TONES = {
+    draft: 'default',
+    generated: 'info',
+    issued: 'success',
+    revoked: 'danger',
+};
 
 export default function CertificatesRegistryPage() {
     const [query, setQuery] = useState('');
@@ -201,19 +207,26 @@ export default function CertificatesRegistryPage() {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Реестр сертификатов
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Поиск, экспорт, выдача и отзыв сертификатов вынесены на отдельную страницу.
-                        </p>
-                    </div>
-                    <Button asChild variant="outline">
-                        <Link href={route('certificates.index')}>К генерации</Link>
-                    </Button>
-                </div>
+                <PageHeader
+                    eyebrow="Сертификаты"
+                    title="Реестр сертификатов"
+                    description="Поиск, экспорт, выдача и отзыв сертификатов."
+                    meta={<StatusBadge tone="info">Всего: {registry.meta.total ?? 0}</StatusBadge>}
+                    actions={(
+                        <>
+                            <Button variant="outline" onClick={exportCsv} className="gap-2">
+                                <Download className="h-4 w-4" />
+                                Экспорт CSV
+                            </Button>
+                            <Button asChild className="gap-2">
+                                <Link href={route('certificates.index')}>
+                                    <Award className="h-4 w-4" />
+                                    К генерации
+                                </Link>
+                            </Button>
+                        </>
+                    )}
+                />
             }
         >
             <Head title="Реестр сертификатов" />
@@ -228,7 +241,7 @@ export default function CertificatesRegistryPage() {
                     </DialogHeader>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Причина</label>
+                        <label className="qd-field-label block">Причина</label>
                         <Textarea
                             className="min-h-24"
                             value={revokeReason}
@@ -241,7 +254,7 @@ export default function CertificatesRegistryPage() {
                         <Button type="button" variant="outline" onClick={() => setRevokeDialogOpen(false)}>
                             Отмена
                         </Button>
-                        <Button type="button" onClick={revokeCertificate} disabled={actionLoading}>
+                        <Button type="button" variant="destructive" onClick={revokeCertificate} disabled={actionLoading}>
                             {actionLoading ? 'Сохранение...' : 'Отозвать'}
                         </Button>
                     </DialogFooter>
@@ -259,7 +272,7 @@ export default function CertificatesRegistryPage() {
 
                     {qrDialogData?.qr_payload && (
                         <div className="space-y-3">
-                            <div className="mx-auto w-max rounded-md border bg-white p-2">
+                            <div className="mx-auto w-max rounded-xl border border-slate-200 bg-white p-2">
                                 <QRCodeCanvas
                                     id="registry-qr-canvas"
                                     value={qrDialogData.qr_payload}
@@ -267,7 +280,7 @@ export default function CertificatesRegistryPage() {
                                     includeMargin
                                 />
                             </div>
-                            <div className="truncate text-xs text-muted-foreground">{qrDialogData.qr_payload}</div>
+                            <div className="truncate rounded-[10px] bg-slate-100 px-3 py-2 font-mono text-xs text-slate-600">{qrDialogData.qr_payload}</div>
                         </div>
                     )}
 
@@ -297,148 +310,173 @@ export default function CertificatesRegistryPage() {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-shell-container space-y-6 px-3 pb-5 pt-2 sm:px-4 sm:pb-6 sm:pt-3 lg:px-5">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Реестр сертификатов</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid gap-3 md:grid-cols-4">
-                            <input
-                                className={cn(inputClassName, 'md:col-span-2')}
-                                placeholder="Поиск по номеру, ФИО или теме"
-                                value={query}
-                                onChange={(event) => setQuery(event.target.value)}
-                            />
-                            <select
-                                className={inputClassName}
-                                value={status}
-                                onChange={(event) => setStatus(event.target.value)}
-                            >
-                                {statusOptions.map((option) => (
-                                    <option key={option.value || 'all'} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <Button onClick={applyFilters} disabled={registryLoading}>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            applyFilters();
+                        }}
+                    >
+                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-3">
+                            <label className="block space-y-2 md:col-span-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        className={cn(qdFieldClass, 'pl-9')}
+                                        placeholder="Поиск по номеру, ФИО или теме"
+                                        value={query}
+                                        onChange={(event) => setQuery(event.target.value)}
+                                    />
+                                </div>
+                            </label>
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Статус</span>
+                                <select
+                                    className={qdFieldClass}
+                                    value={status}
+                                    onChange={(event) => setStatus(event.target.value)}
+                                >
+                                    {statusOptions.map((option) => (
+                                        <option key={option.value || 'all'} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit" disabled={registryLoading}>
                                 {registryLoading ? 'Загрузка...' : 'Применить'}
                             </Button>
-                        </div>
-
-                        <div className="flex justify-end">
-                            <Button size="sm" variant="outline" onClick={exportCsv}>
-                                Экспорт CSV
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={registryLoading}
+                                onClick={() => {
+                                    setQuery('');
+                                    setStatus('');
+                                    loadRegistry(1, '', '');
+                                }}
+                            >
+                                Сбросить
                             </Button>
                         </div>
+                    </form>
+                </FilterBar>
 
-                        <div className="overflow-x-auto rounded-md border">
-                            <table className="min-w-full text-sm">
-                                <thead className="bg-muted/40 text-left">
-                                    <tr>
-                                        <th className="px-3 py-2">Номер</th>
-                                        <th className="px-3 py-2">ФИО</th>
-                                        <th className="px-3 py-2">Тема</th>
-                                        <th className="px-3 py-2">Шаблон</th>
-                                        <th className="px-3 py-2">Статус</th>
-                                        <th className="px-3 py-2">Выдан</th>
-                                        <th className="px-3 py-2">Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {registry.data.length === 0 && (
-                                        <tr>
-                                            <td className="px-3 py-4 text-muted-foreground" colSpan={7}>
-                                                {registryLoading ? 'Загрузка...' : 'Записей пока нет'}
-                                            </td>
-                                        </tr>
-                                    )}
+                <DataTable>
+                    <table className="min-w-full text-sm">
+                        <thead className="text-left">
+                            <tr>
+                                <th className="px-4 py-3">Номер</th>
+                                <th className="px-4 py-3">ФИО</th>
+                                <th className="px-4 py-3">Тема</th>
+                                <th className="px-4 py-3">Шаблон</th>
+                                <th className="px-4 py-3">Статус</th>
+                                <th className="px-4 py-3">Выдан</th>
+                                <th className="px-4 py-3 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {registry.data.length === 0 && (
+                                <tr>
+                                    <td className="px-4 py-10 text-center text-slate-500" colSpan={7}>
+                                        {registryLoading ? 'Загрузка...' : 'Записей пока нет'}
+                                    </td>
+                                </tr>
+                            )}
 
-                                    {registry.data.map((certificate) => (
-                                        <tr key={certificate.id} className="border-t">
-                                            <td className="px-3 py-2 font-medium">{certificate.certificate_number}</td>
-                                            <td className="px-3 py-2">{certificate.recipient_full_name}</td>
-                                            <td className="px-3 py-2">{certificate.topic}</td>
-                                            <td className="px-3 py-2 text-muted-foreground">
-                                                {certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <Badge variant="outline">{statusLabel[certificate.status] ?? certificate.status}</Badge>
-                                            </td>
-                                            <td className="px-3 py-2 text-muted-foreground">
-                                                {certificate.issued_at_human ?? '-'}
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {certificate.status === 'generated' && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => issueCertificate(certificate.id)}
-                                                            disabled={actionLoading}
-                                                        >
-                                                            Выдать
-                                                        </Button>
-                                                    )}
-                                                    <Button asChild size="sm" variant="outline">
-                                                        <Link href={route('certificates.show', certificate.id)}>
-                                                            Открыть
-                                                        </Link>
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => openQrDialog(certificate)}
-                                                    >
-                                                        QR
-                                                    </Button>
-                                                    {(certificate.status === 'generated' || certificate.status === 'issued') && (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => openRevokeDialog(certificate.id)}
-                                                            disabled={actionLoading}
-                                                        >
-                                                            Отозвать
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                            {registry.data.map((certificate) => (
+                                <tr key={certificate.id} className="border-t border-slate-200 hover:bg-slate-50">
+                                    <td className="px-4 py-3 font-mono text-[0.8125rem] font-medium text-slate-900">{certificate.certificate_number}</td>
+                                    <td className="px-4 py-3 font-medium text-slate-900">{certificate.recipient_full_name}</td>
+                                    <td className="px-4 py-3 text-slate-700">{certificate.topic}</td>
+                                    <td className="px-4 py-3 text-slate-500">
+                                        {certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <StatusBadge tone={STATUS_TONES[certificate.status] ?? 'default'}>
+                                            {statusLabel[certificate.status] ?? certificate.status}
+                                        </StatusBadge>
+                                    </td>
+                                    <td className="px-4 py-3 tabular-nums text-slate-500">
+                                        {certificate.issued_at_human ?? '-'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex flex-wrap justify-end gap-2">
+                                            {certificate.status === 'generated' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    onClick={() => issueCertificate(certificate.id)}
+                                                    disabled={actionLoading}
+                                                >
+                                                    Выдать
+                                                </Button>
+                                            )}
+                                            <Button asChild size="sm" variant="outline">
+                                                <Link href={route('certificates.show', certificate.id)}>
+                                                    Открыть
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="gap-1.5"
+                                                onClick={() => openQrDialog(certificate)}
+                                            >
+                                                <QrCode className="h-3.5 w-3.5" />
+                                                QR
+                                            </Button>
+                                            {(certificate.status === 'generated' || certificate.status === 'issued') && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="text-red-700 hover:bg-red-50 hover:text-red-800"
+                                                    onClick={() => openRevokeDialog(certificate.id)}
+                                                    disabled={actionLoading}
+                                                >
+                                                    Отозвать
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </DataTable>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                            <div className="text-muted-foreground">Всего: {registry.meta.total ?? 0}</div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={registryLoading || (registry.meta.current_page ?? 1) <= 1}
-                                    onClick={() => loadRegistry((registry.meta.current_page ?? 1) - 1)}
-                                >
-                                    Назад
-                                </Button>
-                                <span className="text-muted-foreground">
-                                    Стр. {registry.meta.current_page ?? 1} из {registry.meta.last_page ?? 1}
-                                </span>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={
-                                        registryLoading ||
-                                        (registry.meta.current_page ?? 1) >= (registry.meta.last_page ?? 1)
-                                    }
-                                    onClick={() => loadRegistry((registry.meta.current_page ?? 1) + 1)}
-                                >
-                                    Вперед
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                    <div className="tabular-nums text-slate-600">Всего: {registry.meta.total ?? 0}</div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={registryLoading || (registry.meta.current_page ?? 1) <= 1}
+                            onClick={() => loadRegistry((registry.meta.current_page ?? 1) - 1)}
+                        >
+                            Назад
+                        </Button>
+                        <span className="tabular-nums text-slate-600">
+                            Стр. {registry.meta.current_page ?? 1} из {registry.meta.last_page ?? 1}
+                        </span>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={
+                                registryLoading ||
+                                (registry.meta.current_page ?? 1) >= (registry.meta.last_page ?? 1)
+                            }
+                            onClick={() => loadRegistry((registry.meta.current_page ?? 1) + 1)}
+                        >
+                            Вперед
+                        </Button>
+                    </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

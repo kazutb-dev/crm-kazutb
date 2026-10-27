@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { DataTable, FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +10,14 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import {
     AlertTriangle,
+    Archive,
+    ArrowLeft,
     Download,
     Filter,
     GraduationCap,
     Pin,
+    Plus,
+    Save,
     Search,
     Star,
     Users,
@@ -713,222 +718,258 @@ export default function TeacherDisciplines() {
         }
     };
 
+    const resetFilters = () => setFilters({
+        academic_year: '',
+        semester: 'all',
+        status: 'all',
+        min_rating: 'all',
+        only_problematic: false,
+        only_without_assignments: false,
+    });
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Реестр преподавателей и дисциплин"
+                    description="Управление связями преподаватель ↔ дисциплина ↔ группа с аналитикой и быстрым доступом."
+                    actions={(
+                        <>
+                            <Button type="button" variant="outline" onClick={() => exportCsv(filteredRows)}>
+                                <Download className="h-4 w-4" />
+                                Экспорт CSV
+                            </Button>
+                            <Button type="button" variant="outline" onClick={bulkArchiveSelected} disabled={!selectedIds.length}>
+                                <Archive className="h-4 w-4" />
+                                Архивировать выбранные{selectedIds.length ? ` (${selectedIds.length})` : ''}
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="Анкетирование - Преподаватели" />
 
-            <div className="admin-page-wrap">
-                <Card className="border-border/80 bg-white/90 shadow-sm">
-                    <CardContent className="space-y-4 pt-6">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                            <div>
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Анкетирование / Преподаватели</p>
-                                <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Реестр преподавателей и дисциплин</h1>
-                                <p className="mt-1 text-sm text-muted-foreground">Управление связями преподаватель ↔ дисциплина ↔ группа с аналитикой и быстрым доступом.</p>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего преподавателей" value={summary.totalTeachers} tone="teal" icon={Users} />
+                    <StatTile label="Активных" value={summary.activeTeachers} tone="success" />
+                    <StatTile label="Дисциплин" value={summary.totalDisciplines} tone="navy" icon={GraduationCap} />
+                    <StatTile label="Назначений" value={summary.totalAssignments} tone="info" icon={Filter} />
+                    <StatTile label="Средний рейтинг" value={summary.avgRating ?? '—'} tone="gold" icon={Star} />
+                    <StatTile label="Проблемные" value={summary.problematic} tone="copper" icon={AlertTriangle} />
+                    <StatTile label="Без назначений" value={summary.withoutAssignments} tone="neutral" icon={UserX} />
+                    <StatTile
+                        label="Топ преподаватель"
+                        value={<span className="block text-xl leading-tight">{summary.topTeacher}</span>}
+                        tone="gold"
+                        icon={Pin}
+                    />
+                </StatGrid>
+
+                {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
+                {success && <Notice tone="success">{success}</Notice>}
+
+                <FilterBar>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                        <FormField label="Поиск">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     id="questionnaire-teacher-search"
-                                    className="w-64"
+                                    className="pl-9"
                                     placeholder="Поиск (Ctrl/Cmd + K)"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
-                                <Button type="button" variant="outline" className="gap-2" onClick={() => exportCsv(filteredRows)}>
-                                    <Download className="h-4 w-4" />
-                                    Экспорт CSV
-                                </Button>
-                                <Button type="button" variant="outline" className="gap-2" onClick={bulkArchiveSelected} disabled={!selectedIds.length}>
-                                    <ArchiveIcon />
-                                    Архивировать выбранные
-                                </Button>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </FormField>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard title="Всего преподавателей" value={summary.totalTeachers} icon={<Users className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Активных" value={summary.activeTeachers} icon={<Badge className="bg-emerald-600 text-white">active</Badge>} />
-                    <MetricCard title="Дисциплин" value={summary.totalDisciplines} icon={<GraduationCap className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Назначений" value={summary.totalAssignments} icon={<Filter className="h-5 w-5 text-[#139AA4]" />} />
-                    <MetricCard title="Средний рейтинг" value={summary.avgRating ?? '—'} icon={<Star className="h-5 w-5 text-amber-500" />} />
-                    <MetricCard title="Проблемные" value={summary.problematic} icon={<AlertTriangle className="h-5 w-5 text-orange-500" />} />
-                    <MetricCard title="Без назначений" value={summary.withoutAssignments} icon={<UserX className="h-5 w-5 text-slate-500" />} />
-                    <MetricCard title="Топ преподаватель" value={summary.topTeacher} icon={<Pin className="h-5 w-5 text-indigo-500" />} />
-                </div>
-
-                {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-                {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
-
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-[280px_1fr]">
-                    <Card className="h-fit border-border/80 bg-white/90 shadow-sm xl:sticky xl:top-5">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">Фильтры</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={filters.academic_year} onChange={(e) => setFilters((prev) => ({ ...prev, academic_year: e.target.value }))}>
+                        <FormField label="Учебный год">
+                            <select className={qdFieldClass} value={filters.academic_year} onChange={(e) => setFilters((prev) => ({ ...prev, academic_year: e.target.value }))}>
                                 <option value="">Учебный год: все</option>
                                 {academicYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
                             </select>
+                        </FormField>
 
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={filters.semester} onChange={(e) => setFilters((prev) => ({ ...prev, semester: e.target.value }))}>
+                        <FormField label="Семестр">
+                            <select className={qdFieldClass} value={filters.semester} onChange={(e) => setFilters((prev) => ({ ...prev, semester: e.target.value }))}>
                                 <option value="all">Семестр: все</option>
                                 <option value="1">Семестр 1</option>
                                 <option value="2">Семестр 2</option>
                             </select>
+                        </FormField>
 
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={filters.status} onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}>
+                        <FormField label="Статус">
+                            <select className={qdFieldClass} value={filters.status} onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}>
                                 <option value="all">Статус: все</option>
                                 <option value="active">active</option>
                                 <option value="inactive">inactive</option>
                             </select>
+                        </FormField>
 
-                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={filters.min_rating} onChange={(e) => setFilters((prev) => ({ ...prev, min_rating: e.target.value }))}>
+                        <FormField label="Рейтинг">
+                            <select className={qdFieldClass} value={filters.min_rating} onChange={(e) => setFilters((prev) => ({ ...prev, min_rating: e.target.value }))}>
                                 <option value="all">Рейтинг: любой</option>
                                 <option value="4.0">4.0+</option>
                                 <option value="4.5">4.5+</option>
                                 <option value="4.8">4.8+</option>
                             </select>
+                        </FormField>
+                    </div>
 
-                            <label className="flex items-center gap-2 text-sm">
-                                <input type="checkbox" checked={filters.only_problematic} onChange={(e) => setFilters((prev) => ({ ...prev, only_problematic: e.target.checked }))} />
+                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={filters.only_problematic} onChange={(e) => setFilters((prev) => ({ ...prev, only_problematic: e.target.checked }))} />
                                 Только проблемные
                             </label>
 
-                            <label className="flex items-center gap-2 text-sm">
-                                <input type="checkbox" checked={filters.only_without_assignments} onChange={(e) => setFilters((prev) => ({ ...prev, only_without_assignments: e.target.checked }))} />
+                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={filters.only_without_assignments} onChange={(e) => setFilters((prev) => ({ ...prev, only_without_assignments: e.target.checked }))} />
                                 Без назначений
                             </label>
+                        </div>
 
-                            <Button type="button" variant="outline" className="w-full" onClick={() => setFilters({
-                                academic_year: '',
-                                semester: 'all',
-                                status: 'all',
-                                min_rating: 'all',
-                                only_problematic: false,
-                                only_without_assignments: false,
-                            })}>
-                                Сбросить фильтры
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <div className="space-y-5">
-                        <Card className="border-border/80 bg-white/90 shadow-sm">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base text-[#132844]">Новая привязка преподавателя</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form className="grid grid-cols-1 gap-3 lg:grid-cols-3" onSubmit={submit}>
-                                    <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.teacher_id} onChange={(e) => setForm((prev) => ({ ...prev, teacher_id: e.target.value }))} disabled={Boolean(editingId)}>
-                                        <option value="">Преподаватель</option>
-                                        {teachers.map((teacher) => (
-                                            <option key={teacher.id} value={teacher.id}>
-                                                {teacher.display_name || teacher.name}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.discipline_id} onChange={(e) => setForm((prev) => ({ ...prev, discipline_id: e.target.value }))} disabled={Boolean(editingId)}>
-                                        <option value="">Дисциплина</option>
-                                        {disciplines.map((discipline) => (
-                                            <option key={discipline.id} value={discipline.id}>
-                                                {discipline.name}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <div className="flex gap-2">
-                                        <Button type="submit">{editingId ? 'Сохранить' : 'Добавить'}</Button>
-                                        {editingId && <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>}
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-border/80 bg-white/90 shadow-sm">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-base text-[#132844]">Таблица преподавателей</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {loading ? (
-                                    <p className="text-sm text-muted-foreground">Загрузка...</p>
-                                ) : filteredRows.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Нет данных по выбранным фильтрам.</p>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full text-sm">
-                                            <thead>
-                                                <tr className="border-b bg-white text-muted-foreground">
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left"><input type="checkbox" checked={selectedIds.length === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} /></th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">ФИО</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Кафедра</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Дисц.</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Группы</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Студенты</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Анкеты</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Рейтинг</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-left font-medium">Статус</th>
-                                                    <th className="sticky top-0 bg-white px-3 py-2 text-right font-medium">Действия</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {filteredRows.map((row) => (
-                                                    <tr key={row.teacherId} className="border-b last:border-b-0 hover:bg-muted/40">
-                                                        <td className="px-3 py-2"><input type="checkbox" checked={selectedIds.includes(row.teacherId)} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
-                                                        <td className="px-3 py-2">
-                                                            <button type="button" className="font-medium text-[#132844] hover:underline" onClick={() => openTeacherDrawer(row)}>
-                                                                {row.teacherName}
-                                                            </button>
-                                                        </td>
-                                                        <td className="px-3 py-2">{row.department}</td>
-                                                        <td className="px-3 py-2">{row.disciplinesCount}</td>
-                                                        <td className="px-3 py-2">{row.groupsCount}</td>
-                                                        <td className="px-3 py-2">{row.studentsCount}</td>
-                                                        <td className="px-3 py-2">{row.surveysCount}</td>
-                                                        <td className="px-3 py-2">{row.rating !== null ? row.rating.toFixed(2) : '—'}</td>
-                                                        <td className="px-3 py-2">
-                                                            <Badge variant={row.status === 'active' ? 'default' : 'secondary'} className={row.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
-                                                                {row.status}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right">
-                                                            <div className="inline-flex gap-1">
-                                                                <Button type="button" size="sm" variant={favorites.includes(row.teacherId) ? 'default' : 'outline'} onClick={() => toggleFavorite(row.teacherId)}>
-                                                                    <Star className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                                <Button type="button" size="sm" variant={pinned.includes(row.teacherId) ? 'default' : 'outline'} onClick={() => togglePinned(row.teacherId)}>
-                                                                    <Pin className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                                <Button type="button" size="sm" variant="outline" onClick={() => {
-                                                                    const first = items.find((item) => item.teacher_id === row.teacherId);
-                                                                    if (first) {
-                                                                        startEdit(first);
-                                                                    }
-                                                                }}>Ред.</Button>
-                                                                <Button type="button" size="sm" variant="outline" className="text-red-700" onClick={() => {
-                                                                    const first = items.find((item) => item.teacher_id === row.teacherId);
-                                                                    if (first) {
-                                                                        remove(first.id);
-                                                                    }
-                                                                }}>Удалить</Button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <Button type="button" variant="outline" onClick={resetFilters}>
+                            Сбросить фильтры
+                        </Button>
                     </div>
-                </div>
+                </FilterBar>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Plus />
+                            Новая привязка преподавателя
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end" onSubmit={submit}>
+                            <FormField label="Преподаватель">
+                                <select className={qdFieldClass} value={form.teacher_id} onChange={(e) => setForm((prev) => ({ ...prev, teacher_id: e.target.value }))} disabled={Boolean(editingId)}>
+                                    <option value="">Преподаватель</option>
+                                    {teachers.map((teacher) => (
+                                        <option key={teacher.id} value={teacher.id}>
+                                            {teacher.display_name || teacher.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormField>
+
+                            <FormField label="Дисциплина">
+                                <select className={qdFieldClass} value={form.discipline_id} onChange={(e) => setForm((prev) => ({ ...prev, discipline_id: e.target.value }))} disabled={Boolean(editingId)}>
+                                    <option value="">Дисциплина</option>
+                                    {disciplines.map((discipline) => (
+                                        <option key={discipline.id} value={discipline.id}>
+                                            {discipline.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormField>
+
+                            <div className="flex gap-2">
+                                {editingId && <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>}
+                                <Button type="submit">
+                                    {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                    {editingId ? 'Сохранить' : 'Добавить'}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users />
+                            Таблица преподавателей
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        {loading ? (
+                            <div className="p-5"><LoadingState /></div>
+                        ) : filteredRows.length === 0 ? (
+                            <div className="px-5 py-12 text-center">
+                                <p className="font-display text-lg font-bold text-[#102945]">Нет данных</p>
+                                <p className="mt-1 text-sm text-slate-600">Нет данных по выбранным фильтрам. Измените или сбросьте фильтры.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 bg-white">
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={selectedIds.length === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} aria-label="Выбрать все" /></th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">ФИО</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">Кафедра</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Дисц.</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Группы</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Студенты</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Анкеты</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Рейтинг</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">Статус</th>
+                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredRows.map((row) => {
+                                            const isChecked = selectedIds.includes(row.teacherId);
+                                            return (
+                                                <tr key={row.teacherId} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${isChecked ? 'bg-teal-50' : ''}`}>
+                                                    <td className="px-4 py-3"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={isChecked} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
+                                                    <td className="px-4 py-3">
+                                                        <button type="button" className="text-left font-medium text-slate-900 hover:text-teal-700 hover:underline" onClick={() => openTeacherDrawer(row)}>
+                                                            {row.teacherName}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-slate-700">{row.department}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums">{row.disciplinesCount}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums">{row.groupsCount}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums">{row.studentsCount}</td>
+                                                    <td className="px-4 py-3 text-right tabular-nums">{row.surveysCount}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{row.rating !== null ? row.rating.toFixed(2) : '—'}</td>
+                                                    <td className="px-4 py-3">
+                                                        <StatusBadge tone={row.status === 'active' ? 'success' : 'default'}>
+                                                            {row.status}
+                                                        </StatusBadge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="inline-flex gap-1">
+                                                            <Button type="button" size="sm" variant={favorites.includes(row.teacherId) ? 'gold' : 'ghost'} onClick={() => toggleFavorite(row.teacherId)} title="Избранное" aria-label="Избранное">
+                                                                <Star className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button type="button" size="sm" variant={pinned.includes(row.teacherId) ? 'default' : 'ghost'} onClick={() => togglePinned(row.teacherId)} title="Закрепить" aria-label="Закрепить">
+                                                                <Pin className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button type="button" size="sm" variant="outline" onClick={() => {
+                                                                const first = items.find((item) => item.teacher_id === row.teacherId);
+                                                                if (first) {
+                                                                    startEdit(first);
+                                                                }
+                                                            }}>Ред.</Button>
+                                                            <Button type="button" size="sm" variant="ghost" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => {
+                                                                const first = items.find((item) => item.teacher_id === row.teacherId);
+                                                                if (first) {
+                                                                    remove(first.id);
+                                                                }
+                                                            }}>Удалить</Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <Sheet open={Boolean(drawerTeacher)} onOpenChange={(open) => !open && setDrawerTeacher(null)}>
-                    <SheetContent side="right" className="w-full sm:max-w-3xl">
-                        <SheetHeader>
+                    <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-3xl">
+                        <SheetHeader className="border-b border-slate-200 pb-4">
+                            <p className="qd-kicker">Преподаватель</p>
                             <SheetTitle>{drawerTeacher?.teacherName}</SheetTitle>
                             <SheetDescription>
                                 {drawerTeacher?.department} · {drawerTeacher?.position}
@@ -936,7 +977,7 @@ export default function TeacherDisciplines() {
                         </SheetHeader>
 
                         {drawerTeacher && (
-                            <div className="mt-5 space-y-4">
+                            <div className="mt-5 space-y-5">
                                 <div className="grid gap-3 sm:grid-cols-4">
                                     <MiniStat title="Рейтинг" value={drawerTeacher.rating !== null ? drawerTeacher.rating.toFixed(2) : '—'} />
                                     <MiniStat title="Дисциплины" value={drawerTeacher.disciplinesCount} />
@@ -944,21 +985,14 @@ export default function TeacherDisciplines() {
                                     <MiniStat title="Студенты" value={drawerTeacher.studentsCount} />
                                 </div>
 
-                                <div className="flex flex-wrap gap-2 rounded-lg border border-border/70 bg-muted/30 p-1">
-                                    {Object.entries(PAGE_TABS).map(([key, label]) => (
-                                        <button
-                                            key={key}
-                                            type="button"
-                                            onClick={() => setDrawerTab(key)}
-                                            className={`rounded-md px-3 py-1.5 text-sm ${drawerTab === key ? 'bg-white text-[#132844] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
-                                </div>
+                                <UnderlineTabs
+                                    items={Object.entries(PAGE_TABS).map(([key, label]) => ({ key, label }))}
+                                    value={drawerTab}
+                                    onChange={setDrawerTab}
+                                />
 
                                 {drawerTab === 'overview' && (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         <DrawerList title="Дисциплины" items={drawerOverview?.disciplines || []} />
                                         <DrawerList title="Группы" items={drawerOverview?.groups || []} />
                                         <DrawerList title="Периоды" items={drawerOverview?.periods || []} />
@@ -981,15 +1015,18 @@ export default function TeacherDisciplines() {
                                                 }))}
                                                 columns={[
                                                     { key: 'discipline', label: 'Дисциплина' },
-                                                    { key: 'groups', label: 'Групп' },
+                                                    { key: 'groups', label: 'Групп', numeric: true },
                                                     { key: 'status', label: 'Статус' },
-                                                    { key: 'actions', label: 'Действия' },
+                                                    { key: 'actions', label: 'Действия', align: 'right' },
                                                 ]}
                                             />
                                         ) : (
-                                            <div className="space-y-3 rounded-lg border border-border/70 p-4">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <p className="text-sm font-semibold text-[#132844]">{selectedDrawerDiscipline.disciplineName}</p>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                                                    <div className="min-w-0">
+                                                        <p className="qd-field-label text-slate-500">Дисциплина</p>
+                                                        <p className="font-display text-lg font-bold text-[#102945]">{selectedDrawerDiscipline.disciplineName}</p>
+                                                    </div>
                                                     <Button
                                                         type="button"
                                                         variant="outline"
@@ -999,18 +1036,17 @@ export default function TeacherDisciplines() {
                                                             setSelectedDrawerGroupId(null);
                                                         }}
                                                     >
+                                                        <ArrowLeft className="h-3.5 w-3.5" />
                                                         К списку дисциплин
                                                     </Button>
                                                 </div>
 
                                                 {selectedDisciplineRatingsState.loading && (
-                                                    <p className="text-sm text-muted-foreground">Загрузка рейтингов по дисциплине...</p>
+                                                    <LoadingState label="Загрузка рейтингов по дисциплине..." />
                                                 )}
 
                                                 {selectedDisciplineRatingsState.error && (
-                                                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                                                        {selectedDisciplineRatingsState.error}
-                                                    </div>
+                                                    <Notice tone="danger">{selectedDisciplineRatingsState.error}</Notice>
                                                 )}
 
                                                 {!selectedDisciplineRatingsState.loading && !selectedDisciplineRatingsState.error && (
@@ -1027,7 +1063,7 @@ export default function TeacherDisciplines() {
                                                                     group: (
                                                                         <button
                                                                             type="button"
-                                                                            className="font-medium text-[#132844] hover:underline"
+                                                                            className="font-medium text-[#102945] hover:text-teal-700 hover:underline"
                                                                             onClick={() => setSelectedDrawerGroupId(Number(row.groupId))}
                                                                         >
                                                                             {row.groupName}
@@ -1038,20 +1074,21 @@ export default function TeacherDisciplines() {
                                                                 }))}
                                                                 columns={[
                                                                     { key: 'group', label: 'Группа' },
-                                                                    { key: 'average', label: 'Рейтинг группы' },
-                                                                    { key: 'responses', label: 'Анкет' },
+                                                                    { key: 'average', label: 'Рейтинг группы', numeric: true },
+                                                                    { key: 'responses', label: 'Анкет', numeric: true },
                                                                 ]}
                                                             />
                                                         ) : (
-                                                            <div className="space-y-3 rounded-lg border border-border/70 p-3">
+                                                            <div className="space-y-4 rounded-[14px] border border-slate-200 bg-white p-4">
                                                                 <div className="flex items-center justify-between gap-2">
-                                                                    <p className="text-sm font-semibold text-[#132844]">Группа {selectedGroupRating.groupName}</p>
+                                                                    <p className="font-semibold text-[#102945]">Группа {selectedGroupRating.groupName}</p>
                                                                     <Button
                                                                         type="button"
                                                                         variant="outline"
                                                                         size="sm"
                                                                         onClick={() => setSelectedDrawerGroupId(null)}
                                                                     >
+                                                                        <ArrowLeft className="h-3.5 w-3.5" />
                                                                         К списку групп
                                                                     </Button>
                                                                 </div>
@@ -1068,8 +1105,8 @@ export default function TeacherDisciplines() {
                                                                     }))}
                                                                     columns={[
                                                                         { key: 'student', label: 'Студент' },
-                                                                        { key: 'average', label: 'Рейтинг студента' },
-                                                                        { key: 'responses', label: 'Анкет' },
+                                                                        { key: 'average', label: 'Рейтинг студента', numeric: true },
+                                                                        { key: 'responses', label: 'Анкет', numeric: true },
                                                                     ]}
                                                                 />
                                                             </div>
@@ -1099,35 +1136,21 @@ export default function TeacherDisciplines() {
     );
 }
 
-function MetricCard({ title, value, icon }) {
-    return (
-        <Card className="border-border/80 bg-white/90 shadow-sm">
-            <CardContent className="flex items-center justify-between pt-6">
-                <div>
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
-                </div>
-                {icon}
-            </CardContent>
-        </Card>
-    );
-}
-
 function MiniStat({ title, value }) {
     return (
-        <div className="rounded-lg border border-border/70 px-3 py-2">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-            <p className="mt-1 text-lg font-semibold text-[#132844]">{value}</p>
+        <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3">
+            <p className="qd-field-label text-slate-500">{title}</p>
+            <p className="mt-1.5 font-display text-2xl font-bold leading-none tabular-nums text-[#102945]">{value}</p>
         </div>
     );
 }
 
 function DrawerList({ title, items }) {
     return (
-        <div className="rounded-lg border border-border/70 p-3">
-            <p className="mb-2 text-sm font-semibold text-[#132844]">{title}</p>
+        <div className="border-b border-slate-200 pb-4 last:border-b-0">
+            <p className="qd-field-label mb-2 text-slate-500">{title}</p>
             {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Нет данных</p>
+                <p className="text-sm text-slate-500">Нет данных</p>
             ) : (
                 <div className="flex flex-wrap gap-2">
                     {items.map((item) => (
@@ -1141,39 +1164,36 @@ function DrawerList({ title, items }) {
 
 function SimpleTable({ rows, columns }) {
     if (!rows.length) {
-        return <div className="rounded-lg border border-border/70 p-4 text-sm text-muted-foreground">Нет данных</div>;
+        return <Notice tone="info">Нет данных</Notice>;
     }
 
+    const alignClass = (column) => (column.numeric || column.align === 'right' ? 'text-right' : 'text-left');
+
     return (
-        <div className="overflow-x-auto rounded-lg border border-border/70">
+        <DataTable>
             <table className="min-w-full text-sm">
                 <thead>
-                    <tr className="border-b text-muted-foreground">
+                    <tr className="border-b border-slate-200">
                         {columns.map((column) => (
-                            <th key={column.key} className="px-3 py-2 text-left font-medium">{column.label}</th>
+                            <th key={column.key} className={`px-4 py-3 ${alignClass(column)}`}>{column.label}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                     {rows.map((row, index) => (
-                        <tr key={`row-${index}`} className="border-b last:border-b-0">
-                            {columns.map((column) => (
-                                <td key={`${index}-${column.key}`} className="px-3 py-2">{row[column.key] ?? '—'}</td>
+                        <tr key={`row-${index}`} className="border-b border-slate-200 last:border-b-0">
+                            {columns.map((column, columnIndex) => (
+                                <td
+                                    key={`${index}-${column.key}`}
+                                    className={`px-4 py-3 ${alignClass(column)} ${column.numeric ? 'tabular-nums' : ''} ${columnIndex === 0 ? 'font-medium text-slate-900' : 'text-slate-700'}`}
+                                >
+                                    {row[column.key] ?? '—'}
+                                </td>
                             ))}
                         </tr>
                     ))}
                 </tbody>
             </table>
-        </div>
-    );
-}
-
-function ArchiveIcon() {
-    return (
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 8v13H3V8" />
-            <path d="M1 3h22v5H1z" />
-            <path d="M10 12h4" />
-        </svg>
+        </DataTable>
     );
 }

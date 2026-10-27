@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/select';
@@ -116,10 +117,10 @@ export default function CalendarSettings({
     const [grantUserId, setGrantUserId] = React.useState('');
 
     const summaryItems = [
-        { label: 'Активные интервалы', value: slots.length, icon: CalendarClock },
-        { label: 'Секретари', value: secretaryAccesses.length, icon: ShieldCheck },
-        ...(isAdmin ? [{ label: 'Доступ выдан', value: grantedUsers.length, icon: UserCheck }] : []),
-        ...(isAdmin ? [{ label: 'Исключены', value: excludedUsers.length, icon: UserX }] : []),
+        { label: 'Активные интервалы', value: slots.length, icon: CalendarClock, tone: 'teal' },
+        { label: 'Секретари', value: secretaryAccesses.length, icon: ShieldCheck, tone: 'navy' },
+        ...(isAdmin ? [{ label: 'Доступ выдан', value: grantedUsers.length, icon: UserCheck, tone: 'success' }] : []),
+        ...(isAdmin ? [{ label: 'Исключены', value: excludedUsers.length, icon: UserX, tone: 'danger' }] : []),
     ];
 
     function submitGrant(e) {
@@ -136,51 +137,47 @@ export default function CalendarSettings({
     }
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Smart Calendar"
+                    title="Настройки календаря"
+                    description="Управляйте занятостью, совместным доступом и административными ограничениями календаря в одной рабочей зоне."
+                    meta={(
+                        <>
+                            <StatusBadge tone="default">Рабочее время: 08:30–17:30</StatusBadge>
+                            <StatusBadge tone="default">Часовой пояс: Asia/Almaty</StatusBadge>
+                            {isAdmin && <StatusBadge tone="info">Администрирование каталога</StatusBadge>}
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="Smart Calendar — Настройки" />
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
 
-                {!!flash?.error && <div className="rounded-md border border-red-300 bg-red-50 text-red-800 px-3 py-2 text-sm">{flash.error}</div>}
-                {!!flash?.warning && <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-sm">{flash.warning}</div>}
-                {!!flash?.success && <div className="rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm">{flash.success}</div>}
+                {!!flash?.error && <Notice tone="danger">{flash.error}</Notice>}
+                {!!flash?.warning && <Notice tone="warning">{flash.warning}</Notice>}
+                {!!flash?.success && <Notice tone="success">{flash.success}</Notice>}
 
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,34rem)] xl:items-stretch">
-                    <div className="rounded-lg border border-border/70 bg-background p-4 sm:p-5">
-                        <p className="text-sm font-semibold">Настройки Smart Calendar</p>
-                        <p className="mt-1 max-w-3xl text-xs text-muted-foreground">Управляйте занятостью, совместным доступом и административными ограничениями календаря в одной рабочей зоне.</p>
-                        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                            {summaryItems.map(item => (
-                                <div key={item.label} className="rounded-md border border-border/70 bg-muted/20 px-3 py-2.5">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[11px] text-muted-foreground">{item.label}</span>
-                                        <item.icon className="size-3.5 text-muted-foreground" />
-                                    </div>
-                                    <p className="mt-1 text-xl font-semibold leading-none">{item.value}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="rounded-lg border border-border/70 bg-muted/20 p-4 sm:p-5">
-                        <p className="text-sm font-semibold">Текущий режим</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <Badge variant="outline">Рабочее время: 08:30–17:30</Badge>
-                            <Badge variant="outline">Часовой пояс: Asia/Almaty</Badge>
-                            {isAdmin && <Badge variant="outline">Администрирование каталога</Badge>}
-                        </div>
-                        <p className="mt-3 text-xs text-muted-foreground">Изменения в слотах сразу участвуют в проверке конфликтов и отображаются в календарях сотрудников.</p>
-                    </div>
-                </div>
+                <StatGrid>
+                    {summaryItems.map(item => (
+                        <StatTile key={item.label} label={item.label} value={item.value} icon={item.icon} tone={item.tone} />
+                    ))}
+                </StatGrid>
 
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.35fr)_minmax(28rem,0.75fr)]">
-                    <Card className="border-border/70">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Постоянная занятость</CardTitle>
-                            <p className="text-xs text-muted-foreground">Регулярные интервалы занятости, которые отображаются в календаре и влияют на доступность.</p>
+                <Notice tone="brand">Изменения в слотах сразу участвуют в проверке конфликтов и отображаются в календарях сотрудников.</Notice>
+
+                <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.35fr)_minmax(28rem,0.75fr)]">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><CalendarClock className="shrink-0" />Постоянная занятость</CardTitle>
+                            <CardDescription>Регулярные интервалы занятости, которые отображаются в календаре и влияют на доступность.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={submitSlot} className="space-y-4">
                                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Начало</Label>
                                         <Input
                                             type="time"
@@ -189,7 +186,7 @@ export default function CalendarSettings({
                                             required
                                         />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Конец</Label>
                                         <Input
                                             type="time"
@@ -198,7 +195,7 @@ export default function CalendarSettings({
                                             required
                                         />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Повторение</Label>
                                         <NativeSelect
                                             value={slotForm.data.recurrence_type}
@@ -210,7 +207,7 @@ export default function CalendarSettings({
                                             ]}
                                         />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Название</Label>
                                         <Input
                                             value={slotForm.data.note}
@@ -221,7 +218,7 @@ export default function CalendarSettings({
                                 </div>
 
                                 {slotForm.data.recurrence_type === 'once' && (
-                                    <div className="space-y-1 max-w-xs">
+                                    <div className="space-y-2 max-w-xs">
                                         <Label>Дата</Label>
                                         <Input
                                             type="date"
@@ -233,7 +230,7 @@ export default function CalendarSettings({
                                 )}
 
                                 {slotForm.data.recurrence_type === 'weekly' && (
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Дни недели</Label>
                                         <div className="flex flex-wrap gap-2">
                                             {WEEKDAY_OPTIONS.map(day => {
@@ -243,7 +240,7 @@ export default function CalendarSettings({
                                                         key={day.value}
                                                         type="button"
                                                         onClick={() => toggleWeekday(day.value)}
-                                                        className={`rounded-md border px-3 py-1 text-xs ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background'}`}
+                                                        className={`h-9 min-w-11 rounded-[10px] border px-3 text-sm font-semibold transition-colors ${active ? 'border-teal-700 bg-teal-700 text-white' : 'border-slate-300 bg-white text-slate-700 hover:border-teal-400'}`}
                                                     >
                                                         {day.label}
                                                     </button>
@@ -254,7 +251,7 @@ export default function CalendarSettings({
                                 )}
 
                                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Длительность слота</Label>
                                         <Input
                                             type="number"
@@ -265,7 +262,7 @@ export default function CalendarSettings({
                                             onChange={e => slotForm.setData('slot_duration_minutes', Number(e.target.value))}
                                         />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Буфер, минут</Label>
                                         <Input
                                             type="number"
@@ -276,7 +273,7 @@ export default function CalendarSettings({
                                             onChange={e => slotForm.setData('buffer_minutes', Number(e.target.value))}
                                         />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-2">
                                         <Label>Доступ</Label>
                                         <NativeSelect
                                             value={slotForm.data.access_type}
@@ -289,7 +286,7 @@ export default function CalendarSettings({
                                         />
                                     </div>
                                     {slotForm.data.access_type === 'rank' && (
-                                        <div className="space-y-1">
+                                        <div className="space-y-2">
                                             <Label>Мин. ранг</Label>
                                             <Input
                                                 type="number"
@@ -302,35 +299,35 @@ export default function CalendarSettings({
                                     )}
                                 </div>
 
-                                <div className="flex justify-end border-t border-border/60 pt-3">
+                                <div className="flex justify-end border-t border-slate-200 pt-4">
                                     <Button type="submit" disabled={slotForm.processing}>Добавить занятость</Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border/70">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Мои постоянные занятые интервалы</CardTitle>
-                            <p className="text-xs text-muted-foreground">Активные интервалы, которые уже учитываются в календарной доступности.</p>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Мои постоянные занятые интервалы</CardTitle>
+                            <CardDescription>Активные интервалы, которые уже учитываются в календарной доступности.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             {slots.length === 0 ? (
-                                <p className="text-sm text-muted-foreground px-4 py-4">Постоянная занятость не настроена</p>
+                                <p className="px-6 py-8 text-center text-sm text-slate-500">Постоянная занятость не настроена</p>
                             ) : (
-                                <div className="divide-y">
+                                <div className="divide-y divide-slate-200">
                                     {slots.map(slot => (
-                                        <div key={slot.id} className="flex items-center gap-3 px-4 py-2.5">
+                                        <div key={slot.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
                                             <div className="flex-1">
-                                                <p className="text-sm font-medium">{slot.note || 'Занято'}: {slot.starts_at} - {slot.ends_at}</p>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-sm font-medium text-slate-900">{slot.note || 'Занято'}: <span className="tabular-nums">{slot.starts_at} - {slot.ends_at}</span></p>
+                                                <p className="text-xs text-slate-500">
                                                     {recurrenceLabel[slot.recurrence_type] ?? slot.recurrence_type}
                                                     {slot.recurrence_type === 'once' && slot.date ? ` (${slot.date})` : ''}
                                                     {` • длительность ${slot.slot_duration_minutes ?? 30} мин • буфер ${slot.buffer_minutes ?? 0} мин`}
                                                     {slot.access_type && slot.access_type !== 'open' ? ` • ${slot.access_type === 'rank' ? `ранг ${slot.min_rank_level ?? 1}+` : 'по приглашению'}` : ''}
                                                 </p>
                                             </div>
-                                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => removeSlot(slot.id)}>
+                                            <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700" onClick={() => removeSlot(slot.id)} aria-label="Удалить интервал">
                                                 <Trash2 className="size-3.5" />
                                             </Button>
                                         </div>
@@ -341,15 +338,15 @@ export default function CalendarSettings({
                     </Card>
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-2">
-                    <Card className="border-border/70">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Совместное управление календарем</CardTitle>
-                            <p className="text-xs text-muted-foreground">Назначьте сотрудника, который сможет управлять вашим календарём и слотами доступности.</p>
+                <div className="grid gap-6 xl:grid-cols-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><ShieldCheck className="shrink-0" />Совместное управление календарем</CardTitle>
+                            <CardDescription>Назначьте сотрудника, который сможет управлять вашим календарём и слотами доступности.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={submitSecretary} className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                     <Label>Назначить секретаря</Label>
                                     <NativeSelect
                                         value={String(secretaryForm.data.secretary_id ?? '')}
@@ -370,24 +367,24 @@ export default function CalendarSettings({
                         </CardContent>
                     </Card>
 
-                    <Card className="border-border/70">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Текущие секретари</CardTitle>
-                            <p className="text-xs text-muted-foreground">Список сотрудников с активным доступом к вашему календарю.</p>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Текущие секретари</CardTitle>
+                            <CardDescription>Список сотрудников с активным доступом к вашему календарю.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             {secretaryAccesses.length === 0 ? (
-                                <p className="text-sm text-muted-foreground px-4 py-4">Секретари пока не назначены</p>
+                                <p className="px-6 py-8 text-center text-sm text-slate-500">Секретари пока не назначены</p>
                             ) : (
-                                <div className="divide-y">
+                                <div className="divide-y divide-slate-200">
                                     {secretaryAccesses.map(access => (
-                                        <div key={access.id} className="flex items-center gap-3 px-4 py-2.5">
+                                        <div key={access.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
                                             <div className="flex-1">
-                                                <p className="text-sm font-medium">{access.secretary_name}</p>
-                                                <p className="text-xs text-muted-foreground">{contactLine(access) || 'Без должности'}</p>
+                                                <p className="text-sm font-medium text-slate-900">{access.secretary_name}</p>
+                                                <p className="text-xs text-slate-500">{contactLine(access) || 'Без должности'}</p>
                                             </div>
-                                            <Badge className="text-[10px]" variant="outline">Активен</Badge>
-                                            <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => revokeSecretary(access.id)}>
+                                            <Badge variant="success">Активен</Badge>
+                                            <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700" onClick={() => revokeSecretary(access.id)} aria-label="Отозвать доступ">
                                                 <Trash2 className="size-3.5" />
                                             </Button>
                                         </div>
@@ -400,21 +397,22 @@ export default function CalendarSettings({
 
                 {/* Admin: manage who appears in employee catalog */}
                 {isAdmin && (
-                    <div className="grid gap-4 xl:grid-cols-2">
+                    <div className="grid gap-6 xl:grid-cols-2">
                         {/* Grant access to any user */}
-                        <Card className="border-border/70">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <UserCheck className="size-4 text-muted-foreground" />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <UserCheck className="shrink-0" />
                                     Дать доступ к каталогу
                                 </CardTitle>
+                                <CardDescription>
+                                    Выберите любого сотрудника, чтобы он появился в «Сотрудниках» и аналитике, даже если его должность не подходит.
+                                </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-xs text-muted-foreground mb-3">
-                                    Выберите любого сотрудника, чтобы он появился в «Сотрудниках» и аналитике, даже если его должность не подходит.
-                                </p>
-                                <form onSubmit={submitGrant} className="flex gap-2 flex-wrap">
-                                    <div className="flex-1 min-w-48">
+                                <form onSubmit={submitGrant} className="flex flex-wrap items-end gap-2">
+                                    <div className="min-w-48 flex-1 space-y-2">
+                                        <Label>Сотрудник</Label>
                                         <NativeSelect
                                             value={grantUserId}
                                             onValueChange={setGrantUserId}
@@ -427,27 +425,27 @@ export default function CalendarSettings({
                                             ]}
                                         />
                                     </div>
-                                    <Button type="submit" disabled={!grantUserId} size="sm">
-                                        <UserCheck className="size-3.5 mr-1" />Дать доступ
+                                    <Button type="submit" disabled={!grantUserId}>
+                                        <UserCheck className="size-4" />Дать доступ
                                     </Button>
                                 </form>
 
                                 {grantedUsers.length > 0 && (
-                                    <div className="mt-4 divide-y border rounded-md">
+                                    <div className="mt-5 divide-y divide-slate-200 border-t border-slate-200">
                                         {grantedUsers.map(emp => (
-                                            <div key={emp.id} className="flex items-center gap-3 px-3 py-2">
+                                            <div key={emp.id} className="flex items-center gap-3 py-2.5">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{emp.name}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">{contactLine(emp) || 'Без контактов'}</p>
+                                                    <p className="text-sm font-medium text-slate-900 truncate">{emp.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{contactLine(emp) || 'Без контактов'}</p>
                                                 </div>
-                                                <Badge variant="outline" className="text-[10px] text-emerald-700 border-emerald-400 shrink-0">Доступ выдан</Badge>
+                                                <Badge variant="success" className="shrink-0">Доступ выдан</Badge>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-destructive hover:text-destructive text-xs h-7 px-2 shrink-0"
+                                                    className="shrink-0 text-red-600 hover:text-red-700"
                                                     onClick={() => revokeGrant(emp.grantId)}
                                                 >
-                                                    <UserX className="size-3.5 mr-1" />Отозвать
+                                                    <UserX className="size-3.5" />Отозвать
                                                 </Button>
                                             </div>
                                         ))}
@@ -456,34 +454,34 @@ export default function CalendarSettings({
                             </CardContent>
                         </Card>
 
-                        <Card className="border-border/70">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <UserX className="size-4 text-muted-foreground" />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <UserX className="shrink-0" />
                                     Исключить из каталога
                                 </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-xs text-muted-foreground mb-3">
+                                <CardDescription>
                                     Сотрудники ниже отображаются в каталоге по должности. Вы можете исключить любого.
-                                </p>
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="py-2">
                                 {calendarEmployees.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">Нет сотрудников для отображения</p>
+                                    <p className="py-6 text-center text-sm text-slate-500">Нет сотрудников для отображения</p>
                                 ) : (
-                                    <div className="divide-y border rounded-md">
+                                    <div className="divide-y divide-slate-200 border-t border-slate-200">
                                         {calendarEmployees.map(emp => (
-                                            <div key={emp.id} className="flex items-center gap-3 px-3 py-2">
+                                            <div key={emp.id} className="flex items-center gap-3 py-2.5">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{emp.name}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">{contactLine(emp) || 'Без контактов'}</p>
+                                                    <p className="text-sm font-medium text-slate-900 truncate">{emp.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{contactLine(emp) || 'Без контактов'}</p>
                                                 </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="text-destructive hover:text-destructive text-xs h-7 px-2 shrink-0"
+                                                    className="shrink-0 text-red-600 hover:text-red-700"
                                                     onClick={() => router.post(route('calendar.employee-exclusions.store'), { user_id: emp.id }, { preserveScroll: true })}
                                                 >
-                                                    <UserX className="size-3.5 mr-1" />Исключить
+                                                    <UserX className="size-3.5" />Исключить
                                                 </Button>
                                             </div>
                                         ))}
@@ -493,26 +491,26 @@ export default function CalendarSettings({
                         </Card>
 
                         {excludedUsers.length > 0 && (
-                            <Card className="border-border/70 xl:col-span-2">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm">Исключённые сотрудники</CardTitle>
+                            <Card className="xl:col-span-2">
+                                <CardHeader>
+                                    <CardTitle>Исключённые сотрудники</CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-0">
-                                    <div className="divide-y">
+                                    <div className="divide-y divide-slate-200">
                                         {excludedUsers.map(emp => (
-                                            <div key={emp.id} className="flex items-center gap-3 px-4 py-2.5">
+                                            <div key={emp.id} className="flex items-center gap-3 px-5 py-3 sm:px-6">
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{emp.name}</p>
-                                                    <p className="text-xs text-muted-foreground truncate">{contactLine(emp) || 'Без контактов'}</p>
+                                                    <p className="text-sm font-medium text-slate-900 truncate">{emp.name}</p>
+                                                    <p className="text-xs text-slate-500 truncate">{contactLine(emp) || 'Без контактов'}</p>
                                                 </div>
-                                                <Badge variant="outline" className="text-[10px] text-destructive border-destructive shrink-0">Исключён</Badge>
+                                                <Badge variant="destructive" className="shrink-0">Исключён</Badge>
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
-                                                    className="text-xs h-7 px-2 shrink-0"
+                                                    className="shrink-0"
                                                     onClick={() => router.delete(route('calendar.employee-exclusions.destroy', emp.exclusionId ?? emp.id), { preserveScroll: true })}
                                                 >
-                                                    <Plus className="size-3.5 mr-1" />Вернуть
+                                                    <Plus className="size-3.5" />Вернуть
                                                 </Button>
                                             </div>
                                         ))}

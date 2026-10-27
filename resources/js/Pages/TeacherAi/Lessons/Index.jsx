@@ -1,7 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LessonStatusBadge, isLessonInProgress, pluralSlides } from '@/components/teacher-ai/lesson-shared';
 import { Link, router, useForm } from '@inertiajs/react';
-import { BookOpenText, Presentation, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
+import { BookOpenText, FolderOpen, Presentation, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -22,14 +25,15 @@ const lectureNumberLabel = (language, number) => {
 
 const profileText = (value) => (typeof value === 'string' ? value.slice(0, 255) : '');
 
-const inputClassName = 'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm transition focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20';
+const inputClassName = qdFieldClass;
+const textareaClassName = `${qdFieldClass} h-auto py-2.5`;
 
 function FieldError({ message }) {
     if (!message) {
         return null;
     }
 
-    return <p className="mt-1.5 text-sm text-rose-600">{message}</p>;
+    return <p className="mt-1.5 text-sm text-red-700">{message}</p>;
 }
 
 export default function Index({ lessons = [], options = {}, aiEnabled = false, limits = {}, profile = {} }) {
@@ -97,41 +101,42 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
     return (
         <AuthenticatedLayout
             header={(
-                <div className="space-y-2">
-                    <p className="text-sm font-medium uppercase tracking-[0.2em] text-teal-700">AI-ассистент преподавателя</p>
-                    <h2 className="text-2xl font-semibold text-slate-900">Лекции и презентации</h2>
-                    <p className="max-w-3xl text-sm text-slate-600">
-                        Укажите дисциплину и тему — ИИ подготовит конспект лекции и презентацию. Это черновик для
-                        преподавателя: проверьте факты, формулы и источники перед занятием.
-                    </p>
-                </div>
+                <PageHeader
+                    eyebrow="AI-ассистент преподавателя"
+                    title="Лекции и презентации"
+                    description="Укажите дисциплину и тему — ИИ подготовит конспект лекции и презентацию. Это черновик для преподавателя: проверьте факты, формулы и источники перед занятием."
+                    meta={(
+                        <StatusBadge tone={limitReached ? 'warning' : 'info'}>
+                            Сегодня: {usedToday} из {dailyLimit}
+                        </StatusBadge>
+                    )}
+                />
             )}
         >
-            <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="admin-page-wrap space-y-6">
                 {!aiEnabled && (
-                    <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-                        <p>AI-ассистент сейчас отключён. Обратитесь к администратору системы.</p>
-                    </div>
+                    <Notice tone="warning" title="AI-ассистент отключён">
+                        AI-ассистент сейчас отключён. Обратитесь к администратору системы.
+                    </Notice>
                 )}
 
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                    <form onSubmit={submit} className="space-y-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                        <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
-                                <Sparkles className="h-5 w-5" />
-                            </span>
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-900">Новое занятие</h3>
-                                <p className="text-sm text-slate-500">
-                                    Сегодня использовано {usedToday} из {dailyLimit}
-                                </p>
-                            </div>
-                        </div>
+                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                    <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            Новое занятие
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    <form onSubmit={submit} className="space-y-5">
+                        <p className="text-sm text-slate-600">
+                            Сегодня использовано <span className="font-semibold tabular-nums text-[#102945]">{usedToday}</span> из <span className="font-semibold tabular-nums text-[#102945]">{dailyLimit}</span>
+                        </p>
 
                         <div>
-                            <label htmlFor="subject" className="mb-1.5 block text-sm font-medium text-slate-700">
-                                Дисциплина / название урока <span className="text-rose-500">*</span>
+                            <label htmlFor="subject" className="qd-field-label mb-2 block">
+                                Дисциплина / название урока <span className="text-red-600">*</span>
                             </label>
                             <input
                                 id="subject"
@@ -146,8 +151,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                         </div>
 
                         <div>
-                            <label htmlFor="topic" className="mb-1.5 block text-sm font-medium text-slate-700">
-                                Тема занятия <span className="text-rose-500">*</span>
+                            <label htmlFor="topic" className="qd-field-label mb-2 block">
+                                Тема занятия <span className="text-red-600">*</span>
                             </label>
                             <input
                                 id="topic"
@@ -163,7 +168,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
 
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <label htmlFor="language" className="mb-1.5 block text-sm font-medium text-slate-700">Язык материалов</label>
+                                <label htmlFor="language" className="qd-field-label mb-2 block">Язык материалов</label>
                                 <select
                                     id="language"
                                     value={form.data.language}
@@ -178,8 +183,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 <FieldError message={form.errors.language} />
                             </div>
                             <div>
-                                <label htmlFor="audience" className="mb-1.5 block text-sm font-medium text-slate-700">
-                                    Аудитория <span className="font-normal text-slate-400">(необязательно)</span>
+                                <label htmlFor="audience" className="qd-field-label mb-2 block">
+                                    Аудитория <span className="font-normal normal-case tracking-normal text-slate-400">(необязательно)</span>
                                 </label>
                                 <input
                                     id="audience"
@@ -196,7 +201,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
 
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <label htmlFor="duration_minutes" className="mb-1.5 block text-sm font-medium text-slate-700">Длительность занятия</label>
+                                <label htmlFor="duration_minutes" className="qd-field-label mb-2 block">Длительность занятия</label>
                                 <select
                                     id="duration_minutes"
                                     value={form.data.duration_minutes}
@@ -210,8 +215,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 <FieldError message={form.errors.duration_minutes} />
                             </div>
                             <div>
-                                <label htmlFor="slides_count" className="mb-1.5 block text-sm font-medium text-slate-700">
-                                    Количество слайдов <span className="font-normal text-slate-400">({slidesLimits.min}–{slidesLimits.max})</span>
+                                <label htmlFor="slides_count" className="qd-field-label mb-2 block">
+                                    Количество слайдов <span className="font-normal normal-case tracking-normal text-slate-400">({slidesLimits.min}–{slidesLimits.max})</span>
                                 </label>
                                 <input
                                     id="slides_count"
@@ -228,15 +233,15 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </div>
                         </div>
 
-                        <fieldset className="space-y-4 rounded-2xl border border-slate-200 p-4 sm:p-5">
-                            <legend className="px-1 text-sm font-semibold text-slate-900">Титульный слайд</legend>
-                            <p className="text-sm text-slate-500">
+                        <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4 sm:p-5">
+                            <legend className="px-1 font-display text-base font-bold text-[#102945]">Титульный слайд</legend>
+                            <p className="text-sm text-slate-600">
                                 Эти данные появятся на обложке презентации. Все поля необязательны.
                             </p>
 
                             <div className="grid gap-4 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
                                 <div>
-                                    <label htmlFor="lecture_number" className="mb-1.5 block text-sm font-medium text-slate-700">Номер лекции</label>
+                                    <label htmlFor="lecture_number" className="qd-field-label mb-2 block">Номер лекции</label>
                                     <input
                                         id="lecture_number"
                                         type="number"
@@ -259,7 +264,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </div>
 
                             <div>
-                                <label htmlFor="faculty_name" className="mb-1.5 block text-sm font-medium text-slate-700">Факультет</label>
+                                <label htmlFor="faculty_name" className="qd-field-label mb-2 block">Факультет</label>
                                 <input
                                     id="faculty_name"
                                     type="text"
@@ -273,7 +278,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </div>
 
                             <div>
-                                <label htmlFor="department_name" className="mb-1.5 block text-sm font-medium text-slate-700">Кафедра</label>
+                                <label htmlFor="department_name" className="qd-field-label mb-2 block">Кафедра</label>
                                 <input
                                     id="department_name"
                                     type="text"
@@ -288,8 +293,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                         </fieldset>
 
                         <div>
-                            <label htmlFor="notes" className="mb-1.5 block text-sm font-medium text-slate-700">
-                                Пожелания <span className="font-normal text-slate-400">(необязательно)</span>
+                            <label htmlFor="notes" className="qd-field-label mb-2 block">
+                                Пожелания <span className="font-normal normal-case tracking-normal text-slate-400">(необязательно)</span>
                             </label>
                             <textarea
                                 id="notes"
@@ -298,49 +303,50 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 rows={3}
                                 maxLength={1000}
                                 placeholder="Например: больше практических примеров, добавить мини-кейс"
-                                className={inputClassName}
+                                className={textareaClassName}
                             />
                             <FieldError message={form.errors.notes} />
                         </div>
 
-                        <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
-                            <p>
-                                Запрос отправляется во внешний ИИ-сервис. Не указывайте персональные данные
-                                студентов и сотрудников.
-                            </p>
-                        </div>
+                        <Notice tone="info" title="Конфиденциальность">
+                            Запрос отправляется во внешний ИИ-сервис. Не указывайте персональные данные
+                            студентов и сотрудников.
+                        </Notice>
 
-                        <div className="flex flex-wrap items-center gap-3">
-                            <button
-                                type="submit"
-                                disabled={!canSubmit}
-                                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                            >
+                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
+                            {limitReached && (
+                                <span className="mr-auto text-sm text-amber-700">Дневной лимит генераций исчерпан.</span>
+                            )}
+                            <Button type="submit" disabled={!canSubmit} className="gap-2">
                                 <Sparkles className="h-4 w-4" />
                                 {form.processing ? 'Отправка…' : 'Сгенерировать лекцию и презентацию'}
-                            </button>
-                            {limitReached && (
-                                <span className="text-sm text-amber-700">Дневной лимит генераций исчерпан.</span>
-                            )}
+                            </Button>
                         </div>
                     </form>
+                    </CardContent>
+                    </Card>
 
-                    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-                        <h3 className="text-lg font-semibold text-slate-900">Мои материалы</h3>
-                        <p className="mt-1 text-sm text-slate-500">Видны только вам.</p>
-
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FolderOpen className="h-4 w-4" />
+                                Мои материалы
+                            </CardTitle>
+                            <CardDescription>Видны только вам.</CardDescription>
+                        </CardHeader>
+                        <CardContent className={lessonList.length === 0 ? '' : 'p-0 sm:p-0'}>
                         {lessonList.length === 0 ? (
-                            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">
-                                Здесь появятся сгенерированные лекции и презентации.
+                            <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
+                                <p className="font-display text-base font-bold text-[#102945]">Материалов пока нет</p>
+                                <p className="mt-1 text-sm text-slate-600">Здесь появятся сгенерированные лекции и презентации.</p>
                             </div>
                         ) : (
-                            <ul className="mt-5 divide-y divide-slate-100">
+                            <ul className="divide-y divide-slate-200">
                                 {lessonList.map((lesson) => (
                                     <li key={lesson.id}>
                                         <Link
                                             href={route('teacher-ai.lessons.show', lesson.id)}
-                                            className="-mx-3 flex flex-col gap-2 rounded-xl px-3 py-3 transition hover:bg-slate-50"
+                                            className="flex flex-col gap-2 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <span className="min-w-0 break-words font-medium text-slate-900">
@@ -351,18 +357,18 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500">
                                                 {lesson.subject && <span className="break-words">{lesson.subject}</span>}
                                                 {lesson.language_label && <span>{lesson.language_label}</span>}
-                                                {lesson.created_at && <span>{lesson.created_at}</span>}
+                                                {lesson.created_at && <span className="tabular-nums">{lesson.created_at}</span>}
                                             </div>
                                             {(lesson.has_lecture || lesson.has_presentation) && (
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {lesson.has_lecture && (
-                                                        <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800">
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">
                                                             <BookOpenText className="h-3 w-3" />
                                                             Лекция
                                                         </span>
                                                     )}
                                                     {lesson.has_presentation && (
-                                                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-800">
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                                                             <Presentation className="h-3 w-3" />
                                                             {lesson.slides_total
                                                                 ? `Презентация: ${lesson.slides_total} ${pluralSlides(lesson.slides_total)}`
@@ -376,7 +382,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 ))}
                             </ul>
                         )}
-                    </section>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
         </AuthenticatedLayout>

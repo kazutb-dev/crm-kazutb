@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { DocumentPills, buttonClassName, inputClassName, StatusBadge } from '@/components/hr-hiring/ui';
+import { FilterBar, PageHeader, StatGrid, StatTile, underlineTabClass } from '@/components/platform';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, FileSignature, FlaskConical, LoaderCircle, Search, Settings2, Trash2, UserPlus, X } from 'lucide-react';
+import { Ban, CheckCircle2, ChevronRight, FilePen, FileSignature, FlaskConical, LoaderCircle, Search, Settings2, Trash2, UserPlus, Users, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const SEARCH_DELAY_MS = 450;
@@ -79,16 +80,13 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
     };
 
     return (
-        <AuthenticatedLayout>
-            <Head title="Приём на работу" />
-            <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="max-w-2xl">
-                        <h2 className="text-2xl font-semibold text-slate-900">Приём на работу</h2>
-                        <p className="mt-1 text-sm text-slate-600">
-                            Данные сотрудника вводятся один раз — из них собираются трудовой договор, приказ о приёме и личная карточка.
-                        </p>
-                    </div>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Кадры"
+                    title="Приём на работу"
+                    description="Данные сотрудника вводятся один раз — из них собираются трудовой договор, приказ о приёме и личная карточка."
+                    actions={(
                     <div className="flex flex-wrap gap-2">
                         <Link href={route('hr.hiring.settings.index')} className={buttonClassName.secondary}>
                             <Settings2 className="h-4 w-4" /> Настройки
@@ -102,10 +100,20 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                             {creating === 'hiring' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Новый приём
                         </button>
                     </div>
-                </div>
+                    )}
+                />
+            )}
+        >
+            <Head title="Приём на работу" />
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Всего приёмов" value={counts.all ?? 0} tone="navy" icon={Users} hint="Все записи модуля, кроме удалённых черновиков" />
+                    <StatTile label="Черновики" value={counts.draft ?? 0} tone="warning" icon={FilePen} hint="Данные ещё заполняются" />
+                    <StatTile label="Подписаны" value={counts.signed ?? 0} tone="success" icon={CheckCircle2} hint="Документы подписаны" />
+                    <StatTile label="Отменены" value={counts.cancelled ?? 0} tone="neutral" icon={Ban} hint="Приём не состоялся" />
+                </StatGrid>
 
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 px-3" aria-label="Статус приёма">
+                <nav className="flex gap-x-6 overflow-x-auto border-b border-slate-200" aria-label="Статус приёма">
                         {STATUS_TABS.filter((tab) => tab.value !== 'cancelled' || counts.cancelled > 0 || form.status === 'cancelled').map((tab) => {
                             const active = form.status === tab.value;
                             return (
@@ -114,23 +122,24 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                     type="button"
                                     onClick={() => change('status', tab.value)}
                                     aria-current={active ? 'page' : undefined}
-                                    className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition ${active ? 'border-teal-600 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+                                    className={`${underlineTabClass(active)} shrink-0`}
                                 >
                                     {tab.label}
-                                    <span className={`rounded-full px-2 py-0.5 text-xs ${active ? 'bg-teal-50 text-teal-800' : 'bg-slate-100 text-slate-600'}`}>
+                                    <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums ${active ? 'bg-teal-100 text-teal-700' : 'bg-slate-100 text-slate-600'}`}>
                                         {counts[tab.countKey] ?? 0}
                                     </span>
                                 </button>
                             );
                         })}
-                    </nav>
+                </nav>
 
+                <FilterBar>
                     <form
                         onSubmit={(event) => { event.preventDefault(); window.clearTimeout(searchTimer.current); apply(form); }}
-                        className="grid items-end gap-3 border-b border-slate-100 bg-slate-50/60 p-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto]"
+                        className="grid items-end gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto]"
                     >
                         <label className="block">
-                            <span className="mb-1 block text-sm font-medium text-slate-700">Поиск</span>
+                            <span className="qd-field-label mb-2 block">Поиск</span>
                             <span className="relative block">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
@@ -143,14 +152,14 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                             </span>
                         </label>
                         <label className="block">
-                            <span className="mb-1 block text-sm font-medium text-slate-700">Подразделение</span>
+                            <span className="qd-field-label mb-2 block">Подразделение</span>
                             <select value={form.unit} onChange={(event) => change('unit', event.target.value)} className={inputClassName}>
                                 <option value="">Все подразделения</option>
                                 {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
                             </select>
                         </label>
                         <fieldset>
-                            <legend className="mb-1 block text-sm font-medium text-slate-700">Дата приёма</legend>
+                            <legend className="qd-field-label mb-2 block">Дата приёма</legend>
                             <div className="flex items-center gap-2">
                                 <input type="date" value={form.date_from} onChange={(event) => change('date_from', event.target.value)} className={inputClassName} aria-label="Дата приёма с" />
                                 <span className="text-slate-400">—</span>
@@ -158,34 +167,37 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                             </div>
                         </fieldset>
                         {hasFilters && (
-                            <div className="flex items-center md:h-[42px]">
-                                <button type="button" onClick={resetFilters} className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900">
+                            <div className="flex items-center md:h-10">
+                                <button type="button" onClick={resetFilters} className={buttonClassName.secondary}>
                                     <X className="h-4 w-4" /> Сбросить
                                 </button>
                             </div>
                         )}
                     </form>
+                </FilterBar>
+
+                <section className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
 
                     {rows.length === 0 ? (
                         <EmptyState noHirings={(counts.all ?? 0) === 0 && !hasFilters} onCreate={create} creating={creating !== null} onReset={resetFilters} />
                     ) : (
                         <>
                             <table className="hidden min-w-full text-sm md:table">
-                                <thead className="text-left text-xs font-medium text-slate-500">
-                                    <tr className="border-b border-slate-100">
-                                        <th className="px-4 py-3 font-medium">Сотрудник</th>
-                                        <th className="px-4 py-3 font-medium">Должность</th>
-                                        <th className="px-4 py-3 font-medium">Дата приёма</th>
-                                        <th className="px-4 py-3 font-medium">Документы</th>
-                                        <th className="px-4 py-3 font-medium">Статус</th>
-                                        <th className="px-4 py-3"><span className="sr-only">Действие</span></th>
+                                <thead className="text-left">
+                                    <tr className="border-b border-slate-200">
+                                        <th className="px-5 py-3">Сотрудник</th>
+                                        <th className="px-4 py-3">Должность</th>
+                                        <th className="px-4 py-3">Дата приёма</th>
+                                        <th className="px-4 py-3">Документы</th>
+                                        <th className="px-4 py-3">Статус</th>
+                                        <th className="px-5 py-3"><span className="sr-only">Действие</span></th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-200">
                                     {rows.map((row) => (
-                                        <tr key={row.id} className="group cursor-pointer transition hover:bg-teal-50/40" onClick={() => router.visit(rowUrl(row))}>
-                                            <td className="px-4 py-3 align-top">
-                                                <Link href={rowUrl(row)} onClick={(event) => event.stopPropagation()} className="font-medium text-slate-900 group-hover:text-teal-800">
+                                        <tr key={row.id} className="group cursor-pointer transition-colors hover:bg-slate-50" onClick={() => router.visit(rowUrl(row))}>
+                                            <td className="px-5 py-3.5 align-top">
+                                                <Link href={rowUrl(row)} onClick={(event) => event.stopPropagation()} className="font-semibold text-slate-900 group-hover:text-teal-700">
                                                     {row.full_name}
                                                 </Link>
                                                 <div className="mt-0.5 whitespace-nowrap text-xs text-slate-500">
@@ -193,32 +205,32 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                                     {row.id_card_masked && <> · уд. <span className="font-mono">{row.id_card_masked}</span></>}
                                                 </div>
                                             </td>
-                                            <td className="max-w-xs px-4 py-3 align-top">
+                                            <td className="max-w-xs px-4 py-3.5 align-top">
                                                 <div className="text-slate-800">{row.position || <span className="text-slate-400">не выбрана</span>}</div>
                                                 {row.unit && <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{row.unit}</div>}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-3 align-top text-slate-700">
+                                            <td className="whitespace-nowrap px-4 py-3.5 align-top tabular-nums text-slate-700">
                                                 {row.start_date || <span className="text-slate-400">—</span>}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-3 align-top">
+                                            <td className="whitespace-nowrap px-4 py-3.5 align-top">
                                                 <DocumentPills documents={row.documents} />
                                                 <Numbers row={row} />
                                             </td>
-                                            <td className="px-4 py-3 align-top"><StatusBadge status={row.status} label={row.status_label} /></td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-right align-top">
+                                            <td className="px-4 py-3.5 align-top"><StatusBadge status={row.status} label={row.status_label} /></td>
+                                            <td className="whitespace-nowrap px-5 py-3.5 text-right align-top">
                                                 <span className="inline-flex items-center gap-3">
                                                     {row.status === 'draft' && (
                                                         <button
                                                             type="button"
                                                             onClick={(event) => { event.stopPropagation(); removeDraft(row); }}
-                                                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-700"
+                                                            className="rounded-[10px] p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-700"
                                                             title="Удалить черновик"
                                                             aria-label={`Удалить черновик «${row.full_name}»`}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     )}
-                                                    <span className="inline-flex items-center gap-1 text-sm font-medium text-teal-700 group-hover:text-teal-900">
+                                                    <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.08em] text-teal-700 group-hover:text-[#102945]">
                                                         {row.status === 'draft' ? 'Продолжить' : 'Открыть'} <ChevronRight className="h-4 w-4" />
                                                     </span>
                                                 </span>
@@ -228,12 +240,12 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                 </tbody>
                             </table>
 
-                            <ul className="divide-y divide-slate-100 md:hidden">
+                            <ul className="divide-y divide-slate-200 md:hidden">
                                 {rows.map((row) => (
                                     <li key={row.id}>
                                         <Link href={rowUrl(row)} className="block space-y-2 px-4 py-3 active:bg-slate-50">
                                             <div className="flex items-start justify-between gap-3">
-                                                <span className="font-medium text-slate-900">{row.full_name}</span>
+                                                <span className="font-semibold text-slate-900">{row.full_name}</span>
                                                 <StatusBadge status={row.status} label={row.status_label} />
                                             </div>
                                             <div className="text-sm text-slate-700">
@@ -246,7 +258,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                             </div>
                                         </Link>
                                         {row.status === 'draft' && (
-                                            <button type="button" onClick={() => removeDraft(row)} className="mx-4 mb-3 inline-flex items-center gap-1 text-xs font-medium text-rose-700">
+                                            <button type="button" onClick={() => removeDraft(row)} className="mx-4 mb-3 inline-flex items-center gap-1 text-xs font-semibold text-red-700">
                                                 <Trash2 className="h-3.5 w-3.5" /> Удалить черновик
                                             </button>
                                         )}
@@ -254,7 +266,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                 ))}
                             </ul>
 
-                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
+                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
                                 <span>
                                     Показаны {hirings.from}–{hirings.to} из {hirings.total}. Документы: серый — ещё не сформирован, синий — сформирован, зелёный — подписан.
                                 </span>
@@ -266,7 +278,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                                 href={link.url ?? ''}
                                                 preserveScroll
                                                 disabled={!link.url}
-                                                className={`rounded-lg px-3 py-1.5 text-sm ${link.active ? 'bg-slate-900 text-white' : link.url ? 'text-slate-700 hover:bg-slate-100' : 'pointer-events-none text-slate-300'}`}
+                                                className={`rounded-[10px] px-3 py-1.5 text-sm font-medium tabular-nums ${link.active ? 'bg-teal-700 text-white' : link.url ? 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-[#102945]' : 'pointer-events-none text-slate-300'}`}
                                             >
                                                 {paginationLabel(link.label)}
                                             </Link>
@@ -299,23 +311,23 @@ function Numbers({ row }) {
 function EmptyState({ noHirings, onCreate, creating, onReset }) {
     if (!noHirings) {
         return (
-            <div className="px-6 py-14 text-center">
-                <Search className="mx-auto mb-3 h-8 w-8 text-slate-300" />
-                <p className="font-medium text-slate-800">Ничего не найдено</p>
-                <p className="mt-1 text-sm text-slate-500">Измените условия поиска. ИИН ищется только по полному номеру — 12 цифр.</p>
+            <div className="flex flex-col items-center px-6 py-14 text-center">
+                <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Search className="h-7 w-7" /></span>
+                <p className="font-display text-lg font-bold text-[#102945]">Ничего не найдено</p>
+                <p className="mt-1 max-w-md text-sm text-slate-600">Измените условия поиска. ИИН ищется только по полному номеру — 12 цифр.</p>
                 <button type="button" onClick={onReset} className={`${buttonClassName.secondary} mt-4`}>Сбросить фильтры</button>
             </div>
         );
     }
 
     return (
-        <div className="px-6 py-14 text-center">
-            <FileSignature className="mx-auto mb-3 h-10 w-10 text-teal-600/70" />
-            <p className="text-lg font-semibold text-slate-900">Приёмов пока нет</p>
-            <ol className="mx-auto mt-4 grid max-w-2xl gap-3 text-left text-sm text-slate-600 sm:grid-cols-3">
+        <div className="flex flex-col items-center px-6 py-14 text-center">
+            <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700"><FileSignature className="h-7 w-7" /></span>
+            <p className="font-display text-xl font-bold text-[#102945]">Приёмов пока нет</p>
+            <ol className="mx-auto mt-5 grid w-full max-w-2xl gap-3 text-left text-sm text-slate-700 sm:grid-cols-3">
                 {['Нажмите «Новый приём» и заполните данные сотрудника', 'Выберите должность и условия договора', 'Скачайте договор, приказ и личную карточку'].map((text, index) => (
-                    <li key={text} className="flex gap-3 rounded-xl border border-slate-200 p-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-semibold text-teal-800">{index + 1}</span>
+                    <li key={text} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 font-display text-sm font-bold text-white">{index + 1}</span>
                         {text}
                     </li>
                 ))}

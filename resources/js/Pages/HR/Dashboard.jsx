@@ -1,9 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DarkPanel, FilterBar, FormField, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertCircle, BarChart3, Bot, Copy, Download, FileDown, LogOut, Sparkles, TrendingDown, TrendingUp, Users } from 'lucide-react';
+import { AlertCircle, BarChart3, Bot, Copy, Download, FileDown, LogOut, Sparkles, TrendingDown, Users } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
@@ -28,13 +29,13 @@ function Donut({ segments, total, size = 100, stroke = 10 }) {
 
     return (
         <div className="flex flex-col items-center gap-2">
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-sm">
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                 <circle
                     cx={size / 2}
                     cy={size / 2}
                     r={radius}
                     fill="none"
-                    stroke="#f3f4f6"
+                    stroke="#E8EEEC"
                     strokeWidth={stroke}
                 />
                 {segments.map((segment, idx) => {
@@ -59,7 +60,7 @@ function Donut({ segments, total, size = 100, stroke = 10 }) {
                     offsetAcc += dash;
                     return node;
                 })}
-                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="700" fill="#1f2937">
+                <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fontSize="17" fontWeight="700" fill="#102945" style={{ fontFamily: 'var(--font-display, Literata, serif)' }}>
                     {percent}%
                 </text>
             </svg>
@@ -67,55 +68,28 @@ function Donut({ segments, total, size = 100, stroke = 10 }) {
     );
 }
 
-function KpiCard({ icon: Icon, label, value, trend = null, trendValue = null, color = '#3b82f6' }) {
-    const isTrendUp = trend === 'up';
-    const TrendIcon = isTrendUp ? TrendingUp : TrendingDown;
-    
+function DonutCard({ title, segments, total, donut = true, onSegmentClick = null, interactive = false }) {
     return (
-        <Card className="border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                    <div className="p-2.5 rounded-lg" style={{ backgroundColor: `${color}20` }}>
-                        <Icon className="h-5 w-5" style={{ color }} />
-                    </div>
-                    {trend && (
-                        <div className="flex items-center gap-1">
-                            <TrendIcon className="h-4 w-4" style={{ color: isTrendUp ? '#10b981' : '#ef4444' }} />
-                            <span className="text-xs font-semibold" style={{ color: isTrendUp ? '#10b981' : '#ef4444' }}>
-                                {trendValue}%
-                            </span>
-                        </div>
-                    )}
-                </div>
-                <p className="text-xs text-slate-500 font-medium mb-1">{label}</p>
-                <p className="text-2xl font-bold text-slate-900">{value}</p>
-            </CardContent>
-        </Card>
-    );
-}
-
-function DonutCard({ title, segments, total, donut = true, onSegmentClick = null }) {
-    return (
-        <Card className="border border-slate-200 bg-white shadow-sm">
-            <CardHeader className="pb-2">
-                <CardTitle className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{title}</CardTitle>
+        <Card className={`h-full ${interactive ? 'transition-colors hover:border-teal-300' : ''}`}>
+            <CardHeader>
+                <CardTitle className="truncate">{title}</CardTitle>
             </CardHeader>
-            <CardContent className="pb-4">
+            <CardContent>
                 {donut ? (
                     <div className="flex items-center gap-4">
                         <Donut segments={segments} total={total} />
-                        <div className="space-y-1.5 text-xs flex-1">
+                        <div className="flex-1 space-y-1 text-xs">
                             {segments.map((segment) => (
                                 <div
                                     key={segment.name}
-                                    className={`flex items-center gap-2 justify-between ${onSegmentClick ? 'cursor-pointer rounded px-1 py-0.5 hover:bg-slate-100' : ''}`}
+                                    className={`flex items-center justify-between gap-2 border-b border-slate-100 py-1 last:border-b-0 ${onSegmentClick ? 'cursor-pointer rounded-[6px] px-1 hover:bg-slate-50' : ''}`}
                                     onClick={() => onSegmentClick && onSegmentClick(segment)}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: segment.color }} />
-                                        <span className="text-slate-600 font-medium">{segment.name}</span>
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
+                                        <span className="truncate font-medium text-slate-600">{segment.name}</span>
                                     </div>
-                                    <strong className="text-slate-900">{segment.value}</strong>
+                                    <strong className="tabular-nums text-[#102945]">{segment.value}</strong>
                                 </div>
                             ))}
                         </div>
@@ -123,9 +97,9 @@ function DonutCard({ title, segments, total, donut = true, onSegmentClick = null
                 ) : (
                     <div className="space-y-1.5 text-xs">
                         {segments.map((segment) => (
-                            <div key={segment.name} className="flex items-center gap-2 justify-between">
-                                <span className="text-slate-600 font-medium">{segment.name}</span>
-                                <strong className="text-slate-900">{segment.value}</strong>
+                            <div key={segment.name} className="flex items-center justify-between gap-2">
+                                <span className="font-medium text-slate-600">{segment.name}</span>
+                                <strong className="tabular-nums text-[#102945]">{segment.value}</strong>
                             </div>
                         ))}
                     </div>
@@ -301,29 +275,29 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                 : `За ${days} дней`;
 
     const summarySegments = [
-        { name: 'Все пользователи', value: employeesTotal, color: '#10b981' },
-        { name: fromDate || days !== '1' ? 'Ранний выход за период' : 'Ранний выход', value: earlyPeriodPeople, color: '#f59e0b' },
-        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали сегодня', value: latePeriodPeople, color: '#ef4444' },
+        { name: 'Все пользователи', value: employeesTotal, color: '#3fb57a' },
+        { name: fromDate || days !== '1' ? 'Ранний выход за период' : 'Ранний выход', value: earlyPeriodPeople, color: '#e2b53e' },
+        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали сегодня', value: latePeriodPeople, color: '#d64540' },
     ];
 
     const todaySegments = [
-        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали', value: latePeriodPeople, color: '#ef4444' },
-        { name: fromDate || days !== '1' ? 'Без опозданий' : 'Вовремя', value: Math.max(employeesActive - latePeriodPeople, 0), color: '#22c55e' },
+        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали', value: latePeriodPeople, color: '#d64540' },
+        { name: fromDate || days !== '1' ? 'Без опозданий' : 'Вовремя', value: Math.max(employeesActive - latePeriodPeople, 0), color: '#3fb57a' },
     ];
 
     const earlySegments = [
-        { name: fromDate || days !== '1' ? 'Ушли раньше за период' : 'Ушли раньше', value: earlyPeriodPeople, color: '#f59e0b' },
-        { name: fromDate || days !== '1' ? 'Без раннего ухода' : 'Остались', value: Math.max(employeesActive - earlyPeriodPeople, 0), color: '#22c55e' },
+        { name: fromDate || days !== '1' ? 'Ушли раньше за период' : 'Ушли раньше', value: earlyPeriodPeople, color: '#e2b53e' },
+        { name: fromDate || days !== '1' ? 'Без раннего ухода' : 'Остались', value: Math.max(employeesActive - earlyPeriodPeople, 0), color: '#3fb57a' },
     ];
 
     const top3 = topDivisions.slice(0, 3).map((row, idx) => ({
         name: row.division,
         value: Number(row.late_people ?? 0),
-        color: ['#f97316', '#06b6d4', '#8b5cf6'][idx],
+        color: ['#d9853f', '#09bab2', '#2c5a86'][idx],
     }));
     const topRest = topDivisions.slice(3).reduce((acc, row) => acc + Number(row.late_people ?? 0), 0);
     if (topRest > 0) {
-        top3.push({ name: 'Остальные', value: topRest, color: '#9ca3af' });
+        top3.push({ name: 'Остальные', value: topRest, color: '#9AA8A4' });
     }
     const topTotal = top3.reduce((acc, row) => acc + row.value, 0);
 
@@ -396,116 +370,94 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
         });
     };
 
+    const RANK_STYLES = [
+        'bg-amber-400 text-[#102945]',
+        'bg-slate-200 text-[#102945]',
+        'bg-orange-200 text-orange-900',
+    ];
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="HR · Учёт рабочего времени"
+                    title="HR Dashboard"
+                    description="Аналитика по опозданиям и персоналу"
+                    meta={<StatusBadge tone="info">{periodTitle}</StatusBadge>}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="HR / Dashboard" />
 
-            <div className="admin-page-wrap">
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <select
-                        value={division}
-                        onChange={handleDivisionChange}
-                        className="h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Все подразделения</option>
-                        {divisions.map((d) => (
-                            <option key={d.id} value={d.id}>
-                                {d.name}
-                            </option>
-                        ))}
-                    </select>
+            <div className="admin-page-wrap space-y-6">
+                <FilterBar>
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                        <FormField label="Подразделение">
+                            <select
+                                value={division}
+                                onChange={handleDivisionChange}
+                                className={qdFieldClass}
+                            >
+                                <option value="">Все подразделения</option>
+                                {divisions.map((d) => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </FormField>
 
-                    <select
-                        value={days}
-                        onChange={handleDaysChange}
-                        className="h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="1">Сегодня</option>
-                           <option value="-1">Вчера</option>
-                        <option value="7">За 7 дней</option>
-                        <option value="14">За 14 дней</option>
-                        <option value="30">За 30 дней</option>
-                        <option value="0">За все время</option>
-                    </select>
+                        <FormField label="Период">
+                            <select
+                                value={days}
+                                onChange={handleDaysChange}
+                                className={qdFieldClass}
+                            >
+                                <option value="1">Сегодня</option>
+                                <option value="-1">Вчера</option>
+                                <option value="7">За 7 дней</option>
+                                <option value="14">За 14 дней</option>
+                                <option value="30">За 30 дней</option>
+                                <option value="0">За все время</option>
+                            </select>
+                        </FormField>
 
-                    <input
-                        type="date"
-                        value={fromDate}
-                        onChange={handleFromDateChange}
-                        className="h-9 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                        <FormField label="С даты" hint="Если указана, заменяет период">
+                            <input
+                                type="date"
+                                value={fromDate}
+                                onChange={handleFromDateChange}
+                                className={qdFieldClass}
+                            />
+                        </FormField>
+                    </div>
+                </FilterBar>
 
-                    <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                        <Download className="mr-1 h-4 w-4" />
-                        Экспорт в Excel
-                    </Button>
-                </div>
+                <StatGrid>
+                    <StatTile label="Всего сотрудников" value={employeesTotal} tone="navy" icon={Users} />
+                    <StatTile label="Активных" value={employeesActive} tone="teal" icon={Users} />
+                    <button type="button" onClick={openLatePeriod} className="block rounded-[14px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40" title="Открыть список опоздавших за выбранный период">
+                        <StatTile label="Опоздали" value={latePeriodPeople} tone="danger" icon={TrendingDown} hint={periodTitle} />
+                    </button>
+                    <button type="button" onClick={openEarlyPeriod} className="block rounded-[14px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40" title="Открыть список ушедших раньше за выбранный период">
+                        <StatTile label="Ушли раньше" value={earlyPeriodPeople} tone="gold" icon={LogOut} hint={periodTitle} />
+                    </button>
+                </StatGrid>
 
-                <div className="mb-6">
-                    <h1 className="text-3xl font-bold text-slate-900">HR Dashboard</h1>
-                    <p className="text-sm text-slate-600 mt-1">Аналитика по опозданиям и персоналу</p>
-                </div>
-
-                <Card className="border border-slate-200 bg-white shadow-sm mb-6">
-                    <CardHeader className="pb-3 border-b border-slate-200">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                                    <Bot className="h-4 w-4 text-blue-600" />
-                                    ИИ помощник HR
-                                </CardTitle>
-                                <p className="text-sm text-slate-500 mt-1">Формирование готовых отчетов и выводов в один клик.</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <Button type="button" size="sm" onClick={() => generateAiReport('summary')}>
-                                    <Sparkles className="mr-1 h-4 w-4" />
-                                    Сводный отчет
-                                </Button>
-                                <Button type="button" size="sm" variant="outline" onClick={() => generateAiReport('risks')}>
-                                    <AlertCircle className="mr-1 h-4 w-4" />
-                                    Риски
-                                </Button>
-                                <Button type="button" size="sm" variant="outline" onClick={() => generateAiReport('recommendations')}>
-                                    <BarChart3 className="mr-1 h-4 w-4" />
-                                    Рекомендации
-                                </Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                        {aiReportText ? (
-                            <>
-                                <textarea
-                                    value={aiReportText}
-                                    onChange={(e) => setAiReportText(e.target.value)}
-                                    className="min-h-[220px] w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap"
-                                />
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                    <Button type="button" size="sm" variant="outline" onClick={copyAiReport}>
-                                        <Copy className="mr-1 h-4 w-4" />
-                                        Копировать
-                                    </Button>
-                                    <Button type="button" size="sm" variant="outline" onClick={downloadAiReport}>
-                                        <FileDown className="mr-1 h-4 w-4" />
-                                        Скачать TXT
-                                    </Button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                                Нажмите одну из кнопок выше — помощник сформирует отчет автоматически.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-                    <Link href={route('hr.perco.timetracking')} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <Link href={route('hr.perco.timetracking')} className="block rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40">
                         <DonutCard
-                            title="Состояние сотрудников" 
-                            segments={summarySegments} 
+                            title="Состояние сотрудников"
+                            segments={summarySegments}
                             total={employeesTotal}
                             donut={true}
+                            interactive
                         />
                     </Link>
                     <div
@@ -518,14 +470,15 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                                 openLatePeriod();
                             }
                         }}
-                        className="cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="cursor-pointer rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40"
                         title="Открыть список опоздавших за выбранный период"
                     >
-                        <DonutCard 
-                            title={periodTitle} 
-                            segments={todaySegments} 
+                        <DonutCard
+                            title={periodTitle}
+                            segments={todaySegments}
                             total={Math.max(employeesActive, 1)}
                             donut={true}
+                            interactive
                             onSegmentClick={(segment) => {
                                 if (String(segment.name).includes('Опоздали')) {
                                     openLatePeriod();
@@ -543,7 +496,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                                 openEarlyPeriod();
                             }
                         }}
-                        className="cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="cursor-pointer rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40"
                         title="Открыть список ушедших раньше за выбранный период"
                     >
                         <DonutCard
@@ -551,6 +504,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                             segments={earlySegments}
                             total={Math.max(employeesActive, 1)}
                             donut={true}
+                            interactive
                             onSegmentClick={(segment) => {
                                 if (String(segment.name).includes('Ушли раньше')) {
                                     openEarlyPeriod();
@@ -558,7 +512,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                             }}
                         />
                     </div>
-                    <DonutCard 
+                    <DonutCard
                         title={`Топ подразделения • ${formatDate(summary.latest_late_date)}`}
                         segments={top3}
                         total={Math.max(topTotal, 1)}
@@ -566,43 +520,90 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                     />
                 </div>
 
-                <Card className="border border-slate-200 bg-white shadow-sm">
-                    <CardHeader className="pb-3 border-b border-slate-200">
-                        <div className="flex items-center justify-between gap-3">
-                            <CardTitle className="text-base font-semibold text-slate-900">Все подразделения по опозданиям</CardTitle>
-                            <span className="text-sm font-medium text-slate-500">Количество опоздавших пользователей</span>
+                <DarkPanel
+                    kicker="ИИ помощник HR"
+                    title="Готовые отчёты и выводы в один клик"
+                    actions={(
+                        <>
+                            <Button type="button" onClick={() => generateAiReport('summary')}>
+                                <Sparkles className="h-4 w-4" />
+                                Сводный отчет
+                            </Button>
+                            <Button type="button" variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => generateAiReport('risks')}>
+                                <AlertCircle className="h-4 w-4" />
+                                Риски
+                            </Button>
+                            <Button type="button" variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white" onClick={() => generateAiReport('recommendations')}>
+                                <BarChart3 className="h-4 w-4" />
+                                Рекомендации
+                            </Button>
+                        </>
+                    )}
+                >
+                    Формирование готовых отчетов и выводов в один клик. Нажмите одну из кнопок — помощник сформирует отчет автоматически по выбранному периоду и подразделению.
+                </DarkPanel>
+
+                {aiReportText && (
+                    <Card>
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Bot className="shrink-0" />
+                                    Отчёт ИИ помощника
+                                </CardTitle>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button type="button" size="sm" variant="outline" onClick={copyAiReport}>
+                                        <Copy className="h-4 w-4" />
+                                        Копировать
+                                    </Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={downloadAiReport}>
+                                        <FileDown className="h-4 w-4" />
+                                        Скачать TXT
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <textarea
+                                value={aiReportText}
+                                onChange={(e) => setAiReportText(e.target.value)}
+                                className={`${qdFieldClass} h-auto min-h-[240px] whitespace-pre-wrap py-3 leading-relaxed`}
+                            />
+                        </CardContent>
+                    </Card>
+                )}
+
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <BarChart3 className="shrink-0" />
+                                Все подразделения по опозданиям
+                            </CardTitle>
+                            <span className="text-xs font-medium text-slate-500">Количество опоздавших пользователей</span>
                         </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className={topDivisions.length === 0 ? '' : 'p-0'}>
                         {topDivisions.length === 0 ? (
-                            <p className="text-sm text-slate-500 py-4">Нет данных за выбранный период.</p>
+                            <p className="py-6 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
-                            <div className="space-y-2 py-3">
+                            <div className="divide-y divide-slate-200">
                                 {topDivisions.map((row, idx) => (
-                                    <div 
+                                    <div
                                         key={`${row.division}-${idx}`}
                                         onClick={() => row.division_id && handleDivisionClick(row.division_id, row.division)}
-                                        className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 hover:bg-slate-100 transition-colors cursor-pointer group"
+                                        className="group flex cursor-pointer items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50 sm:px-6"
                                     >
-                                        <div className="flex items-center gap-3 flex-1">
-                                            <div 
-                                                className="h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold text-white"
-                                                style={{
-                                                    background: idx < 3 
-                                                        ? ['#f97316', '#06b6d4', '#8b5cf6'][idx] 
-                                                        : '#9ca3af'
-                                                }}
-                                            >
+                                        <div className="flex min-w-0 flex-1 items-center gap-4">
+                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums ${RANK_STYLES[idx] ?? 'bg-slate-100 text-slate-600'}`}>
                                                 {idx + 1}
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-slate-900 truncate group-hover:underline">{row.division}</p>
-                                                <p className="text-xs text-slate-500">{row.late_events} событий • {row.late_people} сотр.</p>
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-medium text-slate-900 group-hover:text-teal-700">{row.division}</p>
+                                                <p className="text-xs tabular-nums text-slate-500">{row.late_events} событий • {row.late_people} сотр.</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-bold text-slate-900">{row.late_events}</p>
-                                        </div>
+                                        <p className="font-display text-xl font-bold tabular-nums text-[#102945]">{row.late_events}</p>
                                     </div>
                                 ))}
                             </div>

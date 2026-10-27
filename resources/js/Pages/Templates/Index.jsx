@@ -4,6 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Notice, PageHeader, Segmented, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { CheckCircle2, ExternalLink, FilePlus2, Image as ImageIcon, Layers, LayoutTemplate, Plus } from 'lucide-react';
+
+// Chrome classes for raw fields around the editor (the editor stage itself keeps its own styling).
+const fieldClass = qdFieldClass;
+const fileFieldClass = `${qdFieldClass} py-1.5 file:mr-3 file:rounded-[8px] file:border-0 file:bg-teal-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-teal-700`;
+const jsonFieldClass = 'w-full rounded-[10px] border border-slate-300 bg-white px-3 py-2 font-mono text-xs text-slate-900 transition-colors hover:border-slate-400 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/20';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const defaultVersionJson = {
@@ -85,7 +92,8 @@ function TemplateLayoutEditor({
 
     if (!backgroundUrl) {
         return (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600">
+                <ImageIcon className="h-5 w-5 shrink-0 text-teal-700" />
                 Загрузите фон шаблона, чтобы перетаскивать поля на макете.
             </div>
         );
@@ -93,9 +101,9 @@ function TemplateLayoutEditor({
 
     if (!parsedLayout) {
         return (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-red-600">
+            <Notice tone="danger">
                 Невалидный layout_json. Исправьте JSON, чтобы включить drag-and-drop.
-            </div>
+            </Notice>
         );
     }
 
@@ -233,7 +241,7 @@ function TemplateLayoutEditor({
 
     return (
         <div className="space-y-3">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-slate-500">
                 Перетащите блоки мышкой. Координаты сохраняются в `layout_json`.
             </div>
 
@@ -316,25 +324,18 @@ function TemplateLayoutEditor({
                 </div>
             </div>
 
-            <div className="rounded-lg border bg-white p-3">
-                <div className="mb-2 text-sm font-medium">Настройки поля</div>
-
-                <div className="mb-3 flex flex-wrap gap-2">
-                    {Object.entries(layoutLabels).map(([key, label]) => (
-                        <Button
-                            key={key}
-                            type="button"
-                            size="sm"
-                            variant={selectedKey === key ? 'default' : 'outline'}
-                            onClick={() => setSelectedKey(key)}
-                        >
-                            {label}
-                        </Button>
-                    ))}
+            <div className="rounded-[14px] border border-slate-200 bg-white p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div className="qd-field-label text-[#102945]">Настройки поля</div>
+                    <Segmented
+                        items={Object.entries(layoutLabels).map(([key, label]) => ({ key, label }))}
+                        value={selectedKey}
+                        onChange={setSelectedKey}
+                    />
                 </div>
 
                 {!isSelectedTextField && (
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-slate-500">
                         Для QR изменяются размер и позиция на макете. Размер текста и цвет доступны для текстовых полей.
                     </div>
                 )}
@@ -342,12 +343,12 @@ function TemplateLayoutEditor({
                 {isSelectedTextField && (
                     <div className="grid gap-3 md:grid-cols-3">
                         <div>
-                            <label className="mb-1 block text-xs font-medium">Размер шрифта</label>
+                            <label className="qd-field-label mb-2 block">Размер шрифта</label>
                             <input
                                 type="number"
                                 min="8"
                                 max="200"
-                                className="w-full rounded-md border px-2 py-2 text-sm"
+                                className={fieldClass}
                                 value={Number(selectedNode.font_size ?? 24)}
                                 onChange={(event) =>
                                     updateNode(selectedKey, {
@@ -358,9 +359,9 @@ function TemplateLayoutEditor({
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-xs font-medium">Шрифт</label>
+                            <label className="qd-field-label mb-2 block">Шрифт</label>
                             <select
-                                className="w-full rounded-md border px-2 py-2 text-sm"
+                                className={fieldClass}
                                 value={String(selectedNode.font_family ?? 'Arial')}
                                 onChange={(event) =>
                                     updateNode(selectedKey, {
@@ -375,11 +376,11 @@ function TemplateLayoutEditor({
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-xs font-medium">Цвет текста</label>
+                            <label className="qd-field-label mb-2 block">Цвет текста</label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="color"
-                                    className="h-9 w-12 rounded border p-1"
+                                    className="h-10 w-12 shrink-0 rounded-[10px] border border-slate-300 p-1"
                                     value={String(selectedNode.color ?? '#000000')}
                                     onChange={(event) =>
                                         updateNode(selectedKey, {
@@ -389,7 +390,7 @@ function TemplateLayoutEditor({
                                 />
                                 <input
                                     type="text"
-                                    className="w-full rounded-md border px-2 py-2 text-sm"
+                                    className={fieldClass}
                                     value={String(selectedNode.color ?? '#000000')}
                                     onChange={(event) =>
                                         updateNode(selectedKey, {
@@ -401,11 +402,12 @@ function TemplateLayoutEditor({
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-xs font-medium">Стиль</label>
+                            <label className="qd-field-label mb-2 block">Стиль</label>
                             <div className="flex items-center gap-2">
-                                <label className="inline-flex items-center gap-2 text-xs">
+                                <label className="inline-flex h-10 items-center gap-2 text-sm text-slate-700">
                                     <input
                                         type="checkbox"
+                                        className="h-4 w-4 accent-teal-700"
                                         checked={String(selectedNode.font_weight ?? 'normal') === 'bold'}
                                         onChange={(event) =>
                                             updateNode(selectedKey, {
@@ -415,9 +417,10 @@ function TemplateLayoutEditor({
                                     />
                                     Жирный
                                 </label>
-                                <label className="inline-flex items-center gap-2 text-xs">
+                                <label className="inline-flex h-10 items-center gap-2 text-sm text-slate-700">
                                     <input
                                         type="checkbox"
+                                        className="h-4 w-4 accent-teal-700"
                                         checked={String(selectedNode.font_style ?? 'normal') === 'italic'}
                                         onChange={(event) =>
                                             updateNode(selectedKey, {
@@ -431,9 +434,9 @@ function TemplateLayoutEditor({
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-xs font-medium">Выравнивание</label>
+                            <label className="qd-field-label mb-2 block">Выравнивание</label>
                             <select
-                                className="w-full rounded-md border px-2 py-2 text-sm"
+                                className={fieldClass}
                                 value={String(selectedNode.align ?? 'left')}
                                 onChange={(event) =>
                                     updateNode(selectedKey, {
@@ -575,72 +578,79 @@ export default function TemplatesIndex({ templates = [] }) {
         });
     };
 
+    const activeCount = templates.filter((template) => template.is_active).length;
+    const versionsCount = templates.reduce((sum, template) => sum + (template.versions?.length ?? 0), 0);
+    const publishedCount = templates.filter((template) => (template.versions ?? []).some((version) => version.is_published)).length;
+
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Шаблоны сертификатов
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Конструктор и версионность шаблонов для генерации сертификатов
-                        </p>
-                    </div>
-                </div>
+                <PageHeader
+                    eyebrow="Сертификаты"
+                    title="Шаблоны сертификатов"
+                    description="Конструктор и версионность шаблонов для генерации сертификатов."
+                />
             }
         >
             <Head title="Шаблоны сертификатов" />
 
-            <div className="admin-page-wrap">
+            <div className="admin-page-wrap space-y-6">
+                {flash.success && (
+                    <Notice tone="success">{flash.success}</Notice>
+                )}
+
+                <StatGrid>
+                    <StatTile label="Шаблонов" value={templates.length} tone="teal" icon={LayoutTemplate} />
+                    <StatTile label="Активных" value={activeCount} tone="success" icon={CheckCircle2} />
+                    <StatTile label="Версий" value={versionsCount} tone="navy" icon={Layers} />
+                    <StatTile label="С опубликованной версией" value={publishedCount} tone="gold" icon={FilePlus2} />
+                </StatGrid>
+
                 <Card>
                     <CardHeader>
-                        <CardTitle>Новый шаблон</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Новый шаблон
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        {flash.success && (
-                            <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                                {flash.success}
-                            </div>
-                        )}
-
-                        <p className="mb-3 text-xs text-muted-foreground">
+                    <CardContent className="space-y-5">
+                        <p className="text-sm text-slate-600">
                             Если загрузить фон при создании, система автоматически создаст версию шаблона v1.
                         </p>
 
                         <form onSubmit={submitTemplate} className="grid gap-4 md:grid-cols-4">
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Название</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Название</label>
                                 <input
-                                    className="w-full rounded-md border px-3 py-2"
+                                    className={fieldClass}
                                     value={createTemplateForm.data.name}
                                     onChange={(event) => createTemplateForm.setData('name', event.target.value)}
                                     placeholder="Например: Сертификат курса"
                                 />
                                 {createTemplateForm.errors.name && (
-                                    <div className="mt-1 text-xs text-red-600">{createTemplateForm.errors.name}</div>
+                                    <div className="text-xs text-red-700">{createTemplateForm.errors.name}</div>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Код</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Код</label>
                                 <input
-                                    className="w-full rounded-md border px-3 py-2"
+                                    className={fieldClass}
                                     value={createTemplateForm.data.code}
                                     onChange={(event) => createTemplateForm.setData('code', event.target.value)}
                                     placeholder="CERT_BASIC"
                                 />
                                 {createTemplateForm.errors.code && (
-                                    <div className="mt-1 text-xs text-red-600">{createTemplateForm.errors.code}</div>
+                                    <div className="text-xs text-red-700">{createTemplateForm.errors.code}</div>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">Фон шаблона</label>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="qd-field-label block">Фон шаблона</label>
                                 <input
                                     type="file"
                                     accept="image/*"
-                                    className="w-full rounded-md border px-3 py-2"
+                                    className={fileFieldClass}
                                     onChange={(event) => {
                                         const file = event.target.files?.[0] ?? null;
                                         createTemplateForm.setData('background', file);
@@ -648,48 +658,49 @@ export default function TemplatesIndex({ templates = [] }) {
                                     }}
                                 />
                                 {createTemplateForm.errors.background && (
-                                    <div className="mt-1 text-xs text-red-600">{createTemplateForm.errors.background}</div>
+                                    <div className="text-xs text-red-700">{createTemplateForm.errors.background}</div>
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 md:col-span-2">
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">Ширина</label>
+                            <div className="grid grid-cols-3 gap-3 md:col-span-2">
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">Ширина</label>
                                     <input
                                         type="number"
-                                        className="w-full rounded-md border px-2 py-2 text-sm"
+                                        className={fieldClass}
                                         value={createTemplateForm.data.canvas_width}
                                         onChange={(event) =>
                                             createTemplateForm.setData('canvas_width', event.target.value)
                                         }
                                     />
                                 </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">Высота</label>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">Высота</label>
                                     <input
                                         type="number"
-                                        className="w-full rounded-md border px-2 py-2 text-sm"
+                                        className={fieldClass}
                                         value={createTemplateForm.data.canvas_height}
                                         onChange={(event) =>
                                             createTemplateForm.setData('canvas_height', event.target.value)
                                         }
                                     />
                                 </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-medium">DPI</label>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">DPI</label>
                                     <input
                                         type="number"
-                                        className="w-full rounded-md border px-2 py-2 text-sm"
+                                        className={fieldClass}
                                         value={createTemplateForm.data.dpi}
                                         onChange={(event) => createTemplateForm.setData('dpi', event.target.value)}
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex items-end gap-3">
-                                <label className="inline-flex items-center gap-2 text-sm">
+                            <div className="flex flex-wrap items-end justify-end gap-3 md:col-span-2">
+                                <label className="inline-flex h-10 items-center gap-2 text-sm text-slate-700">
                                     <input
                                         type="checkbox"
+                                        className="h-4 w-4 accent-teal-700"
                                         checked={Boolean(createTemplateForm.data.is_active)}
                                         onChange={(event) =>
                                             createTemplateForm.setData('is_active', event.target.checked)
@@ -697,13 +708,14 @@ export default function TemplatesIndex({ templates = [] }) {
                                     />
                                     Активен
                                 </label>
-                                <Button type="submit" disabled={createTemplateForm.processing}>
+                                <Button type="submit" disabled={createTemplateForm.processing} className="gap-2">
+                                    <Plus className="h-4 w-4" />
                                     Создать
                                 </Button>
                             </div>
                         </form>
 
-                        <div className="mt-4 space-y-4">
+                        <div className="space-y-4 border-t border-slate-200 pt-5">
                             <TemplateLayoutEditor
                                 backgroundUrl={templateBackgroundPreview}
                                 canvasWidth={createTemplateForm.data.canvas_width}
@@ -713,10 +725,10 @@ export default function TemplatesIndex({ templates = [] }) {
                             />
 
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">text_rules_json (v1)</label>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">text_rules_json (v1)</label>
                                     <textarea
-                                        className="min-h-24 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                                        className={`${jsonFieldClass} min-h-24`}
                                         value={createTemplateForm.data.text_rules_json}
                                         onChange={(event) =>
                                             createTemplateForm.setData('text_rules_json', event.target.value)
@@ -724,10 +736,10 @@ export default function TemplatesIndex({ templates = [] }) {
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">qr_rules_json (v1)</label>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">qr_rules_json (v1)</label>
                                     <textarea
-                                        className="min-h-24 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                                        className={`${jsonFieldClass} min-h-24`}
                                         value={createTemplateForm.data.qr_rules_json}
                                         onChange={(event) =>
                                             createTemplateForm.setData('qr_rules_json', event.target.value)
@@ -741,31 +753,37 @@ export default function TemplatesIndex({ templates = [] }) {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Список шаблонов</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <LayoutTemplate className="h-4 w-4" />
+                            Список шаблонов
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {templates.length === 0 && (
-                            <p className="text-sm text-muted-foreground">Шаблонов пока нет.</p>
+                            <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
+                                <p className="font-display text-base font-bold text-[#102945]">Шаблонов пока нет</p>
+                                <p className="mt-1 text-sm text-slate-600">Создайте первый шаблон в форме выше.</p>
+                            </div>
                         )}
 
                         {templates.map((template) => (
-                            <div key={template.id} className="rounded-lg border p-4">
-                                <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold">{template.name}</h3>
-                                            <Badge variant="outline">{template.code}</Badge>
-                                            <Badge variant={template.is_active ? 'default' : 'secondary'}>
+                            <div key={template.id} className="rounded-[14px] border border-slate-200 bg-white">
+                                <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="font-display text-lg font-bold text-[#102945]">{template.name}</h3>
+                                            <Badge variant="outline" className="font-mono">{template.code}</Badge>
+                                            <Badge variant={template.is_active ? 'success' : 'secondary'}>
                                                 {template.is_active ? 'Активен' : 'Неактивен'}
                                             </Badge>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="mt-1 text-xs text-slate-500">
                                             Создан: {template.created_at_human ?? '-'}
                                         </p>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => editTemplate(template)}>
+                                        <Button size="sm" variant="ghost" onClick={() => editTemplate(template)}>
                                             Редактировать
                                         </Button>
                                         <Button size="sm" variant="outline" onClick={() => toggleTemplate(template)}>
@@ -773,6 +791,7 @@ export default function TemplatesIndex({ templates = [] }) {
                                         </Button>
                                         <Button
                                             size="sm"
+                                            variant={openVersionFor === template.id ? 'secondary' : 'default'}
                                             onClick={() => {
                                                 setOpenVersionFor((prev) => (prev === template.id ? null : template.id));
                                             }}
@@ -782,47 +801,53 @@ export default function TemplatesIndex({ templates = [] }) {
                                     </div>
                                 </div>
 
-                                <div className="mt-4 space-y-2">
+                                <div className="border-t border-slate-200">
                                     {template.versions.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">Версий еще нет.</p>
+                                        <p className="px-4 py-3 text-sm text-slate-500">Версий еще нет.</p>
                                     )}
 
-                                    {template.versions.map((version) => (
-                                        <div
-                                            key={version.id}
-                                            className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2"
-                                        >
-                                            <div className="text-sm">
-                                                <span className="font-medium">v{version.version}</span>
-                                                <span className="ml-2 text-muted-foreground">
-                                                    {version.canvas_width}x{version.canvas_height}, {version.dpi} DPI
-                                                </span>
-                                                {version.is_published && (
-                                                    <Badge className="ml-2">Опубликовано</Badge>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {version.background_url && (
-                                                    <a
-                                                        href={version.background_url}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="text-xs text-primary underline"
-                                                    >
-                                                        Фон
-                                                    </a>
-                                                )}
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    disabled={version.is_published}
-                                                    onClick={() => publishVersion(version.id)}
+                                    {template.versions.length > 0 && (
+                                        <div className="divide-y divide-slate-200">
+                                            {template.versions.map((version) => (
+                                                <div
+                                                    key={version.id}
+                                                    className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"
                                                 >
-                                                    Опубликовать
-                                                </Button>
-                                            </div>
+                                                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                                                        <span className="font-semibold tabular-nums text-[#102945]">v{version.version}</span>
+                                                        <span className="tabular-nums text-slate-500">
+                                                            {version.canvas_width}x{version.canvas_height}, {version.dpi} DPI
+                                                        </span>
+                                                        {version.is_published && (
+                                                            <Badge variant="success">Опубликовано</Badge>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {version.background_url && (
+                                                            <Button asChild size="sm" variant="ghost" className="gap-1.5">
+                                                                <a
+                                                                    href={version.background_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    <ExternalLink className="h-3.5 w-3.5" />
+                                                                    Фон
+                                                                </a>
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={version.is_published}
+                                                            onClick={() => publishVersion(version.id)}
+                                                        >
+                                                            Опубликовать
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -832,48 +857,51 @@ export default function TemplatesIndex({ templates = [] }) {
                 {openTemplate && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Новая версия для: {openTemplate.name}</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <FilePlus2 className="h-4 w-4" />
+                                Новая версия для: {openTemplate.name}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={submitVersion} className="grid gap-4">
+                            <form onSubmit={submitVersion} className="grid gap-5">
                                 <div className="grid gap-4 md:grid-cols-4">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Ширина</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">Ширина</label>
                                         <input
                                             type="number"
-                                            className="w-full rounded-md border px-3 py-2"
+                                            className={fieldClass}
                                             value={createVersionForm.data.canvas_width}
                                             onChange={(event) =>
                                                 createVersionForm.setData('canvas_width', event.target.value)
                                             }
                                         />
                                     </div>
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Высота</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">Высота</label>
                                         <input
                                             type="number"
-                                            className="w-full rounded-md border px-3 py-2"
+                                            className={fieldClass}
                                             value={createVersionForm.data.canvas_height}
                                             onChange={(event) =>
                                                 createVersionForm.setData('canvas_height', event.target.value)
                                             }
                                         />
                                     </div>
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">DPI</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">DPI</label>
                                         <input
                                             type="number"
-                                            className="w-full rounded-md border px-3 py-2"
+                                            className={fieldClass}
                                             value={createVersionForm.data.dpi}
                                             onChange={(event) => createVersionForm.setData('dpi', event.target.value)}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Фон</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">Фон</label>
                                         <input
                                             type="file"
                                             accept="image/*"
-                                            className="w-full rounded-md border px-3 py-2"
+                                            className={fileFieldClass}
                                             onChange={(event) => {
                                                 const file = event.target.files?.[0] ?? null;
                                                 createVersionForm.setData('background', file);
@@ -891,27 +919,27 @@ export default function TemplatesIndex({ templates = [] }) {
                                     onLayoutJsonChange={(value) => createVersionForm.setData('layout_json', value)}
                                 />
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">layout_json</label>
+                                <div className="space-y-2">
+                                    <label className="qd-field-label block">layout_json</label>
                                     <textarea
-                                        className="min-h-48 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                                        className={`${jsonFieldClass} min-h-48`}
                                         value={createVersionForm.data.layout_json}
                                         onChange={(event) =>
                                             createVersionForm.setData('layout_json', event.target.value)
                                         }
                                     />
                                     {createVersionForm.errors.layout_json && (
-                                        <div className="mt-1 text-xs text-red-600">
+                                        <div className="text-xs text-red-700">
                                             {createVersionForm.errors.layout_json}
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-2">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">text_rules_json</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">text_rules_json</label>
                                         <textarea
-                                            className="min-h-36 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                                            className={`${jsonFieldClass} min-h-36`}
                                             value={createVersionForm.data.text_rules_json}
                                             onChange={(event) =>
                                                 createVersionForm.setData('text_rules_json', event.target.value)
@@ -919,10 +947,10 @@ export default function TemplatesIndex({ templates = [] }) {
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">qr_rules_json</label>
+                                    <div className="space-y-2">
+                                        <label className="qd-field-label block">qr_rules_json</label>
                                         <textarea
-                                            className="min-h-36 w-full rounded-md border px-3 py-2 font-mono text-xs"
+                                            className={`${jsonFieldClass} min-h-36`}
                                             value={createVersionForm.data.qr_rules_json}
                                             onChange={(event) =>
                                                 createVersionForm.setData('qr_rules_json', event.target.value)
@@ -931,16 +959,16 @@ export default function TemplatesIndex({ templates = [] }) {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
-                                    <Button type="submit" disabled={createVersionForm.processing}>
-                                        Сохранить версию
-                                    </Button>
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     <Button
                                         type="button"
                                         variant="outline"
                                         onClick={() => setOpenVersionFor(null)}
                                     >
                                         Отмена
+                                    </Button>
+                                    <Button type="submit" disabled={createVersionForm.processing}>
+                                        Сохранить версию
                                     </Button>
                                 </div>
                             </form>

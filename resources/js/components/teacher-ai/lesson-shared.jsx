@@ -12,18 +12,18 @@ export const LESSON_STATUS_META = {
     },
     processing: {
         label: 'Генерируется',
-        className: 'border-sky-200 bg-sky-50 text-sky-700',
+        className: 'border-blue-200 bg-blue-100 text-blue-700',
         Icon: LoaderCircle,
         spin: true,
     },
     completed: {
         label: 'Готово',
-        className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        className: 'border-emerald-200 bg-emerald-100 text-emerald-700',
         Icon: CheckCircle2,
     },
     failed: {
         label: 'Ошибка',
-        className: 'border-rose-200 bg-rose-50 text-rose-700',
+        className: 'border-red-200 bg-red-100 text-red-700',
         Icon: XCircle,
     },
 };
@@ -87,7 +87,7 @@ export function LessonStatusBadge({ status }) {
     const { Icon } = meta;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
             <Icon className={`h-3.5 w-3.5 ${meta.spin ? 'animate-spin' : ''}`} />
             {meta.label}
         </span>
@@ -129,18 +129,18 @@ function resolveStepState(stepKey, stepIndex, lesson, steps) {
 
 const STEP_STATE_CLASSES = {
     done: {
-        circle: 'border-emerald-500 bg-emerald-500 text-white',
-        label: 'text-emerald-800',
-        line: 'bg-emerald-400',
+        circle: 'border-teal-700 bg-teal-700 text-white',
+        label: 'text-[#102945]',
+        line: 'bg-teal-600',
     },
     current: {
-        circle: 'border-sky-500 bg-white text-sky-600',
-        label: 'text-sky-900',
+        circle: 'border-teal-600 bg-teal-50 text-teal-700',
+        label: 'text-teal-700',
         line: 'bg-slate-200',
     },
     failed: {
-        circle: 'border-rose-500 bg-rose-50 text-rose-600',
-        label: 'text-rose-900',
+        circle: 'border-red-600 bg-red-50 text-red-700',
+        label: 'text-red-800',
         line: 'bg-slate-200',
     },
     pending: {
@@ -181,7 +181,7 @@ export function StepProgress({ lesson }) {
                                 aria-hidden="true"
                                 className={`hidden h-0.5 flex-1 sm:block ${index === 0 ? 'bg-transparent' : classes.line}`}
                             />
-                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold ${classes.circle}`}>
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold tabular-nums ${classes.circle}`}>
                                 {state === 'done' && <Check className="h-4 w-4" />}
                                 {state === 'current' && (inProgress
                                     ? <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -192,11 +192,11 @@ export function StepProgress({ lesson }) {
                             {/* Right connector (desktop only) */}
                             <span
                                 aria-hidden="true"
-                                className={`hidden h-0.5 flex-1 sm:block ${isLast ? 'bg-transparent' : (state === 'done' ? 'bg-emerald-400' : 'bg-slate-200')}`}
+                                className={`hidden h-0.5 flex-1 sm:block ${isLast ? 'bg-transparent' : (state === 'done' ? 'bg-teal-600' : 'bg-slate-200')}`}
                             />
                         </div>
                         <div className="min-w-0 sm:text-center">
-                            <p className={`text-sm font-medium ${classes.label}`}>{step.label}</p>
+                            <p className={`text-sm font-semibold ${classes.label}`}>{step.label}</p>
                             {showSectionsCounter && (
                                 <p className="text-xs text-slate-500">
                                     Разделы: {Math.min(sectionsDone, sectionsTotal)} из {sectionsTotal}
@@ -208,7 +208,7 @@ export function StepProgress({ lesson }) {
                                 </p>
                             )}
                             {state === 'failed' && (
-                                <p className="text-xs text-rose-600">Остановлено на этом шаге</p>
+                                <p className="text-xs text-red-700">Остановлено на этом шаге</p>
                             )}
                         </div>
                     </li>

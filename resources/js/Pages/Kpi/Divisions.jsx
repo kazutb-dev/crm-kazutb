@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { DataTable, FilterBar, FormField, FormGrid, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { Edit2, Plus, Trash2, Users } from 'lucide-react';
+import { Building2, Edit2, ListChecks, Plus, Search, Trash2, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Divisions({ divisions }) {
@@ -62,58 +63,67 @@ export default function Divisions({ divisions }) {
         router.delete(`/kpi/divisions/${id}`);
     };
 
+    const indicatorsTotal = divisions.reduce((sum, d) => sum + (Number(d.indicators_count) || 0), 0);
+    const usersTotal = divisions.reduce((sum, d) => sum + (Number(d.users_count) || 0), 0);
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Структура"
+                    title="Подразделения"
+                    description="Справочник структурных подразделений, их индикаторов и сотрудников."
+                    actions={(
+                        <>
+                            <Button variant="outline" onClick={() => router.get(route('kpi.divisions.tables'))}>
+                                Таблицы привязок
+                            </Button>
+                            <Button onClick={handleCreate}>
+                                <Plus className="h-4 w-4" />
+                                Новое подразделение
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
+        >
             <Head title="Управление подразделениями" />
 
-            <div className="admin-page-wrap">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold">Подразделения</h1>
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={() => router.get(route('kpi.divisions.tables'))}>
-                            Таблицы привязок
-                        </Button>
-                        <Button onClick={handleCreate} className="gap-2">
-                            <Plus className="h-4 w-4" />
-                            Новое подразделение
-                        </Button>
-                    </div>
-                </div>
+            <div className="admin-page-wrap space-y-6">
+                <StatGrid className="xl:grid-cols-3">
+                    <StatTile label="Подразделений" value={divisions.length} tone="teal" icon={Building2} />
+                    <StatTile label="Привязано индикаторов" value={indicatorsTotal} tone="info" icon={ListChecks} />
+                    <StatTile label="Сотрудников" value={usersTotal} tone="gold" icon={Users} />
+                </StatGrid>
 
-                {/* Форма создания/редактирования */}
                 {formOpen && (
-                    <Card className="border-blue-200 bg-blue-50">
+                    <Card className="border-teal-200">
                         <CardHeader>
                             <CardTitle>
                                 {editingId ? 'Редактировать подразделение' : 'Новое подразделение'}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Код (опционально)</label>
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <FormGrid>
+                                    <FormField label="Код (опционально)">
                                         <Input
                                             type="text"
                                             placeholder="Код подразделения"
                                             value={formData.code}
                                             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                                         />
-                                    </div>
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium">Название *</label>
+                                    </FormField>
+                                    <FormField label="Название *">
                                         <Input
                                             type="text"
                                             placeholder="Название подразделения"
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button type="submit">
-                                        {editingId ? 'Сохранить' : 'Создать'}
-                                    </Button>
+                                    </FormField>
+                                </FormGrid>
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -121,64 +131,71 @@ export default function Divisions({ divisions }) {
                                     >
                                         Отмена
                                     </Button>
+                                    <Button type="submit">
+                                        {editingId ? 'Сохранить' : 'Создать'}
+                                    </Button>
                                 </div>
                             </form>
                         </CardContent>
                     </Card>
                 )}
 
-                {/* Поиск */}
-                <div className="flex gap-2">
-                    <Input
-                        placeholder="Поиск по названию или коду..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="flex-1"
-                    />
-                </div>
+                <FilterBar>
+                    <label className="block space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                placeholder="Поиск по названию или коду..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                    </label>
+                </FilterBar>
 
-                {/* Таблица подразделений */}
-                <div className="overflow-hidden rounded-lg border">
-                    <table className="w-full">
-                        <thead className="border-b bg-muted">
+                <DataTable>
+                    <table className="w-full text-sm">
+                        <thead className="border-b border-slate-200">
                             <tr>
-                                <th className="px-4 py-3 text-left text-sm font-semibold">Название</th>
-                                <th className="px-4 py-3 text-left text-sm font-semibold">Код</th>
-                                <th className="px-4 py-3 text-center text-sm font-semibold">Индикаторов</th>
-                                <th className="px-4 py-3 text-center text-sm font-semibold">Сотрудников</th>
-                                <th className="px-4 py-3 text-right text-sm font-semibold">Действия</th>
+                                <th className="px-5 py-3 text-left">Название</th>
+                                <th className="px-5 py-3 text-left">Код</th>
+                                <th className="px-5 py-3 text-center">Индикаторов</th>
+                                <th className="px-5 py-3 text-center">Сотрудников</th>
+                                <th className="px-5 py-3 text-right">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredDivisions.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-6 text-center text-muted-foreground">
+                                    <td colSpan="5" className="px-5 py-10 text-center text-sm text-slate-500">
                                         Подразделения не найдены
                                     </td>
                                 </tr>
                             ) : (
                                 filteredDivisions.map((division) => (
-                                    <tr key={division.id} className="border-b hover:bg-muted/50">
-                                        <td className="px-4 py-3 font-medium">{division.name}</td>
-                                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                                    <tr key={division.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                        <td className="px-5 py-3 font-medium text-slate-900">{division.name}</td>
+                                        <td className="px-5 py-3 text-slate-500">
                                             {division.code ? (
                                                 <Badge variant="outline">{division.code}</Badge>
                                             ) : (
                                                 '—'
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <Badge variant="secondary">
+                                        <td className="px-5 py-3 text-center">
+                                            <Badge variant="secondary" className="tabular-nums">
                                                 {division.indicators_count ?? 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <Badge variant="outline">
+                                        <td className="px-5 py-3 text-center">
+                                            <Badge variant="outline" className="tabular-nums">
                                                 {division.users_count ?? 0}
                                             </Badge>
                                         </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <td className="px-5 py-3 text-right">
+                                            <div className="flex justify-end gap-1">
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -200,6 +217,7 @@ export default function Divisions({ divisions }) {
                                                     variant="ghost"
                                                     onClick={() => handleDelete(division.id)}
                                                     title="Удалить"
+                                                    className="text-red-700 hover:bg-red-50"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -210,7 +228,7 @@ export default function Divisions({ divisions }) {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </DataTable>
             </div>
         </AuthenticatedLayout>
     );

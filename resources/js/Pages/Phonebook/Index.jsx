@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { DataTable, EmptyState, FilterBar, PageHeader, qdFieldClass, Segmented, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -389,7 +389,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
             <button
                 type="button"
                 draggable={false}
-                className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="shrink-0 rounded-[12px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600/30"
                 onClick={(event) => {
                     event.stopPropagation();
                     openPhotoPreview(item);
@@ -400,7 +400,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                     src={src}
                     alt={item.full_name}
                     draggable={false}
-                    className="h-28 w-28 rounded-2xl object-cover ring-1 ring-black/5 md:h-32 md:w-32"
+                    className="h-24 w-24 rounded-[12px] border border-slate-200 bg-slate-50 object-cover md:h-28 md:w-28"
                     onError={(event) => {
                         const image = event.currentTarget;
 
@@ -459,7 +459,27 @@ export default function Index({ sections, totalUsers, departments, filters }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Справочник"
+                    title="Телефонные справочники"
+                    description="Единый каталог контактов и сотрудников."
+                    actions={canManageDirectory ? (
+                        <>
+                            <Button type="button" variant="outline" onClick={openAddDepartmentDialog}>
+                                Добавить отдел
+                            </Button>
+                            <Button type="button" className="gap-2" onClick={openAddDialog}>
+                                <Plus className="h-4 w-4" />
+                                Добавить сотрудника
+                            </Button>
+                        </>
+                    ) : null}
+                    meta={<StatusBadge tone="info">{totalUsers} сотрудников</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Телефонные справочники" />
 
             <Dialog
@@ -511,7 +531,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
 
                     <form className="space-y-3" onSubmit={submitPhoto}>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">URL изображения</label>
+                            <label className="qd-field-label block">URL изображения</label>
                             <Input
                                 value={photoForm.data.avatar_url}
                                 onChange={(event) => photoForm.setData('avatar_url', event.target.value)}
@@ -522,8 +542,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             )}
                         </div>
 
-                        <div className="space-y-2 rounded-md border border-dashed border-border p-3">
-                            <label className="text-sm font-medium">Или загрузить файл</label>
+                        <div className="space-y-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+                            <label className="qd-field-label block">Или загрузить файл</label>
                             <Input
                                 type="file"
                                 accept="image/*"
@@ -577,8 +597,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
 
                     <form className="space-y-3" onSubmit={submitEdit}>
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">ФИО</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">ФИО</label>
                                 <Input
                                     value={editForm.data.full_name}
                                     onChange={(event) => editForm.setData('full_name', event.target.value)}
@@ -586,10 +606,10 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.full_name && <p className="text-sm text-destructive">{editForm.errors.full_name}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Департамент</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Департамент</label>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className={qdFieldClass}
                                     value={editForm.data.department_id}
                                     onChange={(event) => editForm.setData('department_id', event.target.value)}
                                 >
@@ -603,8 +623,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.department_id && <p className="text-sm text-destructive">{editForm.errors.department_id}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Должность</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Должность</label>
                                 <Input
                                     value={editForm.data.job_title}
                                     onChange={(event) => editForm.setData('job_title', event.target.value)}
@@ -612,8 +632,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.job_title && <p className="text-sm text-destructive">{editForm.errors.job_title}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Порядок (order)</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Порядок (order)</label>
                                 <Input
                                     type="number"
                                     min="0"
@@ -623,8 +643,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.sort_order && <p className="text-sm text-destructive">{editForm.errors.sort_order}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Телефон</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Телефон</label>
                                 <Input
                                     value={editForm.data.phone}
                                     onChange={(event) => editForm.setData('phone', event.target.value)}
@@ -632,8 +652,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.phone && <p className="text-sm text-destructive">{editForm.errors.phone}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Внутренний телефон</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Внутренний телефон</label>
                                 <Input
                                     value={editForm.data.inner_phone}
                                     onChange={(event) => editForm.setData('inner_phone', event.target.value)}
@@ -642,7 +662,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             </div>
 
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-sm font-medium">Email</label>
+                                <label className="qd-field-label block">Email</label>
                                 <Input
                                     value={editForm.data.email}
                                     onChange={(event) => editForm.setData('email', event.target.value)}
@@ -650,8 +670,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {editForm.errors.email && <p className="text-sm text-destructive">{editForm.errors.email}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Кабинет</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Кабинет</label>
                                 <Input
                                     value={editForm.data.office}
                                     onChange={(event) => editForm.setData('office', event.target.value)}
@@ -685,8 +705,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
 
                     <form className="space-y-3" onSubmit={submitAdd}>
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">ФИО</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">ФИО</label>
                                 <Input
                                     value={addForm.data.full_name}
                                     onChange={(event) => addForm.setData('full_name', event.target.value)}
@@ -694,10 +714,10 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.full_name && <p className="text-sm text-destructive">{addForm.errors.full_name}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Департамент</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Департамент</label>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className={qdFieldClass}
                                     value={addForm.data.department_id}
                                     onChange={(event) => addForm.setData('department_id', event.target.value)}
                                 >
@@ -711,8 +731,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.department_id && <p className="text-sm text-destructive">{addForm.errors.department_id}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Должность</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Должность</label>
                                 <Input
                                     value={addForm.data.job_title}
                                     onChange={(event) => addForm.setData('job_title', event.target.value)}
@@ -720,8 +740,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.job_title && <p className="text-sm text-destructive">{addForm.errors.job_title}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Порядок (order)</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Порядок (order)</label>
                                 <Input
                                     type="number"
                                     min="0"
@@ -731,8 +751,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.sort_order && <p className="text-sm text-destructive">{addForm.errors.sort_order}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Телефон</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Телефон</label>
                                 <Input
                                     value={addForm.data.phone}
                                     onChange={(event) => addForm.setData('phone', event.target.value)}
@@ -740,8 +760,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.phone && <p className="text-sm text-destructive">{addForm.errors.phone}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Внутренний телефон</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Внутренний телефон</label>
                                 <Input
                                     value={addForm.data.inner_phone}
                                     onChange={(event) => addForm.setData('inner_phone', event.target.value)}
@@ -750,7 +770,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             </div>
 
                             <div className="space-y-1 md:col-span-2">
-                                <label className="text-sm font-medium">Email</label>
+                                <label className="qd-field-label block">Email</label>
                                 <Input
                                     value={addForm.data.email}
                                     onChange={(event) => addForm.setData('email', event.target.value)}
@@ -758,8 +778,8 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 {addForm.errors.email && <p className="text-sm text-destructive">{addForm.errors.email}</p>}
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Кабинет</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Кабинет</label>
                                 <Input
                                     value={addForm.data.office}
                                     onChange={(event) => addForm.setData('office', event.target.value)}
@@ -799,7 +819,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
 
                     <form className="space-y-3" onSubmit={submitAddDepartment}>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Название отдела</label>
+                            <label className="qd-field-label block">Название отдела</label>
                             <Input
                                 value={departmentForm.data.name}
                                 onChange={(event) => departmentForm.setData('name', event.target.value)}
@@ -818,49 +838,13 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-4">
-                <PageHeader
-                    eyebrow="Directory"
-                    title="Телефонные справочники"
-                    description="Единый каталог контактов и сотрудников."
-                    actions={(
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                                type="button"
-                                variant={viewMode === 'cards' ? 'default' : 'outline'}
-                                className="gap-2"
-                                onClick={() => setViewMode('cards')}
-                            >
-                                <LayoutGrid className="h-4 w-4" />
-                                Карточки
-                            </Button>
-                            <Button
-                                type="button"
-                                variant={viewMode === 'table' ? 'default' : 'outline'}
-                                className="gap-2"
-                                onClick={() => setViewMode('table')}
-                            >
-                                <Table2 className="h-4 w-4" />
-                                Таблица
-                            </Button>
-
-                            {canManageDirectory && (
-                                <Button type="button" className="gap-2" onClick={openAddDialog}>
-                                    <Plus className="h-4 w-4" />
-                                    Добавить сотрудника
-                                </Button>
-                            )}
-                        </div>
-                    )}
-                    meta={<StatusBadge tone="info">{totalUsers} сотрудников</StatusBadge>}
-                />
-
+            <div className="admin-page-wrap space-y-6">
                 <FilterBar>
-                    <form className="grid gap-3 md:grid-cols-[1fr_260px_auto_auto_auto]" onSubmit={submitFilters}>
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">Поиск</label>
+                    <form className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px]" onSubmit={submitFilters}>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Поиск</label>
                                 <div className="relative">
-                                    <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
                                     <Input
                                         className="pl-9"
                                         value={search}
@@ -870,10 +854,10 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-muted-foreground">Департамент</label>
+                            <div className="space-y-2">
+                                <label className="qd-field-label block">Департамент</label>
                                 <select
-                                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className={qdFieldClass}
                                     value={departmentId}
                                     onChange={(event) => setDepartmentId(event.target.value)}
                                 >
@@ -886,54 +870,57 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                 </select>
                             </div>
 
-                            <div className="flex items-end">
-                                <Button type="submit" className="w-full md:w-auto">Применить</Button>
-                            </div>
-
-                            {canManageDirectory && (
-                                <div className="flex items-end">
-                                    <Button type="button" variant="outline" className="w-full md:w-auto" onClick={openAddDepartmentDialog}>
-                                        Добавить отдел
-                                    </Button>
-                                </div>
-                            )}
-
-                            <div className="flex items-end">
-                                <Button type="button" variant="outline" className="w-full md:w-auto" onClick={clearFilters}>
+                            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 md:col-span-2">
+                                <Button type="button" variant="outline" onClick={clearFilters}>
                                     Сбросить
                                 </Button>
+                                <Button type="submit">Применить</Button>
                             </div>
                         </form>
                 </FilterBar>
 
-                <DataTable>
-                    <div className="px-4 py-3 text-base font-semibold text-foreground">
-                        Результаты каталога
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="font-display text-lg font-bold text-[#102945]">Результаты каталога</h2>
+                        <p className="text-sm text-slate-500">
+                            {tableRows.length} в выдаче{canManageDirectory ? ' · порядок меняется перетаскиванием' : ''}
+                        </p>
                     </div>
-                    <div className="p-4">
+                    <Segmented
+                        items={[
+                            { key: 'cards', label: <span className="inline-flex items-center gap-1.5"><LayoutGrid className="h-4 w-4" />Карточки</span> },
+                            { key: 'table', label: <span className="inline-flex items-center gap-1.5"><Table2 className="h-4 w-4" />Таблица</span> },
+                        ]}
+                        value={viewMode}
+                        onChange={setViewMode}
+                    />
+                </div>
+
+                <div>
+                    <div>
                         {localSections.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">Записей не найдено.</p>
+                            <EmptyState title="Записей не найдено" description="Измените запрос или выберите другой департамент." action={<Button type="button" variant="outline" onClick={clearFilters}>Сбросить фильтры</Button>} />
                         ) : viewMode === 'table' ? (
-                            <div className="overflow-x-auto rounded-lg border bg-background">
+                            <DataTable>
                                 <table className="min-w-full text-sm">
-                                    <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                                        <tr>
-                                            <th className="px-3 py-2 text-left">№</th>
-                                            <th className="px-3 py-2 text-left">ФИО</th>
-                                            <th className="px-3 py-2 text-left">Должность</th>
-                                            <th className="px-3 py-2 text-left">Департамент</th>
-                                            <th className="px-3 py-2 text-left">Телефон</th>
-                                            <th className="px-3 py-2 text-left">Внутренний</th>
-                                            <th className="px-3 py-2 text-left">Email</th>
-                                            <th className="px-3 py-2 text-left">Кабинет</th>
-                                            {(canManageDirectory || canManagePhotos) && <th className="px-3 py-2 text-left">Действия</th>}
+                                    <thead className="text-left">
+                                        <tr className="border-b border-slate-200">
+                                            <th className="px-3 py-3">№</th>
+                                            <th className="px-3 py-3">ФИО</th>
+                                            <th className="px-3 py-3">Должность</th>
+                                            <th className="px-3 py-3">Департамент</th>
+                                            <th className="px-3 py-3">Телефон</th>
+                                            <th className="px-3 py-3">Внутренний</th>
+                                            <th className="px-3 py-3">Email</th>
+                                            <th className="px-3 py-3">Кабинет</th>
+                                            {(canManageDirectory || canManagePhotos) && <th className="px-3 py-3 text-right">Действия</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {tableRows.map((item) => (
                                             <tr
                                                 key={item.id}
-                                                className={`border-t align-top hover:bg-muted/30 ${draggingUserId === item.id ? 'opacity-60' : ''}`}
+                                                className={`border-t border-slate-200 align-top hover:bg-slate-50 ${draggingUserId === item.id ? 'opacity-60' : ''}`}
                                                 onDragOver={(event) => {
                                                     if (canManageDirectory) {
                                                         event.preventDefault();
@@ -941,14 +928,14 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                 }}
                                                 onDrop={(event) => handleDropOnTableRow(event, item)}
                                             >
-                                                <td className="px-3 py-2 text-muted-foreground">
+                                                <td className="px-3 py-3 tabular-nums text-slate-500">
                                                     <div className="flex items-center gap-2">
                                                         {canManageDirectory && (
                                                             <span
                                                                 draggable
                                                                 onDragStart={(event) => handleDragStart(event, item.id)}
                                                                 onDragEnd={() => setDraggingUserId(null)}
-                                                                className="inline-flex cursor-grab text-muted-foreground active:cursor-grabbing"
+                                                                className="inline-flex cursor-grab text-slate-400 hover:text-teal-700 active:cursor-grabbing"
                                                                 title="Перетащить"
                                                             >
                                                                 <GripVertical className="h-4 w-4" />
@@ -957,21 +944,21 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                         <span>{item._globalOrder}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-2">
-                                                    <div className="font-medium text-foreground">{item.full_name}</div>
+                                                <td className="px-3 py-3">
+                                                    <div className="font-medium text-slate-900">{item.full_name}</div>
                                                 </td>
-                                                <td className="px-3 py-2 text-muted-foreground">{item.job_title || '-'}</td>
-                                                <td className="px-3 py-2">
+                                                <td className="px-3 py-3 text-slate-600">{item.job_title || '-'}</td>
+                                                <td className="px-3 py-3">
                                                     <Badge variant="outline">{item.department?.name || item._sectionName || 'Без департамента'}</Badge>
                                                 </td>
-                                                <td className="px-3 py-2">{item.phone || '-'}</td>
-                                                <td className="px-3 py-2">{item.inner_phone || '-'}</td>
-                                                <td className="px-3 py-2">{item.email || '-'}</td>
-                                                <td className="px-3 py-2">{item.office || '-'}</td>
+                                                <td className="whitespace-nowrap px-3 py-3 tabular-nums">{item.phone || '-'}</td>
+                                                <td className="px-3 py-3 tabular-nums">{item.inner_phone || '-'}</td>
+                                                <td className="px-3 py-3">{item.email || '-'}</td>
+                                                <td className="px-3 py-3">{item.office || '-'}</td>
 
                                                 {(canManageDirectory || canManagePhotos) && (
-                                                    <td className="px-3 py-2">
-                                                        <div className="flex flex-wrap gap-2">
+                                                    <td className="px-3 py-3 text-right">
+                                                        <div className="flex flex-wrap justify-end gap-2">
                                                             {canManageDirectory && (
                                                                 <Button
                                                                     type="button"
@@ -1017,9 +1004,9 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
+                            </DataTable>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 {localSections.map((section) => (
                                     <section
                                         key={sectionKey(section)}
@@ -1031,15 +1018,16 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                         }}
                                         onDrop={(event) => handleDropOnSection(event, section)}
                                     >
-                                        <div className="border-b pb-2">
-                                            <h3 className="text-lg font-bold uppercase tracking-wide text-[#1f3152]">{section.name}:</h3>
+                                        <div className="flex items-baseline justify-between gap-3 border-b border-slate-200 pb-2">
+                                            <h3 className="font-display text-lg font-bold text-[#102945]">{section.name}</h3>
+                                            <span className="text-xs font-semibold tabular-nums text-slate-500">{(section.items ?? []).length}</span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                                             {(section.items ?? []).map((item, index) => (
                                                 <article
                                                     key={item.id}
-                                                    className={`relative overflow-hidden rounded-2xl border border-[#d8dee9] bg-white p-4 shadow-[0_6px_18px_rgba(31,49,82,0.08)] transition duration-200 hover:-translate-y-0.5 hover:border-[#1f3152]/30 hover:shadow-[0_10px_24px_rgba(31,49,82,0.14)] ${draggingUserId === item.id ? 'opacity-60' : ''}`}
+                                                    className={`relative flex flex-col overflow-hidden rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] transition-colors hover:border-teal-600/40 ${canManageDirectory ? 'cursor-grab active:cursor-grabbing' : ''} ${draggingUserId === item.id ? 'opacity-60' : ''}`}
                                                     draggable={canManageDirectory}
                                                     onDragStart={(event) => handleDragStart(event, item.id)}
                                                     onDragEnd={() => setDraggingUserId(null)}
@@ -1050,48 +1038,46 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                     }}
                                                     onDrop={(event) => handleDropOnCard(event, section, item.id)}
                                                 >
-                                                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[#1f3152]" />
-
                                                     <div className="mb-3 flex items-center justify-between">
-                                                        <span className="inline-flex rounded-full bg-[#eef2f9] px-2.5 py-1 text-xs font-semibold text-[#1f3152]">
+                                                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-bold tabular-nums text-[#102945]">
                                                             #{index + 1}
                                                         </span>
-                                                        {canManageDirectory && <GripVertical className="h-4 w-4 text-[#61738f]" />}
+                                                        {canManageDirectory && <GripVertical className="h-4 w-4 text-slate-400" />}
                                                     </div>
 
                                                     <div className="flex items-start gap-3">
                                                         {renderAvatar(item)}
 
                                                         <div className="min-w-0 flex-1">
-                                                            <h3 className="line-clamp-2 text-base font-semibold leading-tight text-[#1f3152]">
+                                                            <h3 className="line-clamp-2 font-display text-base font-bold leading-snug text-[#102945]">
                                                                 {item.full_name}
                                                             </h3>
-                                                            <p className="mt-1 line-clamp-2 text-sm text-[#596b86]">
+                                                            <p className="mt-1 line-clamp-2 text-sm text-slate-600">
                                                                 {item.job_title || 'Должность не указана'}
                                                             </p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="mt-4 space-y-2 rounded-2xl border border-[#d8dee9] bg-[#f8fafc] p-3 text-sm">
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <Phone className="h-4 w-4 text-[#61738f]" />
-                                                            <span>{item.phone || '-'}</span>
-                                                            <span className="text-xs text-[#61738f]">вн: {item.inner_phone || '-'}</span>
+                                                    <div className="mt-4 border-t border-slate-200 text-sm">
+                                                        <div className="flex items-center gap-2 border-b border-slate-100 py-2 text-slate-800">
+                                                            <Phone className="h-4 w-4 shrink-0 text-teal-700" />
+                                                            <span className="tabular-nums">{item.phone || '-'}</span>
+                                                            <span className="ml-auto text-xs tabular-nums text-slate-500">вн: {item.inner_phone || '-'}</span>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <Mail className="h-4 w-4 text-[#61738f]" />
+                                                        <div className="flex items-center gap-2 border-b border-slate-100 py-2 text-slate-800">
+                                                            <Mail className="h-4 w-4 shrink-0 text-teal-700" />
                                                             <span className="truncate">{item.email || '-'}</span>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2 text-[#1f3152]">
-                                                            <UserCircle2 className="h-4 w-4 text-[#61738f]" />
+                                                        <div className="flex items-center gap-2 py-2 text-slate-800">
+                                                            <UserCircle2 className="h-4 w-4 shrink-0 text-teal-700" />
                                                             <span>Кабинет: {item.office || '-'}</span>
                                                         </div>
                                                     </div>
 
                                                     {(canManageDirectory || canManagePhotos) && (
-                                                        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-[#d8dee9] pt-3">
+                                                        <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-3">
                                                             {canManageDirectory && (
                                                                 <Button
                                                                     type="button"
@@ -1140,7 +1126,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             </div>
                         )}
                     </div>
-                </DataTable>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

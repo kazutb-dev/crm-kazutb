@@ -1,4 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { EmptyState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -9,32 +11,27 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { ArrowUpRight, Building2, ClipboardList, Info, PlusCircle, Send } from 'lucide-react';
+import {
+    ArrowUpRight, Building2, CircleCheck, CircleX, ClipboardList, Inbox, Info, Loader, PlusCircle, Send,
+} from 'lucide-react';
 import { useState } from 'react';
 
 const statusMeta = {
-    new: {
-        label: 'Новая',
-        className: 'border-sky-200 bg-sky-50 text-sky-800',
-        dotClass: 'bg-sky-500',
-    },
-    in_progress: {
-        label: 'В работе',
-        className: 'border-amber-200 bg-amber-50 text-amber-800',
-        dotClass: 'bg-amber-500',
-    },
-    resolved: {
-        label: 'Решена',
-        className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-        dotClass: 'bg-emerald-500',
-    },
-    rejected: {
-        label: 'Отклонена',
-        className: 'border-rose-200 bg-rose-50 text-rose-800',
-        dotClass: 'bg-rose-500',
-    },
+    new: { label: 'Новая', variant: 'info' },
+    in_progress: { label: 'В работе', variant: 'warning' },
+    resolved: { label: 'Решена', variant: 'success' },
+    rejected: { label: 'Отклонена', variant: 'destructive' },
 };
+
+const HOW_IT_WORKS = [
+    'Создайте заявку через кнопку «Отправить заявку».',
+    'Отслеживайте статус: Новая, В работе, Решена, Отклонена.',
+    'Читайте ответ исполнителя в карточке вашей заявки.',
+];
 
 const isCitDepartment = (department) => {
     if (!department) {
@@ -61,6 +58,8 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
     const selectedDepartment = departments.find((d) => String(d.id) === String(form.data.department_id));
     const isCitSelected = isCitDepartment(selectedDepartment);
 
+    const countBy = (status) => myRequests.filter((req) => req.status === status).length;
+
     const submit = (e) => {
         e.preventDefault();
         form.post(route('dept-requests.store'), {
@@ -74,133 +73,129 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
 
     return (
         <AuthenticatedLayout
-            header={
-                <div>
-                    <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                        Заявки
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Отслеживание ваших обращений и их статусов
-                    </p>
-                </div>
-            }
+            header={(
+                <PageHeader
+                    eyebrow="Обращения"
+                    title="Заявки"
+                    description="Отслеживание ваших обращений и их статусов. Заявка сразу попадает в нужный отдел — так проблемы устраняются быстрее."
+                    actions={(
+                        <>
+                            <Button variant="outline" asChild>
+                                <Link href={route('dept-requests.departments')}>
+                                    <Info />
+                                    Отделы
+                                </Link>
+                            </Button>
+                            <Button onClick={() => setIsCreateOpen(true)}>
+                                <PlusCircle />
+                                Отправить заявку
+                            </Button>
+                        </>
+                    )}
+                />
+            )}
         >
             <Head title="Заявки" />
 
             <div className="admin-page-wrap space-y-6">
+                {flash.success && <Notice tone="success">{flash.success}</Notice>}
 
-                <Card className="overflow-hidden border-slate-200 shadow-sm">
-                    <CardContent className="space-y-4 p-5 sm:p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div className="max-w-2xl">
-                                <h3 className="text-lg font-semibold text-slate-900">Лента ваших заявок</h3>
-                                <p className="mt-1 text-sm text-slate-600">
-                                    Здесь отображаются только ваши обращения и их текущий статус.
-                                </p>
-                            </div>
-                            <Button className="rounded-xl bg-slate-900 hover:bg-slate-800" onClick={() => setIsCreateOpen(true)}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Отправить заявку
-                            </Button>
-                        </div>
+                <StatGrid>
+                    <StatTile label="Новые" value={countBy('new')} icon={Inbox} tone="info" hint="Ждут исполнителя" />
+                    <StatTile label="В работе" value={countBy('in_progress')} icon={Loader} tone="warning" hint="Исполнитель взял заявку" />
+                    <StatTile label="Решены" value={countBy('resolved')} icon={CircleCheck} tone="success" hint="Ответ — в таблице ниже" />
+                    <StatTile label="Отклонены" value={countBy('rejected')} icon={CircleX} tone="danger" hint="С пояснением исполнителя" />
+                </StatGrid>
 
-                        <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                <p className="font-semibold">Зачем нужны заявки</p>
-                                <p>Чтобы быстрее получать данные о проблемах, сразу направлять их в нужный отдел и оперативно устранять.</p>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Info className="shrink-0" />
+                            Как это работает
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ol className="grid gap-4 sm:grid-cols-3">
+                            {HOW_IT_WORKS.map((step, index) => (
+                                <li key={step} className="flex items-start gap-3">
+                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 font-display text-sm font-bold text-teal-700">
+                                        {index + 1}
+                                    </span>
+                                    <span className="pt-1 text-sm leading-relaxed text-slate-700">{step}</span>
+                                </li>
+                            ))}
+                        </ol>
+                        <div className="mt-5 grid gap-4 border-t border-slate-200 pt-4 text-sm sm:grid-cols-2">
+                            <div>
+                                <p className="qd-field-label text-slate-500">Зачем нужны заявки</p>
+                                <p className="mt-1 text-slate-700">Чтобы быстрее получать данные о проблемах, сразу направлять их в нужный отдел и оперативно устранять.</p>
                             </div>
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                <p className="font-semibold">Как создать новую заявку</p>
-                                <p>Нажмите «Отправить заявку» и заполните форму.</p>
-                            </div>
-                        </div>
-
-                        <div className="rounded-xl border border-slate-200 bg-white p-4">
-                            <p className="text-sm font-semibold text-slate-900">Как это работает</p>
-                            <div className="mt-2 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
-                                <div className="rounded-md bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">1.</span> Создайте заявку через кнопку «Отправить заявку».
-                                </div>
-                                <div className="rounded-md bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">2.</span> Отслеживайте статус: Новая, В работе, Решена, Отклонена.
-                                </div>
-                                <div className="rounded-md bg-slate-50 px-3 py-2">
-                                    <span className="font-semibold">3.</span> Читайте ответ исполнителя в карточке вашей заявки.
-                                </div>
+                            <div>
+                                <p className="qd-field-label text-slate-500">Как создать новую заявку</p>
+                                <p className="mt-1 text-slate-700">Нажмите «Отправить заявку» и заполните форму.</p>
                             </div>
                         </div>
-
-                        {flash.success && (
-                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                                {flash.success}
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
 
                 {/* ── My requests ── */}
-                <Card className="border-slate-200 shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <ClipboardList className="h-5 w-5" />
-                            Мои заявки
-                        </CardTitle>
-                        <p className="text-sm text-slate-500">
-                            Таблица обращений с датой отправки, датой решения, статусом и ответом.
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        {myRequests.length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center">
-                                <p className="text-sm font-medium text-slate-700">У вас пока нет заявок</p>
-                                <p className="mt-1 text-xs text-slate-500">Создайте первую заявку, чтобы отслеживать её статус и ответ в этом разделе.</p>
-                                <Button className="mt-4 rounded-xl bg-slate-900 hover:bg-slate-800" onClick={() => setIsCreateOpen(true)}>
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Создать первую заявку
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto rounded-xl border border-slate-200">
+                {myRequests.length === 0 ? (
+                    <EmptyState
+                        title="У вас пока нет заявок"
+                        description="Создайте первую заявку, чтобы отслеживать её статус и ответ в этом разделе."
+                        action={(
+                            <Button onClick={() => setIsCreateOpen(true)}>
+                                <PlusCircle />
+                                Создать первую заявку
+                            </Button>
+                        )}
+                    />
+                ) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ClipboardList className="shrink-0" />
+                                Мои заявки
+                            </CardTitle>
+                            <p className="text-sm text-slate-500">
+                                Таблица обращений с датой отправки, датой решения, статусом и ответом.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
-                                    <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                    <thead>
                                         <tr>
-                                            <th className="px-4 py-3">Тема</th>
-                                            <th className="px-4 py-3">Отдел</th>
-                                            <th className="px-4 py-3">Дата отправки</th>
-                                            <th className="px-4 py-3">Дата решения</th>
-                                            <th className="px-4 py-3">Статус</th>
-                                            <th className="px-4 py-3">Ответ</th>
+                                            <th className="px-5 text-left">Тема</th>
+                                            <th className="px-5 text-left">Отдел</th>
+                                            <th className="px-5 text-left">Дата отправки</th>
+                                            <th className="px-5 text-left">Дата решения</th>
+                                            <th className="px-5 text-left">Статус</th>
+                                            <th className="px-5 text-left">Ответ</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-200 bg-white">
+                                    <tbody>
                                         {myRequests.map((req) => {
-                                            const meta = statusMeta[req.status] ?? {
-                                                label: req.status,
-                                                className: 'border-slate-200 bg-slate-50 text-slate-700',
-                                                dotClass: 'bg-slate-400',
-                                            };
+                                            const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
 
                                             return (
-                                                <tr key={req.id} className="align-top">
-                                                    <td className="px-4 py-3">
+                                                <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                    <td className="px-5 py-3.5">
                                                         <p className="font-medium text-slate-900">{req.title}</p>
                                                         {req.room && (
-                                                            <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
-                                                                <Building2 className="h-3.5 w-3.5" />
+                                                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-600">
+                                                                <Building2 className="h-3.5 w-3.5 text-slate-400" />
                                                                 Кабинет: {req.room}
                                                             </p>
                                                         )}
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-700">{req.department ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-slate-700">{req.created_at ?? '—'}</td>
-                                                    <td className="px-4 py-3 text-slate-700">{req.closed_at ?? '—'}</td>
-                                                    <td className="px-4 py-3">
-                                                        <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none ${meta.className}`}>
-                                                            <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`} />
-                                                            {meta.label}
-                                                        </div>
+                                                    <td className="px-5 py-3.5 text-slate-700">{req.department ?? '—'}</td>
+                                                    <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
+                                                    <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
+                                                    <td className="px-5 py-3.5">
+                                                        <Badge variant={meta.variant}>{meta.label}</Badge>
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-700">
+                                                    <td className="px-5 py-3.5 text-slate-700">
                                                         {req.note ? (
                                                             <div>
                                                                 <p>{req.note}</p>
@@ -218,9 +213,9 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                                     </tbody>
                                 </table>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Dialog
                     open={isCreateOpen}
@@ -234,7 +229,7 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                     <DialogContent className="sm:max-w-2xl">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
-                                <Send className="h-4 w-4" />
+                                <Send className="h-4 w-4 text-teal-700" />
                                 Новая заявка
                             </DialogTitle>
                             <DialogDescription>
@@ -242,29 +237,28 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                             </DialogDescription>
                         </DialogHeader>
 
-                        <form onSubmit={submit} className="space-y-4">
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">
-                                    Тема <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                        <form onSubmit={submit} className="space-y-5">
+                            <div className="space-y-2">
+                                <Label className="block">
+                                    Тема <span className="text-red-600">*</span>
+                                </Label>
+                                <Input
                                     placeholder="Например: Не работает принтер на 3 этаже"
                                     value={form.data.title}
                                     onChange={(e) => form.setData('title', e.target.value)}
                                 />
-                                <p className="mt-1 text-xs text-slate-500">Короткий заголовок, чтобы специалист сразу понял суть.</p>
+                                <p className="text-xs text-slate-500">Короткий заголовок, чтобы специалист сразу понял суть.</p>
                                 {form.errors.title && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.title}</p>
+                                    <p className="text-xs text-red-700">{form.errors.title}</p>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">
-                                    Отдел <span className="text-red-500">*</span>
-                                </label>
+                            <div className="space-y-2">
+                                <Label className="block">
+                                    Отдел <span className="text-red-600">*</span>
+                                </Label>
                                 <select
-                                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                                    className={qdFieldClass}
                                     value={form.data.department_id}
                                     onChange={(e) => {
                                         const departmentId = e.target.value;
@@ -281,56 +275,53 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                                         <option key={d.id} value={d.id}>{d.name}</option>
                                     ))}
                                 </select>
-                                <p className="mt-1 text-xs text-slate-500">Выберите команду, которая должна обработать запрос.</p>
+                                <p className="text-xs text-slate-500">Выберите команду, которая должна обработать запрос.</p>
                                 {form.errors.department_id && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.department_id}</p>
+                                    <p className="text-xs text-red-700">{form.errors.department_id}</p>
                                 )}
-                                <div className="mt-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                                    <p className="font-medium">Подсказка по отделам:</p>
+                                <Notice tone="info" title="Подсказка по отделам">
                                     <p>1) ЦИТ: рабочие места, техника, сеть, принтеры, доступ к инфраструктуре.</p>
                                     <p>2) Центр ИИ и аналитики: баги, доработки и вопросы по цифровым сервисам.</p>
                                     <Link
                                         href={route('dept-requests.departments')}
-                                        className="mt-1 inline-flex items-center gap-1 font-medium text-sky-700 underline"
+                                        className="mt-1 inline-flex items-center gap-1 font-semibold text-teal-700 underline underline-offset-2 hover:text-[#102945]"
                                     >
-                                        <Info className="h-3.5 w-3.5" />
                                         Полный список и описание отделов
                                         <ArrowUpRight className="h-3.5 w-3.5" />
                                     </Link>
-                                </div>
+                                </Notice>
                             </div>
 
                             {isCitSelected && (
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium">
-                                        Кабинет (необязательно)
-                                    </label>
-                                    <input
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                                <div className="space-y-2">
+                                    <Label className="block">
+                                        Кабинет <span className="font-medium normal-case tracking-normal text-slate-400">(необязательно)</span>
+                                    </Label>
+                                    <Input
                                         placeholder="Например: 315"
                                         value={form.data.room}
                                         onChange={(e) => form.setData('room', e.target.value)}
                                     />
-                                    <p className="mt-1 text-xs text-slate-500">Поле доступно только для заявок в ЦИТ.</p>
+                                    <p className="text-xs text-slate-500">Поле доступно только для заявок в ЦИТ.</p>
                                     {form.errors.room && (
-                                        <p className="mt-1 text-xs text-red-600">{form.errors.room}</p>
+                                        <p className="text-xs text-red-700">{form.errors.room}</p>
                                     )}
                                 </div>
                             )}
 
-                            <div>
-                                <label className="mb-1 block text-sm font-medium">
-                                    Описание <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    className="min-h-28 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                            <div className="space-y-2">
+                                <Label className="block">
+                                    Описание <span className="text-red-600">*</span>
+                                </Label>
+                                <Textarea
+                                    className="min-h-28"
                                     placeholder="Что произошло, когда началось, как повторить проблему, что уже пробовали сделать"
                                     value={form.data.description}
                                     onChange={(e) => form.setData('description', e.target.value)}
                                 />
-                                <p className="mt-1 text-xs text-slate-500">Детали помогают сократить время на уточнения и ускоряют решение.</p>
+                                <p className="text-xs text-slate-500">Детали помогают сократить время на уточнения и ускоряют решение.</p>
                                 {form.errors.description && (
-                                    <p className="mt-1 text-xs text-red-600">{form.errors.description}</p>
+                                    <p className="text-xs text-red-700">{form.errors.description}</p>
                                 )}
                             </div>
 
@@ -338,8 +329,8 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
                                     Отмена
                                 </Button>
-                                <Button type="submit" disabled={form.processing} className="rounded-xl bg-slate-900 hover:bg-slate-800">
-                                    <Send className="mr-2 h-4 w-4" />
+                                <Button type="submit" disabled={form.processing}>
+                                    <Send />
                                     Отправить заявку
                                 </Button>
                             </DialogFooter>

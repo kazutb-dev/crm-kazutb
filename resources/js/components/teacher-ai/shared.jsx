@@ -8,18 +8,18 @@ export const STATUS_META = {
     },
     processing: {
         label: 'Анализируется',
-        className: 'border-sky-200 bg-sky-50 text-sky-700',
+        className: 'border-blue-200 bg-blue-100 text-blue-700',
         Icon: LoaderCircle,
         spin: true,
     },
     completed: {
         label: 'Готово',
-        className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        className: 'border-emerald-200 bg-emerald-100 text-emerald-700',
         Icon: CheckCircle2,
     },
     failed: {
         label: 'Ошибка',
-        className: 'border-rose-200 bg-rose-50 text-rose-700',
+        className: 'border-red-200 bg-red-100 text-red-700',
         Icon: XCircle,
     },
 };
@@ -27,18 +27,18 @@ export const STATUS_META = {
 export const SEVERITY_META = {
     critical: {
         label: 'Критично',
-        className: 'border-rose-200 bg-rose-50 text-rose-700',
-        dotClassName: 'bg-rose-500',
+        className: 'border-red-200 bg-red-100 text-red-700',
+        dotClassName: 'bg-red-600',
     },
     major: {
         label: 'Важно',
-        className: 'border-amber-200 bg-amber-50 text-amber-800',
+        className: 'border-amber-200 bg-amber-100 text-amber-700',
         dotClassName: 'bg-amber-500',
     },
     minor: {
         label: 'Рекомендация',
-        className: 'border-sky-200 bg-sky-50 text-sky-700',
-        dotClassName: 'bg-sky-500',
+        className: 'border-blue-200 bg-blue-100 text-blue-700',
+        dotClassName: 'bg-blue-600',
     },
 };
 
@@ -51,7 +51,7 @@ export function StatusBadge({ status }) {
     const { Icon } = meta;
 
     return (
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.className}`}>
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
             <Icon className={`h-3.5 w-3.5 ${meta.spin ? 'animate-spin' : ''}`} />
             {meta.label}
         </span>
@@ -70,7 +70,7 @@ export function SeverityCounts({ counts }) {
             {items.map((key) => (
                 <span
                     key={key}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${SEVERITY_META[key].className}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${SEVERITY_META[key].className}`}
                 >
                     <span className={`h-1.5 w-1.5 rounded-full ${SEVERITY_META[key].dotClassName}`} />
                     {SEVERITY_META[key].label}: {counts[key]}

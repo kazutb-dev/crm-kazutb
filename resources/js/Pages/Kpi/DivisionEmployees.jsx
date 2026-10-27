@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState, Notice, PageHeader, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Search, Trash2, Users } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 
 export default function DivisionEmployees({ division, employees, allUsers }) {
@@ -36,75 +36,67 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="KPI · Подразделения"
+                    title={division.name}
+                    description="Управление сотрудниками, которые могут работать с этим подразделением"
+                    meta={<StatusBadge tone="info">Сотрудников: {employees.length}</StatusBadge>}
+                    actions={(
+                        <Button variant="outline" onClick={() => router.get('/kpi/divisions')}>
+                            <ArrowLeft className="h-4 w-4" />
+                            Вернуться к подразделениям
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title={`Сотрудники: ${division.name}`} />
 
-            <div className="admin-page-wrap">
-                {/* Навигация */}
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.get('/kpi/divisions')}
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Вернуться к подразделениям
-                    </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold">{division.name}</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Управление сотрудниками, которые могут работать с этим подразделением
-                        </p>
-                    </div>
-                </div>
-
-                {/* Форма добавления сотрудника */}
+            <div className="admin-page-wrap space-y-6">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-4 w-4" />
                             Добавить сотрудника
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            <div className="relative" ref={searchRef}>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Input
-                                            type="text"
-                                            placeholder="Поиск сотрудника по имени, email или отделу..."
-                                            value={search}
-                                            onChange={(e) => {
-                                                setSearch(e.target.value);
-                                                setShowResults(e.target.value.length > 0);
-                                            }}
-                                            onFocus={() => search && setShowResults(true)}
-                                        />
-                                        <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                    </div>
+                            <div className="relative space-y-2" ref={searchRef}>
+                                <span className="qd-field-label block">Поиск сотрудника</span>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Поиск сотрудника по имени, email или отделу..."
+                                        value={search}
+                                        className="pl-9"
+                                        onChange={(e) => {
+                                            setSearch(e.target.value);
+                                            setShowResults(e.target.value.length > 0);
+                                        }}
+                                        onFocus={() => search && setShowResults(true)}
+                                    />
                                 </div>
 
-                                {/* Результаты поиска */}
                                 {showResults && search.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 z-10 mt-1 max-h-64 overflow-y-auto rounded-md border bg-background shadow-md">
+                                    <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-64 overflow-y-auto rounded-[12px] border border-slate-200 bg-white shadow-[0_8px_24px_-12px_rgba(16,41,69,0.18)]">
                                         {filteredUsers.length === 0 ? (
-                                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                                            <div className="px-4 py-3 text-sm text-slate-500">
                                                 Сотрудники не найдены или уже добавлены
                                             </div>
                                         ) : (
                                             filteredUsers.map(user => (
                                                 <div
                                                     key={user.id}
-                                                    className="flex cursor-pointer items-center justify-between border-b px-3 py-2 hover:bg-muted"
+                                                    className="flex cursor-pointer items-center justify-between border-b border-slate-200 px-4 py-2.5 last:border-0 hover:bg-teal-50"
                                                     onClick={() => setSelectedUser(user)}
                                                 >
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="truncate text-sm font-medium">{user.name}</div>
-                                                        <div className="truncate text-xs text-muted-foreground">
+                                                        <div className="truncate text-sm font-medium text-slate-900">{user.name}</div>
+                                                        <div className="truncate text-xs text-slate-500">
                                                             {user.email}
                                                             {user.ad_department ? ` · ${user.ad_department}` : ''}
                                                         </div>
@@ -116,62 +108,61 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
                                 )}
                             </div>
 
-                            {/* Выбранный сотрудник */}
                             {selectedUser && (
-                                <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-                                    <div className="mb-2 font-medium text-sm">{selectedUser.name}</div>
-                                    <div className="mb-3 text-xs text-muted-foreground">
-                                        {selectedUser.email}
-                                        {selectedUser.ad_department && ` · ${selectedUser.ad_department}`}
-                                        {selectedUser.ad_title && ` · ${selectedUser.ad_title}`}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => handleAdd(selectedUser)}
-                                        >
-                                            Добавить в подразделение
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => {
-                                                setSelectedUser(null);
-                                                setSearch('');
-                                                setShowResults(false);
-                                            }}
-                                        >
-                                            Отмена
-                                        </Button>
-                                    </div>
-                                </div>
+                                <Notice
+                                    tone="brand"
+                                    title={selectedUser.name}
+                                    action={(
+                                        <div className="flex shrink-0 flex-wrap gap-2">
+                                            <Button size="sm" onClick={() => handleAdd(selectedUser)}>
+                                                Добавить в подразделение
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setSelectedUser(null);
+                                                    setSearch('');
+                                                    setShowResults(false);
+                                                }}
+                                            >
+                                                Отмена
+                                            </Button>
+                                        </div>
+                                    )}
+                                >
+                                    {selectedUser.email}
+                                    {selectedUser.ad_department && ` · ${selectedUser.ad_department}`}
+                                    {selectedUser.ad_title && ` · ${selectedUser.ad_title}`}
+                                </Notice>
                             )}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Список сотрудников */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
                             Сотрудники подразделения ({employees.length})
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className={employees.length === 0 ? '' : 'p-0'}>
                         {employees.length === 0 ? (
-                            <div className="text-center text-muted-foreground py-6">
-                                Нет назначенных сотрудников
-                            </div>
+                            <EmptyState
+                                title="Нет назначенных сотрудников"
+                                description="Найдите сотрудника через поиск выше и добавьте его в подразделение."
+                            />
                         ) : (
-                            <div className="space-y-2">
+                            <div>
                                 {employees.map(employee => (
                                     <div
                                         key={employee.id}
-                                        className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50"
+                                        className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 hover:bg-slate-50"
                                     >
                                         <div className="min-w-0 flex-1">
-                                            <div className="truncate font-medium text-sm">{employee.name}</div>
-                                            <div className="truncate text-xs text-muted-foreground">
+                                            <div className="truncate text-sm font-medium text-slate-900">{employee.name}</div>
+                                            <div className="truncate text-xs text-slate-500">
                                                 {employee.email}
                                                 {employee.ad_department && ` · ${employee.ad_department}`}
                                                 {employee.ad_title && ` · ${employee.ad_title}`}
@@ -182,6 +173,7 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
                                             variant="ghost"
                                             onClick={() => handleRemove(employee.id)}
                                             title="Удалить из подразделения"
+                                            className="text-red-700 hover:bg-red-50"
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

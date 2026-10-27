@@ -14,6 +14,8 @@ import { cn } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
+import { Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { FileSpreadsheet, LayoutTemplate, ListChecks, Upload, UserRound } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     createPreviewTextStyle,
@@ -22,8 +24,8 @@ import {
     renderCertificateCanvas,
 } from './rendering';
 
-const inputClassName = 'h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200';
-const panelClassName = 'rounded-2xl border border-slate-200/80 bg-slate-50/90 p-4';
+const inputClassName = qdFieldClass;
+const panelClassName = 'border-t border-slate-200 pt-4';
 const waitForPaint = () => new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(resolve));
 });
@@ -316,19 +318,22 @@ export default function CertificatesGenerate({ templates = [] }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-semibold leading-tight text-gray-900">
-                            Сертификаты
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Страница генерации сертификатов. Реестр вынесен отдельно.
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                <PageHeader
+                    eyebrow="Сертификаты"
+                    title="Генерация сертификатов"
+                    description="Выберите опубликованный шаблон, проверьте предпросмотр и сгенерируйте сертификат — для одного получателя или списком из CSV. Реестр выданных сертификатов вынесен отдельно."
+                    actions={(
+                    <>
+                        <Button asChild variant="outline" className="gap-2">
+                            <Link href={route('certificates.registry.page')}>
+                                <ListChecks className="h-4 w-4" />
+                                Открыть реестр
+                            </Link>
+                        </Button>
                         <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button type="button" variant="outline">
+                                <Button type="button" className="gap-2">
+                                    <FileSpreadsheet className="h-4 w-4" />
                                     Массовая генерация
                                 </Button>
                             </DialogTrigger>
@@ -341,15 +346,15 @@ export default function CertificatesGenerate({ templates = [] }) {
                                 </DialogHeader>
 
                                 <div className="space-y-4">
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                                    <Notice tone={selectedTemplate ? 'brand' : 'warning'}>
                                         {selectedTemplate ? (
                                             <span>
-                                                Выбран шаблон: <span className="font-medium text-slate-900">{selectedTemplate.template_name}</span>
+                                                Выбран шаблон: <span className="font-semibold text-[#102945]">{selectedTemplate.template_name}</span>
                                             </span>
                                         ) : (
                                             <span>Сначала выберите шаблон на основной странице, затем запускайте массовую генерацию.</span>
                                         )}
-                                    </div>
+                                    </Notice>
 
                                     <div className="flex flex-wrap gap-3">
                                         <input
@@ -359,10 +364,11 @@ export default function CertificatesGenerate({ templates = [] }) {
                                             className="hidden"
                                             onChange={handleCsvFile}
                                         />
-                                        <Button type="button" variant="outline" onClick={() => csvFileRef.current?.click()}>
+                                        <Button type="button" variant="outline" className="gap-2" onClick={() => csvFileRef.current?.click()}>
+                                            <Upload className="h-4 w-4" />
                                             Загрузить CSV-файл
                                         </Button>
-                                        <span className="self-center text-xs text-muted-foreground">или вставьте текст ниже</span>
+                                        <span className="self-center text-xs text-slate-500">или вставьте текст ниже</span>
                                     </div>
 
                                     <Textarea
@@ -376,8 +382,8 @@ export default function CertificatesGenerate({ templates = [] }) {
                                         }}
                                     />
 
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                        <Button type="button" onClick={handleParseCsv} variant="outline">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                                        <Button type="button" onClick={handleParseCsv} variant="secondary">
                                             Распознать ФИО из CSV
                                         </Button>
 
@@ -394,11 +400,11 @@ export default function CertificatesGenerate({ templates = [] }) {
 
                                     {csvParsed.length > 0 && (
                                         <div className="space-y-3">
-                                            <p className="text-sm font-medium">Найдено получателей: {csvParsed.length}</p>
+                                            <p className="qd-field-label text-[#102945]">Найдено получателей: <span className="tabular-nums">{csvParsed.length}</span></p>
 
-                                            <div className="max-h-80 overflow-y-auto rounded-2xl border border-slate-200">
+                                            <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200">
                                                 <table className="min-w-full text-sm">
-                                                    <thead className="sticky top-0 bg-slate-50/95 backdrop-blur">
+                                                    <thead className="sticky top-0 bg-white">
                                                         <tr>
                                                             <th className="px-3 py-2 text-left">#</th>
                                                             <th className="px-3 py-2 text-left">ФИО получателя</th>
@@ -408,22 +414,24 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                     <tbody>
                                                         {csvParsed.map((name, idx) => (
                                                             <tr key={idx} className="border-t border-slate-200">
-                                                                <td className="px-3 py-1 text-muted-foreground">{idx + 1}</td>
-                                                                <td className="px-3 py-1">
+                                                                <td className="px-3 py-1.5 tabular-nums text-slate-500">{idx + 1}</td>
+                                                                <td className="px-3 py-1.5">
                                                                     <input
-                                                                        className="w-full rounded-md border border-slate-200 px-2 py-1 text-sm"
+                                                                        className={cn(qdFieldClass, 'h-8')}
                                                                         value={name}
                                                                         onChange={(e) => editParsedName(idx, e.target.value)}
                                                                     />
                                                                 </td>
-                                                                <td className="px-3 py-1 text-right">
-                                                                    <button
+                                                                <td className="px-3 py-1.5 text-right">
+                                                                    <Button
                                                                         type="button"
+                                                                        size="sm"
+                                                                        variant="ghost"
                                                                         onClick={() => removeParsedName(idx)}
-                                                                        className="text-xs font-medium text-red-500 hover:underline"
+                                                                        className="text-red-700 hover:bg-red-50 hover:text-red-800"
                                                                     >
                                                                         Удалить
-                                                                    </button>
+                                                                    </Button>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -434,44 +442,41 @@ export default function CertificatesGenerate({ templates = [] }) {
                                     )}
 
                                     {bulkResult && (
-                                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                                            <p className="font-semibold">{bulkResult.message}</p>
-                                            <p className="mt-1 text-xs text-emerald-700">
-                                                Тема у сгенерированных сертификатов: {selectedTopic}
-                                            </p>
-                                        </div>
+                                        <Notice tone="success" title={bulkResult.message}>
+                                            Тема у сгенерированных сертификатов: {selectedTopic}
+                                        </Notice>
                                     )}
                                 </div>
                             </DialogContent>
                         </Dialog>
-
-                        <Button asChild variant="outline">
-                            <Link href={route('certificates.registry.page')}>Открыть реестр</Link>
-                        </Button>
-                    </div>
-                </div>
+                    </>
+                    )}
+                />
             }
         >
             <Head title="Сертификаты" />
 
-            <div className="admin-shell-container space-y-6 px-3 pb-5 pt-2 sm:px-4 sm:pb-6 sm:pt-3 lg:px-5">
+            <div className="admin-page-wrap space-y-6">
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.95fr)] xl:items-start">
-                    <Card className="overflow-hidden border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))]">
-                        <CardHeader className="border-b border-slate-200/70 bg-white/70">
-                            <CardTitle>1. Выбор шаблона</CardTitle>
+                    <Card className="overflow-hidden">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <LayoutTemplate className="h-4 w-4" />
+                                1. Выбор шаблона
+                            </CardTitle>
                             <CardDescription>
                                 Выберите опубликованный шаблон. Тема сертификата будет подставлена автоматически из названия выбранного шаблона.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent>
                             {templates.length === 0 ? (
-                                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                                <Notice tone="warning" title="Нет опубликованных шаблонов">
                                     Нет опубликованных шаблонов. Сначала опубликуйте хотя бы одну версию в разделе шаблонов.
-                                </div>
+                                </Notice>
                             ) : (
                                 <div className="space-y-6">
                                     <div className="max-w-2xl space-y-2">
-                                        <label className="text-sm font-medium text-slate-800">Шаблон сертификата</label>
+                                        <label className="qd-field-label block">Шаблон сертификата</label>
                                         <select
                                             className={inputClassName}
                                             value={selectedTemplateVersionId}
@@ -538,12 +543,12 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-[0_20px_55px_rgba(15,23,42,0.08)]">
+                                            <div className="space-y-4 rounded-[14px] border border-slate-200 bg-white p-4">
                                                 <div>
-                                                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                                                    <p className="qd-kicker">
                                                         Предпросмотр
                                                     </p>
-                                                    <h3 className="mt-2 text-xl font-semibold text-slate-950">
+                                                    <h3 className="mt-2 font-display text-xl font-bold text-[#102945]">
                                                         {selectedTemplate.template_name}
                                                     </h3>
                                                     <p className="mt-1 text-sm text-slate-500">
@@ -552,17 +557,17 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                 </div>
 
                                                 <div className={panelClassName}>
-                                                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                                                    <div className="qd-field-label text-slate-500">
                                                         Автоматическая тема
                                                     </div>
-                                                    <div className="mt-2 text-base font-semibold text-slate-900">
+                                                    <div className="mt-1.5 text-base font-semibold text-[#102945]">
                                                         {selectedTopic}
                                                     </div>
                                                 </div>
 
                                                 <div className={panelClassName}>
-                                                    <div className="text-xs text-slate-400">Размер холста</div>
-                                                    <div className="mt-1 font-medium text-slate-900">
+                                                    <div className="qd-field-label text-slate-500">Размер холста</div>
+                                                    <div className="mt-1.5 font-medium tabular-nums text-slate-900">
                                                         {selectedTemplate.canvas_width} × {selectedTemplate.canvas_height}
                                                     </div>
                                                 </div>
@@ -570,7 +575,7 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                 <div className={panelClassName}>
                                                     <div className="flex items-center justify-between gap-3">
                                                         <div>
-                                                            <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                                                            <div className="qd-field-label text-slate-500">
                                                                 Правка текста
                                                             </div>
                                                             <div className="mt-1 text-xs text-slate-500">
@@ -591,7 +596,7 @@ export default function CertificatesGenerate({ templates = [] }) {
 
                                                             return (
                                                                 <div key={fieldKey} className="rounded-xl border border-slate-200 bg-white p-3">
-                                                                    <div className="mb-3 text-sm font-medium text-slate-900">{fieldLabel}</div>
+                                                                    <div className="mb-3 text-sm font-semibold text-[#102945]">{fieldLabel}</div>
                                                                     <div className="grid gap-2 sm:grid-cols-2">
                                                                         <label className="text-xs text-slate-500">
                                                                             Размер шрифта
@@ -666,14 +671,17 @@ export default function CertificatesGenerate({ templates = [] }) {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>2. Одиночная генерация</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserRound className="h-4 w-4" />
+                                2. Одиночная генерация
+                            </CardTitle>
                             <CardDescription>
                                 Для одного получателя. Тема и шаблон уже закреплены выбором выше.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-800">ФИО получателя</label>
+                                <label className="qd-field-label block">ФИО получателя</label>
                                 <input
                                     className={inputClassName}
                                     placeholder="Например: Иванов Иван Иванович"
@@ -682,8 +690,8 @@ export default function CertificatesGenerate({ templates = [] }) {
                                 />
                             </div>
 
-                            <div className="flex items-center justify-between gap-3">
-                                <p className="text-xs text-muted-foreground">
+                            <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                                <p className="text-xs text-slate-500">
                                     Номер сертификата, тема и ссылка верификации сформируются автоматически.
                                 </p>
                                 <Button onClick={generateCertificate} disabled={actionLoading || !selectedTemplate}>
@@ -692,9 +700,8 @@ export default function CertificatesGenerate({ templates = [] }) {
                             </div>
 
                             {generatedInfo && (
-                                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-                                    <div className="mb-1 font-semibold">Сертификат создан</div>
-                                    <div>Номер: {generatedInfo.certificate_number}</div>
+                                <Notice tone="success" title="Сертификат создан">
+                                    <div>Номер: <span className="font-mono font-semibold text-[#102945]">{generatedInfo.certificate_number}</span></div>
                                     <div className="hidden">
                                         <QRCodeCanvas
                                             id="generated-qr-canvas"
@@ -703,7 +710,7 @@ export default function CertificatesGenerate({ templates = [] }) {
                                             includeMargin
                                         />
                                     </div>
-                                </div>
+                                </Notice>
                             )}
                         </CardContent>
                     </Card>

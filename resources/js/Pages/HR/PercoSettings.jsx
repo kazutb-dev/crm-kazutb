@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { PageHeader, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ function TreeCheckbox({ checked, indeterminate, onChange }) {
         }
     }, [indeterminate]);
 
-    return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4" />;
+    return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 rounded-[4px] border-slate-300" />;
 }
 
 function DivisionNode({
@@ -39,13 +40,13 @@ function DivisionNode({
     return (
         <div>
             <div
-                className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted/40"
+                className="flex items-center gap-2 rounded-[8px] px-2 py-1.5 hover:bg-slate-50"
                 style={{ paddingLeft: `${depth * 20 + 8}px` }}
             >
                 <button
                     type="button"
                     onClick={() => hasChildren && onToggleExpand(node.id)}
-                    className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+                    className="flex h-6 w-6 items-center justify-center rounded-[6px] text-slate-500 hover:bg-slate-100 hover:text-[#102945] disabled:hover:bg-transparent"
                     disabled={!hasChildren}
                 >
                     {hasChildren ? (
@@ -61,7 +62,7 @@ function DivisionNode({
                     onChange={(e) => onToggleVisibility(node.id, e.target.checked)}
                 />
 
-                <span className="text-sm">{node.name}</span>
+                <span className={`text-sm ${depth === 0 ? 'font-semibold text-[#102945]' : 'text-slate-800'}`}>{node.name}</span>
             </div>
 
             {hasChildren && isExpanded && (
@@ -223,93 +224,101 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="HR · PERCo"
+                    title="Настройки PERCo"
+                    description="Настройка видимости подразделений HR: отмеченные подразделения попадают в фильтры и отчёты HR-модуля."
+                    meta={(
+                        <StatusBadge tone="info">
+                            Видно подразделений: {data.visible_division_ids.length} из {allDivisionIds.length}
+                        </StatusBadge>
+                    )}
+                    actions={(
+                        <Button type="button" variant="outline" onClick={handleExport}>
+                            <Download className="h-4 w-4" />
+                            Экспорт в Excel
+                        </Button>
+                    )}
+                />
+            )}
+        >
             <Head title="HR / Настройки Perco" />
 
-            <div className="admin-page-wrap">
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Settings2 className="h-4 w-4" />
-                            Настройка видимости подразделений HR
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="space-y-4" onSubmit={submit}>
-                            <div className="flex flex-wrap items-center gap-2 text-sm">
-                                <Button type="button" variant="outline" size="sm" onClick={showAll}>
-                                    Показать все
-                                </Button>
-                                <Button type="button" variant="outline" size="sm" onClick={hideAll}>
-                                    Скрыть все
-                                </Button>
-                                <Button type="button" variant="outline" size="sm" onClick={expandAll}>
-                                    Развернуть все
-                                </Button>
-                                <Button type="button" variant="outline" size="sm" onClick={collapseAll}>
-                                    Свернуть все
-                                </Button>
-                                <Button type="button" variant="outline" size="sm" onClick={handleExport}>
-                                    <Download className="mr-1 h-4 w-4" />
-                                    Экспорт в Excel
-                                </Button>
-                                <span className="ml-auto text-xs text-muted-foreground">
-                                    Видно подразделений: <strong>{data.visible_division_ids.length}</strong>
-                                </span>
-                            </div>
-
-                            <div className="rounded-md border">
-                                <div className="border-b bg-muted/40 px-4 py-2 text-sm font-medium">
+            <div className="admin-page-wrap space-y-6">
+                <form className="space-y-6" onSubmit={submit}>
+                    <Card>
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Settings2 className="shrink-0" />
                                     Дерево подразделений
+                                </CardTitle>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Button type="button" variant="outline" size="sm" onClick={showAll}>
+                                        Показать все
+                                    </Button>
+                                    <Button type="button" variant="outline" size="sm" onClick={hideAll}>
+                                        Скрыть все
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="sm" onClick={expandAll}>
+                                        Развернуть все
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="sm" onClick={collapseAll}>
+                                        Свернуть все
+                                    </Button>
                                 </div>
-                                <div className="space-y-2 border-b px-3 py-2">
-                                    <div className="relative">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                        <Input
-                                            value={divisionSearch}
-                                            onChange={(e) => setDivisionSearch(e.target.value)}
-                                            placeholder="Поиск подразделения..."
-                                            className="h-9 pl-9"
+                            </div>
+                        </CardHeader>
+                        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
+                            <label className="relative block max-w-xl space-y-2">
+                                <span className="qd-field-label block">Поиск подразделения</span>
+                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                                <Input
+                                    value={divisionSearch}
+                                    onChange={(e) => setDivisionSearch(e.target.value)}
+                                    placeholder="Поиск подразделения..."
+                                    className="pl-9"
+                                />
+                            </label>
+                            <p className="mt-2 text-xs text-slate-500">
+                                Найдено узлов: <span className="font-semibold tabular-nums text-slate-700">{foundCount}</span>
+                                <span className="mx-2 text-slate-300">·</span>
+                                Видно подразделений: <span className="font-semibold tabular-nums text-slate-700">{data.visible_division_ids.length}</span>
+                            </p>
+                        </div>
+                        <CardContent className="max-h-[560px] overflow-auto p-3 sm:p-4">
+                            {filteredTree.length === 0 ? (
+                                <p className="px-2 py-8 text-center text-sm text-slate-500">Подразделения не найдены.</p>
+                            ) : (
+                                <div className="space-y-0.5">
+                                    {filteredTree.map((node) => (
+                                        <DivisionNode
+                                            key={node.id}
+                                            node={node}
+                                            depth={0}
+                                            visibleSet={visibleSet}
+                                            descendantMap={descendantMap}
+                                            expandedSet={expandedIds}
+                                            onToggleExpand={toggleExpand}
+                                            onToggleVisibility={toggleVisibility}
+                                            searchActive={query !== ''}
                                         />
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Найдено узлов: <strong>{foundCount}</strong>
-                                    </p>
+                                    ))}
                                 </div>
-                                <div className="max-h-[560px] overflow-auto p-2">
-                                    {filteredTree.length === 0 ? (
-                                        <p className="p-2 text-sm text-muted-foreground">Подразделения не найдены.</p>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            {filteredTree.map((node) => (
-                                                <DivisionNode
-                                                    key={node.id}
-                                                    node={node}
-                                                    depth={0}
-                                                    visibleSet={visibleSet}
-                                                    descendantMap={descendantMap}
-                                                    expandedSet={expandedIds}
-                                                    onToggleExpand={toggleExpand}
-                                                    onToggleVisibility={toggleVisibility}
-                                                    searchActive={query !== ''}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <Button type="submit" disabled={processing}>
-                                    {processing ? 'Сохранение...' : 'Сохранить настройки'}
-                                </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-green-700">Настройки сохранены.</span>
-                                )}
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
+                            )}
+                        </CardContent>
+                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
+                            {recentlySuccessful && (
+                                <span className="text-sm font-medium text-emerald-700">Настройки сохранены.</span>
+                            )}
+                            <Button type="submit" disabled={processing}>
+                                {processing ? 'Сохранение...' : 'Сохранить настройки'}
+                            </Button>
+                        </div>
+                    </Card>
+                </form>
             </div>
         </AuthenticatedLayout>
     );

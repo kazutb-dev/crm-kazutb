@@ -1,7 +1,8 @@
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable, FilterBar, LoadingState, Notice, PageHeader, StatusBadge, UnderlineTabs } from '@/components/platform';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -15,6 +16,19 @@ const statusLabels = {
     approved: 'Подтверждена',
     rejected: 'Отклонена',
 };
+
+const STATUS_TONES = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+};
+
+const STATUS_TABS = [
+    { key: 'pending', label: 'На рассмотрении' },
+    { key: 'approved', label: 'Подтверждённые' },
+    { key: 'rejected', label: 'Отклонённые' },
+    { key: '', label: 'Все' },
+];
 
 export default function ReservationsAdmin() {
     const [items, setItems] = useState([]);
@@ -118,171 +132,176 @@ export default function ReservationsAdmin() {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Библиотека"
+                    title="Управление бронями книг"
+                    description="Подтверждайте или отклоняйте брони, отправленные с терминала библиотеки."
+                />
+            )}
+        >
             <Head title="Брони книг" />
 
-            <div className="admin-page-wrap">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Управление бронями книг</CardTitle>
-                        <CardDescription>
-                            Подтверждайте или отклоняйте брони, отправленные с терминала библиотеки.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form
-                            className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end"
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                setPage(1);
-                                setQuery(queryDraft);
-                            }}
-                        >
-                            <div className="flex-1 space-y-1">
-                                <label className="text-sm font-medium">Поиск</label>
-                                <Input
-                                    value={queryDraft}
-                                    onChange={(event) => setQueryDraft(event.target.value)}
-                                    placeholder="Книга, автор, email, табельный номер"
-                                />
-                            </div>
+            <div className="admin-page-wrap space-y-6">
+                <UnderlineTabs
+                    items={STATUS_TABS}
+                    value={status}
+                    onChange={(nextStatus) => {
+                        setStatus(nextStatus);
+                        setPage(1);
+                    }}
+                />
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium">Статус</label>
-                                <select
-                                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={status}
-                                    onChange={(event) => {
-                                        setStatus(event.target.value);
-                                        setPage(1);
-                                    }}
-                                >
-                                    <option value="pending">На рассмотрении</option>
-                                    <option value="approved">Подтверждена</option>
-                                    <option value="rejected">Отклонена</option>
-                                    <option value="">Все</option>
-                                </select>
-                            </div>
+                <FilterBar>
+                    <form
+                        className="space-y-4"
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            setPage(1);
+                            setQuery(queryDraft);
+                        }}
+                    >
+                        <div className="max-w-2xl">
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Поиск</span>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        value={queryDraft}
+                                        onChange={(event) => setQueryDraft(event.target.value)}
+                                        placeholder="Книга, автор, email, табельный номер"
+                                        className="pl-9"
+                                    />
+                                </div>
+                            </label>
 
-                            <div className="flex gap-2">
-                                <Button type="submit" disabled={isLoading}>Найти</Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={isLoading}
-                                    onClick={() => {
-                                        setQueryDraft('');
-                                        setQuery('');
-                                        setStatus('pending');
-                                        setPage(1);
-                                    }}
-                                >
-                                    Сбросить
-                                </Button>
-                            </div>
-                        </form>
-
-                        {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
-
-                        <div className="overflow-x-auto rounded-md border">
-                            <table className="w-full min-w-[1100px] text-sm">
-                                <thead className="bg-muted/50">
-                                    <tr>
-                                        <th className="px-3 py-2 text-left font-medium">ID</th>
-                                        <th className="px-3 py-2 text-left font-medium">Книга</th>
-                                        <th className="px-3 py-2 text-left font-medium">Студент</th>
-                                        <th className="px-3 py-2 text-left font-medium">Статус</th>
-                                        <th className="px-3 py-2 text-left font-medium">IP</th>
-                                        <th className="px-3 py-2 text-left font-medium">Дата</th>
-                                        <th className="px-3 py-2 text-left font-medium">Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {!isLoading && items.length === 0 && (
-                                        <tr className="border-t">
-                                            <td className="px-3 py-6 text-center text-muted-foreground" colSpan={7}>
-                                                Брони не найдены.
-                                            </td>
-                                        </tr>
-                                    )}
-
-                                    {items.map((item) => {
-                                        const locked = isSubmittingId === item.id;
-                                        const isPending = item.status === 'pending';
-
-                                        return (
-                                            <tr key={item.id} className="border-t align-top">
-                                                <td className="px-3 py-3 font-medium">#{item.id}</td>
-                                                <td className="px-3 py-3">
-                                                    <div className="font-medium">{item.book_title}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {item.book_author || 'Автор не указан'}
-                                                        {item.book_isbn ? ` • ISBN ${item.book_isbn}` : ''}
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-3">
-                                                    <div>{item.student_name || 'Без имени'}</div>
-                                                    <div className="text-xs text-muted-foreground">{item.student_identifier || '-'}</div>
-                                                    <div className="text-xs text-muted-foreground">{item.student_email || '-'}</div>
-                                                </td>
-                                                <td className="px-3 py-3">{statusLabels[item.status] || item.status}</td>
-                                                <td className="px-3 py-3">{item.source_ip}</td>
-                                                <td className="px-3 py-3 text-muted-foreground">
-                                                    {item.requested_at ? new Date(item.requested_at).toLocaleString('ru-RU') : '-'}
-                                                </td>
-                                                <td className="px-3 py-3">
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            disabled={!isPending || locked}
-                                                            onClick={() => handleAction(item.id, 'approve')}
-                                                        >
-                                                            Подтвердить
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            disabled={!isPending || locked}
-                                                            onClick={() => handleAction(item.id, 'reject')}
-                                                        >
-                                                            Отклонить
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
                         </div>
 
-                        {links.length > 3 && (
-                            <div className="mt-4 flex flex-wrap gap-2">
-                                {links.map((link, index) => (
-                                    <Button
-                                        key={`${link.label}-${index}`}
-                                        type="button"
-                                        variant={link.active ? 'default' : 'outline'}
-                                        size="sm"
-                                        disabled={!link.url || isLoading}
-                                        onClick={() => {
-                                            if (!link.url) {
-                                                return;
-                                            }
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                            <Button type="submit" disabled={isLoading}>Найти</Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isLoading}
+                                onClick={() => {
+                                    setQueryDraft('');
+                                    setQuery('');
+                                    setStatus('pending');
+                                    setPage(1);
+                                }}
+                            >
+                                Сбросить
+                            </Button>
+                        </div>
+                    </form>
+                </FilterBar>
 
-                                            const parsed = new URL(link.url);
-                                            const nextPage = Number(parsed.searchParams.get('page') || '1');
-                                            setPage(nextPage);
-                                        }}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                {error && <Notice tone="danger" title="Ошибка загрузки">{error}</Notice>}
+
+                {isLoading && <LoadingState label="Загрузка броней..." />}
+
+                <DataTable>
+                    <table className="w-full min-w-[1100px] text-sm">
+                        <thead>
+                            <tr>
+                                <th className="px-4 py-3 text-left">ID</th>
+                                <th className="px-4 py-3 text-left">Книга</th>
+                                <th className="px-4 py-3 text-left">Студент</th>
+                                <th className="px-4 py-3 text-left">Статус</th>
+                                <th className="px-4 py-3 text-left">IP</th>
+                                <th className="px-4 py-3 text-left">Дата</th>
+                                <th className="px-4 py-3 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {!isLoading && items.length === 0 && (
+                                <tr className="border-t border-slate-200">
+                                    <td className="px-4 py-10 text-center text-slate-500" colSpan={7}>
+                                        Брони не найдены.
+                                    </td>
+                                </tr>
+                            )}
+
+                            {items.map((item) => {
+                                const locked = isSubmittingId === item.id;
+                                const isPending = item.status === 'pending';
+
+                                return (
+                                    <tr key={item.id} className="border-t border-slate-200 align-top hover:bg-slate-50">
+                                        <td className="px-4 py-3 font-medium tabular-nums text-slate-900">#{item.id}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="font-medium text-slate-900">{item.book_title}</div>
+                                            <div className="text-xs text-slate-500">
+                                                {item.book_author || 'Автор не указан'}
+                                                {item.book_isbn ? ` • ISBN ${item.book_isbn}` : ''}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="text-slate-900">{item.student_name || 'Без имени'}</div>
+                                            <div className="text-xs text-slate-500">{item.student_identifier || '-'}</div>
+                                            <div className="text-xs text-slate-500">{item.student_email || '-'}</div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <StatusBadge tone={STATUS_TONES[item.status] ?? 'default'}>
+                                                {statusLabels[item.status] || item.status}
+                                            </StatusBadge>
+                                        </td>
+                                        <td className="px-4 py-3 font-mono text-xs text-slate-600">{item.source_ip}</td>
+                                        <td className="px-4 py-3 tabular-nums text-slate-600">
+                                            {item.requested_at ? new Date(item.requested_at).toLocaleString('ru-RU') : '-'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    disabled={!isPending || locked}
+                                                    onClick={() => handleAction(item.id, 'approve')}
+                                                >
+                                                    Подтвердить
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    disabled={!isPending || locked}
+                                                    onClick={() => handleAction(item.id, 'reject')}
+                                                >
+                                                    Отклонить
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </DataTable>
+
+                {links.length > 3 && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                        {links.map((link, index) => (
+                            <Button
+                                key={`${link.label}-${index}`}
+                                type="button"
+                                variant={link.active ? 'default' : 'outline'}
+                                size="sm"
+                                disabled={!link.url || isLoading}
+                                onClick={() => {
+                                    if (!link.url) {
+                                        return;
+                                    }
+
+                                    const parsed = new URL(link.url);
+                                    const nextPage = Number(parsed.searchParams.get('page') || '1');
+                                    setPage(nextPage);
+                                }}
+                                dangerouslySetInnerHTML={{ __html: link.label }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </AuthenticatedLayout>
     );

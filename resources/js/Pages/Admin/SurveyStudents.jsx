@@ -1,6 +1,12 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const emptyForm = {
@@ -65,179 +71,129 @@ export default function SurveyStudents({ students = [], groups = [] }) {
         });
     };
 
+    const textFields = [
+        { key: 'first_name', label: 'Имя', type: 'text' },
+        { key: 'last_name', label: 'Фамилия', type: 'text' },
+        { key: 'middle_name', label: 'Отчество', type: 'text' },
+        { key: 'student_id', label: 'Student ID', type: 'text' },
+        { key: 'email', label: 'Email', type: 'email' },
+        { key: 'phone', label: 'Телефон', type: 'text' },
+    ];
+
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <PageHeader
+                    eyebrow="Анкетирование"
+                    title="Студенты"
+                    description="Полное управление студентами в модуле анкетирования"
+                    meta={<StatusBadge tone="default">Всего: {students.length}</StatusBadge>}
+                />
+            )}
+        >
             <Head title="Анкетирование - Студенты" />
 
-            <div className="admin-page-wrap">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Студенты</h1>
-                        <p className="mt-2 text-gray-600 dark:text-gray-400">
-                            Полное управление студентами в модуле анкетирования
-                        </p>
-                    </div>
+            <div className="admin-page-wrap space-y-6">
+                {flash?.success && <Notice tone="success">{flash.success}</Notice>}
 
-                    {flash?.success && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                            {flash.success}
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-1">
-                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
-                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-1">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    {editingStudent ? <Pencil /> : <UserPlus />}
                                     {editingStudent ? 'Редактировать студента' : 'Добавить студента'}
-                                </h2>
-
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
                                 <form onSubmit={submit} className="space-y-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Имя</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.first_name}
-                                            onChange={(e) => form.setData('first_name', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.first_name && <p className="text-sm text-red-600 mt-1">{form.errors.first_name}</p>}
-                                    </div>
+                                    {textFields.map((field) => (
+                                        <div key={field.key} className="space-y-2">
+                                            <Label htmlFor={`survey-student-${field.key}`}>{field.label}</Label>
+                                            <Input
+                                                id={`survey-student-${field.key}`}
+                                                type={field.type}
+                                                value={form.data[field.key]}
+                                                onChange={(e) => form.setData(field.key, e.target.value)}
+                                            />
+                                            {form.errors[field.key] && <p className="text-sm text-red-600">{form.errors[field.key]}</p>}
+                                        </div>
+                                    ))}
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Фамилия</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.last_name}
-                                            onChange={(e) => form.setData('last_name', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.last_name && <p className="text-sm text-red-600 mt-1">{form.errors.last_name}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Отчество</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.middle_name}
-                                            onChange={(e) => form.setData('middle_name', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.middle_name && <p className="text-sm text-red-600 mt-1">{form.errors.middle_name}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Student ID</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.student_id}
-                                            onChange={(e) => form.setData('student_id', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.student_id && <p className="text-sm text-red-600 mt-1">{form.errors.student_id}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            value={form.data.email}
-                                            onChange={(e) => form.setData('email', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.email && <p className="text-sm text-red-600 mt-1">{form.errors.email}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Телефон</label>
-                                        <input
-                                            type="text"
-                                            value={form.data.phone}
-                                            onChange={(e) => form.setData('phone', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
-                                        />
-                                        {form.errors.phone && <p className="text-sm text-red-600 mt-1">{form.errors.phone}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Группа</label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="survey-student-group_id">Группа</Label>
                                         <select
+                                            id="survey-student-group_id"
                                             value={form.data.group_id}
                                             onChange={(e) => form.setData('group_id', e.target.value)}
-                                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white px-3 py-2"
+                                            className={qdFieldClass}
                                         >
                                             <option value="">Выберите группу</option>
                                             {groups.map((group) => (
                                                 <option key={group.id} value={group.id}>{group.name}</option>
                                             ))}
                                         </select>
-                                        {form.errors.group_id && <p className="text-sm text-red-600 mt-1">{form.errors.group_id}</p>}
+                                        {form.errors.group_id && <p className="text-sm text-red-600">{form.errors.group_id}</p>}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            type="submit"
-                                            disabled={form.processing}
-                                            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-                                        >
-                                            {editingStudent ? 'Сохранить' : 'Создать'}
-                                        </button>
-
+                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                                         {editingStudent && (
-                                            <button
-                                                type="button"
-                                                onClick={startCreate}
-                                                className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200"
-                                            >
+                                            <Button type="button" variant="outline" onClick={startCreate}>
                                                 Отмена
-                                            </button>
+                                            </Button>
                                         )}
+                                        <Button type="submit" disabled={form.processing}>
+                                            {editingStudent ? 'Сохранить' : 'Создать'}
+                                        </Button>
                                     </div>
                                 </form>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                        <div className="lg:col-span-2">
-                            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                                <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Список студентов ({students.length})</h2>
-                                </div>
-
+                    <div className="lg:col-span-2">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Users />
+                                    Список студентов ({students.length})
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
                                 {students.length === 0 ? (
-                                    <div className="px-5 py-8 text-sm text-gray-600 dark:text-gray-400">Студенты еще не добавлены.</div>
+                                    <div className="px-5 py-12 text-center">
+                                        <p className="font-display text-lg font-bold text-[#102945]">Студенты еще не добавлены</p>
+                                        <p className="mt-1 text-sm text-slate-600">Заполните форму «Добавить студента», чтобы создать первую запись.</p>
+                                    </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm">
-                                            <thead className="bg-gray-50 dark:bg-gray-900/40">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">ФИО</th>
-                                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">Student ID</th>
-                                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">Группа</th>
-                                                    <th className="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">Email</th>
-                                                    <th className="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-300">Действия</th>
+                                            <thead>
+                                                <tr className="border-b border-slate-200">
+                                                    <th className="px-5 py-3 text-left">ФИО</th>
+                                                    <th className="px-5 py-3 text-left">Student ID</th>
+                                                    <th className="px-5 py-3 text-left">Группа</th>
+                                                    <th className="px-5 py-3 text-left">Email</th>
+                                                    <th className="px-5 py-3 text-right">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {students.map((student) => (
-                                                    <tr key={student.id} className="border-t border-gray-200 dark:border-gray-700">
-                                                        <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{student.full_name}</td>
-                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{student.student_id}</td>
-                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{student.group?.name || '—'}</td>
-                                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{student.email || '—'}</td>
-                                                        <td className="px-4 py-3 text-right">
+                                                    <tr key={student.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingStudent?.id === student.id ? 'bg-teal-50' : ''}`}>
+                                                        <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
+                                                        <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.student_id}</td>
+                                                        <td className="px-5 py-3 text-slate-700">{student.group?.name || '—'}</td>
+                                                        <td className="px-5 py-3 text-slate-600">{student.email || '—'}</td>
+                                                        <td className="px-5 py-3 text-right">
                                                             <div className="inline-flex items-center gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => startEdit(student)}
-                                                                    className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200"
-                                                                >
+                                                                <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>
+                                                                    <Pencil className="h-3.5 w-3.5" />
                                                                     Редактировать
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => destroyStudent(student)}
-                                                                    className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700"
-                                                                >
+                                                                </Button>
+                                                                <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => destroyStudent(student)}>
+                                                                    <Trash2 className="h-3.5 w-3.5" />
                                                                     Удалить
-                                                                </button>
+                                                                </Button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -246,9 +202,10 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                         </table>
                                     </div>
                                 )}
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
+                </div>
             </div>
             <ConfirmDialog
                 open={confirmState.open}
