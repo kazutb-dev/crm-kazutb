@@ -1,7 +1,7 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, PageHeader, StatusBadge } from '@/components/platform';
+import { DataTable, PageHeader, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -340,16 +340,17 @@ export default function Index({
 
     const totalCount = pagination.total ?? users.length ?? 0;
 
+    // Qadam tabs: underline indicator under the active tab, counts in small chips.
     const tabClass = (key) => (
         activeTab === key
-            ? 'inline-flex h-8 items-center gap-1.5 rounded-full border border-[#102945] bg-[#102945] px-3 py-1 text-xs font-semibold text-white shadow-sm shadow-slate-300/60 transition-all'
-            : 'inline-flex h-8 items-center gap-1.5 rounded-full border border-slate-300/90 bg-slate-50/75 px-3 py-1 text-xs font-medium text-slate-600 transition-all hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900'
+            ? 'relative -mb-px inline-flex items-center gap-2 border-b-2 border-teal-600 px-1 pb-3 pt-1 text-sm font-semibold text-[#102945] transition-colors'
+            : 'relative -mb-px inline-flex items-center gap-2 border-b-2 border-transparent px-1 pb-3 pt-1 text-sm font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-[#102945]'
     );
 
     const badgeClass = (key) => (
         activeTab === key
-            ? 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-white/95 px-1.5 text-[10px] font-bold text-[#102945]'
-            : 'ml-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-slate-200/70 px-1.5 text-[10px] font-semibold text-slate-700'
+            ? 'inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-100 px-1.5 text-[11px] font-bold tabular-nums text-teal-700'
+            : 'inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold tabular-nums text-slate-600'
     );
 
     const displayedUsers = useMemo(() => {
@@ -852,19 +853,19 @@ export default function Index({
 
             <div className="admin-page-wrap overflow-x-hidden px-4 lg:px-6">
                 <div className="m-0 mx-auto w-full max-w-[1540px] min-w-0 overflow-hidden">
-                    <FilterBar className="min-w-0 overflow-hidden rounded-2xl border-slate-300/80 bg-gradient-to-b from-white via-white to-slate-50/50 shadow-[0_14px_34px_-22px_rgba(15,23,42,0.45)]">
-                        <div className="mb-3 flex min-w-0 flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
-                            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                                <Users className="h-5 w-5 text-slate-700" />
+                    <section className="min-w-0">
+                        <div className="mb-4 flex min-w-0 flex-col gap-1 xl:flex-row xl:items-end xl:justify-between">
+                            <h2 className="flex items-center gap-2.5 text-2xl font-bold">
+                                <Users className="h-6 w-6 text-teal-700" />
                                 {pageTitle ?? 'Пользователи'}
-                            </div>
-                            <div className="text-[11px] font-medium text-slate-600">
+                            </h2>
+                            <div className="text-xs font-medium text-slate-500">
                                 {summaryLine}
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2">
+                        <div className="space-y-5">
+                            <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-slate-200">
                                 {tabOptions.map((tabOption) => (
                                     <button
                                         key={tabOption.key}
@@ -880,96 +881,114 @@ export default function Index({
                                 ))}
                             </div>
 
-                            <div className="sticky top-[76px] z-20 rounded-xl border border-slate-200 bg-slate-100/85 p-2.5 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.7)] backdrop-blur">
-                                <div className="grid min-w-0 gap-2 md:grid-cols-2 xl:grid-cols-12">
-                                    <div className="relative md:col-span-2 xl:col-span-5">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <div className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-5">
+                                <div className="grid min-w-0 gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-12">
+                                    <label className="relative space-y-2 md:col-span-2 xl:col-span-12">
+                                        <span className="qd-field-label block">Поиск</span>
+                                        <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
                                         <Input
                                             value={filterForm.data.q}
                                             onChange={(e) => filterForm.setData('q', e.target.value)}
                                             placeholder="Поиск по ФИО, email, логину, должности"
-                                            className="h-8.5 rounded-lg border-slate-300 bg-white pl-9 text-sm shadow-sm"
+                                            className="pl-9"
                                         />
-                                    </div>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
-                                        value={filterForm.data.sort_by}
-                                        onChange={(e) => filterForm.setData('sort_by', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Сортировка</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.sort_by}
+                                            onChange={(e) => filterForm.setData('sort_by', e.target.value)}
                                     >
-                                        <option value="">Сортировка</option>
-                                        <option value="name">По ФИО</option>
-                                        <option value="last_login">По последнему входу</option>
-                                        <option value="created_at">По дате добавления</option>
-                                        <option value="login_count">По кол-ву входов</option>
-                                        <option value="synced">По синхронизации</option>
-                                        <option value="role">По статусу</option>
-                                    </select>
+                                            <option value="">Сортировка</option>
+                                            <option value="name">По ФИО</option>
+                                            <option value="last_login">По последнему входу</option>
+                                            <option value="created_at">По дате добавления</option>
+                                            <option value="login_count">По кол-ву входов</option>
+                                            <option value="synced">По синхронизации</option>
+                                            <option value="role">По статусу</option>
+                                        </select>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
-                                        value={filterForm.data.sort_dir}
-                                        onChange={(e) => filterForm.setData('sort_dir', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Порядок</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.sort_dir}
+                                            onChange={(e) => filterForm.setData('sort_dir', e.target.value)}
                                     >
-                                        <option value="asc">A→Я / Старые→Новые</option>
-                                        <option value="desc">Я→A / Новые→Старые</option>
-                                    </select>
+                                            <option value="asc">A→Я / Старые→Новые</option>
+                                            <option value="desc">Я→A / Новые→Старые</option>
+                                        </select>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
-                                        value={filterForm.data.synced}
-                                        onChange={(e) => filterForm.setData('synced', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Синхронизация</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.synced}
+                                            onChange={(e) => filterForm.setData('synced', e.target.value)}
                                     >
-                                        <option value="all">Синхронизация: все</option>
-                                        <option value="ad">Из AD</option>
-                                        <option value="local">Локальные</option>
-                                    </select>
+                                            <option value="all">Синхронизация: все</option>
+                                            <option value="ad">Из AD</option>
+                                            <option value="local">Локальные</option>
+                                        </select>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
-                                        value={filterForm.data.last_login_range}
-                                        onChange={(e) => filterForm.setData('last_login_range', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Последний вход</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.last_login_range}
+                                            onChange={(e) => filterForm.setData('last_login_range', e.target.value)}
                                     >
-                                        <option value="all">Вход</option>
-                                        <option value="30">30 дн.</option>
-                                        <option value="90">90 дн.</option>
-                                        <option value="never">Никогда</option>
-                                    </select>
+                                            <option value="all">Вход</option>
+                                            <option value="30">30 дн.</option>
+                                            <option value="90">90 дн.</option>
+                                            <option value="never">Никогда</option>
+                                        </select>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-1"
-                                        value={filterForm.data.faculty_id}
-                                        onChange={(e) => filterForm.setData('faculty_id', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Факультет</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.faculty_id}
+                                            onChange={(e) => filterForm.setData('faculty_id', e.target.value)}
                                     >
-                                        <option value="">Факультет</option>
-                                        {faculties.map((faculty) => (
-                                            <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
-                                        ))}
-                                    </select>
+                                            <option value="">Факультет</option>
+                                            {faculties.map((faculty) => (
+                                                <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                    <select
-                                        className="h-8.5 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] shadow-sm xl:col-span-2"
-                                        value={filterForm.data.department_id}
-                                        onChange={(e) => filterForm.setData('department_id', e.target.value)}
+                                    <label className="space-y-2 xl:col-span-2">
+                                        <span className="qd-field-label block">Кафедра</span>
+                                        <select
+                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            value={filterForm.data.department_id}
+                                            onChange={(e) => filterForm.setData('department_id', e.target.value)}
                                     >
-                                        <option value="">Кафедра</option>
-                                        {departments.map((department) => (
-                                            <option key={department.id} value={department.id}>{department.name}</option>
-                                        ))}
-                                    </select>
+                                            <option value="">Кафедра</option>
+                                            {departments.map((department) => (
+                                                <option key={department.id} value={department.id}>{department.name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200/80 pt-1 md:col-span-2 xl:col-span-12">
-                                        <div className="text-[11px] font-semibold text-slate-600">
+                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4 md:col-span-2 xl:col-span-12">
+                                        <div className="text-xs font-medium text-slate-500">
                                             Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                                         </div>
                                         <div className="ml-auto flex items-center gap-1.5">
-                                            <Button type="button" className="h-8 rounded-md bg-[#102945] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#102945]" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
+                                            <Button type="button" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
                                                 Применить
                                             </Button>
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                className="h-8 rounded-md border-slate-300 px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-white"
                                                 onClick={() => {
                                                     filterForm.setData({
                                                         q: '',
@@ -1027,7 +1046,7 @@ export default function Index({
                                 </div>
                             )}
 
-                            <DataTable className="rounded-2xl border-slate-300/80 bg-white shadow-[0_12px_24px_-18px_rgba(15,23,42,0.45)]">
+                            <DataTable>
                                 <div className="overflow-x-auto">
                                     <table className="w-full min-w-0 table-fixed text-[13px] leading-[1.25] [&_td]:px-2.5 [&_td]:py-2.5 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-[0.16em] [&_tr]:border-b [&_tr]:border-slate-200/85 [&_th:nth-child(2)]:border-r-0 [&_td:nth-child(2)]:border-r-0 [&_th:nth-child(3)]:border-l-0 [&_td:nth-child(3)]:border-l-0">
                                         <thead className="bg-slate-100/95 backdrop-blur">
@@ -1184,15 +1203,15 @@ export default function Index({
                                 </div>
                             </DataTable>
 
-                            <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-100/80 px-3 py-2 lg:flex-row lg:items-center lg:justify-between">
-                                <div className="text-xs font-medium text-slate-700">
+                            <div className="flex flex-col gap-2 px-1 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="text-xs font-medium text-slate-500">
                                     Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400">На странице</span>
+                                    <span className="qd-field-label text-slate-500">На странице</span>
                                     <select
-                                        className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs shadow-sm"
+                                        className="h-8 rounded-[10px] border border-slate-300 bg-white px-2 text-xs"
                                         value={filterForm.data.per_page}
                                         onChange={(e) => {
                                             const value = Number(e.target.value);
@@ -1211,7 +1230,7 @@ export default function Index({
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        className="h-8 rounded-md border-slate-300 px-2.5 text-xs shadow-sm"
+                                        className="h-8"
                                         disabled={(pagination.current_page ?? 1) <= 1}
                                         onClick={() => submitFilters({ page: (pagination.current_page ?? 1) - 1 }, false, { suppressNextSearch: true })}
                                     >
@@ -1233,7 +1252,7 @@ export default function Index({
                                                 type="button"
                                                 size="sm"
                                                 variant={pageNumber === currentPage ? 'default' : 'outline'}
-                                                className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${pageNumber === currentPage ? 'bg-[#102945] hover:bg-[#102945]' : 'border-slate-300 bg-white'}`}
+                                                className="h-8 min-w-8"
                                                 onClick={() => submitFilters({ page: pageNumber }, false, { suppressNextSearch: true })}
                                             >
                                                 {pageNumber}
@@ -1245,7 +1264,7 @@ export default function Index({
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        className="h-8 rounded-md border-slate-300 px-2.5 text-xs shadow-sm"
+                                        className="h-8"
                                         disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)}
                                         onClick={() => submitFilters({ page: (pagination.current_page ?? 1) + 1 }, false, { suppressNextSearch: true })}
                                     >
@@ -1254,7 +1273,7 @@ export default function Index({
                                 </div>
                             </div>
                         </div>
-                    </FilterBar>
+                    </section>
                 </div>
             </div>
             <ConfirmDialog

@@ -278,13 +278,7 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
                         </div>
                     </header>
 
-                    {header && (
-                        <div className="px-4 pt-6 sm:px-8 sm:pt-8">
-                            <div className="admin-surface p-5 sm:p-6">
-                                {header}
-                            </div>
-                        </div>
-                    )}
+                    {header && <section className="qd-hero">{header}</section>}
 
                     <main className="flex-1">{children}</main>
                 </PanelDesignProvider>
