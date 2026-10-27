@@ -239,7 +239,7 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                 {!!flash?.warning && <Notice tone="warning"><span className="whitespace-pre-line">{flash.warning}</span></Notice>}
                 {!!flash?.success && <Notice tone="success"><span className="whitespace-pre-line">{flash.success}</span></Notice>}
 
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
                     <StatGrid>
                         {summaryItems.map(item => (
                             <StatTile key={item.label} label={item.label} value={item.value} icon={item.icon} tone={item.tone} />
@@ -255,14 +255,15 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                         </CardHeader>
                         <CardContent>
                             {tagged[0] ? (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div className="flex items-start gap-3">
                                         <div className="flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-blue-200 bg-blue-50 text-blue-700">
                                             <Video className="size-4" />
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-display text-lg font-bold leading-snug text-[#102945]">{tagged[0].title}</p>
-                                            <p className="mt-1 text-sm text-slate-600">{fmt(tagged[0].starts_at, { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                            <p className="mt-1 text-sm tabular-nums text-slate-600">{fmt(tagged[0].starts_at, { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} — {fmt(tagged[0].ends_at, { hour: '2-digit', minute: '2-digit' })}</p>
+                                            {tagged[0].organizer && <p className="mt-0.5 truncate text-xs text-slate-500">{tagged[0].organizer}{tagged[0].organizer_title ? ` · ${tagged[0].organizer_title}` : ''}</p>}
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3">
@@ -271,13 +272,13 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                     </div>
                                 </div>
                             ) : (
-                                <p className="py-5 text-sm text-slate-500">На этой неделе конференций нет.</p>
+                                <p className="text-sm text-slate-500">На этой неделе конференций нет.</p>
                             )}
                         </CardContent>
                     </Card>
                 </div>
 
-                <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] 2xl:items-start">
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] 2xl:items-start">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -286,9 +287,8 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={submitConference} className="space-y-5">
-                                <p className="text-sm text-slate-600">Тема, время, описание и выбранные участники отправляются в Zoom и календарь.</p>
-                                <div className="grid gap-4 md:grid-cols-2">
+                            <form onSubmit={submitConference} className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>Тема</Label>
                                         <Input
@@ -321,33 +321,21 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                     </div>
                                 </div>
 
-                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
-                                    <div className="space-y-2">
-                                        <Label>Описание</Label>
-                                        <Textarea
-                                            value={form.data.description}
-                                            onChange={(e) => form.setData('description', e.target.value)}
-                                            placeholder="Повестка, материалы, ожидаемый результат"
-                                            className="min-h-24"
-                                        />
-                                        {form.errors.description && <p className="text-xs text-red-600">{form.errors.description}</p>}
-                                    </div>
-                                    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-                                        <div>
-                                            <p className="qd-field-label text-slate-500">Длительность</p>
-                                            <p className="mt-1 font-display text-xl font-bold tabular-nums text-[#102945]">{durationText(formDuration)}</p>
-                                        </div>
-                                        <div className="border-t border-slate-200 pt-3">
-                                            <p className="qd-field-label text-slate-500">Участники</p>
-                                            <p className="mt-1 font-display text-xl font-bold tabular-nums text-[#102945]">{selectedCount}</p>
-                                        </div>
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label>Описание</Label>
+                                    <Textarea
+                                        value={form.data.description}
+                                        onChange={(e) => form.setData('description', e.target.value)}
+                                        placeholder="Повестка, материалы, ожидаемый результат"
+                                        className="min-h-20"
+                                    />
+                                    {form.errors.description && <p className="text-xs text-red-600">{form.errors.description}</p>}
                                 </div>
 
                                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                    <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
                                         <div className="min-w-0">
-                                            <Label>Участники</Label>
+                                            <Label>Участники <span className="ml-1 tabular-nums text-slate-500">{selectedCount} / {employees.length}</span></Label>
                                             {form.errors.attendee_ids && <p className="mt-1 text-xs text-red-600">{form.errors.attendee_ids}</p>}
                                         </div>
                                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -384,9 +372,9 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                         </div>
                                     )}
 
-                                    <div className="grid max-h-[24rem] overflow-auto md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-2">
+                                    <div className="grid max-h-[22rem] overflow-auto md:grid-cols-2 xl:grid-cols-3">
                                         {filteredEmployees.length === 0 ? (
-                                            <p className="col-span-full px-3 py-8 text-center text-sm text-slate-500">Сотрудники не найдены.</p>
+                                            <p className="col-span-full px-3 py-6 text-center text-sm text-slate-500">Сотрудники не найдены.</p>
                                         ) : (
                                             filteredEmployees.map((employee) => {
                                                 const checked = (form.data.attendee_ids ?? []).includes(Number(employee.id));
@@ -396,9 +384,9 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                                         key={employee.id}
                                                         type="button"
                                                         onClick={() => toggleAttendee(employee.id)}
-                                                        className={`flex min-w-0 items-start gap-3 border-b border-r border-slate-200 px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/30 ${checked ? 'bg-teal-50/60' : 'hover:bg-slate-50'}`}
+                                                        className={`flex min-w-0 items-center gap-2.5 border-b border-r border-slate-200 px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/30 ${checked ? 'bg-teal-50/60' : 'hover:bg-slate-50'}`}
                                                     >
-                                                        <span className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                                        <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${checked ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
                                                             {checked ? <Check className="size-4" /> : initials(employee.name)}
                                                         </span>
                                                         <span className="min-w-0">
@@ -413,7 +401,11 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                 </div>
 
                                 <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                                    <p className="text-xs text-slate-500">Zoom создается после сохранения, приглашения уходят выбранным сотрудникам.</p>
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                                        <span>Длительность: <span className="font-semibold tabular-nums text-[#102945]">{durationText(formDuration)}</span></span>
+                                        <span>Участники: <span className="font-semibold tabular-nums text-[#102945]">{selectedCount}</span></span>
+                                        <span>Тема, время, описание и участники уходят в Zoom и календарь; приглашения — выбранным сотрудникам.</span>
+                                    </div>
                                     <Button type="submit" disabled={form.processing || !isFormReady}>
                                         <Video className="size-4" />
                                         Сгенерировать Zoom
@@ -424,16 +416,14 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                     </Card>
 
                     <Card>
-                        <CardHeader>
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <CardTitle className="flex items-center gap-2">
-                                    <CalendarDays className="shrink-0" />
-                                    Онлайн-встречи недели
-                                </CardTitle>
-                                <span className="text-xs font-medium tabular-nums text-slate-500">{visibleConferences.length} из {tagged.length}</span>
-                            </div>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <CalendarDays className="shrink-0" />
+                                Онлайн-встречи недели
+                            </CardTitle>
+                            <span className="text-xs font-medium tabular-nums text-slate-500">{visibleConferences.length} из {tagged.length}</span>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-3">
                             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
                                 <label className="relative block space-y-2">
                                     <span className="qd-field-label block">Поиск</span>
@@ -452,7 +442,7 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                             </div>
 
                             {visibleConferences.length === 0 && (
-                                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                <div className="flex flex-col items-center gap-2 py-8 text-center">
                                     <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-700"><Video className="h-5 w-5" /></span>
                                     <p className="font-display text-base font-bold text-[#102945]">Нет конференций по выбранным условиям.</p>
                                     <p className="max-w-sm text-sm text-slate-500">Измените поиск или статус, либо создайте конференцию в форме «Создать конференцию».</p>
@@ -466,7 +456,7 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                         const StatusIcon = meta.icon;
 
                                         return (
-                                            <div key={conference.id} className={`flex gap-3 py-4 ${conference.tag === 'completed' ? 'opacity-80' : ''}`}>
+                                            <div key={conference.id} className={`flex gap-3 py-2.5 ${conference.tag === 'completed' ? 'opacity-80' : ''}`}>
                                                 <span className={`w-1 shrink-0 rounded-full ${meta.rail}`} />
                                                 <div className="flex min-w-0 flex-1 flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                     <div className="flex min-w-0 gap-3">
@@ -481,9 +471,9 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                                                 </StatusBadge>
                                                                 <Badge variant="outline">{durationText(conference.durationMinutes)}</Badge>
                                                             </div>
-                                                            <p className="mt-2 truncate text-sm font-semibold text-slate-900">{conference.title}</p>
-                                                            <p className="mt-1 truncate text-xs text-slate-600">{conference.organizer} · {conference.organizer_title || 'Без должности'}</p>
-                                                            <p className="mt-1 text-xs tabular-nums text-slate-500">
+                                                            <p className="mt-1 truncate text-sm font-semibold text-slate-900">{conference.title}</p>
+                                                            <p className="mt-0.5 truncate text-xs text-slate-600">{conference.organizer} · {conference.organizer_title || 'Без должности'}</p>
+                                                            <p className="mt-0.5 text-xs tabular-nums text-slate-500">
                                                                 {fmt(conference.starts_at, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} — {fmt(conference.ends_at, { hour: '2-digit', minute: '2-digit' })}
                                                             </p>
                                                         </div>

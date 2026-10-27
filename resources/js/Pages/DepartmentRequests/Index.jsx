@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,7 +77,7 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                 <PageHeader
                     eyebrow="Обращения"
                     title="Заявки"
-                    description="Отслеживание ваших обращений и их статусов. Заявка сразу попадает в нужный отдел — так проблемы устраняются быстрее."
+                    description="Ваши обращения и их статусы. Заявка сразу попадает в нужный отдел — так проблемы устраняются быстрее."
                     actions={(
                         <>
                             <Button variant="outline" asChild>
@@ -107,115 +107,160 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                     <StatTile label="Отклонены" value={countBy('rejected')} icon={CircleX} tone="danger" hint="С пояснением исполнителя" />
                 </StatGrid>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Info className="shrink-0" />
-                            Как это работает
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ol className="grid gap-4 sm:grid-cols-3">
-                            {HOW_IT_WORKS.map((step, index) => (
-                                <li key={step} className="flex items-start gap-3">
-                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 font-display text-sm font-bold text-teal-700">
-                                        {index + 1}
-                                    </span>
-                                    <span className="pt-1 text-sm leading-relaxed text-slate-700">{step}</span>
-                                </li>
-                            ))}
-                        </ol>
-                        <div className="mt-5 grid gap-4 border-t border-slate-200 pt-4 text-sm sm:grid-cols-2">
-                            <div>
-                                <p className="qd-field-label text-slate-500">Зачем нужны заявки</p>
-                                <p className="mt-1 text-slate-700">Чтобы быстрее получать данные о проблемах, сразу направлять их в нужный отдел и оперативно устранять.</p>
-                            </div>
-                            <div>
-                                <p className="qd-field-label text-slate-500">Как создать новую заявку</p>
-                                <p className="mt-1 text-slate-700">Нажмите «Отправить заявку» и заполните форму.</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* ── My requests ── */}
-                {myRequests.length === 0 ? (
-                    <EmptyState
-                        title="У вас пока нет заявок"
-                        description="Создайте первую заявку, чтобы отслеживать её статус и ответ в этом разделе."
-                        action={(
-                            <Button onClick={() => setIsCreateOpen(true)}>
-                                <PlusCircle />
-                                Создать первую заявку
-                            </Button>
-                        )}
-                    />
-                ) : (
-                    <Card>
-                        <CardHeader>
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <Card className="flex min-w-0 flex-col">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2">
                                 <ClipboardList className="shrink-0" />
                                 Мои заявки
                             </CardTitle>
-                            <p className="text-sm text-slate-500">
-                                Таблица обращений с датой отправки, датой решения, статусом и ответом.
-                            </p>
+                            <span className="text-xs font-medium tabular-nums text-slate-500">
+                                Всего: {myRequests.length}
+                            </span>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th className="text-left">Тема</th>
-                                            <th className="text-left">Отдел</th>
-                                            <th className="text-left">Дата отправки</th>
-                                            <th className="text-left">Дата решения</th>
-                                            <th className="text-left">Статус</th>
-                                            <th className="text-left">Ответ</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {myRequests.map((req) => {
-                                            const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
+                        {myRequests.length === 0 ? (
+                            <CardContent className="flex flex-1 items-center justify-center">
+                                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <Inbox className="h-5 w-5" />
+                                    </span>
+                                    <p className="font-semibold text-[#102945]">У вас пока нет заявок</p>
+                                    <p className="max-w-md text-sm text-slate-600">
+                                        Создайте первую заявку, чтобы отслеживать её статус и ответ в этом разделе.
+                                    </p>
+                                    <Button className="mt-2" onClick={() => setIsCreateOpen(true)}>
+                                        <PlusCircle />
+                                        Создать первую заявку
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        ) : (
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th className="text-left">Тема</th>
+                                                <th className="text-left">Отдел</th>
+                                                <th className="text-left">Дата отправки</th>
+                                                <th className="text-left">Дата решения</th>
+                                                <th className="text-left">Статус</th>
+                                                <th className="text-left">Ответ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {myRequests.map((req) => {
+                                                const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
+
+                                                return (
+                                                    <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                        <td>
+                                                            <p className="font-medium text-slate-900">{req.title}</p>
+                                                            {req.room && (
+                                                                <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-600">
+                                                                    <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                                                                    Кабинет: {req.room}
+                                                                </p>
+                                                            )}
+                                                        </td>
+                                                        <td className="text-slate-700">{req.department ?? '—'}</td>
+                                                        <td className="whitespace-nowrap tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
+                                                        <td className="whitespace-nowrap tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
+                                                        <td>
+                                                            <Badge variant={meta.variant}>{meta.label}</Badge>
+                                                        </td>
+                                                        <td className="text-slate-700">
+                                                            {req.note ? (
+                                                                <div>
+                                                                    <p>{req.note}</p>
+                                                                    {req.closed_by && (
+                                                                        <p className="mt-1 text-xs text-slate-500">Обработал: {req.closed_by}</p>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                '—'
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        )}
+                    </Card>
+
+                    <div className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Info className="shrink-0" />
+                                    Как это работает
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <ol className="space-y-2.5">
+                                    {HOW_IT_WORKS.map((step, index) => (
+                                        <li key={step} className="flex items-start gap-3">
+                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">
+                                                {index + 1}
+                                            </span>
+                                            <span className="text-sm leading-snug text-slate-700">{step}</span>
+                                        </li>
+                                    ))}
+                                </ol>
+                                <div className="space-y-2 border-t border-slate-200 pt-3 text-sm">
+                                    <p>
+                                        <span className="qd-field-label block text-slate-500">Зачем нужны заявки</span>
+                                        <span className="text-slate-700">Чтобы быстрее получать данные о проблемах, сразу направлять их в нужный отдел и оперативно устранять.</span>
+                                    </p>
+                                    <p>
+                                        <span className="qd-field-label block text-slate-500">Как создать новую заявку</span>
+                                        <span className="text-slate-700">Нажмите «Отправить заявку» и заполните форму.</span>
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Building2 className="shrink-0" />
+                                    Отделы
+                                </CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">{departments.length}</span>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {departments.length === 0 ? (
+                                    <p className="text-sm text-slate-500">Отделы-получатели пока не настроены.</p>
+                                ) : (
+                                    <ul className="divide-y divide-slate-200 text-sm">
+                                        {departments.map((d) => {
+                                            const sent = myRequests.filter((req) => req.department === d.name).length;
 
                                             return (
-                                                <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
-                                                    <td>
-                                                        <p className="font-medium text-slate-900">{req.title}</p>
-                                                        {req.room && (
-                                                            <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-600">
-                                                                <Building2 className="h-3.5 w-3.5 text-slate-400" />
-                                                                Кабинет: {req.room}
-                                                            </p>
-                                                        )}
-                                                    </td>
-                                                    <td className="text-slate-700">{req.department ?? '—'}</td>
-                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
-                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
-                                                    <td>
-                                                        <Badge variant={meta.variant}>{meta.label}</Badge>
-                                                    </td>
-                                                    <td className="text-slate-700">
-                                                        {req.note ? (
-                                                            <div>
-                                                                <p>{req.note}</p>
-                                                                {req.closed_by && (
-                                                                    <p className="mt-1 text-xs text-slate-500">Обработал: {req.closed_by}</p>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            '—'
-                                                        )}
-                                                    </td>
-                                                </tr>
+                                                <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+                                                    <span className="min-w-0 truncate text-slate-800">{d.name}</span>
+                                                    <span className="shrink-0 text-xs tabular-nums text-slate-500">
+                                                        {sent > 0 ? `заявок: ${sent}` : (d.code ?? '')}
+                                                    </span>
+                                                </li>
                                             );
                                         })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
+                                    </ul>
+                                )}
+                                <Link
+                                    href={route('dept-requests.departments')}
+                                    className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 underline underline-offset-2 hover:text-[#102945]"
+                                >
+                                    Описание отделов
+                                    <ArrowUpRight className="h-3.5 w-3.5" />
+                                </Link>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
 
                 <Dialog
                     open={isCreateOpen}

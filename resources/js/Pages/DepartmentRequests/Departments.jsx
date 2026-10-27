@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EmptyState, FormField, Notice, PageHeader, SectionHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { FormField, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -135,85 +135,107 @@ export default function DepartmentRequestsDepartments({
                     />
                 </StatGrid>
 
-                <section>
-                    <SectionHeader title="Отделы-получатели" description="Подсказки видят пользователи при выборе отдела в форме заявки." />
-                    {departments.length === 0 ? (
-                        <EmptyState
-                            title="Отделов-получателей пока нет"
-                            description={isAdmin ? 'Добавьте существующий отдел или создайте новый в блоке «Управление» ниже.' : 'Администратор ещё не настроил отделы для заявок.'}
-                        />
-                    ) : (
-                        <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
-                            {departments.map((department) => {
-                                const assignedHandlers = handlersByDepartment.get(department.department_id) ?? [];
-                                return (
-                                    <Card key={department.id}>
-                                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-                                            <CardTitle className="flex items-center gap-2">
-                                                <Building2 className="shrink-0" />
-                                                {department.name}
-                                            </CardTitle>
-                                            {isAdmin && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-red-700 hover:bg-red-50"
-                                                    title="Удалить из получателей"
-                                                    aria-label="Удалить из получателей"
-                                                    onClick={() => removeRecipientDepartment(department.id)}
-                                                >
-                                                    <Trash2 />
-                                                </Button>
-                                            )}
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <div className="border-b border-slate-200 pb-3">
-                                                <span className="qd-field-label text-slate-500">Подсказка</span>
-                                                <p className="mt-1 text-sm leading-relaxed text-slate-700">{department.hint || 'Подсказка не указана.'}</p>
-                                            </div>
+                <>
+                    <Card className="min-w-0">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <Building2 className="shrink-0" />
+                                Отделы-получатели
+                            </CardTitle>
+                            <span className="text-xs text-slate-500">Подсказки видят пользователи при выборе отдела в форме заявки.</span>
+                        </CardHeader>
+                        {departments.length === 0 ? (
+                            <CardContent>
+                                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <Building2 className="h-5 w-5" />
+                                    </span>
+                                    <p className="font-semibold text-[#102945]">Отделов-получателей пока нет</p>
+                                    <p className="max-w-md text-sm text-slate-600">
+                                        {isAdmin ? 'Добавьте существующий отдел или создайте новый в блоке «Управление» ниже.' : 'Администратор ещё не настроил отделы для заявок.'}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        ) : (
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th className="text-left">Отдел</th>
+                                                <th className="text-left">Подсказка</th>
+                                                <th className="text-left">Ответственные</th>
+                                                {isAdmin && <th className="text-right">Действия</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {departments.map((department) => {
+                                                const assignedHandlers = handlersByDepartment.get(department.department_id) ?? [];
 
-                                            <div>
-                                                <span className="qd-field-label text-slate-500">Ответственные</span>
-                                                {assignedHandlers.length === 0 ? (
-                                                    <div className="mt-2"><Badge variant="warning">Не назначены</Badge></div>
-                                                ) : (
-                                                    <div className="mt-1 divide-y divide-slate-200">
-                                                        {assignedHandlers.map((handler) => (
-                                                            <div key={handler.id} className="flex items-center justify-between gap-2 py-2">
-                                                                <div className="min-w-0">
-                                                                    <p className="truncate text-sm font-medium text-slate-900">{handler.user}</p>
-                                                                    <p className="truncate text-xs text-slate-500">{handler.email}</p>
-                                                                </div>
-                                                                {isAdmin && (
+                                                return (
+                                                    <tr key={department.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                        <td className="font-medium text-slate-900">{department.name}</td>
+                                                        <td className="max-w-md text-slate-700">
+                                                            {department.hint || <span className="text-slate-400">Подсказка не указана.</span>}
+                                                        </td>
+                                                        <td>
+                                                            {assignedHandlers.length === 0 ? (
+                                                                <Badge variant="warning">Не назначены</Badge>
+                                                            ) : (
+                                                                <ul className="space-y-1.5">
+                                                                    {assignedHandlers.map((handler) => (
+                                                                        <li key={handler.id} className="flex items-center gap-2">
+                                                                            <span className="min-w-0">
+                                                                                <span className="block truncate font-medium text-slate-900">{handler.user}</span>
+                                                                                <span className="block truncate text-xs text-slate-500">{handler.email}</span>
+                                                                            </span>
+                                                                            {isAdmin && (
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="h-7 w-7 shrink-0 text-red-700 hover:bg-red-50"
+                                                                                    title="Снять ответственного"
+                                                                                    aria-label="Снять ответственного"
+                                                                                    onClick={() => removeHandler(handler.id)}
+                                                                                >
+                                                                                    <Trash2 />
+                                                                                </Button>
+                                                                            )}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            )}
+                                                        </td>
+                                                        {isAdmin && (
+                                                            <td className="text-right">
+                                                                <div className="flex flex-wrap justify-end gap-2">
                                                                     <Button
                                                                         variant="ghost"
                                                                         size="icon"
                                                                         className="text-red-700 hover:bg-red-50"
-                                                                        title="Снять ответственного"
-                                                                        aria-label="Снять ответственного"
-                                                                        onClick={() => removeHandler(handler.id)}
+                                                                        title="Удалить из получателей"
+                                                                        aria-label="Удалить из получателей"
+                                                                        onClick={() => removeRecipientDepartment(department.id)}
                                                                     >
                                                                         <Trash2 />
                                                                     </Button>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    )}
-                </section>
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        )}
+                    </Card>
 
-                {isAdmin && (
-                    <section className="space-y-4">
-                        <SectionHeader title="Управление" description="Доступно только администраторам." compact />
-
-                        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+                    {isAdmin && (
+                        <section className="space-y-2">
+                            <p className="qd-field-label text-slate-500">Управление · только для администраторов</p>
+                            <div className="grid items-start gap-4 lg:grid-cols-3 [&>*]:min-w-0">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -259,7 +281,6 @@ export default function DepartmentRequestsDepartments({
                                     </form>
                                 </CardContent>
                             </Card>
-
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -269,7 +290,7 @@ export default function DepartmentRequestsDepartments({
                                 </CardHeader>
                                 <CardContent>
                                     <form onSubmit={createDepartmentFromScratch} className="space-y-4">
-                                        <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
+                                        <div className="grid gap-4 [&>*]:min-w-0">
                                             <div>
                                                 <FormField label="Название отдела">
                                                     <Input
@@ -296,7 +317,7 @@ export default function DepartmentRequestsDepartments({
                                         <div>
                                             <FormField label="Описание отдела (опционально)">
                                                 <Textarea
-                                                    className="min-h-20"
+                                                    className="min-h-16"
                                                     placeholder="Короткое описание роли отдела"
                                                     value={createDepartmentForm.data.department_description}
                                                     onChange={(e) => createDepartmentForm.setData('department_description', e.target.value)}
@@ -314,8 +335,6 @@ export default function DepartmentRequestsDepartments({
                                     </form>
                                 </CardContent>
                             </Card>
-                        </div>
-
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -324,7 +343,7 @@ export default function DepartmentRequestsDepartments({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={addHandler} className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] [&>*]:min-w-0">
+                                <form onSubmit={addHandler} className="space-y-4">
                                     <FormField label="Отдел-получатель">
                                         <select
                                             className={qdFieldClass}
@@ -353,14 +372,19 @@ export default function DepartmentRequestsDepartments({
                                         </select>
                                     </FormField>
 
-                                    <Button type="submit" disabled={addHandlerForm.processing}>
-                                        Назначить
-                                    </Button>
+                                    <div className="flex justify-end border-t border-slate-200 pt-4">
+                                        <Button type="submit" disabled={addHandlerForm.processing}>
+                                            <Users />
+                                            Назначить
+                                        </Button>
+                                    </div>
                                 </form>
                             </CardContent>
                         </Card>
-                    </section>
-                )}
+                            </div>
+                        </section>
+                    )}
+                </>
             </div>
 
             <ConfirmDialog

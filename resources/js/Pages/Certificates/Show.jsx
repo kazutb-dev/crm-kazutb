@@ -3,8 +3,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link } from '@inertiajs/react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { InfoField, PageHeader } from '@/components/platform';
+import { InfoField, PageHeader, StatusBadge } from '@/components/platform';
 import { ArrowLeft, Award, Eye, Printer, ShieldCheck } from 'lucide-react';
+
+const STATUS_LABELS = {
+    draft: 'Черновик',
+    generated: 'Сгенерирован',
+    issued: 'Выдан',
+    revoked: 'Отозван',
+};
+
+const STATUS_TONES = {
+    draft: 'default',
+    generated: 'info',
+    issued: 'success',
+    revoked: 'danger',
+};
 
 export default function CertificateShow({ certificate }) {
     const canvasWidth = Number(certificate?.template_canvas_width ?? 1600);
@@ -82,12 +96,38 @@ export default function CertificateShow({ certificate }) {
                             Карточка сертификата
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_auto] print:grid-cols-1">
-                        <InfoField label="ФИО">{certificate?.recipient_full_name}</InfoField>
+                    <CardContent className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto] print:grid-cols-1">
+                        <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <InfoField label="ФИО" className="sm:col-span-2">{certificate?.recipient_full_name || '—'}</InfoField>
+                            <InfoField label="Номер">
+                                <span className="font-mono text-sm">{certificate?.certificate_number || '—'}</span>
+                            </InfoField>
+                            <InfoField label="Статус">
+                                <StatusBadge tone={STATUS_TONES[certificate?.status] ?? 'default'}>
+                                    {STATUS_LABELS[certificate?.status] ?? certificate?.status ?? '—'}
+                                </StatusBadge>
+                            </InfoField>
+                            <InfoField label="Тема" className="sm:col-span-2">{certificate?.topic || '—'}</InfoField>
+                            <InfoField label="Шаблон">
+                                {certificate?.template_name || '—'}
+                                {certificate?.template_version ? <span className="text-slate-500"> · v{certificate.template_version}</span> : null}
+                                {certificate?.template_code ? <span className="block font-mono text-xs font-normal text-slate-500">{certificate.template_code}</span> : null}
+                            </InfoField>
+                            <InfoField label="Формат">
+                                <span className="tabular-nums">{canvasWidth} × {canvasHeight} px</span>
+                            </InfoField>
+                            <InfoField label="Сгенерирован"><span className="tabular-nums">{certificate?.generated_at_human || '—'}</span></InfoField>
+                            <InfoField label="Выдан"><span className="tabular-nums">{certificate?.issued_at_human || '—'}</span></InfoField>
+                            <InfoField label="Ссылка проверки" className="sm:col-span-2">
+                                <span className="block truncate font-mono text-xs font-normal text-slate-600" title={certificate?.qr_payload ?? ''}>
+                                    {certificate?.qr_payload || '—'}
+                                </span>
+                            </InfoField>
+                        </div>
 
-                        <div className="print:hidden flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-4">
-                            <QRCodeCanvas value={certificate?.qr_payload ?? ''} size={180} includeMargin />
-                            <div className="qd-field-label text-slate-500">QR проверки сертификата</div>
+                        <div className="print:hidden flex flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white p-3">
+                            <QRCodeCanvas value={certificate?.qr_payload ?? ''} size={132} includeMargin />
+                            <div className="qd-field-label text-slate-500">QR проверки</div>
                         </div>
                     </CardContent>
                 </Card>

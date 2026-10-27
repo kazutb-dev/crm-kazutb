@@ -94,7 +94,7 @@ const FEED_LABELS = { contract: 'договор', order: 'приказ', card: '
 export function Section({ title, description, feeds = [], note, children, id }) {
     return (
         <section id={id} className="scroll-mt-24 overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
-            <header className="border-b border-slate-200 bg-slate-50 px-5 py-3.5 sm:px-6">
+            <header className="border-b border-slate-200 bg-slate-50 px-5 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                     <h3 className="text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">{title}</h3>
                     {(feeds.length > 0 || note) && (
@@ -110,9 +110,9 @@ export function Section({ title, description, feeds = [], note, children, id }) 
                         </p>
                     )}
                 </div>
-                {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
+                {description && <p className="mt-1 text-xs text-slate-600">{description}</p>}
             </header>
-            <div className="space-y-5 p-5 sm:p-6">{children}</div>
+            <div className="space-y-4 px-5 py-4">{children}</div>
         </section>
     );
 }

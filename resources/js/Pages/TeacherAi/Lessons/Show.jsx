@@ -168,17 +168,17 @@ function LectureSection({ section, index, inProgress }) {
 
     return (
         <section id={`section-${index + 1}`} className="scroll-mt-24">
-            <h3 className="break-words font-display text-xl font-bold text-[#102945]">
+            <h3 className="break-words font-display text-lg font-bold text-[#102945]">
                 <span className="mr-2 tabular-nums text-teal-700">{index + 1}.</span>
                 {title}
             </h3>
 
             {isGenerated ? (
                 <>
-                    <Paragraphs text={paragraphs.map(asText).join('\n\n')} className="mt-4" />
+                    <Paragraphs text={paragraphs.map(asText).join('\n\n')} className="mt-3" />
 
                     {keyTerms.length > 0 && (
-                        <dl className="mt-5 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
+                        <dl className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:grid-cols-2 2xl:grid-cols-3">
                             {keyTerms.map((term, termIndex) => (
                                 <div key={termIndex} className="min-w-0">
                                     <dt className="break-words text-sm font-semibold text-[#102945]">{asText(term?.term)}</dt>
@@ -189,7 +189,7 @@ function LectureSection({ section, index, inProgress }) {
                     )}
 
                     {examples.map((example, exampleIndex) => (
-                        <div key={exampleIndex} className="mt-4 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 p-4 text-sm text-[#102945]">
+                        <div key={exampleIndex} className="mt-3 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-[#102945]">
                             <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
                             <p className="whitespace-pre-line break-words leading-6">
                                 <span className="font-semibold">Пример{examples.length > 1 ? ` ${exampleIndex + 1}` : ''}: </span>
@@ -199,7 +199,7 @@ function LectureSection({ section, index, inProgress }) {
                     ))}
 
                     {summary && (
-                        <p className="mt-4 break-words border-l-[3px] border-teal-600 bg-slate-50 px-4 py-3 text-sm italic leading-6 text-slate-700">
+                        <p className="mt-3 break-words border-l-[3px] border-teal-600 bg-slate-50 px-4 py-2.5 text-sm italic leading-6 text-slate-700">
                             {summary}
                         </p>
                     )}
@@ -242,7 +242,7 @@ function LectureTab({ lesson, inProgress }) {
 
     if (!lecture) {
         return (
-            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-600">
+            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-600">
                 Лекция ещё не готова.
             </div>
         );
@@ -256,21 +256,52 @@ function LectureTab({ lesson, inProgress }) {
     const keywords = asList(lecture.keywords);
     const wordCount = Number(lesson?.word_count ?? 0);
 
+    const railCard = 'rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]';
+    const hasRail = objectives.length > 0 || sections.length > 0 || questions.length > 0 || glossary.length > 0 || references.length > 0 || keywords.length > 0;
+
     return (
-        <section className="space-y-8 rounded-[14px] border border-slate-200 bg-white p-6 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-8">
-            <header className="space-y-2">
-                <h3 className="break-words font-display text-2xl font-bold leading-tight text-[#102945]">{asText(lecture.title) || asText(lesson?.title)}</h3>
+        <div className={`grid items-start gap-4 ${hasRail ? 'xl:grid-cols-[minmax(0,1fr)_24rem]' : ''}`}>
+        <section className="min-w-0 space-y-6 rounded-[14px] border border-slate-200 bg-white px-5 py-5 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:px-6">
+            <header className="space-y-1">
+                <h3 className="break-words font-display text-xl font-bold leading-tight text-[#102945]">{asText(lecture.title) || asText(lesson?.title)}</h3>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
                     {wordCount > 0 && <span className="tabular-nums">≈ {numberFormat.format(wordCount)} слов</span>}
                     {sections.length > 0 && <span>{sections.length} {pluralRu(sections.length, ['раздел', 'раздела', 'разделов'])}</span>}
+                    {questions.length > 0 && <span className="tabular-nums">{questions.length} {pluralRu(questions.length, ['вопрос', 'вопроса', 'вопросов'])}</span>}
+                    {glossary.length > 0 && <span className="tabular-nums">{glossary.length} {pluralRu(glossary.length, ['термин', 'термина', 'терминов'])}</span>}
                     {lesson?.model && <span className="text-slate-400">Модель: {lesson.model}</span>}
                 </div>
             </header>
 
-            {objectives.length > 0 && (
+            {asText(lecture.introduction) && (
                 <div>
+                    <SectionHeading>Введение</SectionHeading>
+                    <Paragraphs text={lecture.introduction} className="mt-2" />
+                </div>
+            )}
+
+            {sections.length > 0 && (
+                <div className="space-y-8 border-t border-slate-200 pt-6">
+                    {sections.map((section, index) => (
+                        <LectureSection key={index} section={section} index={index} inProgress={inProgress} />
+                    ))}
+                </div>
+            )}
+
+            {asText(lecture.conclusion) && (
+                <div className="border-t border-slate-200 pt-6">
+                    <SectionHeading>Заключение</SectionHeading>
+                    <Paragraphs text={lecture.conclusion} className="mt-2" />
+                </div>
+            )}
+        </section>
+
+        {hasRail && (
+        <aside className="min-w-0 space-y-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
+            {objectives.length > 0 && (
+                <div className={railCard}>
                     <SectionHeading>Цели обучения</SectionHeading>
-                    <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
                         {objectives.map((objective, index) => (
                             <li key={index} className="break-words">{asText(objective)}</li>
                         ))}
@@ -279,9 +310,9 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {sections.length > 0 && (
-                <div>
+                <div className={railCard}>
                     <SectionHeading>План лекции</SectionHeading>
-                    <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-700">
                         {sections.map((section, index) => (
                             <li key={index} className="break-words">
                                 <a href={`#section-${index + 1}`} className="hover:text-teal-700">
@@ -293,32 +324,10 @@ function LectureTab({ lesson, inProgress }) {
                 </div>
             )}
 
-            {asText(lecture.introduction) && (
-                <div>
-                    <SectionHeading>Введение</SectionHeading>
-                    <Paragraphs text={lecture.introduction} className="mt-3" />
-                </div>
-            )}
-
-            {sections.length > 0 && (
-                <div className="space-y-10 border-t border-slate-200 pt-8">
-                    {sections.map((section, index) => (
-                        <LectureSection key={index} section={section} index={index} inProgress={inProgress} />
-                    ))}
-                </div>
-            )}
-
-            {asText(lecture.conclusion) && (
-                <div className="border-t border-slate-200 pt-8">
-                    <SectionHeading>Заключение</SectionHeading>
-                    <Paragraphs text={lecture.conclusion} className="mt-3" />
-                </div>
-            )}
-
             {questions.length > 0 && (
-                <div>
+                <div className={railCard}>
                     <SectionHeading>Вопросы для самопроверки</SectionHeading>
-                    <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-700">
                         {questions.map((question, index) => (
                             <li key={index} className="break-words">{asText(question)}</li>
                         ))}
@@ -327,13 +336,13 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {glossary.length > 0 && (
-                <div>
+                <div className={railCard}>
                     <SectionHeading>Глоссарий</SectionHeading>
-                    <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <dl className="mt-2 divide-y divide-slate-200">
                         {glossary.map((item, index) => (
-                            <div key={index} className="min-w-0 rounded-xl border border-slate-200 p-4">
+                            <div key={index} className="min-w-0 py-2 first:pt-0 last:pb-0">
                                 <dt className="break-words text-sm font-semibold text-[#102945]">{asText(item?.term)}</dt>
-                                <dd className="mt-1 break-words text-sm leading-6 text-slate-700">{asText(item?.definition)}</dd>
+                                <dd className="mt-0.5 break-words text-sm leading-6 text-slate-700">{asText(item?.definition)}</dd>
                             </div>
                         ))}
                     </dl>
@@ -341,12 +350,12 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {references.length > 0 && (
-                <div>
+                <div className={railCard}>
                     <SectionHeading>Рекомендуемая литература</SectionHeading>
-                    <Notice tone="warning" className="mt-3">
+                    <Notice tone="warning" className="mt-2">
                         Список литературы сформирован ИИ — проверьте источники.
                     </Notice>
-                    <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-slate-700">
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-700">
                         {references.map((reference, index) => (
                             <li key={index} className="break-words">{asText(reference)}</li>
                         ))}
@@ -355,18 +364,20 @@ function LectureTab({ lesson, inProgress }) {
             )}
 
             {keywords.length > 0 && (
-                <div>
+                <div className={railCard}>
                     <SectionHeading>Ключевые слова</SectionHeading>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                         {keywords.map((keyword, index) => (
-                            <span key={index} className="max-w-full break-words rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
+                            <span key={index} className="max-w-full break-words rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700">
                                 {asText(keyword)}
                             </span>
                         ))}
                     </div>
                 </div>
             )}
-        </section>
+        </aside>
+        )}
+        </div>
     );
 }
 
@@ -442,7 +453,7 @@ function PresentationTab({ lesson, inProgress }) {
 
     if (!presentation || total === 0) {
         return (
-            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-10 text-center text-sm text-slate-600">
+            <div className="rounded-[14px] border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-600">
                 {inProgress ? 'Презентация готовится…' : 'Презентация ещё не готова.'}
             </div>
         );
@@ -469,9 +480,9 @@ function PresentationTab({ lesson, inProgress }) {
     
 
     return (
-        <section className="space-y-6">
+        <section className="space-y-4">
             <div className="min-w-0">
-                <h3 className="break-words font-display text-xl font-bold text-[#102945]">{asText(presentation.title) || asText(lesson?.title)}</h3>
+                <h3 className="break-words font-display text-lg font-bold text-[#102945]">{asText(presentation.title) || asText(lesson?.title)}</h3>
                 {asText(presentation.subtitle) && (
                     <p className="mt-1 break-words text-sm text-slate-500">{presentation.subtitle}</p>
                 )}
@@ -486,73 +497,77 @@ function PresentationTab({ lesson, inProgress }) {
                 </div>
             </div>
 
-            <div className="mx-auto w-full max-w-[1100px] space-y-4">
-                <div
-                    ref={viewerRef}
-                    data-slide-viewer=""
-                    className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-                >
-                    <SlideCanvas
-                        key={index}
-                        slide={slide}
-                        presentation={presentation}
-                        language={lesson?.language}
-                        eager
-                        label={`Слайд ${index + 1} из ${total}`}
-                    />
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
+                <div className="min-w-0 space-y-3">
+                    <div
+                        ref={viewerRef}
+                        data-slide-viewer=""
+                        className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+                    >
+                        <SlideCanvas
+                            key={index}
+                            slide={slide}
+                            presentation={presentation}
+                            language={lesson?.language}
+                            eager
+                            label={`Слайд ${index + 1} из ${total}`}
+                        />
+                    </div>
+
+                    <nav aria-label="Навигация по слайдам" className="flex items-center justify-between gap-3">
+                        <Button type="button" variant="outline" onClick={() => goTo(index - 1)} disabled={index === 0} className="gap-1.5">
+                            <ArrowLeft className="h-4 w-4" />
+                            Назад
+                        </Button>
+                        <span className="text-sm font-medium tabular-nums text-slate-600" aria-live="polite">
+                            {index + 1} / {total}
+                        </span>
+                        <Button type="button" variant="outline" onClick={() => goTo(index + 1)} disabled={index >= total - 1} className="gap-1.5">
+                            Далее
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+                    </nav>
                 </div>
 
-                <nav aria-label="Навигация по слайдам" className="flex items-center justify-between gap-3">
-                    <Button type="button" variant="outline" onClick={() => goTo(index - 1)} disabled={index === 0} className="gap-1.5">
-                        <ArrowLeft className="h-4 w-4" />
-                        Назад
-                    </Button>
-                    <span className="text-sm font-medium tabular-nums text-slate-600" aria-live="polite">
-                        {index + 1} / {total}
-                    </span>
-                    <Button type="button" variant="outline" onClick={() => goTo(index + 1)} disabled={index >= total - 1} className="gap-1.5">
-                        Далее
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
-                </nav>
+                <div className="min-w-0 space-y-4 xl:sticky xl:top-4">
+                    <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3">
+                        <h4 className="qd-field-label flex items-center gap-2 text-[#102945]">
+                            <MessageSquareText className="h-4 w-4 text-teal-700" />
+                            Заметки докладчика · слайд {index + 1}
+                        </h4>
+                        {notes ? (
+                            <p className="mt-2 max-h-48 overflow-y-auto whitespace-pre-line break-words text-sm leading-6 text-slate-700">{notes}</p>
+                        ) : (
+                            <p className="mt-2 text-sm text-slate-500">Для этого слайда заметок нет.</p>
+                        )}
+                    </div>
 
-                <div className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
-                    <h4 className="qd-field-label flex items-center gap-2 text-[#102945]">
-                        <MessageSquareText className="h-4 w-4 text-teal-700" />
-                        Заметки докладчика
-                    </h4>
-                    {notes ? (
-                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">{notes}</p>
-                    ) : (
-                        <p className="mt-2 text-sm text-slate-500">Для этого слайда заметок нет.</p>
-                    )}
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:max-h-[calc(100vh-18rem)] xl:grid-cols-2 xl:overflow-y-auto xl:pr-1">
+                        {slides.map((item, slideIndex) => {
+                            const active = slideIndex === index;
+
+                            return (
+                                <button
+                                    key={slideIndex}
+                                    type="button"
+                                    data-slide-thumb={slideIndex}
+                                    onClick={() => selectSlide(slideIndex)}
+                                    aria-label={`Слайд ${slideIndex + 1}`}
+                                    aria-current={active ? 'true' : undefined}
+                                    className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${active ? 'border-teal-600 ring-2 ring-teal-600' : 'border-slate-200 hover:border-slate-400'}`}
+                                >
+                                    <div className="pointer-events-none w-full select-none">
+                                        <SlideCanvas slide={item} presentation={presentation} language={lesson?.language} />
+                                    </div>
+                                    <div className={`flex w-full min-w-0 items-center gap-2 border-t px-2 py-1 text-xs ${active ? 'border-teal-200 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-600'}`}>
+                                        <span className="font-semibold tabular-nums">{slideIndex + 1}</span>
+                                        <span className="min-w-0 truncate">{slideCaption(item, presentation)}</span>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {slides.map((item, slideIndex) => {
-                    const active = slideIndex === index;
-
-                    return (
-                        <button
-                            key={slideIndex}
-                            type="button"
-                            data-slide-thumb={slideIndex}
-                            onClick={() => selectSlide(slideIndex)}
-                            aria-label={`Слайд ${slideIndex + 1}`}
-                            aria-current={active ? 'true' : undefined}
-                            className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2 ${active ? 'border-teal-600 ring-2 ring-teal-600' : 'border-slate-200 hover:border-slate-400'}`}
-                        >
-                            <div className="pointer-events-none w-full select-none">
-                                <SlideCanvas slide={item} presentation={presentation} language={lesson?.language} />
-                            </div>
-                            <div className={`flex w-full min-w-0 items-center gap-2 border-t px-2.5 py-1.5 text-xs ${active ? 'border-teal-200 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-600'}`}>
-                                <span className="font-semibold tabular-nums">{slideIndex + 1}</span>
-                                <span className="min-w-0 truncate">{slideCaption(item, presentation)}</span>
-                            </div>
-                        </button>
-                    );
-                })}
             </div>
         </section>
     );
@@ -694,19 +709,19 @@ export default function Show({ lesson }) {
 
                 {inProgress && (
                     <Card>
-                        <CardContent className="space-y-6 py-8">
+                        <CardContent className="space-y-4 py-6">
                             <div className="flex flex-col items-center text-center">
-                                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                    <LoaderCircle className="h-8 w-8 animate-spin" />
+                                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                    <LoaderCircle className="h-6 w-6 animate-spin" />
                                 </span>
-                                <h3 className="mt-4 font-display text-lg font-bold text-[#102945]">
+                                <h3 className="mt-3 font-display text-base font-bold text-[#102945]">
                                     {safeLesson.status === 'pending' ? 'Занятие в очереди на генерацию' : 'ИИ готовит материалы'}
                                 </h3>
                                 <p className="mt-1 max-w-md text-sm text-slate-600">
                                     Обычно это занимает 2–5 минут. Страница обновится сама, можно её не закрывать.
                                 </p>
                             </div>
-                            <div className="border-t border-slate-200 pt-6">
+                            <div className="border-t border-slate-200 pt-4">
                                 <StepProgress lesson={safeLesson} />
                             </div>
                         </CardContent>
@@ -715,7 +730,7 @@ export default function Show({ lesson }) {
 
                 {safeLesson.status === 'failed' && (
                     <Card className="border-red-200">
-                        <CardContent className="space-y-5">
+                        <CardContent className="space-y-4">
                             <Notice
                                 tone="danger"
                                 title="Генерация не завершена"
@@ -797,7 +812,7 @@ export default function Show({ lesson }) {
                 )}
 
                 {safeLesson.notes && (
-                    <div className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
+                    <div className="rounded-[14px] border border-slate-200 bg-white px-5 py-3">
                         <p className="qd-field-label text-slate-500">Ваши пожелания для ИИ</p>
                         <p className="mt-1.5 break-words text-sm text-slate-700">{safeLesson.notes}</p>
                     </div>

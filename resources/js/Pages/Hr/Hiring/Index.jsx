@@ -311,8 +311,8 @@ function Numbers({ row }) {
 function EmptyState({ noHirings, onCreate, creating, onReset }) {
     if (!noHirings) {
         return (
-            <div className="flex flex-col items-center px-6 py-14 text-center">
-                <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Search className="h-7 w-7" /></span>
+            <div className="flex flex-col items-center px-6 py-8 text-center">
+                <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Search className="h-5 w-5" /></span>
                 <p className="font-display text-lg font-bold text-[#102945]">Ничего не найдено</p>
                 <p className="mt-1 max-w-md text-sm text-slate-600">Измените условия поиска. ИИН ищется только по полному номеру — 12 цифр.</p>
                 <button type="button" onClick={onReset} className={`${buttonClassName.secondary} mt-4`}>Сбросить фильтры</button>
@@ -321,18 +321,18 @@ function EmptyState({ noHirings, onCreate, creating, onReset }) {
     }
 
     return (
-        <div className="flex flex-col items-center px-6 py-14 text-center">
-            <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700"><FileSignature className="h-7 w-7" /></span>
+        <div className="flex flex-col items-center px-6 py-8 text-center">
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-teal-700"><FileSignature className="h-5 w-5" /></span>
             <p className="font-display text-xl font-bold text-[#102945]">Приёмов пока нет</p>
-            <ol className="mx-auto mt-5 grid w-full max-w-2xl gap-3 text-left text-sm text-slate-700 sm:grid-cols-3">
+            <ol className="mx-auto mt-4 grid w-full max-w-4xl gap-3 text-left text-sm text-slate-700 sm:grid-cols-3">
                 {['Нажмите «Новый приём» и заполните данные сотрудника', 'Выберите должность и условия договора', 'Скачайте договор, приказ и личную карточку'].map((text, index) => (
-                    <li key={text} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                    <li key={text} className="flex gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-700 font-display text-sm font-bold text-white">{index + 1}</span>
                         {text}
                     </li>
                 ))}
             </ol>
-            <button type="button" onClick={onCreate} disabled={creating} className={`${buttonClassName.primary} mt-6 px-5`}>
+            <button type="button" onClick={onCreate} disabled={creating} className={`${buttonClassName.primary} mt-4 px-5`}>
                 <UserPlus className="h-4 w-4" /> Оформить первый приём
             </button>
         </div>

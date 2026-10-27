@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -20,6 +20,72 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { BriefcaseBusiness, Layers, Network, Pencil, Plus, Search, Trash2, Unlink } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
+/** Side rail: how the shown records split by parent unit and how complete they are. */
+function BreakdownRail({ title, groups, missingLabel, missingCount, completeness, totalShown }) {
+    const max = Math.max(1, ...groups.map((group) => group.count), missingCount);
+    return (
+        <div className="space-y-4">
+            <Card>
+                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                    <CardTitle>{title}</CardTitle>
+                    <span className="text-xs font-medium leading-none text-slate-500">Среди показанных</span>
+                </CardHeader>
+                <CardContent>
+                    {groups.length === 0 && missingCount === 0 ? (
+                        <p className="text-sm text-slate-500">Нет данных для разбивки.</p>
+                    ) : (
+                        <div className="space-y-2.5">
+                            {groups.map((group) => (
+                                <div key={group.key} className="space-y-1">
+                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                        <span className="min-w-0 truncate text-slate-700" title={group.label}>{group.label}</span>
+                                        <span className="shrink-0 font-semibold tabular-nums text-[#102945]">{group.count}</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                        <div className="h-full rounded-full bg-teal-600" style={{ width: `${(group.count / max) * 100}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                            {missingCount > 0 ? (
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between gap-3 text-sm">
+                                        <span className="text-amber-700">{missingLabel}</span>
+                                        <span className="font-semibold tabular-nums text-amber-700">{missingCount}</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                        <div className="h-full rounded-full bg-amber-500" style={{ width: `${(missingCount / max) * 100}%` }} />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Заполненность</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                    {completeness.map((row) => {
+                        const percent = totalShown > 0 ? Math.round((row.count / totalShown) * 100) : 0;
+                        return (
+                            <div key={row.label} className="space-y-1">
+                                <div className="flex items-center justify-between gap-3 text-sm">
+                                    <span className="text-slate-700">{row.label}</span>
+                                    <span className="tabular-nums text-slate-500"><span className="font-semibold text-[#102945]">{row.count}</span> / {totalShown} · {percent}%</span>
+                                </div>
+                                <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                    <div className="h-full rounded-full bg-[#102945]" style={{ width: `${percent}%` }} />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
 function Field({ label, error, children }) {
     return (
         <div className="space-y-2">
@@ -34,6 +100,32 @@ export default function Index({ positions, divisions }) {
     const items = positions?.data ?? [];
     const links = positions?.links ?? [];
     const total = positions?.total ?? items.length;
+
+    const [tableSearch, setTableSearch] = useState('');
+    const visibleItems = useMemo(() => {
+        const q = tableSearch.trim().toLowerCase();
+        if (!q) {
+            return items;
+        }
+        return items.filter((item) => [item.name, item.code, item.description, item.division?.name]
+            .filter(Boolean).join(' ').toLowerCase().includes(q));
+    }, [items, tableSearch]);
+    const parentGroups = useMemo(() => {
+        const counts = new Map();
+        items.forEach((item) => {
+            if (item.division?.name) {
+                counts.set(item.division.name, (counts.get(item.division.name) ?? 0) + 1);
+            }
+        });
+        (divisions ?? []).forEach((parent) => {
+            if (parent?.name && !counts.has(parent.name)) {
+                counts.set(parent.name, 0);
+            }
+        });
+        return [...counts.entries()]
+            .map(([label, count]) => ({ key: label, label, count }))
+            .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ru'));
+    }, [items]);
 
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
@@ -293,7 +385,7 @@ export default function Index({ positions, divisions }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Всего должностей" value={total} icon={BriefcaseBusiness} tone="teal" hint="Во всём справочнике" />
                     <StatTile label="Департаментов" value={(divisions ?? []).length} icon={Network} tone="navy" hint="Доступны для привязки" />
@@ -313,7 +405,21 @@ export default function Index({ positions, divisions }) {
                         )}
                     />
                 ) : (
-                    <Card className="overflow-hidden">
+                    <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_360px]">
+                    <Card className="min-w-0 overflow-hidden">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle>Должности · <span className="tabular-nums">{visibleItems.length}</span>{tableSearch ? <> из <span className="tabular-nums">{items.length}</span></> : null}</CardTitle>
+                            <label className="relative block w-full max-w-xs">
+                                <span className="sr-only">Поиск по таблице</span>
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    value={tableSearch}
+                                    onChange={(e) => setTableSearch(e.target.value)}
+                                    placeholder="Название, код, департамент"
+                                    className="h-9 bg-white pl-9"
+                                />
+                            </label>
+                        </CardHeader>
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[760px] text-sm">
@@ -327,7 +433,12 @@ export default function Index({ positions, divisions }) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {items.map((position) => (
+                                        {visibleItems.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="py-8 text-center text-sm text-slate-500">Ничего не найдено — измените запрос.</td>
+                                            </tr>
+                                        ) : null}
+                                        {visibleItems.map((position) => (
                                             <tr key={position.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
                                                 <td className="font-medium text-slate-900">{position.name}</td>
                                                 <td className="text-slate-600">
@@ -340,8 +451,8 @@ export default function Index({ positions, divisions }) {
                                                         <span className="text-slate-400">—</span>
                                                     )}
                                                 </td>
-                                                <td className="max-w-md text-slate-600">
-                                                    {position.description || <span className="text-slate-400">—</span>}
+                                                <td className="max-w-md text-slate-600"><span className="line-clamp-2">
+                                                    {position.description || <span className="text-slate-400">—</span>}</span>
                                                 </td>
                                                 <td className="text-right">
                                                     <div className="flex justify-end gap-2">
@@ -386,6 +497,19 @@ export default function Index({ positions, divisions }) {
                             )}
                         </CardContent>
                     </Card>
+                    <BreakdownRail
+                        title="По департаментам"
+                        groups={parentGroups}
+                        missingLabel="Без департамента"
+                        missingCount={items.filter((item) => !item.division?.name).length}
+                        totalShown={items.length}
+                        completeness={[
+                            { label: 'С кодом', count: items.filter((item) => item.code).length },
+                            { label: 'С описанием', count: items.filter((item) => item.description).length },
+                            { label: 'С привязкой', count: items.filter((item) => item.division?.name).length },
+                        ]}
+                    />
+                    </div>
                 )}
             </div>
             <ConfirmDialog

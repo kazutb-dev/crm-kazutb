@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState, FilterBar, LoadingState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
-import { BookOpen, Layers, Library, Search } from 'lucide-react';
+import { BookCheck, BookOpen, Layers, Library, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const DEFAULT_LIMIT = 100;
@@ -95,6 +95,9 @@ export default function Dashboard() {
         return () => controller.abort();
     }, [limit, page, query]);
 
+    const availableOnPage = books.reduce((sum, book) => sum + Number(book.copies?.available ?? 0), 0);
+    const copiesOnPage = books.reduce((sum, book) => sum + Number(book.copies?.total ?? 0), 0);
+
     const canGoPrev = page > 1 && !isLoading;
     const canGoNext = page < meta.totalPages && !isLoading;
     const pageNumbers = [];
@@ -140,12 +143,19 @@ export default function Dashboard() {
                         hint={query ? `По запросу «${query}»` : 'Во внешнем каталоге'}
                     />
                     <StatTile label="На странице" value={isLoading ? '…' : books.length} tone="navy" icon={BookOpen} />
-                    <StatTile label="Страница" value={`${meta.page} / ${meta.totalPages}`} tone="gold" icon={Layers} />
+                    <StatTile
+                        label="Экземпляров доступно"
+                        value={isLoading ? '…' : availableOnPage}
+                        tone="success"
+                        icon={BookCheck}
+                        hint={isLoading ? undefined : `из ${copiesOnPage} на странице · на руках ${Math.max(0, copiesOnPage - availableOnPage)}`}
+                    />
+                    <StatTile label="Страница" value={`${meta.page} / ${meta.totalPages}`} tone="gold" icon={Layers} hint={`По ${meta.limit} книг на странице`} />
                 </StatGrid>
 
                 <FilterBar>
-                    <form className="space-y-4" onSubmit={handleSearchSubmit}>
-                        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
+                    <form onSubmit={handleSearchSubmit}>
+                        <div className="grid items-end gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
                             <label className="block space-y-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <div className="relative">
@@ -176,15 +186,15 @@ export default function Dashboard() {
                                     ))}
                                 </select>
                             </label>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
-                            <Button type="submit" disabled={isLoading}>
-                                Найти
-                            </Button>
-                            <Button type="button" variant="outline" disabled={isLoading} onClick={handleReset}>
-                                Сбросить
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button type="submit" disabled={isLoading}>
+                                    Найти
+                                </Button>
+                                <Button type="button" variant="outline" disabled={isLoading} onClick={handleReset}>
+                                    Сбросить
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
@@ -217,6 +227,7 @@ export default function Dashboard() {
                                             <th className="text-left">Год</th>
                                             <th className="text-left">ISBN</th>
                                             <th className="text-right">Доступно</th>
+                                            <th className="text-right">На руках</th>
                                             <th className="text-right">Всего</th>
                                         </tr>
                                     </thead>
@@ -232,6 +243,7 @@ export default function Dashboard() {
                                                     <td className="text-right align-top">
                                                         <Badge variant={available > 0 ? 'success' : 'secondary'} className="tabular-nums">{available}</Badge>
                                                     </td>
+                                                    <td className="text-right align-top tabular-nums text-slate-500">{Math.max(0, (book.copies?.total ?? 0) - available)}</td>
                                                     <td className="text-right align-top tabular-nums text-slate-700">{book.copies?.total ?? 0}</td>
                                                 </tr>
                                             );
@@ -239,7 +251,7 @@ export default function Dashboard() {
 
                                         {books.length === 0 && (
                                             <tr>
-                                                <td className="py-12 text-center text-slate-500" colSpan={6}>
+                                                <td className="py-8 text-center text-slate-500" colSpan={7}>
                                                     Книги не найдены.
                                                 </td>
                                             </tr>

@@ -1,5 +1,5 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EmptyState, FilterBar, FormField, SectionHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { EmptyState, FilterBar, FormField, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -263,6 +263,15 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
     const items = indicators?.data ?? [];
     const links = indicators?.links ?? [];
     const canManage = permissions.canManage ?? false;
+    const totalCount = indicators?.total ?? indicators?.meta?.total ?? items.length;
+    const fromIndex = indicators?.from ?? indicators?.meta?.from ?? null;
+    const toIndex = indicators?.to ?? indicators?.meta?.to ?? null;
+    const activeOnPage = items.filter((item) => item.is_active).length;
+    const fileOnPage = items.filter((item) => item.requires_file).length;
+    const entityCounts = items.reduce((acc, item) => {
+        acc[item.entity_type] = (acc[item.entity_type] ?? 0) + 1;
+        return acc;
+    }, {});
 
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -400,9 +409,27 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
         });
     };
 
+    const createDialog = canManage ? (
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus className="h-4 w-4" />
+                    Добавить KPI-индикатор
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Новый KPI-индикатор</DialogTitle>
+                    <DialogDescription>Заполните справочник индикатора для нужного уровня.</DialogDescription>
+                </DialogHeader>
+                <IndicatorForm form={createForm} options={options} onSubmit={submitCreate} submitLabel="Сохранить" />
+            </DialogContent>
+        </Dialog>
+    ) : null;
+
     return (
         <>
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Dialog
                 open={editOpen}
                 onOpenChange={(open) => {
@@ -421,32 +448,10 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                 </DialogContent>
             </Dialog>
 
-            <SectionHeader
-                title="Справочник KPI-индикаторов"
-                description="Индикаторы по уровням, секциям и проверяющим подразделениям."
-                compact
-                actions={canManage ? (
-                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="h-4 w-4" />
-                                Добавить KPI-индикатор
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-                            <DialogHeader>
-                                <DialogTitle>Новый KPI-индикатор</DialogTitle>
-                                <DialogDescription>Заполните справочник индикатора для нужного уровня.</DialogDescription>
-                            </DialogHeader>
-                            <IndicatorForm form={createForm} options={options} onSubmit={submitCreate} submitLabel="Сохранить" />
-                        </DialogContent>
-                    </Dialog>
-                ) : null}
-            />
-
             <FilterBar>
-                <form className="space-y-4" onSubmit={applyFilters}>
-                    <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+                <form onSubmit={applyFilters} className="min-w-0 flex-1">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
                         <FormField label="Уровень">
                             <select className={qdFieldClass} value={filterForm.data.entity_type} onChange={(e) => filterForm.setData('entity_type', e.target.value)}>
                                 <option value="">Все</option>
@@ -463,13 +468,20 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                 <option value="0">Неактивные</option>
                             </select>
                         </FormField>
-                    </div>
 
-                    <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-                        <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                        <Button type="submit">Применить</Button>
+                        <div className="flex flex-wrap justify-end gap-2 md:col-span-2 xl:col-span-1">
+                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                            <Button type="submit">Применить</Button>
+                        </div>
                     </div>
                 </form>
+                {/* Kept outside the filter <form>: React submit events bubble through portals. */}
+                {createDialog ? (
+                    <div className="flex justify-end border-slate-200 xl:h-10 xl:items-center xl:border-l xl:pl-3">
+                        {createDialog}
+                    </div>
+                ) : null}
+                </div>
             </FilterBar>
 
             {items.length === 0 ? (
@@ -485,11 +497,21 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                 />
             ) : (
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <ListChecks className="h-4 w-4" />
-                            Таблица индикаторов
+                            Справочник KPI-индикаторов
                         </CardTitle>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span>Всего: <strong className="tabular-nums text-[#102945]">{totalCount}</strong></span>
+                            <span className="text-slate-300">·</span>
+                            <span>На странице активных: <strong className="tabular-nums text-emerald-700">{activeOnPage}</strong> из {items.length}</span>
+                            <span className="text-slate-300">·</span>
+                            <span>С файлом: <strong className="tabular-nums text-[#102945]">{fileOnPage}</strong></span>
+                            {Object.entries(entityCounts).map(([type, count]) => (
+                                <StatusBadge key={type} tone="default">{entityLabels[type] ?? type}: {count}</StatusBadge>
+                            ))}
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
@@ -498,7 +520,7 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                     <tr className="text-left">
                                         <th>Уровень</th>
                                         <th>Секция</th>
-                                        <th>Структурное подразделение (проверяющее)</th>
+                                        <th>Проверяющее подразделение</th>
                                         <th>Код</th>
                                         <th>Название</th>
                                         <th className="text-right">Баллы</th>
@@ -524,13 +546,20 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                                         ?? 'Не указано')}
                                             </td>
                                             <td className="whitespace-nowrap font-mono text-xs text-slate-600">{indicator.code}</td>
-                                            <td><div className="font-medium text-slate-900">{indicator.name}</div><div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div></td>
+                                            <td>
+                                                <div className="font-medium text-slate-900">{indicator.name}</div>
+                                                <div className="text-xs text-slate-500">
+                                                    {indicator.unit || 'без единиц'}
+                                                    {indicator.calculation_type ? ` · ${calculationLabels[indicator.calculation_type] ?? indicator.calculation_type}` : ''}
+                                                    {indicator.requires_file ? ' · нужен файл' : ''}
+                                                </div>
+                                            </td>
                                             <td className="text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
                                             <td className="max-w-[180px] whitespace-pre-line text-slate-500">{indicator.scoring_rules}</td>
                                             <td className="text-slate-600">{indicator.description || '—'}</td>
                                             <td>{indicator.is_active ? <StatusBadge tone="success">Активен</StatusBadge> : <StatusBadge tone="default">Неактивен</StatusBadge>}</td>
                                             <td className="text-right">
-                                                <div className="flex justify-end gap-2">
+                                                <div className="flex flex-nowrap justify-end gap-2">
                                                     {canManage && (
                                                         <>
                                                             <Button size="sm" variant="outline" onClick={() => openEditDialog(indicator)}>
@@ -550,25 +579,31 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                 </tbody>
                             </table>
                         </div>
+                        {(links.length > 3 || (fromIndex && toIndex)) && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
+                                <span className="text-xs text-slate-500">
+                                    {fromIndex && toIndex ? <>Показано {fromIndex}–{toIndex} из {totalCount}</> : null}
+                                </span>
+                                {links.length > 3 && (
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        {links.map((link) => (
+                                            <Button
+                                                key={`${link.url}-${link.label}`}
+                                                type="button"
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                disabled={!link.url}
+                                                onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
+                                            >
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
-
-            {links.length > 3 && (
-                <div className="flex flex-wrap justify-end gap-2">
-                    {links.map((link) => (
-                        <Button
-                            key={`${link.url}-${link.label}`}
-                            type="button"
-                            variant={link.active ? 'default' : 'outline'}
-                            size="sm"
-                            disabled={!link.url}
-                            onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
-                        >
-                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                        </Button>
-                    ))}
-                </div>
             )}
         </div>
         <ConfirmDialog

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, Link2, Plus, Search, Unlink, Users } from 'lucide-react';
+import { ArrowLeft, Link2, Plus, Search, Unlink, UserPlus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 
@@ -161,22 +161,28 @@ export default function StructuralUnitShow() {
         >
             <Head title={`Структура ${formatStructuralUnitLabel(unit)}`} />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Ответственные сотрудники" value={unit.users?.length || 0} tone="teal" icon={Users} />
                     <StatTile label="Привязанные записи" value={unit.records?.length || 0} tone="info" icon={Link2} />
                     <StatTile label="Записи без подразделения" value={availableRecords.length} tone="warning" icon={Unlink} />
+                    <StatTile
+                        label="Кандидаты"
+                        value={unassignedStaffOptions.length + assignedElsewhereStaffOptions.length}
+                        tone="navy"
+                        icon={UserPlus}
+                        hint={`Без СП: ${unassignedStaffOptions.length} · в других СП: ${assignedElsewhereStaffOptions.length}`}
+                    />
                 </StatGrid>
 
-                <div className="grid gap-6 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3 lg:items-start">
                     <Card>
                         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Ответственные сотрудники</CardTitle>
                             <Badge variant="outline" className="tabular-nums">{unit.users?.length || 0}</Badge>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <label className="block space-y-2">
-                                <span className="qd-field-label block">Поиск</span>
+                        <CardContent className="space-y-3">
+                            <label className="block">
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
@@ -202,12 +208,11 @@ export default function StructuralUnitShow() {
                                         {filteredUnitUsers.map((user) => (
                                             <div
                                                 key={user.id}
-                                                className="flex items-start justify-between gap-3 border-b border-slate-200 py-3"
+                                                className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5"
                                             >
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-medium text-slate-900">{user.name}</p>
-                                                    <p className="text-xs text-slate-500">{user.role_label || 'Без роли'}</p>
-                                                    <p className="text-xs text-slate-500">{user.email || 'Email не указан'}</p>
+                                                    <p className="text-xs text-slate-500">{user.role_label || 'Без роли'} · {user.email || 'Email не указан'}</p>
                                                 </div>
                                                 <Button
                                                     type="button"
@@ -241,7 +246,7 @@ export default function StructuralUnitShow() {
                                     {unit.records.map((record) => (
                                         <div
                                             key={record.id}
-                                            className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6"
+                                            className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-2.5 last:border-0 sm:px-6"
                                         >
                                             <div className="min-w-0 space-y-1">
                                                 <p className="text-sm font-semibold text-slate-900">
@@ -272,9 +277,8 @@ export default function StructuralUnitShow() {
                             )}
                         </CardContent>
                     </Card>
-                </div>
 
-                <Card>
+                <Card className="lg:col-span-2 2xl:col-span-1">
                     <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2"><Unlink className="h-4 w-4" />Записи без структурного подразделения</CardTitle>
                         <Badge variant="outline" className="tabular-nums">{availableRecords.length}</Badge>
@@ -285,9 +289,9 @@ export default function StructuralUnitShow() {
                                 {availableRecords.map((record) => (
                                     <div
                                         key={record.id}
-                                        className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6"
+                                        className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-2.5 last:border-0 sm:px-6"
                                     >
-                                        <div className="min-w-0 space-y-1">
+                                        <div className="min-w-0 space-y-0.5">
                                             <p className="text-sm font-semibold text-slate-900">
                                                 {formatStructuralUnitLabel(record)}
                                             </p>
@@ -311,6 +315,7 @@ export default function StructuralUnitShow() {
                         )}
                     </CardContent>
                 </Card>
+                </div>
             </div>
             <ConfirmDialog
                 open={confirmState.open}

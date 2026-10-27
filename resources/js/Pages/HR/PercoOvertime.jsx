@@ -8,7 +8,7 @@ import { Head, router } from '@inertiajs/react';
 import { Clock3, Download, Search, Timer, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-export default function PercoOvertime({ staff, divisions = [], filters = {}, summary = {}, latestOvertimeDate = null }) {
+export default function PercoOvertime({ staff, divisions = [], filters = {}, range = {}, summary = {}, latestOvertimeDate = null }) {
     const items = staff?.data ?? [];
     const links = staff?.links ?? [];
     const meta = staff?.meta ?? {};
@@ -201,10 +201,10 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
         >
             <Head title="HR / Переработка" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <FilterBar>
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                    <form onSubmit={handleSearch}>
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
                             <label className="relative block space-y-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
@@ -237,19 +237,19 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
                             <FormField label="С даты">
                                 <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
                             </FormField>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                            <Button type="submit">
-                                <Search className="h-4 w-4" />
-                                Найти
-                            </Button>
+                            <div className="flex items-end justify-end md:col-span-2 xl:col-span-1">
+                                <Button type="submit">
+                                    <Search className="h-4 w-4" />
+                                    Найти
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
                 <StatGrid>
-                    <StatTile label="Рабочих дней в периоде" value={overtimeDays} icon={Timer} tone="copper" />
-                    <StatTile label="Сотрудников" value={overtimePeople} icon={Users} tone="info" />
+                    <StatTile label="Рабочих дней в периоде" value={overtimeDays} icon={Timer} tone="copper" hint={range?.from ? `${fmtDate(range.from)} – ${fmtDate(range.to)}` : null} />
+                    <StatTile label="Сотрудников" value={overtimePeople} icon={Users} tone="info" hint={overtimePeople > 0 ? `${(overtimeDays / overtimePeople).toFixed(1)} дн. на сотрудника` : null} />
                     <StatTile label="Всего отработано" value={<span className="text-2xl">{totalWorkTime}</span>} icon={Clock3} tone="success" />
                     <StatTile label="Суммарная переработка" value={<span className="text-2xl">{totalOvertime}</span>} icon={Clock3} tone="danger" />
                 </StatGrid>
@@ -261,12 +261,15 @@ export default function PercoOvertime({ staff, divisions = [], filters = {}, sum
                 )}
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2"><Timer className="shrink-0" />Кто сколько работал</CardTitle>
+                        <span className="text-xs tabular-nums text-slate-500">
+                            На странице: {items.length}{meta?.total != null ? ` · всего ${meta.total}` : ''}
+                        </span>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1100px] text-sm">

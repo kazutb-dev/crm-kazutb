@@ -62,6 +62,7 @@ function getMonthCells(year, month) {
     const cells = [];
     for (let i = 0; i < startOffset; i++) cells.push(null);
     for (let d = 1; d <= totalDays; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
     return cells;
 }
 
@@ -264,7 +265,7 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
                                 onClick={() => day && onDayClick(day)}
                                 onDoubleClick={() => day && onDayDoubleClick && onDayDoubleClick(day)}
                                 className={[
-                                    'min-h-[104px] border-b border-r border-slate-200 p-2 flex flex-col gap-1.5 last:border-r-0 [&:nth-child(7n)]:border-r-0',
+                                    'min-h-[96px] border-b border-r border-slate-200 p-1.5 flex flex-col gap-1 last:border-r-0 [&:nth-child(7n)]:border-r-0',
                                     day ? 'cursor-pointer hover:bg-teal-50/60 transition-colors' : 'bg-slate-50',
                                     isPastDay ? 'bg-slate-50 text-slate-400' : '',
                                     dayEvts.length > 0 && !isPastDay ? 'bg-white' : '',
@@ -273,11 +274,14 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
                             >
                                 {day && (
                                     <>
-                                        <span className={`text-xs font-semibold tabular-nums w-7 h-7 flex items-center justify-center rounded-full shrink-0 ${isToday ? 'bg-teal-700 text-white' : isPastDay ? 'text-slate-400' : isHoliday || isWeekend ? 'text-red-600/80' : 'text-slate-800'}`}>
-                                            {day}
-                                        </span>
-                                        {dayEvts.slice(0, 2).map((e, i) => <EventChip key={i} event={e} small onClick={onEventClick ? ev => { ev.stopPropagation(); onEventClick(e); } : undefined} />)}
-                                        {dayEvts.length > 2 && <span className="mt-auto text-[10px] font-medium text-slate-500">+{dayEvts.length - 2} ещё</span>}
+                                        <div className="flex items-center justify-between gap-1">
+                                            <span className={`text-xs font-semibold tabular-nums w-6 h-6 flex items-center justify-center rounded-full shrink-0 ${isToday ? 'bg-teal-700 text-white' : isPastDay ? 'text-slate-400' : isHoliday || isWeekend ? 'text-red-600/80' : 'text-slate-800'}`}>
+                                                {day}
+                                            </span>
+                                            {dayEvts.length > 0 && <span className="text-[10px] font-semibold tabular-nums text-slate-500">{dayEvts.length}</span>}
+                                        </div>
+                                        {dayEvts.slice(0, 3).map((e, i) => <EventChip key={i} event={e} small onClick={onEventClick ? ev => { ev.stopPropagation(); onEventClick(e); } : undefined} />)}
+                                        {dayEvts.length > 3 && <span className="mt-auto text-[10px] font-medium text-slate-500">+{dayEvts.length - 3} ещё</span>}
                                     </>
                                 )}
                             </div>
@@ -1232,6 +1236,13 @@ function EventModal({ event, open, onClose }) {
     );
 }
 
+const STATUS_LEGEND = [
+    { key: 'confirmed', label: 'Подтверждено', cls: 'bg-blue-600' },
+    { key: 'pending', label: 'Ожидает', cls: 'bg-amber-400' },
+    { key: 'conflict', label: 'Конфликт', cls: 'bg-red-600' },
+    { key: 'declined', label: 'Отклонено', cls: 'bg-slate-500' },
+];
+
 const VIEWS = [
     { key: 'month', label: 'Месяц' },
     { key: 'week', label: 'Неделя' },
@@ -1343,18 +1354,16 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
     }, [view, year, month, day]);
 
     const hasMeetingNotifications = meetingNotifications.length > 0;
-    const eventLegend = [
-        { key: 'meeting', label: 'Встреча', cls: 'bg-blue-600' },
-        { key: 'vacation', label: 'Отпуск', cls: 'bg-emerald-600' },
-        { key: 'business_trip', label: 'Командировка', cls: 'bg-orange-600' },
-        { key: 'sick_leave', label: 'Больничный', cls: 'bg-amber-500' },
-        { key: 'personal', label: 'Личное', cls: 'bg-[#102945]' },
-        { key: 'remote', label: 'Удаленная работа', cls: 'bg-teal-600' },
-        { key: 'other', label: 'Другое', cls: 'bg-slate-400' },
-        { key: 'pending', label: 'Ожидает', cls: 'bg-amber-400' },
-        { key: 'conflict', label: 'Конфликт', cls: 'bg-red-600' },
-        { key: 'declined', label: 'Отклонено', cls: 'bg-slate-500' },
-    ];
+    const typeCounts = useMemo(() => events.reduce((acc, e) => {
+        const key = TYPE_META[e.type] ? e.type : 'other';
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+    }, {}), [events]);
+    const statusCounts = useMemo(() => events.reduce((acc, e) => {
+        const key = e.status ?? 'confirmed';
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+    }, {}), [events]);
 
     const isManagingOther = calendarOwner && String(calendarOwner.id) !== String(selfUser?.id);
 
@@ -1463,7 +1472,7 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
                     <div className="space-y-6">
                         <FilterBar>
-                            <div className="space-y-4">
+                            <div className="grid gap-3 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)_auto] lg:items-end">
                                 <label className="relative block space-y-2">
                                     <span className="qd-field-label block">Поиск по событиям</span>
                                     <Search className="pointer-events-none absolute bottom-3 left-3 size-4 text-slate-400" />
@@ -1481,27 +1490,29 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                                 </label>
                                 <div className="space-y-2">
                                     <span className="qd-field-label block">Типы событий</span>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <div className="flex min-h-10 flex-wrap items-center gap-1.5">
                                         {Object.entries(TYPE_META).map(([key, meta]) => {
                                             const on = activeTypes.has(key);
+                                            const count = typeCounts[key] ?? 0;
                                             return (
                                                 <button
                                                     key={key}
                                                     type="button"
                                                     onClick={() => toggleType(key)}
                                                     aria-pressed={on}
-                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${on ? 'border-slate-300 bg-white text-slate-800 hover:border-slate-400' : 'border-dashed border-slate-300 bg-slate-50 text-slate-400'}`}
+                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${on ? 'border-slate-300 bg-white text-slate-800 hover:border-slate-400' : 'border-dashed border-slate-300 bg-slate-50 text-slate-400'}`}
                                                 >
                                                     <span className={`h-2 w-2 rounded-full ${on ? meta.dot : 'bg-slate-300'}`} />
                                                     {meta.label}
+                                                    <span className="tabular-nums text-slate-400">{count}</span>
                                                     {!on && <X className="size-3" />}
                                                 </button>
                                             );
                                         })}
                                     </div>
                                 </div>
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
-                                    <span className="text-xs font-medium text-slate-500">Найдено: <span className="tabular-nums">{filteredEvents.length}</span></span>
+                                <div className="flex h-10 items-center gap-3 lg:justify-end">
+                                    <span className="whitespace-nowrap text-xs font-medium text-slate-500">Найдено: <span className="font-semibold tabular-nums text-[#102945]">{filteredEvents.length}</span> из <span className="tabular-nums">{events.length}</span></span>
                                     {activeTypes.size < Object.keys(TYPE_META).length && (
                                         <Button type="button" variant="outline" size="sm" onClick={() => setActiveTypes(new Set(Object.keys(TYPE_META)))}>
                                             Сбросить
@@ -1529,15 +1540,6 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                         {view === 'day' && <DayView year={year} month={month} day={day} events={filteredEvents} onEventClick={setSelectedEvent} />}
                         {view === 'agenda' && <AgendaView events={filteredEvents} onEventClick={setSelectedEvent} />}
 
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-600">
-                            <span className="qd-field-label text-slate-500">Цвета событий</span>
-                            {eventLegend.map(item => (
-                                <span key={item.key} className="inline-flex items-center gap-1.5">
-                                    <span className={`h-2.5 w-2.5 rounded-full ${item.cls}`} />
-                                    {item.label}
-                                </span>
-                            ))}
-                        </div>
                     </div>
 
                     <div className="space-y-6 xl:sticky xl:top-4">
@@ -1567,6 +1569,47 @@ export default function CalendarIndex({ events = [], stats = {}, upcomingEvents 
                                             </div>
                                         ))}
                                     </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarDays className="shrink-0" />
+                                    Состав событий
+                                </CardTitle>
+                                <span className="text-xs font-semibold tabular-nums text-slate-500">{events.length}</span>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="divide-y divide-slate-200">
+                                    {Object.entries(TYPE_META).map(([key, meta]) => {
+                                        const count = typeCounts[key] ?? 0;
+                                        const pct = events.length ? Math.round((count / events.length) * 100) : 0;
+                                        return (
+                                            <div key={key} className="flex items-center gap-2 py-1.5 text-xs">
+                                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} />
+                                                <span className="min-w-0 flex-1 truncate text-slate-700">{meta.label}</span>
+                                                <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
+                                                    <span className={`block h-full ${meta.dot}`} style={{ width: `${pct}%` }} />
+                                                </span>
+                                                <span className="w-6 text-right font-semibold tabular-nums text-[#102945]">{count}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="space-y-1.5 border-t border-slate-200 pt-3">
+                                    <span className="qd-field-label block">Статусы</span>
+                                    {STATUS_LEGEND.map(item => (
+                                        <div key={item.key} className="flex items-center gap-2 text-xs">
+                                            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${item.cls}`} />
+                                            <span className="flex-1 text-slate-700">{item.label}</span>
+                                            <span className="font-semibold tabular-nums text-[#102945]">{statusCounts[item.key] ?? 0}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                {holidays.length > 0 && (
+                                    <p className="border-t border-slate-200 pt-3 text-xs text-slate-500">Праздничных дней в периоде: <span className="font-semibold tabular-nums text-[#102945]">{holidays.length}</span></p>
                                 )}
                             </CardContent>
                         </Card>

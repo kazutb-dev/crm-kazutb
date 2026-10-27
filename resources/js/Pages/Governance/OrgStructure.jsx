@@ -26,7 +26,7 @@ function TreeNode({ node, level = 0, expanded, onToggle }) {
     return (
         <div>
             <div
-                className="group flex items-start gap-2.5 rounded-[10px] px-2 py-2.5 transition-colors hover:bg-slate-50"
+                className="group flex items-start gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors hover:bg-slate-50"
                 style={{ paddingLeft: `${Math.min(level * 16, 96) + 8}px` }}
             >
                 <button
@@ -47,7 +47,7 @@ function TreeNode({ node, level = 0, expanded, onToggle }) {
                             <Badge variant="warning">Переходное сопоставление</Badge>
                         ) : null}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span className="tabular-nums">Дочерние: {node.children_count ?? 0}</span>
                         <span>Руководитель: {node.leader_name ?? 'не назначен'}</span>
                     </div>
@@ -200,6 +200,18 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
         setExpanded(new Set());
     };
 
+    const unitNames = useMemo(() => {
+        const names = new Map();
+        const walk = (nodes) => nodes.forEach((node) => {
+            names.set(node.id, node.name);
+            if (Array.isArray(node.children)) walk(node.children);
+        });
+        walk(tree);
+        units.forEach((unit) => names.set(unit.id, unit.name));
+        return names;
+    }, [tree, units]);
+    const typeTotal = (summary.type_breakdown ?? []).reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+
     const currentPage = pagination.current_page ?? 1;
     const lastPage = pagination.last_page ?? 1;
 
@@ -232,12 +244,18 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
 
             <div className="admin-page-wrap space-y-6">
                 {canManageFoundation ? (
-                    <Notice tone="danger" title="Управление оргструктурой">
+                    <Notice
+                        tone="danger"
+                        className="flex-wrap"
+                        action={(
+                            <div className="flex max-w-full flex-wrap gap-2 self-center">
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы</Button>
+                            </div>
+                        )}
+                    >
+                        <span className="font-semibold text-red-800">Управление оргструктурой.</span>{' '}
                         Создание, редактирование и удаление выполняются администратором. Все изменения логируются.
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы</Button>
-                        </div>
                     </Notice>
                 ) : null}
 
@@ -255,13 +273,8 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                 ) : null}
 
                 <FilterBar>
-                    <div className="mb-4 flex items-center justify-between gap-2">
-                        <div className="text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">Фильтры каталога</div>
-                        <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-                        <label className="relative block space-y-2 md:col-span-2">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto] xl:items-end">
+                        <label className="relative block space-y-2 md:col-span-2 xl:col-span-1">
                             <span className="qd-field-label block">Поиск</span>
                             <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
                             <Input
@@ -294,15 +307,16 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 <option value="1">Только переходные</option>
                             </select>
                         </FormField>
-                    </div>
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
-                        <div className="text-xs font-medium text-slate-500">Активно фильтров: {activeFilterCount}</div>
-                        <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Сбросить</Button>
+
+                        <div className="flex h-10 items-center gap-2 md:col-span-2 xl:col-span-1">
+                            <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
+                            <Button type="button" variant="outline" size="sm" onClick={clearFilters}>Сбросить</Button>
+                        </div>
                     </div>
                 </FilterBar>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-                    <Card className="xl:col-span-3">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+                    <Card>
                         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2"><GitBranch className="h-4 w-4" />Дерево структуры</CardTitle>
                             <div className="flex gap-2">
@@ -310,9 +324,9 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 <Button variant="outline" size="sm" onClick={collapseAll}>Свернуть</Button>
                             </div>
                         </CardHeader>
-                        <CardContent className="max-h-[760px] overflow-auto pr-2">
+                        <CardContent className="max-h-[640px] overflow-auto pr-2">
                             {tree.length === 0 ? (
-                                <p className="py-6 text-center text-sm text-slate-500">Данные оргструктуры пока не загружены.</p>
+                                <p className="py-8 text-center text-sm text-slate-500">Данные оргструктуры пока не загружены.</p>
                             ) : (
                                 <div className="divide-y divide-slate-100">
                                     {tree.map((node) => (
@@ -323,20 +337,47 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-6 xl:col-span-2">
+                    <div className="space-y-4">
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />По типам</CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">{typeTotal} ед.</span>
+                            </CardHeader>
+                            <CardContent className="space-y-2.5">
+                                {(summary.type_breakdown ?? []).length === 0 ? (
+                                    <p className="text-sm text-slate-500">Нет данных.</p>
+                                ) : null}
+                                {(summary.type_breakdown ?? []).map((item) => (
+                                    <div key={item.type}>
+                                        <div className="flex items-center justify-between gap-2 text-sm">
+                                            <span className="truncate text-slate-700">{item.label}</span>
+                                            <span className="font-semibold tabular-nums text-[#102945]">
+                                                {item.count}
+                                                <span className="ml-1.5 text-xs font-normal text-slate-500">{typeTotal ? Math.round((item.count / typeTotal) * 100) : 0}%</span>
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 h-1.5 rounded-full bg-slate-100">
+                                            <div className="h-1.5 rounded-full bg-teal-500" style={{ width: `${typeTotal ? (item.count / typeTotal) * 100 : 0}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4" />Риски и пробелы</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-5">
+                            <CardContent className="space-y-4">
                                 <div>
-                                    <p className="qd-field-label mb-2 flex items-center gap-2 text-slate-500">
+                                    <p className="qd-field-label mb-1 flex items-center gap-2 text-slate-500">
                                         <span className="h-2 w-2 rounded-full bg-amber-500" />
                                         Без назначенного руководителя
+                                        <span className="ml-auto tabular-nums">{(unknowns.without_leader ?? []).length}</span>
                                     </p>
                                     <div>
                                         {(unknowns.without_leader ?? []).slice(0, 8).map((item) => (
-                                            <div key={item.id} className="border-b border-slate-200 py-2 text-sm text-slate-800 last:border-0">
+                                            <div key={item.id} className="border-b border-slate-200 py-1.5 text-sm text-slate-800 last:border-0">
                                                 {item.name}
                                             </div>
                                         ))}
@@ -347,13 +388,14 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 </div>
 
                                 <div>
-                                    <p className="qd-field-label mb-2 flex items-center gap-2 text-slate-500">
+                                    <p className="qd-field-label mb-1 flex items-center gap-2 text-slate-500">
                                         <span className="h-2 w-2 rounded-full bg-red-600" />
                                         Переходное сопоставление
+                                        <span className="ml-auto tabular-nums">{(unknowns.transitional_mappings ?? []).length}</span>
                                     </p>
                                     <div>
                                         {(unknowns.transitional_mappings ?? []).slice(0, 8).map((item) => (
-                                            <div key={item.id} className="border-b border-slate-200 py-2 text-sm last:border-0">
+                                            <div key={item.id} className="border-b border-slate-200 py-1.5 text-sm last:border-0">
                                                 <div className="font-medium text-slate-900">{item.name}</div>
                                                 {item.metadata?.legacy_mapping_from ? (
                                                     <div className="text-xs text-slate-500">legacy: {item.metadata.legacy_mapping_from}</div>
@@ -370,29 +412,13 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                 </div>
                             </CardContent>
                         </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Type breakdown</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {(summary.type_breakdown ?? []).length === 0 ? (
-                                    <p className="text-sm text-slate-500">Нет данных.</p>
-                                ) : null}
-                                {(summary.type_breakdown ?? []).map((item) => (
-                                    <div key={item.type} className="flex items-center justify-between border-b border-slate-200 py-2 text-sm last:border-0">
-                                        <span className="text-slate-700">{item.label}</span>
-                                        <span className="font-display text-base font-bold tabular-nums text-[#102945]">{item.count}</span>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
                     </div>
                 </div>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Каталог (плоский вид)</CardTitle>
+                        <span className="text-xs font-medium tabular-nums text-slate-500">{(pagination.total ?? units.length).toLocaleString('ru-RU')} записей</span>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
@@ -413,12 +439,19 @@ export default function OrgStructure({ summary = {}, tree = [], units = [], pagi
                                         <tr key={item.id} className="align-top hover:bg-slate-50">
                                             <td>
                                                 <div className="font-medium text-slate-900">{item.name}</div>
-                                                <div className="text-xs tabular-nums text-slate-500">ID: {item.id}</div>
+                                                <div className="text-xs tabular-nums text-slate-500">ID: {item.id}{item.children_count != null ? ` · дочерних: ${item.children_count}` : ''}</div>
                                             </td>
                                             <td>
                                                 <TypeBadge label={item.unit_type_label} />
                                             </td>
-                                            <td className="tabular-nums text-slate-600">{item.parent_id ?? 'Корень'}</td>
+                                            <td className="text-slate-600">
+                                                {item.parent_id ? (
+                                                    <>
+                                                        {unitNames.get(item.parent_id) ?? <span className="tabular-nums">ID {item.parent_id}</span>}
+                                                        {unitNames.has(item.parent_id) ? <div className="text-xs tabular-nums text-slate-400">ID {item.parent_id}</div> : null}
+                                                    </>
+                                                ) : 'Корень'}
+                                            </td>
                                             <td className="font-mono text-xs text-slate-700">{item.code}</td>
                                             <td>
                                                 {item.leader_name ? (

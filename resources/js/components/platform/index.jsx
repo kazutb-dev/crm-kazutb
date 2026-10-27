@@ -17,10 +17,10 @@ const STATUS_TONES = {
 export function PageHeader({ eyebrow, title, description, actions = null, meta = null }) {
     return (
         <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 space-y-1.5">
                 {eyebrow ? <p className="qd-kicker">{eyebrow}</p> : null}
                 <h1 className="font-display text-[1.75rem] font-bold leading-tight tracking-[-0.015em] text-[#102945]">{title}</h1>
-                {description ? <p className="max-w-3xl text-[0.9375rem] leading-relaxed text-slate-600">{description}</p> : null}
+                {description ? <p className="max-w-3xl text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
                 {meta}
@@ -44,7 +44,7 @@ export function SectionHeader({ title, description = null, actions = null, compa
 
 export function FilterBar({ children, className = '' }) {
     return (
-        <div className={`rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-5 ${className}`}>
+        <div className={`rounded-[14px] border border-slate-200 bg-white p-3 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-4 ${className}`}>
             {children}
         </div>
     );
@@ -69,7 +69,7 @@ const STAT_DOTS = {
 // in Literata, an optional hint. Pass href-less; wrap in a Link yourself when it navigates.
 export function StatTile({ label, value, hint = null, tone = 'teal', icon: Icon = null, trend = null, className = '' }) {
     return (
-        <div className={`flex h-full flex-col rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] ${className}`}>
+        <div className={`flex h-full flex-col rounded-[14px] border border-slate-200 bg-white px-4 py-3.5 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] ${className}`}>
             <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${STAT_DOTS[tone] ?? STAT_DOTS.teal}`} aria-hidden="true" />
@@ -77,18 +77,18 @@ export function StatTile({ label, value, hint = null, tone = 'teal', icon: Icon 
                 </div>
                 {Icon ? <Icon className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" /> : null}
             </div>
-            <div className="mt-3 flex items-baseline gap-2">
-                <span className="font-display text-[2.25rem] font-bold leading-none tabular-nums text-[#102945]">{value}</span>
+            <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-[1.75rem] font-bold leading-none tabular-nums tracking-[-0.01em] text-[#102945]">{value}</span>
                 {trend}
             </div>
-            {hint ? <div className="mt-auto pt-3 text-xs leading-snug text-slate-500">{hint}</div> : null}
+            {hint ? <div className="mt-auto pt-2 text-xs leading-snug text-slate-500">{hint}</div> : null}
         </div>
     );
 }
 
 // Tiles share the row evenly whatever their count (3 tiles = 3 columns, no empty cell, no orphan row).
 export function StatGrid({ children, className = '' }) {
-    return <div className={`grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))] ${className}`}>{children}</div>;
+    return <div className={`grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))] ${className}`}>{children}</div>;
 }
 
 // Underline tabs with an optional count chip; items: [{ key, label, count?, icon?, disabled? }].
@@ -215,9 +215,9 @@ export function StatusBadge({ tone = 'default', children, className = '' }) {
 export function EmptyState({ title, description, action = null }) {
     return (
         <Card className="border-dashed border-slate-300 bg-white">
-            <CardContent className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                    <Inbox className="h-7 w-7" />
+            <CardContent className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                    <Inbox className="h-6 w-6" />
                 </div>
                 <div className="max-w-md space-y-1.5">
                     <p className="font-display text-lg font-bold text-[#102945]">{title}</p>

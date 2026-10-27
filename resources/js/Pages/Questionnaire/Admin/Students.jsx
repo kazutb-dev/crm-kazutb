@@ -19,6 +19,8 @@ export default function Students() {
     const [adSearch, setAdSearch] = useState('');
     const [adLoading, setAdLoading] = useState(false);
     const [search, setSearch] = useState('');
+    const [groupFilter, setGroupFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const [form, setForm] = useState({
         user_id: '',
@@ -159,6 +161,14 @@ export default function Students() {
     };
 
     const filteredStudents = students.filter((student) => {
+        if (groupFilter !== 'all' && String(student.group_id) !== groupFilter) {
+            return false;
+        }
+
+        if (statusFilter !== 'all' && (statusFilter === 'active' ? student.status !== 'active' : student.status === 'active')) {
+            return false;
+        }
+
         const term = search.trim().toLowerCase();
         if (term === '') {
             return true;
@@ -177,6 +187,19 @@ export default function Students() {
     });
 
     const activeStudents = students.filter((student) => student.status === 'active').length;
+    const linkedAccounts = students.filter((student) => student.user_id).length;
+    const studentsByGroup = groups
+        .map((group) => {
+            const groupStudents = students.filter((student) => Number(student.group_id) === Number(group.id));
+            return {
+                id: group.id,
+                name: group.name,
+                total: groupStudents.length,
+                active: groupStudents.filter((student) => student.status === 'active').length,
+            };
+        })
+        .sort((a, b) => b.total - a.total || String(a.name).localeCompare(String(b.name), 'ru'));
+    const groupsWithStudents = studentsByGroup.filter((group) => group.total > 0).length;
 
     return (
         <AuthenticatedLayout
@@ -185,7 +208,6 @@ export default function Students() {
                     eyebrow="Анкетирование"
                     title="Студенты"
                     description="Привязка студентов к группам с выбором из локальной базы или AD."
-                    meta={<StatusBadge tone="default">{students.length} привязок</StatusBadge>}
                 />
             )}
         >
@@ -193,16 +215,18 @@ export default function Students() {
 
             <div className="admin-page-wrap space-y-6">
                 <StatGrid>
-                    <StatTile label="Привязок" value={students.length} tone="teal" icon={Users} />
+                    <StatTile label="Привязок" value={students.length} tone="teal" icon={Users} hint={`Неактивных: ${students.length - activeStudents}`} />
                     <StatTile label="Активные" value={activeStudents} tone="success" icon={UserCheck} />
-                    <StatTile label="Групп" value={groups.length} tone="navy" icon={UsersRound} />
+                    <StatTile label="Групп" value={groups.length} tone="navy" icon={UsersRound} hint={`Со студентами: ${groupsWithStudents}`} />
+                    <StatTile label="С учётной записью" value={linkedAccounts} tone="info" hint={`Только AD-логин: ${students.length - linkedAccounts}`} />
                     <StatTile label="Студентов в базе" value={studentUsers.length} tone="gold" icon={UserSearch} hint="Доступны для выбора в форме" />
                 </StatGrid>
 
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
 
-                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[400px_1fr]">
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+                    <div className="space-y-4 xl:sticky xl:top-5">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -211,7 +235,7 @@ export default function Students() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-4" onSubmit={submit}>
+                            <form className="space-y-3" onSubmit={submit}>
                                 <FormField label="Студент из локальной базы">
                                     <select
                                         className={qdFieldClass}
@@ -234,7 +258,7 @@ export default function Students() {
                                 </FormField>
 
                                 {!editingId && (
-                                    <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white p-4">
+                                    <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white p-3">
                                         <div className="flex items-start gap-2">
                                             <UserSearch className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
                                             <p className="text-sm font-medium text-[#102945]">Если студента нет в системе, выполните поиск в AD</p>
@@ -283,6 +307,7 @@ export default function Students() {
                                     </div>
                                 )}
 
+                                <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-3">
                                 <FormField label="Группа">
                                     <select
                                         className={qdFieldClass}
@@ -308,8 +333,9 @@ export default function Students() {
                                         <option value="inactive">inactive</option>
                                     </select>
                                 </FormField>
+                                </div>
 
-                                <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
                                     {editingId && (
                                         <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
                                     )}
@@ -323,33 +349,75 @@ export default function Students() {
                     </Card>
 
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                            <CardTitle className="flex items-center gap-2">
+                                <UsersRound />
+                                По группам
+                            </CardTitle>
+                            <span className="text-xs tabular-nums text-slate-500">{groups.length} групп</span>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {studentsByGroup.length === 0 ? (
+                                <p className="px-5 py-4 text-sm text-slate-500 sm:px-6">Группы не загружены.</p>
+                            ) : (
+                                <ul className="max-h-80 divide-y divide-slate-200 overflow-y-auto">
+                                    {studentsByGroup.map((group) => (
+                                        <li key={group.id}>
+                                            <button
+                                                type="button"
+                                                className={`flex w-full items-center justify-between gap-3 px-5 py-2 text-left text-sm hover:bg-slate-50 sm:px-6 ${groupFilter === String(group.id) ? 'bg-teal-50' : ''}`}
+                                                onClick={() => setGroupFilter(groupFilter === String(group.id) ? 'all' : String(group.id))}
+                                            >
+                                                <span className="truncate font-medium text-slate-900">{group.name}</span>
+                                                <span className="shrink-0 tabular-nums text-slate-600">
+                                                    <span className="font-semibold text-[#102945]">{group.active}</span> / {group.total}
+                                                </span>
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                    </div>
+
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                             <CardTitle className="flex items-center gap-2">
                                 <Users />
                                 Текущие привязки студентов
                             </CardTitle>
+                            <span className="text-sm tabular-nums text-slate-500">Показано: {filteredStudents.length} из {students.length}</span>
                         </CardHeader>
-                        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-                            <FormField label="Поиск">
-                                <div className="relative w-full sm:max-w-sm">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        className="pl-9"
-                                        placeholder="ФИО, логин или группа"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                    />
-                                </div>
-                            </FormField>
+                        <div className="grid gap-3 border-b border-slate-200 px-5 py-3 sm:px-6 md:grid-cols-[minmax(0,1fr)_12rem_10rem]">
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    className="pl-9"
+                                    placeholder="ФИО, логин или группа"
+                                    aria-label="Поиск"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </div>
+                            <select className={qdFieldClass} aria-label="Группа" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+                                <option value="all">Все группы</option>
+                                {groups.map((group) => <option key={group.id} value={String(group.id)}>{group.name}</option>)}
+                            </select>
+                            <select className={qdFieldClass} aria-label="Статус" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                                <option value="all">Все статусы</option>
+                                <option value="active">active</option>
+                                <option value="inactive">inactive</option>
+                            </select>
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5 sm:p-6"><LoadingState /></div>
+                                <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                             ) : filteredStudents.length === 0 ? (
-                                <div className="px-5 py-12 text-center sm:px-6">
-                                    <p className="font-display text-lg font-bold text-[#102945]">Привязки пока не созданы</p>
+                                <div className="px-5 py-8 text-center sm:px-6">
+                                    <p className="font-semibold text-[#102945]">{students.length === 0 ? 'Привязки пока не созданы' : 'Ничего не найдено'}</p>
                                     <p className="mt-1 text-sm text-slate-600">
-                                        {students.length === 0 ? 'Выберите студента и группу в форме слева, чтобы создать первую привязку.' : 'По запросу ничего не найдено — измените поиск.'}
+                                        {students.length === 0 ? 'Выберите студента и группу в форме слева, чтобы создать первую привязку.' : 'Измените поиск или фильтры.'}
                                     </p>
                                 </div>
                             ) : (
@@ -357,24 +425,33 @@ export default function Students() {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
+                                                <th className="w-12 whitespace-nowrap text-right">№</th>
                                                 <th className="whitespace-nowrap text-left">Студент</th>
                                                 <th className="whitespace-nowrap text-left">Логин AD</th>
                                                 <th className="whitespace-nowrap text-left">Группа</th>
+                                                <th className="whitespace-nowrap text-left">Источник</th>
                                                 <th className="whitespace-nowrap text-left">Статус</th>
+                                                <th className="whitespace-nowrap text-right">Добавлен</th>
                                                 <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredStudents.map((student) => (
+                                            {filteredStudents.map((student, index) => (
                                                 <tr key={student.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingId === student.id ? 'bg-teal-50' : ''}`}>
-                                                    <td className="font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="text-right tabular-nums text-slate-400">{index + 1}</td>
+                                                    <td className="font-medium text-slate-900">
+                                                        <span className="block">{student.full_name}</span>
+                                                        {student.user?.email && <span className="block text-xs font-normal text-slate-500">{student.user.email}</span>}
+                                                    </td>
                                                     <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
                                                     <td className="whitespace-nowrap text-slate-700">{student.group?.name || '—'}</td>
+                                                    <td className="whitespace-nowrap text-xs text-slate-600">{student.user_id ? 'Учётная запись' : 'AD'}</td>
                                                     <td>
                                                         <StatusBadge tone={student.status === 'active' ? 'success' : 'default'}>
                                                             {student.status}
                                                         </StatusBadge>
                                                     </td>
+                                                    <td className="whitespace-nowrap text-right tabular-nums text-slate-600">{student.created_at ? new Date(student.created_at).toLocaleDateString('ru-RU') : '—'}</td>
                                                     <td className="text-right">
                                                         <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>

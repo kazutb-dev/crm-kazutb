@@ -161,7 +161,7 @@ function fmtPercent(value) {
 
 // ─── filter bar ───────────────────────────────────────────────────────────────
 
-function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period }) {
+function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period, hasResult = true }) {
     const handleChange = (key, value) => {
         const params = {};
         if (key === 'academic_year_id') {
@@ -178,7 +178,7 @@ function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period
 
     return (
         <FilterBar>
-            <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
                 <FormField label="Учебный год">
                     <select
                         className={qdFieldClass}
@@ -205,7 +205,7 @@ function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period
                         ))}
                     </select>
                 </FormField>
-                <div className="flex h-10 items-center gap-2 text-sm">
+                <div className="flex min-h-10 flex-wrap items-center gap-2 text-sm md:col-span-2 xl:col-span-1">
                     {period ? (
                         <>
                             <CalendarRange className="h-4 w-4 text-teal-700" />
@@ -220,6 +220,12 @@ function PeriodFilters({ teacherId, filters, filterOptions, academicYear, period
                         <span className="flex items-center gap-1.5 font-medium text-amber-700">
                             <CalendarRange className="h-4 w-4" />
                             Период не выбран
+                        </span>
+                    )}
+                    {!hasResult && (
+                        <span className="flex flex-wrap items-center gap-2">
+                            <StatusBadge tone="warning">Итоговый рейтинг ещё не сформирован</StatusBadge>
+                            <span className="text-xs text-slate-500">Период не закрыт — показаны текущие данные</span>
                         </span>
                     )}
                 </div>
@@ -250,7 +256,7 @@ function FormulaBreakdown({ result, npuThreshold }) {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="space-y-2 font-mono text-sm tabular-nums text-slate-800">
+                <div className="space-y-1.5 font-mono text-sm tabular-nums text-slate-800">
                     <div className="text-slate-600">Формула: R = (K1 + K2 + K3 + K4 + K5) - НПУ</div>
                     <div className="border-t border-slate-200 pt-2 text-xs uppercase tracking-[0.08em] text-slate-500">Подстановка:</div>
                     <div>R = ({fmt(k1Num)} + {fmt(k2Num)} + {fmt(k3Num)} + {fmt(k4Num)} + {fmt(k5Num)}) - {fmt(npuNum)}</div>
@@ -280,13 +286,13 @@ function ResultScoreCard({ result }) {
     const hasAnyScore = coefKeys.some((k) => result[k] > 0);
 
     return (
-        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-            <div className="relative overflow-hidden rounded-[14px] bg-[#082834] p-6 text-white">
+        <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+            <div className="relative overflow-hidden rounded-[14px] bg-[#082834] px-5 py-4 text-white">
                 <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" aria-hidden="true" />
-                <div className="relative flex flex-wrap items-end gap-x-10 gap-y-6">
+                <div className="relative flex flex-wrap items-end gap-x-8 gap-y-4">
                     <div>
                         <p className="qd-kicker text-teal-300">Итоговый рейтинг R</p>
-                        <p className={['mt-3 font-display text-5xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-white' : 'text-white/40'].join(' ')}>
+                        <p className={['mt-2 font-display text-4xl font-bold tabular-nums leading-none', rVal > 0 ? 'text-white' : 'text-white/40'].join(' ')}>
                             {fmt(rVal)}
                         </p>
                     </div>
@@ -298,7 +304,7 @@ function ResultScoreCard({ result }) {
                     )}
                 </div>
                 {hasAnyScore && (
-                    <div className="relative mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-6">
+                    <div className="relative mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-[10px] border border-white/10 bg-white/10 sm:grid-cols-6">
                         {coefKeys.map((k, i) => (
                             <div key={k} className="bg-[#082834] px-3 py-2.5 text-center">
                                 <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-white/55">{coefLabels[i]}</p>
@@ -473,48 +479,62 @@ function EntryRow({ entry }) {
     );
 }
 
-// ─── section block ────────────────────────────────────────────────────────────
+// ─── section block (one <tbody> per section inside a shared table) ───────────
 
 function SectionBlock({ section, entries }) {
     const sectionTotal = entries.reduce((s, e) => s + Number(e.points ?? 0), 0);
+    const approvedCount = entries.filter((e) => e.status === 'approved').length;
     const iconCls = SECTION_ICON_COLOR[section] ?? SECTION_ICON_COLOR.other;
 
     return (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${iconCls}`}>
-                        {SECTION_SHORT[section] ?? section}
-                    </span>
-                    <span className="truncate text-sm font-semibold text-[#102945]">
-                        {SECTION_LABELS[section] ?? section}
-                    </span>
-                </div>
-                <span className="text-xs font-semibold text-slate-500">
-                    Итого: <span className="font-display text-base font-bold tabular-nums text-[#102945]">{fmt(sectionTotal)}</span> б.
-                </span>
-            </div>
-            <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-sm">
-                    <thead className="border-b border-slate-200">
-                        <tr>
-                            <th className="w-16 text-left">Код</th>
-                            <th className="text-left">Показатель</th>
-                            <th className="w-14 text-right">Ед.</th>
-                            <th className="w-24 text-right">Базовый балл</th>
-                            <th className="w-20 text-right">Факт</th>
-                            <th className="w-[22rem] text-left">Формула баллов</th>
-                            <th className="w-20 text-right">Баллы</th>
-                            <th className="w-28 text-right">Статус</th>
-                        </tr>
-                    </thead>
-                    <tbody className="[&>tr:last-child]:border-0">
-                        {entries.map((entry) => (
-                            <EntryRow key={entry.id} entry={entry} />
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+        <tbody className="[&>tr:last-child]:border-0">
+            <tr className="border-b border-slate-200 bg-slate-50">
+                <td colSpan={8} className="!py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                            <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${iconCls}`}>
+                                {SECTION_SHORT[section] ?? section}
+                            </span>
+                            <span className="truncate text-sm font-semibold text-[#102945]">
+                                {SECTION_LABELS[section] ?? section}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                                {entries.length} зап. · {approvedCount} утв.
+                            </span>
+                        </div>
+                        <span className="text-xs font-semibold text-slate-500">
+                            Итого: <span className="text-sm font-bold tabular-nums text-[#102945]">{fmt(sectionTotal)}</span> б.
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            {entries.map((entry) => (
+                <EntryRow key={entry.id} entry={entry} />
+            ))}
+        </tbody>
+    );
+}
+
+function SectionsTable({ sections }) {
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+                <thead className="border-b border-slate-200">
+                    <tr>
+                        <th className="w-16 text-left">Код</th>
+                        <th className="text-left">Показатель</th>
+                        <th className="w-14 text-right">Ед.</th>
+                        <th className="w-28 whitespace-nowrap text-right">Базовый балл</th>
+                        <th className="w-20 text-right">Факт</th>
+                        <th className="w-[22rem] text-left">Формула баллов</th>
+                        <th className="w-20 text-right">Баллы</th>
+                        <th className="w-28 text-right">Статус</th>
+                    </tr>
+                </thead>
+                {sections.map(([section, sectionEntries]) => (
+                    <SectionBlock key={section} section={section} entries={sectionEntries} />
+                ))}
+            </table>
         </div>
     );
 }
@@ -524,9 +544,9 @@ function SectionBlock({ section, entries }) {
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Inbox className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-5 w-5" />
             </div>
             <div className="max-w-md space-y-1">
                 <p className="font-display text-base font-bold text-[#102945]">{title}</p>
@@ -587,6 +607,12 @@ export default function SummaryTeacherCard({
                                 {!teacher.faculty_name && !teacher.department_name && teacher.division && (
                                     <span className="text-slate-500">{teacher.division}</span>
                                 )}
+                                {teacher.email && (
+                                    <span className="flex items-center gap-2">
+                                        <span className="hidden text-slate-300 sm:inline">·</span>
+                                        <a href={`mailto:${teacher.email}`} className="text-slate-500 hover:text-teal-700">{teacher.email}</a>
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -606,43 +632,38 @@ export default function SummaryTeacherCard({
                     filterOptions={filterOptions}
                     academicYear={academicYear}
                     period={period}
+                    hasResult={Boolean(result)}
                 />
 
-                {result ? (
-                    <ResultScoreCard result={result} />
-                ) : (
-                    <Notice tone="info" title="Итоговый рейтинг ещё не сформирован">
-                        Период не закрыт. Ниже отображаются текущие данные.
-                    </Notice>
-                )}
+                {result ? <ResultScoreCard result={result} /> : null}
 
                 <StatGrid>
-                    <StatTile icon={BarChart3} label="Всего записей" value={totals.total ?? 0} tone="navy" />
-                    <StatTile icon={TrendingUp} label="Утверждено" value={totals.approved ?? 0} tone="success" />
-                    <StatTile icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} tone="warning" />
+                    <StatTile icon={BarChart3} label="Всего записей" value={totals.total ?? 0} tone="navy" hint={`разделов: ${allSections.length}`} />
+                    <StatTile
+                        icon={TrendingUp}
+                        label="Утверждено"
+                        value={totals.approved ?? 0}
+                        tone="success"
+                        hint={totals.total ? `${Math.round(((totals.approved ?? 0) / totals.total) * 100)}% от всех` : null}
+                    />
+                    <StatTile icon={Clock} label="На проверке" value={(totals.submitted ?? 0) + (totals.pending ?? 0)} tone="warning" hint={`подано: ${totals.submitted ?? 0}`} />
                     <StatTile icon={XCircle} label="Отклонено" value={totals.rejected ?? 0} tone="danger" />
                     <StatTile icon={CheckCircle2} label="Баллов" value={fmt(totals.total_points)} tone="teal" />
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <FileText className="h-4 w-4" />
                             Записи KPI по разделам
                         </CardTitle>
+                        <span className="text-xs text-slate-500">
+                            «Базовый балл» — из настроек KPI · «Формула баллов» — расчёт баллов записи · нажмите на строку, чтобы увидеть историю утверждения
+                        </span>
                     </CardHeader>
-                    <CardContent className="space-y-5">
-                        <Notice tone="brand">
-                            В колонке "Базовый балл" отображается значение показателя из настроек KPI.
-                            Формула в колонке "Формула баллов" показывает, как рассчитаны баллы по каждой записи.
-                            Нажмите на строку, чтобы увидеть историю утверждения.
-                        </Notice>
+                    <CardContent className="p-0">
                         {hasEntries ? (
-                            <div className="space-y-5">
-                                {allSections.map(([section, sectionEntries]) => (
-                                    <SectionBlock key={section} section={section} entries={sectionEntries} />
-                                ))}
-                            </div>
+                            <SectionsTable sections={allSections} />
                         ) : (
                             <InlineEmpty
                                 title="Нет показателей KPI"

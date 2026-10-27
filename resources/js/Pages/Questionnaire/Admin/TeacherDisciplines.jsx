@@ -752,43 +752,41 @@ export default function TeacherDisciplines() {
             <Head title="Анкетирование - Преподаватели" />
 
             <div className="admin-page-wrap space-y-6">
-                <div className="space-y-4">
-                <StatGrid>
+                <StatGrid className="xl:max-2xl:[grid-template-columns:repeat(4,minmax(0,1fr))]">
                     <StatTile label="Всего преподавателей" value={summary.totalTeachers} tone="teal" icon={Users} />
                     <StatTile label="Активных" value={summary.activeTeachers} tone="success" />
                     <StatTile label="Дисциплин" value={summary.totalDisciplines} tone="navy" icon={GraduationCap} />
                     <StatTile label="Назначений" value={summary.totalAssignments} tone="info" icon={Filter} />
-                </StatGrid>
-                <StatGrid>
                     <StatTile label="Средний рейтинг" value={summary.avgRating ?? '—'} tone="gold" icon={Star} />
                     <StatTile label="Проблемные" value={summary.problematic} tone="copper" icon={AlertTriangle} />
                     <StatTile label="Без назначений" value={summary.withoutAssignments} tone="neutral" icon={UserX} />
                     <StatTile
                         label="Топ преподаватель"
-                        value={<span className="block text-xl leading-tight">{summary.topTeacher}</span>}
+                        value={<span className="block text-base leading-tight">{summary.topTeacher}</span>}
                         tone="gold"
                         icon={Pin}
                     />
                 </StatGrid>
-                </div>
 
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
 
                 <FilterBar>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                        <FormField label="Поиск">
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                    id="questionnaire-teacher-search"
-                                    className="pl-9"
-                                    placeholder="Поиск (Ctrl/Cmd + K)"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                            </div>
-                        </FormField>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))_auto_auto] 2xl:items-end">
+                        <div className="sm:col-span-2 lg:col-span-4 2xl:col-span-1">
+                            <FormField label="Поиск">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        id="questionnaire-teacher-search"
+                                        className="pl-9"
+                                        placeholder="Поиск (Ctrl/Cmd + K)"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                </div>
+                            </FormField>
+                        </div>
 
                         <FormField label="Учебный год">
                             <select className={qdFieldClass} value={filters.academic_year} onChange={(e) => setFilters((prev) => ({ ...prev, academic_year: e.target.value }))}>
@@ -821,82 +819,72 @@ export default function TeacherDisciplines() {
                                 <option value="4.8">4.8+</option>
                             </select>
                         </FormField>
-                    </div>
 
-                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 items-center sm:col-span-2 lg:col-span-3 lg:h-10 2xl:col-span-1 2xl:flex-col 2xl:items-start 2xl:justify-center 2xl:gap-y-0.5">
+                            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-slate-700">
                                 <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={filters.only_problematic} onChange={(e) => setFilters((prev) => ({ ...prev, only_problematic: e.target.checked }))} />
                                 Только проблемные
                             </label>
 
-                            <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <label className="flex items-center gap-2 whitespace-nowrap text-sm text-slate-700">
                                 <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={filters.only_without_assignments} onChange={(e) => setFilters((prev) => ({ ...prev, only_without_assignments: e.target.checked }))} />
                                 Без назначений
                             </label>
                         </div>
 
                         <Button type="button" variant="outline" onClick={resetFilters}>
-                            Сбросить фильтры
+                            Сбросить
                         </Button>
                     </div>
                 </FilterBar>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Plus />
-                            Новая привязка преподавателя
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end" onSubmit={submit}>
-                            <FormField label="Преподаватель">
-                                <select className={qdFieldClass} value={form.teacher_id} onChange={(e) => setForm((prev) => ({ ...prev, teacher_id: e.target.value }))} disabled={Boolean(editingId)}>
-                                    <option value="">Преподаватель</option>
-                                    {teachers.map((teacher) => (
-                                        <option key={teacher.id} value={teacher.id}>
-                                            {teacher.display_name || teacher.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </FormField>
-
-                            <FormField label="Дисциплина">
-                                <select className={qdFieldClass} value={form.discipline_id} onChange={(e) => setForm((prev) => ({ ...prev, discipline_id: e.target.value }))} disabled={Boolean(editingId)}>
-                                    <option value="">Дисциплина</option>
-                                    {disciplines.map((discipline) => (
-                                        <option key={discipline.id} value={discipline.id}>
-                                            {discipline.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </FormField>
-
-                            <div className="flex gap-2">
-                                {editingId && <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>}
-                                <Button type="submit">
-                                    {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                                    {editingId ? 'Сохранить' : 'Добавить'}
-                                </Button>
-                            </div>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                         <CardTitle className="flex items-center gap-2">
                             <Users />
                             Таблица преподавателей
                         </CardTitle>
+                        <span className="text-sm tabular-nums text-slate-500">
+                            Показано: {filteredRows.length} из {teacherRows.length}{selectedIds.length ? ` · выбрано: ${selectedIds.length}` : ''}
+                        </span>
                     </CardHeader>
+                    <form className={`grid grid-cols-1 gap-3 border-b border-slate-200 px-5 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center ${editingId ? 'bg-teal-50' : ''}`} onSubmit={submit}>
+                        <span className="qd-field-label flex items-center gap-1.5 whitespace-nowrap text-slate-600">
+                            {editingId ? <Save className="h-3.5 w-3.5 text-teal-700" /> : <Plus className="h-3.5 w-3.5 text-teal-700" />}
+                            {editingId ? 'Редактирование привязки' : 'Новая привязка преподавателя'}
+                        </span>
+                        <select className={qdFieldClass} aria-label="Преподаватель" value={form.teacher_id} onChange={(e) => setForm((prev) => ({ ...prev, teacher_id: e.target.value }))} disabled={Boolean(editingId)}>
+                            <option value="">Преподаватель</option>
+                            {teachers.map((teacher) => (
+                                <option key={teacher.id} value={teacher.id}>
+                                    {teacher.display_name || teacher.name}
+                                </option>
+                            ))}
+                        </select>
+
+                        <select className={qdFieldClass} aria-label="Дисциплина" value={form.discipline_id} onChange={(e) => setForm((prev) => ({ ...prev, discipline_id: e.target.value }))} disabled={Boolean(editingId)}>
+                            <option value="">Дисциплина</option>
+                            {disciplines.map((discipline) => (
+                                <option key={discipline.id} value={discipline.id}>
+                                    {discipline.name}
+                                </option>
+                            ))}
+                        </select>
+
+                        <div className="flex justify-end gap-2">
+                            {editingId && <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>}
+                            <Button type="submit">
+                                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                {editingId ? 'Сохранить' : 'Добавить'}
+                            </Button>
+                        </div>
+                    </form>
                     <CardContent className="p-0">
                         {loading ? (
-                            <div className="p-5 sm:p-6"><LoadingState /></div>
+                            <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                         ) : filteredRows.length === 0 ? (
-                            <div className="px-5 py-12 text-center sm:px-6">
-                                <p className="font-display text-lg font-bold text-[#102945]">Нет данных</p>
+                            <div className="px-5 py-8 text-center sm:px-6">
+                                <p className="font-semibold text-[#102945]">Нет данных</p>
                                 <p className="mt-1 text-sm text-slate-600">Нет данных по выбранным фильтрам. Измените или сбросьте фильтры.</p>
                             </div>
                         ) : (
@@ -907,10 +895,12 @@ export default function TeacherDisciplines() {
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-left"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={selectedIds.length === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} aria-label="Выбрать все" /></th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-left">ФИО</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-left">Кафедра</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-left">Дисциплины</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Дисц.</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Группы</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Студенты</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Анкеты</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Ответов</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Рейтинг</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-left">Статус</th>
                                             <th className="whitespace-nowrap sticky top-0 bg-white text-right">Действия</th>
@@ -919,6 +909,7 @@ export default function TeacherDisciplines() {
                                     <tbody>
                                         {filteredRows.map((row) => {
                                             const isChecked = selectedIds.includes(row.teacherId);
+                                            const disciplineNames = Array.from(row.disciplines);
                                             return (
                                                 <tr key={row.teacherId} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${isChecked ? 'bg-teal-50' : ''}`}>
                                                     <td><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={isChecked} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
@@ -926,12 +917,17 @@ export default function TeacherDisciplines() {
                                                         <button type="button" className="text-left font-medium text-slate-900 hover:text-teal-700 hover:underline" onClick={() => openTeacherDrawer(row)}>
                                                             {row.teacherName}
                                                         </button>
+                                                        <span className="block text-xs text-slate-500">{row.position}</span>
                                                     </td>
                                                     <td className="text-slate-700">{row.department}</td>
+                                                    <td className="max-w-[22rem] text-xs text-slate-600">
+                                                        <span className="line-clamp-2" title={disciplineNames.join(', ')}>{disciplineNames.join(' · ') || '—'}</span>
+                                                    </td>
                                                     <td className="text-right tabular-nums">{row.disciplinesCount}</td>
                                                     <td className="text-right tabular-nums">{row.groupsCount}</td>
                                                     <td className="text-right tabular-nums">{row.studentsCount}</td>
                                                     <td className="text-right tabular-nums">{row.surveysCount}</td>
+                                                    <td className="text-right tabular-nums text-slate-600">{row.ratingResponsesCount}</td>
                                                     <td className="text-right font-semibold tabular-nums text-[#102945]">{row.rating !== null ? row.rating.toFixed(2) : '—'}</td>
                                                     <td>
                                                         <StatusBadge tone={row.status === 'active' ? 'success' : 'default'}>
@@ -981,8 +977,8 @@ export default function TeacherDisciplines() {
                         </SheetHeader>
 
                         {drawerTeacher && (
-                            <div className="mt-5 space-y-5">
-                                <div className="grid gap-3 sm:grid-cols-4">
+                            <div className="mt-4 space-y-4">
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                                     <MiniStat title="Рейтинг" value={drawerTeacher.rating !== null ? drawerTeacher.rating.toFixed(2) : '—'} />
                                     <MiniStat title="Дисциплины" value={drawerTeacher.disciplinesCount} />
                                     <MiniStat title="Группы" value={drawerTeacher.groupsCount} />
@@ -996,7 +992,7 @@ export default function TeacherDisciplines() {
                                 />
 
                                 {drawerTab === 'overview' && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         <DrawerList title="Дисциплины" items={drawerOverview?.disciplines || []} />
                                         <DrawerList title="Группы" items={drawerOverview?.groups || []} />
                                         <DrawerList title="Периоды" items={drawerOverview?.periods || []} />
@@ -1144,14 +1140,14 @@ function MiniStat({ title, value }) {
     return (
         <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3">
             <p className="qd-field-label text-slate-500">{title}</p>
-            <p className="mt-1.5 font-display text-2xl font-bold leading-none tabular-nums text-[#102945]">{value}</p>
+            <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums text-[#102945]">{value}</p>
         </div>
     );
 }
 
 function DrawerList({ title, items }) {
     return (
-        <div className="border-b border-slate-200 pb-4 last:border-b-0">
+        <div className="border-b border-slate-200 pb-3 last:border-b-0">
             <p className="qd-field-label mb-2 text-slate-500">{title}</p>
             {items.length === 0 ? (
                 <p className="text-sm text-slate-500">Нет данных</p>

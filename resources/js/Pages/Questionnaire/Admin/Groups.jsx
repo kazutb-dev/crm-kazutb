@@ -1,7 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -342,14 +341,19 @@ export default function Groups() {
 
     const studentsInOpenedGroup = studentsSheetGroup ? (studentsByGroup[studentsSheetGroup.id] || []) : [];
 
+    const chipCount = (chip) => groups.filter((group) => applyQuickChip(group, (studentsByGroup[group.id] || []).length, chip)).length;
+
     const quickChipItems = [
-        { key: 'all', label: 'Все группы' },
-        { key: 'active', label: 'Активные' },
-        { key: 'without_students', label: 'Без студентов' },
-        { key: 'less_than_10', label: 'Меньше 10 студентов' },
-        { key: 'full', label: 'Полные группы' },
-        { key: 'archived', label: 'Архивные' },
+        { key: 'all', label: 'Все группы', count: groups.length },
+        { key: 'active', label: 'Активные', count: chipCount('active') },
+        { key: 'without_students', label: 'Без студентов', count: chipCount('without_students') },
+        { key: 'less_than_10', label: 'Меньше 10 студентов', count: chipCount('less_than_10') },
+        { key: 'full', label: 'Полные группы', count: chipCount('full') },
+        { key: 'archived', label: 'Архивные', count: chipCount('archived') },
     ];
+
+    const groupsWithoutStudents = chipCount('without_students');
+    const averageGroupSize = groups.length ? (students.length / groups.length).toFixed(1) : '—';
 
     return (
         <AuthenticatedLayout
@@ -358,7 +362,6 @@ export default function Groups() {
                     eyebrow="Анкетирование"
                     title="Группы"
                     description="Управление академическими группами для опросов и назначений."
-                    meta={<Badge variant="secondary">Questionnaire</Badge>}
                     actions={(
                         <Button type="button" onClick={openCreateModal}>
                             <Plus className="h-4 w-4" />
@@ -371,19 +374,21 @@ export default function Groups() {
             <Head title="Анкетирование - Группы" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid>
-                    <StatTile label="Всего групп" value={groups.length} tone="teal" icon={Layers3} />
+                <StatGrid className="xl:max-2xl:[grid-template-columns:repeat(3,minmax(0,1fr))]">
+                    <StatTile label="Всего групп" value={groups.length} tone="teal" icon={Layers3} hint={`Архивных: ${groups.length - activeCount}`} />
                     <StatTile label="Активные" value={activeCount} tone="success" hint="Статус active" />
+                    <StatTile label="Студентов" value={students.length} tone="info" icon={Users} hint={`В среднем на группу: ${averageGroupSize}`} />
+                    <StatTile label="Без студентов" value={groupsWithoutStudents} tone={groupsWithoutStudents ? 'warning' : 'neutral'} hint="Группы без привязок" />
                     <StatTile label="Специальностей" value={specialities.length} tone="navy" icon={GraduationCap} />
-                    <StatTile label="Курсов · ОП" value={`${courses.length} · ${programs.length}`} tone="gold" hint={`Курсов: ${courses.length}, образовательных программ: ${programs.length}`} />
+                    <StatTile label="Курсов · ОП" value={`${courses.length} · ${programs.length}`} tone="gold" hint={`Курсов: ${courses.length}, ОП: ${programs.length}`} />
                 </StatGrid>
 
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
 
                 <FilterBar>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                        <div className="sm:col-span-2 lg:col-span-3 xl:col-span-1">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[minmax(0,1.4fr)_repeat(5,minmax(0,1fr))_auto] 2xl:items-end">
+                        <div className="sm:col-span-2 lg:col-span-3 2xl:col-span-1">
                             <FormField label="Поиск">
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -491,24 +496,21 @@ export default function Groups() {
                                 <option value="30+">30+ студентов</option>
                             </select>
                         </FormField>
-                    </div>
-
-                    <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm text-slate-600">
-                            Найдено: <span className="font-semibold tabular-nums text-[#102945]">{foundGroupsCount}</span> групп · Всего студентов в выбранных группах: <span className="font-semibold tabular-nums text-[#102945]">{totalStudentsInFilteredGroups}</span>
-                        </p>
-                        <Button variant="outline" onClick={resetFilters}>Сбросить фильтры</Button>
+                        <Button variant="outline" className="w-full self-end 2xl:w-auto" onClick={resetFilters}>Сбросить</Button>
                     </div>
                 </FilterBar>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                         <CardTitle className="flex items-center gap-2">
                             <GraduationCap />
                             Список групп
                         </CardTitle>
+                        <p className="text-sm text-slate-600">
+                            Найдено: <span className="font-semibold tabular-nums text-[#102945]">{foundGroupsCount}</span> групп · студентов в них: <span className="font-semibold tabular-nums text-[#102945]">{totalStudentsInFilteredGroups}</span>
+                        </p>
                     </CardHeader>
-                    <div className="border-b border-slate-200 px-5 pt-2 sm:px-6">
+                    <div className="border-b border-slate-200 px-5 pt-1 sm:px-6">
                         <UnderlineTabs
                             className="border-b-0"
                             items={quickChipItems}
@@ -518,10 +520,10 @@ export default function Groups() {
                     </div>
                     <CardContent className="p-0">
                         {loading ? (
-                            <div className="p-5 sm:p-6"><LoadingState /></div>
+                            <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                         ) : filteredGroups.length === 0 ? (
-                            <div className="px-5 py-12 text-center sm:px-6">
-                                <p className="font-display text-lg font-bold text-[#102945]">Группы не найдены</p>
+                            <div className="px-5 py-8 text-center sm:px-6">
+                                <p className="font-semibold text-[#102945]">Группы не найдены</p>
                                 <p className="mt-1 text-sm text-slate-600">Группы по выбранным фильтрам не найдены. Сбросьте фильтры или добавьте группу.</p>
                             </div>
                         ) : (
@@ -676,7 +678,7 @@ export default function Groups() {
                         ) : (
                             <ol className="divide-y divide-slate-200">
                                 {studentsInOpenedGroup.map((student, index) => (
-                                    <li key={student.id} className="flex items-center gap-3 py-3">
+                                    <li key={student.id} className="flex items-center gap-3 py-2">
                                         <span className="w-6 shrink-0 text-right text-xs tabular-nums text-slate-400">{index + 1}</span>
                                         <div className="min-w-0">
                                             <p className="truncate font-medium text-slate-900">{student.full_name}</p>

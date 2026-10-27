@@ -24,7 +24,7 @@ export default function StepAppointment({ state, set, errors, options, abilities
     const isReplacement = c.term === 'replacement';
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Section
                 title="Должность и подразделение"
                 description="Выберите из справочника или введите вручную. Категория персонала задаёт отпуск и график по умолчанию."

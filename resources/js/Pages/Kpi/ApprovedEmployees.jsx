@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Inbox, Search, Users } from 'lucide-react';
+import { Award, CalendarCheck, CheckCircle2, Inbox, Search, Users } from 'lucide-react';
 import { useRef } from 'react';
 
 const entityTypeLabels = {
@@ -24,12 +24,12 @@ function formatDate(value) {
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Inbox className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-4 w-4" />
             </div>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                <p className="text-sm font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}
@@ -59,6 +59,11 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
     ];
 
     const approvedTotal = employees.reduce((sum, emp) => sum + (Number(emp.approved_count) || 0), 0);
+    const pointsTotal = employees.reduce((sum, emp) => sum + (Number(emp.total_points) || 0), 0);
+    const lastApprovedAt = employees.reduce((latest, emp) => {
+        const time = emp.last_approved_at ? new Date(emp.last_approved_at).getTime() : NaN;
+        return Number.isFinite(time) && time > latest ? time : latest;
+    }, 0);
 
     return (
         <AuthenticatedLayout
@@ -66,16 +71,18 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                 <PageHeader
                     eyebrow="KPI · Проверка"
                     title="Сотрудники, прошедшие полную проверку"
-                    description="Список сотрудников, у которых есть KPI-записи со статусом «Утверждено» (прошли все этапы проверки). Используйте фильтры для отображения по категории, учебному году и периоду."
+                    description="Сотрудники с KPI-записями в статусе «Утверждено» (прошли все этапы проверки) — по категории, учебному году и периоду."
                 />
             )}
         >
             <Head title="KPI — Прошедшие полную проверку" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Сотрудников" value={employees.length} tone="success" icon={CheckCircle2} hint={entityTypeLabels[filters.entity_type] ?? 'Все категории'} />
                     <StatTile label="Утверждённых записей" value={approvedTotal} tone="teal" icon={Users} hint="Суммарно по списку" />
+                    <StatTile label="Сумма баллов" value={pointsTotal.toFixed(2)} tone="gold" icon={Award} hint={employees.length > 0 ? `В среднем ${(pointsTotal / employees.length).toFixed(2)} на сотрудника` : 'Нет данных'} />
+                    <StatTile label="Последнее утверждение" value={<span className="text-xl">{lastApprovedAt ? formatDate(new Date(lastApprovedAt).toISOString()) : '—'}</span>} tone="neutral" icon={CalendarCheck} />
                 </StatGrid>
 
                 <UnderlineTabs
@@ -85,7 +92,7 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                 />
 
                 <FilterBar>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_2fr]">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)]">
                         <FormField label="Учебный год">
                             <select
                                 className={qdFieldClass}
@@ -169,7 +176,10 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                                                     )}
                                                 </td>
                                                 <td className="text-slate-600">
-                                                    {emp.department ?? emp.faculty ?? emp.ad_department ?? '—'}
+                                                    <div>{emp.department ?? emp.faculty ?? emp.ad_department ?? '—'}</div>
+                                                    {emp.department && emp.faculty && (
+                                                        <div className="text-xs text-slate-500">{emp.faculty}</div>
+                                                    )}
                                                 </td>
                                                 <td className="text-right">
                                                     <Badge variant="secondary" className="tabular-nums">{emp.approved_count}</Badge>

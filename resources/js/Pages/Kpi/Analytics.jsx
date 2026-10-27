@@ -145,8 +145,8 @@ export default function Analytics({
                 </StatGrid>
 
                 <FilterBar>
-                    <form className="space-y-4" onSubmit={applyFilters}>
-                        <div className="grid gap-4 md:grid-cols-3">
+                    <form onSubmit={applyFilters}>
+                        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-[repeat(3,minmax(0,1fr))_auto] xl:items-end">
                             <FormField label="Учебный год">
                                 <select
                                     className={qdFieldClass}
@@ -185,16 +185,16 @@ export default function Analytics({
                                     ))}
                                 </select>
                             </FormField>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                            <Button type="submit">Применить</Button>
+                            <div className="flex flex-wrap justify-end gap-2 md:col-span-3 xl:col-span-1">
+                                <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                                <Button type="submit">Применить</Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
-                <div className="grid gap-6 xl:grid-cols-3">
+                <div className="grid gap-4 xl:grid-cols-3">
                     <RankingTable
                         title="Топ-10 ППС"
                         icon={Users}
@@ -222,7 +222,7 @@ export default function Analytics({
                             Пример Eloquent-агрегации и SQL-шаблон для секционных KPI-расчетов.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-5">
+                    <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <span className="qd-field-label block text-slate-500">Результат Eloquent</span>
                             <div className="flex flex-wrap gap-2">
