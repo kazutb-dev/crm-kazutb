@@ -200,7 +200,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
             <Head title="Тестирование" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-2">
+                <StatGrid>
                     <StatTile label="Мои привязки" value={bindings.length} tone="teal" icon={Link2} hint="Предметы, по которым вы ведёте тесты" />
                     <StatTile label="Привязано студентов" value={total_students_count} tone="navy" icon={Users} hint="Студенты по всем привязанным предметам" />
                 </StatGrid>
@@ -224,7 +224,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                             title="Мои привязанные предметы"
                             actions={<Badge variant="default">Всего: {bindings.length}</Badge>}
                         />
-                        <div className="grid gap-6 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {bindings.map((binding) => (
                                 <Card key={binding.id} className="flex flex-col justify-between">
                                     <CardContent className="flex flex-1 flex-col gap-5">

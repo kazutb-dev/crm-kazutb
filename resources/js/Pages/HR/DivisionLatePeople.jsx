@@ -126,28 +126,28 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
                                 Список ({rows.length})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent className="p-0 sm:p-0">
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[980px] text-sm">
+                                <table className="w-full min-w-[820px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3">#</th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('name')}>ФИО{sortIndicator('name')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
-                                            <th className="py-3 pr-6 text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_minutes')}>На сколько опоздал{sortIndicator('late_minutes')}</button></th>
+                                            <th>#</th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('name')}>ФИО{sortIndicator('name')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_minutes')}>На сколько опоздал{sortIndicator('late_minutes')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedRows.map((person, idx) => (
                                             <tr key={person.id} className="border-b border-slate-200 last:border-0">
-                                                <td className="py-3 pl-6 pr-3 tabular-nums text-slate-400">{idx + 1}</td>
-                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{formatDate(person.late_date)}</td>
-                                                <td className="py-3 pr-3 font-medium text-slate-900">{person.name}</td>
-                                                <td className="py-3 pr-3 text-slate-600">{person.position || '—'}</td>
-                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{formatTime(person.first_enter_time)}</td>
-                                                <td className="py-3 pr-6 text-right">
+                                                <td className="tabular-nums text-slate-400">{idx + 1}</td>
+                                                <td className="tabular-nums text-slate-700">{formatDate(person.late_date)}</td>
+                                                <td className="font-medium text-slate-900">{person.name}</td>
+                                                <td className="text-slate-600">{person.position || '—'}</td>
+                                                <td className="font-semibold tabular-nums text-[#102945]">{formatTime(person.first_enter_time)}</td>
+                                                <td className="text-right">
                                                     <StatusBadge tone="danger" className="tabular-nums">{formatLate(person.late_minutes)}</StatusBadge>
                                                 </td>
                                             </tr>

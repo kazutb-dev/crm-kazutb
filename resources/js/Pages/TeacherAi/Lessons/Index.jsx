@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LessonStatusBadge, isLessonInProgress, pluralSlides } from '@/components/teacher-ai/lesson-shared';
 import { Link, router, useForm } from '@inertiajs/react';
-import { BookOpenText, FolderOpen, Presentation, Sparkles } from 'lucide-react';
+import { BookOpenText, FolderOpen, Inbox, Presentation, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -120,7 +120,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                     </Notice>
                 )}
 
-                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -233,9 +233,9 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </div>
                         </div>
 
-                        <fieldset className="space-y-4 rounded-xl border border-slate-200 p-4 sm:p-5">
-                            <legend className="px-1 font-display text-base font-bold text-[#102945]">Титульный слайд</legend>
-                            <p className="text-sm text-slate-600">
+                        <fieldset className="min-w-0 space-y-4 rounded-xl border border-slate-200 p-5">
+                            <legend className="float-left w-full font-display text-base font-bold text-[#102945]">Титульный слайд</legend>
+                            <p className="clear-both !mt-1 text-sm text-slate-600">
                                 Эти данные появятся на обложке презентации. Все поля необязательны.
                             </p>
 
@@ -334,12 +334,13 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </CardTitle>
                             <CardDescription>Видны только вам.</CardDescription>
                         </CardHeader>
-                        <CardContent className={lessonList.length === 0 ? '' : 'p-0 sm:p-0'}>
+                        <CardContent className={lessonList.length === 0 ? '' : 'p-0'}>
                         {lessonList.length === 0 ? (
-                            <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
-                                <p className="font-display text-base font-bold text-[#102945]">Материалов пока нет</p>
-                                <p className="mt-1 text-sm text-slate-600">Здесь появятся сгенерированные лекции и презентации.</p>
-                            </div>
+                            <InlineEmpty
+                                icon={FolderOpen}
+                                title="Материалов пока нет"
+                                description="Здесь появятся сгенерированные лекции и презентации."
+                            />
                         ) : (
                             <ul className="divide-y divide-slate-200">
                                 {lessonList.map((lesson) => (
@@ -390,3 +391,17 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
     );
 }
 
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
+    );
+}

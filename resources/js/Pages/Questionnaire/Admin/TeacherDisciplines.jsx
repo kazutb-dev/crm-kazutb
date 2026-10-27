@@ -752,11 +752,14 @@ export default function TeacherDisciplines() {
             <Head title="Анкетирование - Преподаватели" />
 
             <div className="admin-page-wrap space-y-6">
+                <div className="space-y-4">
                 <StatGrid>
                     <StatTile label="Всего преподавателей" value={summary.totalTeachers} tone="teal" icon={Users} />
                     <StatTile label="Активных" value={summary.activeTeachers} tone="success" />
                     <StatTile label="Дисциплин" value={summary.totalDisciplines} tone="navy" icon={GraduationCap} />
                     <StatTile label="Назначений" value={summary.totalAssignments} tone="info" icon={Filter} />
+                </StatGrid>
+                <StatGrid>
                     <StatTile label="Средний рейтинг" value={summary.avgRating ?? '—'} tone="gold" icon={Star} />
                     <StatTile label="Проблемные" value={summary.problematic} tone="copper" icon={AlertTriangle} />
                     <StatTile label="Без назначений" value={summary.withoutAssignments} tone="neutral" icon={UserX} />
@@ -767,6 +770,7 @@ export default function TeacherDisciplines() {
                         icon={Pin}
                     />
                 </StatGrid>
+                </div>
 
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
@@ -889,9 +893,9 @@ export default function TeacherDisciplines() {
                     </CardHeader>
                     <CardContent className="p-0">
                         {loading ? (
-                            <div className="p-5"><LoadingState /></div>
+                            <div className="p-5 sm:p-6"><LoadingState /></div>
                         ) : filteredRows.length === 0 ? (
-                            <div className="px-5 py-12 text-center">
+                            <div className="px-5 py-12 text-center sm:px-6">
                                 <p className="font-display text-lg font-bold text-[#102945]">Нет данных</p>
                                 <p className="mt-1 text-sm text-slate-600">Нет данных по выбранным фильтрам. Измените или сбросьте фильтры.</p>
                             </div>
@@ -900,16 +904,16 @@ export default function TeacherDisciplines() {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200 bg-white">
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={selectedIds.length === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} aria-label="Выбрать все" /></th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">ФИО</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">Кафедра</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Дисц.</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Группы</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Студенты</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Анкеты</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Рейтинг</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-left">Статус</th>
-                                            <th className="sticky top-0 bg-white px-4 py-3 text-right">Действия</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-left"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={selectedIds.length === filteredRows.length && filteredRows.length > 0} onChange={toggleSelectAll} aria-label="Выбрать все" /></th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-left">ФИО</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-left">Кафедра</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Дисц.</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Группы</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Студенты</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Анкеты</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Рейтинг</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-left">Статус</th>
+                                            <th className="whitespace-nowrap sticky top-0 bg-white text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -917,25 +921,25 @@ export default function TeacherDisciplines() {
                                             const isChecked = selectedIds.includes(row.teacherId);
                                             return (
                                                 <tr key={row.teacherId} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${isChecked ? 'bg-teal-50' : ''}`}>
-                                                    <td className="px-4 py-3"><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={isChecked} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
-                                                    <td className="px-4 py-3">
+                                                    <td><input type="checkbox" className="h-4 w-4 accent-teal-700" checked={isChecked} onChange={() => setSelectedIds((prev) => prev.includes(row.teacherId) ? prev.filter((id) => id !== row.teacherId) : [...prev, row.teacherId])} /></td>
+                                                    <td>
                                                         <button type="button" className="text-left font-medium text-slate-900 hover:text-teal-700 hover:underline" onClick={() => openTeacherDrawer(row)}>
                                                             {row.teacherName}
                                                         </button>
                                                     </td>
-                                                    <td className="px-4 py-3 text-slate-700">{row.department}</td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{row.disciplinesCount}</td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{row.groupsCount}</td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{row.studentsCount}</td>
-                                                    <td className="px-4 py-3 text-right tabular-nums">{row.surveysCount}</td>
-                                                    <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{row.rating !== null ? row.rating.toFixed(2) : '—'}</td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="text-slate-700">{row.department}</td>
+                                                    <td className="text-right tabular-nums">{row.disciplinesCount}</td>
+                                                    <td className="text-right tabular-nums">{row.groupsCount}</td>
+                                                    <td className="text-right tabular-nums">{row.studentsCount}</td>
+                                                    <td className="text-right tabular-nums">{row.surveysCount}</td>
+                                                    <td className="text-right font-semibold tabular-nums text-[#102945]">{row.rating !== null ? row.rating.toFixed(2) : '—'}</td>
+                                                    <td>
                                                         <StatusBadge tone={row.status === 'active' ? 'success' : 'default'}>
                                                             {row.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="inline-flex gap-1">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" size="sm" variant={favorites.includes(row.teacherId) ? 'gold' : 'ghost'} onClick={() => toggleFavorite(row.teacherId)} title="Избранное" aria-label="Избранное">
                                                                 <Star className="h-3.5 w-3.5" />
                                                             </Button>
@@ -1175,7 +1179,7 @@ function SimpleTable({ rows, columns }) {
                 <thead>
                     <tr className="border-b border-slate-200">
                         {columns.map((column) => (
-                            <th key={column.key} className={`px-4 py-3 ${alignClass(column)}`}>{column.label}</th>
+                            <th key={column.key} className={`whitespace-nowrap ${alignClass(column)}`}>{column.label}</th>
                         ))}
                     </tr>
                 </thead>
@@ -1185,7 +1189,7 @@ function SimpleTable({ rows, columns }) {
                             {columns.map((column, columnIndex) => (
                                 <td
                                     key={`${index}-${column.key}`}
-                                    className={`px-4 py-3 ${alignClass(column)} ${column.numeric ? 'tabular-nums' : ''} ${columnIndex === 0 ? 'font-medium text-slate-900' : 'text-slate-700'}`}
+                                    className={`${alignClass(column)} ${column.numeric ? 'tabular-nums' : ''} ${columnIndex === 0 ? 'font-medium text-slate-900' : 'text-slate-700'}`}
                                 >
                                     {row[column.key] ?? '—'}
                                 </td>

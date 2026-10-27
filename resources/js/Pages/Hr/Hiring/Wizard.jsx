@@ -371,15 +371,15 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                     })}
                 </nav>
 
+                <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+                    <span className="qd-kicker">Шаг {step} · {current.label}</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                        <span className="h-2 w-2 rounded-full bg-amber-400" /> — нужно для документов
+                    </span>
+                </p>
+
                 <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
                     <section aria-label="Данные приёма" className="min-w-0 space-y-6">
-                        <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
-                            <span className="qd-kicker">Шаг {step} · {current.label}</span>
-                            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                                <span className="h-2 w-2 rounded-full bg-amber-400" /> — нужно для документов
-                            </span>
-                        </p>
-
                         <MissingFieldsContext.Provider value={missingIds}>
                             {step === 1 && (
                                 <StepEmployee

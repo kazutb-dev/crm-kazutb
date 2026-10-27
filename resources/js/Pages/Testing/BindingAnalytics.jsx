@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, BarChart3, ClipboardList, Clock3, ListChecks, Target, Users } from 'lucide-react';
+import { ArrowLeft, Inbox, BarChart3, ClipboardList, Clock3, ListChecks, Target, Users } from 'lucide-react';
 
 function formatDate(value) {
     if (!value) {
@@ -39,7 +39,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
             <Head title={`Аналитика - ${binding.subject?.name || 'Тестирование'}`} />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-5">
+                <StatGrid>
                     <StatTile label="Тестов" value={analytics?.tests_count ?? 0} tone="teal" icon={ClipboardList} />
                     <StatTile label="Прохождений" value={analytics?.attempts_count ?? 0} tone="navy" icon={ListChecks} />
                     <StatTile label="Уникальных" value={analytics?.users_count ?? 0} tone="info" icon={Users} />
@@ -47,7 +47,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                     <StatTile label="Успешность" value={`${analytics?.success_rate ?? 0}%`} tone="success" icon={Target} />
                 </StatGrid>
 
-                <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -57,7 +57,8 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                         </CardHeader>
                         <CardContent>
                             {testAnalytics.length === 0 ? (
-                                <EmptyState
+                                <InlineEmpty
+                                    icon={ClipboardList}
                                     title="Тестов пока нет"
                                     description="По этой привязке еще нет тестов."
                                 />
@@ -104,7 +105,8 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                         </CardHeader>
                         <CardContent>
                             {results.length === 0 ? (
-                                <EmptyState
+                                <InlineEmpty
+                                    icon={ListChecks}
                                     title="Результатов нет"
                                     description="Результатов прохождения пока нет."
                                 />
@@ -158,6 +160,21 @@ function MiniStat({ icon: Icon, label, value }) {
                 <span className="qd-field-label">{label}</span>
             </div>
             <div className="mt-2 font-display text-2xl font-bold tabular-nums text-[#102945]">{value}</div>
+        </div>
+    );
+}
+
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
         </div>
     );
 }

@@ -446,7 +446,7 @@ export default function Questions() {
                                         </select>
                                     </FormField>
 
-                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                    <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                         {editingSurveyId && (
                                             <Button type="button" variant="outline" onClick={() => { setEditingSurveyId(null); setSurveyForm(emptySurveyForm); }}>
                                                 Отмена
@@ -470,14 +470,14 @@ export default function Questions() {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {surveys.length === 0 ? (
-                                    <div className="px-5 py-12 text-center">
+                                    <div className="px-5 py-12 text-center sm:px-6">
                                         <p className="font-display text-lg font-bold text-[#102945]">Опросы пока не созданы</p>
                                         <p className="mt-1 text-sm text-slate-600">Заполните форму «Новый опрос», затем добавьте в него вопросы.</p>
                                     </div>
                                 ) : (
                                     <ul className="max-h-[560px] divide-y divide-slate-200 overflow-y-auto">
                                         {surveys.map((survey) => (
-                                            <li key={survey.id} className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between ${editingSurveyId === survey.id ? 'bg-teal-50' : ''}`}>
+                                            <li key={survey.id} className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:px-6 sm:items-start sm:justify-between ${editingSurveyId === survey.id ? 'bg-teal-50' : ''}`}>
                                                 <div className="min-w-0 space-y-1">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <p className="font-semibold text-slate-900">{survey.title}</p>
@@ -558,7 +558,7 @@ export default function Questions() {
                                         Обязательный вопрос
                                     </label>
 
-                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                    <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                         {editingQuestionId && (
                                             <Button type="button" variant="outline" onClick={() => { setEditingQuestionId(null); setQuestionForm(emptyQuestionForm); }}>
                                                 Отмена
@@ -580,7 +580,7 @@ export default function Questions() {
                                     Список вопросов
                                 </CardTitle>
                             </CardHeader>
-                            <div className="grid gap-4 border-b border-slate-200 px-5 py-4 sm:grid-cols-2">
+                            <div className="grid gap-4 border-b border-slate-200 px-5 py-4 sm:grid-cols-2 sm:px-6">
                                 <FormField label="Поиск">
                                     <div className="relative">
                                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -598,9 +598,9 @@ export default function Questions() {
                             </div>
                             <CardContent className="p-0">
                                 {loading ? (
-                                    <div className="p-5"><LoadingState /></div>
+                                    <div className="p-5 sm:p-6"><LoadingState /></div>
                                 ) : selectedQuestions.length === 0 ? (
-                                    <div className="px-5 py-12 text-center">
+                                    <div className="px-5 py-12 text-center sm:px-6">
                                         <p className="font-display text-lg font-bold text-[#102945]">Вопросы не найдены</p>
                                         <p className="mt-1 text-sm text-slate-600">Измените фильтр или создайте вопрос в форме слева.</p>
                                     </div>
@@ -609,7 +609,7 @@ export default function Questions() {
                                         {selectedQuestions.map((question) => {
                                             const isSelected = String(selectedQuestionId) === String(question.id);
                                             return (
-                                                <li key={question.id} className={`flex flex-col gap-3 border-l-2 px-5 py-4 lg:flex-row lg:items-start lg:justify-between ${isSelected ? 'border-l-teal-600 bg-teal-50' : 'border-l-transparent'}`}>
+                                                <li key={question.id} className={`relative flex flex-col gap-3 px-5 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between ${isSelected ? 'bg-teal-50 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-teal-600' : ''}`}>
                                                     <div className="min-w-0 space-y-1.5">
                                                         <p className="font-medium text-slate-900">{question.question_text}</p>
                                                         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -650,7 +650,7 @@ export default function Questions() {
                                 Опции вопроса
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-5">
+                        <CardContent className="space-y-6">
                             <form className="grid grid-cols-1 gap-4 lg:grid-cols-6" onSubmit={submitOption}>
                                 <div className="lg:col-span-2">
                                     <FormField label="Вопрос">
@@ -694,20 +694,20 @@ export default function Questions() {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-5 py-3 text-left">Опция</th>
-                                                <th className="px-5 py-3 text-right">Балл</th>
-                                                <th className="px-5 py-3 text-right">Порядок</th>
-                                                <th className="px-5 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Опция</th>
+                                                <th className="whitespace-nowrap text-right">Балл</th>
+                                                <th className="whitespace-nowrap text-right">Порядок</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {options.map((option) => (
                                                 <tr key={option.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingOptionId === option.id ? 'bg-teal-50' : ''}`}>
-                                                    <td className="px-5 py-3 font-medium text-slate-900">{option.option_text}</td>
-                                                    <td className="px-5 py-3 text-right tabular-nums text-slate-700">{option.score ?? '—'}</td>
-                                                    <td className="px-5 py-3 text-right tabular-nums text-slate-700">{option.sort_order ?? 0}</td>
-                                                    <td className="px-5 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="font-medium text-slate-900">{option.option_text}</td>
+                                                    <td className="text-right tabular-nums text-slate-700">{option.score ?? '—'}</td>
+                                                    <td className="text-right tabular-nums text-slate-700">{option.sort_order ?? 0}</td>
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEditOption(option)}>
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                                 Ред.

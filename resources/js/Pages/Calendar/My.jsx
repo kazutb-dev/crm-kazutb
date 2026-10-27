@@ -125,7 +125,7 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
 
     return (
         <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 sm:p-0">
                 <div className="grid grid-cols-7 border-b border-slate-200">
                     {WEEKDAYS_SHORT.map((wd, i) => (
                         <div key={wd} className={`py-2 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>{wd}</div>
@@ -136,7 +136,7 @@ function MonthView({ year, month, events, holidays, onDayClick, onDayDoubleClick
                         const isWeekend = idx % 7 >= 5;
                         const isToday   = day && today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
                         const isPastDay = day && new Date(year, month, day).setHours(0, 0, 0, 0) < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-                        const isSelected = day === selectedDay;
+                        const isSelected = !!day && day === selectedDay;
                         const dateStr   = day ? `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
                         const isHoliday = holidayDates.has(dateStr);
                         const dayEvts   = day ? (byDay[day] ?? []) : [];
@@ -191,7 +191,7 @@ function WeekView({ year, month, day, events }) {
 
     return (
         <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0 sm:p-0 overflow-x-auto">
                 <div className="min-w-[640px]">
                     {/* Header */}
                     <div className="grid border-b border-slate-200" style={{ gridTemplateColumns: '56px repeat(7, 1fr)' }}>
@@ -240,7 +240,7 @@ function DayView({ year, month, day, events }) {
 
     return (
         <Card>
-            <CardContent className="p-0">
+            <CardContent className="p-0 sm:p-0">
                 <div className="border-b border-slate-200 px-5 py-3 font-display text-base font-bold text-[#102945]">{fmtDate(date)}</div>
                 <div>
                     {HOURS.map(h => {
@@ -267,7 +267,7 @@ function AgendaView({ events }) {
     }
     return (
         <Card>
-            <CardContent className="p-0 divide-y divide-slate-200">
+            <CardContent className="p-0 sm:p-0 divide-y divide-slate-200">
                 {events.map(e => {
                     const s = e.status === 'conflict'
                         ? EVENT_STYLE.conflict
@@ -542,7 +542,7 @@ export default function CalendarMy({ events = [], meetingNotifications = [], slo
                                 </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="py-1">
+                        <CardContent className="py-1 sm:py-1">
                             <div className="divide-y divide-slate-200">
                                 {meetingNotifications.map((meeting) => (
                                     <div key={meeting.id} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -569,7 +569,7 @@ export default function CalendarMy({ events = [], meetingNotifications = [], slo
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={prev} aria-label="Назад"><ChevronLeft className="size-4"/></Button>
                         <Button variant="outline" size="icon" onClick={next} aria-label="Вперёд"><ChevronRight className="size-4"/></Button>
-                        <h2 className="ml-2 min-w-[200px] font-display text-xl font-bold text-[#102945]">{periodLabel}</h2>
+                        <h2 className="mx-2 font-display text-xl font-bold text-[#102945]">{periodLabel}</h2>
                         <Button variant="outline" size="sm" onClick={goToday}>Сегодня</Button>
                     </div>
                     <Segmented items={VIEWS} value={view} onChange={setView} />

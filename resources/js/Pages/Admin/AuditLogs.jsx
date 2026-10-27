@@ -113,7 +113,7 @@ function ExpandedRow({ item }) {
     const meta = Object.entries(details).filter(([k]) => !['ip', 'path', 'route', 'method'].includes(k));
 
     return (
-        <td colSpan={7} className="px-6 pb-4 pt-0">
+        <td colSpan={7}>
             <div className="mt-1 rounded-xl border border-slate-200 bg-white p-4">
                 <div className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
                     {pairs.map(([k, v]) => (
@@ -292,17 +292,17 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                     <div>
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-slate-200 text-left">
-                                    <th className="w-36 px-5 py-3">Время</th>
-                                    <th className="w-24 px-3 py-3">Источник</th>
-                                    <th className="w-28 px-3 py-3">Модуль</th>
-                                    <th className="px-3 py-3">Событие</th>
-                                    <th className="px-3 py-3">Пользователь</th>
-                                    <th className="px-3 py-3">Сущность</th>
-                                    <th className="w-8 px-3 py-3"><span className="sr-only">Подробнее</span></th>
+                                <tr>
+                                    <th className="w-36">Время</th>
+                                    <th className="w-24">Источник</th>
+                                    <th className="w-28">Модуль</th>
+                                    <th>Событие</th>
+                                    <th>Пользователь</th>
+                                    <th>Сущность</th>
+                                    <th className="relative w-8"><span className="sr-only">Подробнее</span></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200">
+                            <tbody>
                                 {(logs?.data || []).flatMap(item => {
                                     const isExpanded = expandedRow === item.id;
                                     const rowBg = ROW_SEVERITY_BG[item.severity] || '';
@@ -312,24 +312,24 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                             className={`cursor-pointer hover:bg-slate-50 transition-colors ${rowBg}`}
                                             onClick={() => toggleRow(item.id)}
                                         >
-                                            <td className="whitespace-nowrap px-5 py-3 font-mono text-xs tabular-nums text-slate-500">
+                                            <td className="whitespace-nowrap font-mono text-xs tabular-nums text-slate-500">
                                                 {formatDate(item.created_at)}
                                             </td>
-                                            <td className="px-3 py-3"><SourceBadge source={item.source} /></td>
-                                            <td className="px-3 py-3"><ModuleBadge module={item.module} label={item.module_label} /></td>
-                                            <td className="px-3 py-3">
-                                                <div className="flex flex-col gap-1">
+                                            <td><SourceBadge source={item.source} /></td>
+                                            <td><ModuleBadge module={item.module} label={item.module_label} /></td>
+                                            <td>
+                                                <div className="flex flex-col items-start gap-1">
                                                     <span className="font-medium text-slate-900">{item.event_label || item.event_key}</span>
                                                     <SeverityBadge severity={item.severity} label={item.severity_label} />
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-3">
+                                            <td>
                                                 <div className="flex flex-col">
                                                     <span className="font-medium text-slate-800">{item.actor_name}</span>
                                                     {item.actor_email && <span className="text-xs text-slate-500">{item.actor_email}</span>}
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-3">
+                                            <td>
                                                 <div className="flex flex-col">
                                                     <span className="text-slate-700">{item.subject_name || '—'}</span>
                                                     {item.subject_label && (
@@ -337,7 +337,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-3 text-teal-700">
+                                            <td className="text-teal-700">
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                             </td>
                                         </tr>,
@@ -356,7 +356,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                     </div>
 
                     {logs?.last_page > 1 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
                             <p className="text-xs font-medium tabular-nums text-slate-500">
                                 Показано {logs.from}–{logs.to} из {(logs.total || 0).toLocaleString('ru-RU')} записей
                             </p>

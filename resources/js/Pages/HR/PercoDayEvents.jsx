@@ -101,19 +101,19 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {events.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет событий за выбранный день.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет событий за выбранный день.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[980px] text-sm">
+                                <table className="w-full min-w-[760px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3">Время прохода</th>
-                                            <th className="py-3 pr-3">Выход из</th>
-                                            <th className="py-3 pr-3">Вход в</th>
-                                            <th className="py-3 pr-3">Устройство</th>
-                                            <th className="py-3 pr-6">Тип события</th>
+                                            <th>Время прохода</th>
+                                            <th>Выход из</th>
+                                            <th>Вход в</th>
+                                            <th>Устройство</th>
+                                            <th>Тип события</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -131,11 +131,11 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
 
                                             return (
                                                 <tr key={row.id} className={`border-b border-slate-200 last:border-0 ${rowClass}`}>
-                                                    <td className={`border-l-[3px] py-3 pl-6 pr-3 font-mono text-xs font-semibold text-[#102945] sm:text-sm ${railClass}`}>{fmtTime(row.time_label)}</td>
-                                                    <td className="py-3 pr-3 font-medium text-red-700">{row.zone_exit || '—'}</td>
-                                                    <td className="py-3 pr-3 font-medium text-emerald-700">{row.zone_enter || '—'}</td>
-                                                    <td className="py-3 pr-3 tabular-nums text-slate-600">{row.device_id ? `#${row.device_id}` : '—'}</td>
-                                                    <td className="py-3 pr-6">
+                                                    <td className={`border-l-[3px] font-mono text-xs font-semibold text-[#102945] sm:text-sm ${railClass}`}>{fmtTime(row.time_label)}</td>
+                                                    <td className="font-medium text-red-700">{row.zone_exit || '—'}</td>
+                                                    <td className="font-medium text-emerald-700">{row.zone_enter || '—'}</td>
+                                                    <td className="tabular-nums text-slate-600">{row.device_id ? `#${row.device_id}` : '—'}</td>
+                                                    <td>
                                                         <span className={row.ignored ? 'text-orange-700' : 'text-slate-900'}>
                                                             {row.event_type || '—'}{row.ignored ? ' (игнор)' : ''}
                                                         </span>

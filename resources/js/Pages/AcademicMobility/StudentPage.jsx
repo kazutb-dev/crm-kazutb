@@ -186,7 +186,7 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <FormGrid className="gap-5">
+                            <FormGrid>
                                 <div className="space-y-2">
                                     <Label className="block">ФИО</Label>
                                     <Input
@@ -240,12 +240,12 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
                             </CardTitle>
                             <p className="text-sm text-slate-600">Выберите тип документа и загрузите файл. Можно прикрепить несколько документов.</p>
                         </CardHeader>
-                        <CardContent className="py-2">
+                        <CardContent>
                             <div className="divide-y divide-slate-200">
                                 {documentList.map((document) => {
                                     const attached = Boolean(files[document]);
                                     return (
-                                        <div key={document} className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+                                        <div key={document} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between">
                                             <div className="flex items-start gap-3">
                                                 <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${attached ? 'bg-emerald-100 text-emerald-700' : 'bg-teal-50 text-teal-700'}`}>
                                                     {attached ? <CircleCheck className="h-4 w-4" /> : <FileText className="h-4 w-4" />}

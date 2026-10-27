@@ -189,7 +189,7 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                                 <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="submit">
                                 <Search className="h-4 w-4" />
                                 Найти
@@ -218,29 +218,29 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                             Dashboard отсутствий: кто не пришел на работу
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1000px] text-sm">
+                                <table className="w-full min-w-[820px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('absence_count')}>Кол-во отсутствий{sortIndicator('absence_count')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_absence_date')}>Последнее отсутствие{sortIndicator('last_absence_date')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('absence_count')}>Кол-во отсутствий{sortIndicator('absence_count')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_absence_date')}>Последнее отсутствие{sortIndicator('last_absence_date')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedItems.map((row) => (
                                             <tr key={row.id} className="border-b border-slate-200 last:border-0">
-                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{row.absence_count ?? 0}</td>
-                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.last_absence_date)}</td>
+                                                <td className="font-medium text-slate-900">{fullName(row)}</td>
+                                                <td className="text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{row.absence_count ?? 0}</td>
+                                                <td className="tabular-nums text-slate-700">{fmtDate(row.last_absence_date)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -249,7 +249,7 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

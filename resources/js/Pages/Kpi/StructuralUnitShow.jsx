@@ -162,7 +162,7 @@ export default function StructuralUnitShow() {
             <Head title={`Структура ${formatStructuralUnitLabel(unit)}`} />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Ответственные сотрудники" value={unit.users?.length || 0} tone="teal" icon={Users} />
                     <StatTile label="Привязанные записи" value={unit.records?.length || 0} tone="info" icon={Link2} />
                     <StatTile label="Записи без подразделения" value={availableRecords.length} tone="warning" icon={Unlink} />
@@ -170,11 +170,9 @@ export default function StructuralUnitShow() {
 
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-2"><Users className="h-4 w-4" />Ответственные сотрудники</span>
-                                <Badge variant="outline" className="tabular-nums">{unit.users?.length || 0}</Badge>
-                            </CardTitle>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Ответственные сотрудники</CardTitle>
+                            <Badge variant="outline" className="tabular-nums">{unit.users?.length || 0}</Badge>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <label className="block space-y-2">
@@ -233,11 +231,9 @@ export default function StructuralUnitShow() {
                     </Card>
 
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-2"><Link2 className="h-4 w-4" />Привязанные записи</span>
-                                <Badge variant="secondary" className="tabular-nums">{unit.records?.length || 0}</Badge>
-                            </CardTitle>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" />Привязанные записи</CardTitle>
+                            <Badge variant="secondary" className="tabular-nums">{unit.records?.length || 0}</Badge>
                         </CardHeader>
                         <CardContent className={Array.isArray(unit.records) && unit.records.length > 0 ? 'p-0' : ''}>
                             {Array.isArray(unit.records) && unit.records.length > 0 ? (
@@ -245,7 +241,7 @@ export default function StructuralUnitShow() {
                                     {unit.records.map((record) => (
                                         <div
                                             key={record.id}
-                                            className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0"
+                                            className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6"
                                         >
                                             <div className="min-w-0 space-y-1">
                                                 <p className="text-sm font-semibold text-slate-900">
@@ -279,11 +275,9 @@ export default function StructuralUnitShow() {
                 </div>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-2"><Unlink className="h-4 w-4" />Записи без структурного подразделения</span>
-                            <Badge variant="outline" className="tabular-nums">{availableRecords.length}</Badge>
-                        </CardTitle>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2"><Unlink className="h-4 w-4" />Записи без структурного подразделения</CardTitle>
+                        <Badge variant="outline" className="tabular-nums">{availableRecords.length}</Badge>
                     </CardHeader>
                     <CardContent className={Array.isArray(availableRecords) && availableRecords.length > 0 ? 'p-0' : ''}>
                         {Array.isArray(availableRecords) && availableRecords.length > 0 ? (
@@ -291,7 +285,7 @@ export default function StructuralUnitShow() {
                                 {availableRecords.map((record) => (
                                     <div
                                         key={record.id}
-                                        className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0"
+                                        className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6"
                                     >
                                         <div className="min-w-0 space-y-1">
                                             <p className="text-sm font-semibold text-slate-900">

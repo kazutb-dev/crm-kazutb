@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageHeader, Segmented, StatTile, StatusBadge } from '@/components/platform';
+import { EmptyState, PageHeader, Segmented, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
 import { BarChart3, Users } from 'lucide-react';
@@ -67,7 +67,7 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
             <div className="admin-page-wrap space-y-6">
 
                 {/* KPI tiles */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <StatGrid className="sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
                     {isAdmin && adminStats ? (
                         <>
                             <StatCard label="Встреч всего"     value={displayStats.total}      total={displayStats.total} tone="info" color="bg-blue-600"/>
@@ -87,7 +87,14 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                             <StatCard label="Дней командировок" value={displayStats.businessTripDays} total={tripTotal} tone="copper" color="bg-orange-600"/>
                         </>
                     )}
-                </div>
+                </StatGrid>
+
+                {!(displayStats.total > 0) && (
+                    <EmptyState
+                        title="За выбранный период встреч нет"
+                        description="Показатели и распределение по исходам появятся, когда в календаре будут встречи. Попробуйте выбрать другой период."
+                    />
+                )}
 
                 {/* Completion rate */}
                 {displayStats.total > 0 && (
@@ -130,30 +137,30 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                                 Статистика по сотрудникам
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent className="p-0 sm:p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="p-3 text-left">Сотрудник</th>
-                                            <th className="p-3 text-center">Встреч</th>
-                                            <th className="p-3 text-center">Завершено</th>
-                                            <th className="p-3 text-center">Отпуск</th>
-                                            <th className="p-3 text-center">Командировка</th>
+                                            <th>Сотрудник</th>
+                                            <th className="text-right">Встреч</th>
+                                            <th className="text-right">Завершено</th>
+                                            <th className="text-right">Отпуск</th>
+                                            <th className="text-right">Командировка</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {adminStats.userStats.map((user, idx) => (
                                             <tr key={idx} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="p-3 font-medium text-slate-900">{user.name}</td>
-                                                <td className="p-3 text-center font-semibold tabular-nums text-[#102945]">{user.total}</td>
-                                                <td className="p-3 text-center tabular-nums">
+                                                <td className="font-medium text-slate-900">{user.name}</td>
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{user.total}</td>
+                                                <td className="text-right tabular-nums">
                                                     <span className="text-emerald-700">{user.completed}</span>
                                                 </td>
-                                                <td className="p-3 text-center tabular-nums">
+                                                <td className="text-right tabular-nums">
                                                     <span className="text-teal-700">{user.vacationDays} дн.</span>
                                                 </td>
-                                                <td className="p-3 text-center tabular-nums">
+                                                <td className="text-right tabular-nums">
                                                     <span className="text-orange-700">{user.businessTripDays} дн.</span>
                                                 </td>
                                             </tr>

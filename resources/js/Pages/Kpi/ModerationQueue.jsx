@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { FilterBar, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { CalendarOff, ClipboardList, Eye, Filter, Hourglass, Link2Off, ListChecks, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { CalendarOff, ClipboardList, Eye, Filter, Hourglass, Inbox, Link2Off, ListChecks, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { formatStructuralUnitLabel } from '@/utils/kpi-structure-label';
 
@@ -59,7 +59,7 @@ const spStatusVariants = {
     rejected: 'destructive',
 };
 
-const ACTION_BTN = 'h-auto min-h-8 w-full justify-start whitespace-normal text-left';
+const ACTION_BTN = 'shrink-0 whitespace-nowrap';
 
 const entityLabels = {
     teacher: 'Преподаватель',
@@ -637,8 +637,8 @@ export default function ModerationQueue({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="border-b border-slate-200 p-4">
-                            <div className="relative">
+                        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
+                            <div className="relative w-full">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     className="pl-9"
@@ -650,55 +650,58 @@ export default function ModerationQueue({
                         </div>
 
                         {filteredItems.length === 0 ? (
-                            <div className="p-4">
-                                <EmptyState
-                                    title="Записи не найдены"
-                                    description="Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди."
-                                    action={searchActive ? (
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setQuickSearch('')}>Очистить поиск</Button>
-                                    ) : null}
-                                />
+                            <div className="flex flex-col items-center gap-4 px-5 py-12 text-center sm:px-6">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                    <Inbox className="h-6 w-6" />
+                                </div>
+                                <div className="max-w-md space-y-1.5">
+                                    <p className="font-display text-lg font-bold text-[#102945]">Записи не найдены</p>
+                                    <p className="text-sm leading-relaxed text-slate-600">Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди.</p>
+                                </div>
+                                {searchActive && (
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setQuickSearch('')}>Очистить поиск</Button>
+                                )}
                             </div>
                         ) : (
                             <>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[1080px] table-fixed text-sm">
+                                    <table className="w-full min-w-[1100px] text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200 text-left">
-                                                <th className="w-[14%] px-4 py-3">Сотрудник</th>
-                                                <th className="w-[16%] px-4 py-3">Показатель</th>
-                                                <th className="w-[11%] px-4 py-3">Период</th>
-                                                <th className="w-[11%] px-4 py-3">Структура</th>
-                                                {showBindingColumn && <th className="w-[20%] px-4 py-3">Привязка / подтверждение</th>}
-                                                <th className="w-[7%] px-4 py-3 text-right">Баллы</th>
-                                                <th className="w-[10%] px-4 py-3">Статус</th>
-                                                <th className="w-[148px] px-4 py-3">Действия</th>
+                                                <th className="min-w-[170px]">Сотрудник</th>
+                                                <th className="min-w-[180px]">Показатель</th>
+                                                <th className="min-w-[140px]">Период</th>
+                                                <th className="min-w-[150px]">Структура</th>
+                                                {showBindingColumn && <th className="min-w-[220px]">Привязка / подтверждение</th>}
+                                                <th className="text-right">Баллы</th>
+                                                <th>Статус</th>
+                                                <th className="text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredItems.map((entry) => (
                                                 <tr key={entry.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
-                                                    <td className="px-4 py-4 break-words">
+                                                    <td className="break-words">
                                                         <div className="font-medium leading-6 text-slate-900">{entry.user?.name ?? '—'}</div>
                                                         <div className="mt-1 break-all text-xs text-slate-500">{entry.user?.email ?? 'Без email'}</div>
                                                         <div className="mt-1 text-xs text-slate-500">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
                                                     </td>
-                                                    <td className="px-4 py-4 break-words">
+                                                    <td className="break-words">
                                                         <div className="font-medium leading-6">{entry.indicator?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-slate-500">{entry.indicator?.code ?? '—'}</div>
                                                     </td>
-                                                    <td className="px-4 py-4 break-words">
+                                                    <td className="break-words">
                                                         <div className="font-medium">{entry.period?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-slate-500">
                                                             {stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'} • {formatDate(entry.period?.start_date)} - {formatDate(entry.period?.end_date)}
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4 break-words">
+                                                    <td className="break-words">
                                                         <div>{entry.faculty?.name ?? '—'}</div>
                                                         <div className="mt-1 text-xs text-slate-500">{entry.department?.name ?? '—'}</div>
                                                     </td>
                                                     {showBindingColumn && (
-                                                        <td className="px-4 py-4 break-words">
+                                                        <td className="break-words">
                                                             {(() => {
                                                                 const unitNames = resolveStructuralUnits(entry);
                                                                 const confirmations = resolveEntryStructuralConfirmations(entry);
@@ -736,18 +739,18 @@ export default function ModerationQueue({
                                                             })()}
                                                         </td>
                                                     )}
-                                                    <td className="px-4 py-4 text-right font-display text-base font-bold tabular-nums whitespace-nowrap text-[#102945]">{resolvePoints(entry)}</td>
-                                                    <td className="px-4 py-4">
+                                                    <td className="text-right font-display text-base font-bold tabular-nums whitespace-nowrap text-[#102945]">{resolvePoints(entry)}</td>
+                                                    <td>
                                                         <Badge variant={statusVariants[entry.status] ?? 'outline'}>
                                                             {statusLabels[entry.status] ?? entry.status}
                                                         </Badge>
                                                     </td>
-                                                    <td className="px-4 py-4 align-top">
-                                                        <div className="grid w-full min-w-0 gap-1.5">
+                                                    <td className="whitespace-nowrap text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button asChild size="sm" variant="outline" className={ACTION_BTN}>
                                                                 <Link href={route('kpi.entries.show', entry.id)}>
                                                                     <Eye className="h-3.5 w-3.5 shrink-0" />
-                                                                    <span className="min-w-0">Открыть</span>
+                                                                    <span>Открыть</span>
                                                                 </Link>
                                                             </Button>
 
@@ -766,7 +769,7 @@ export default function ModerationQueue({
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0">Утвердить</span>
+                                                                                    <span>Утвердить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -783,7 +786,7 @@ export default function ModerationQueue({
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0">Утвердить</span>
+                                                                                    <span>Утвердить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -814,7 +817,7 @@ export default function ModerationQueue({
                                                                                         : `Статус другого СП: ${item.name}`)}
                                                                                 >
                                                                                     <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0">{item.shortName}</span>
+                                                                                    <span>{item.shortName}</span>
                                                                                 </Button>
                                                                             );
                                                                         });
@@ -830,7 +833,7 @@ export default function ModerationQueue({
                                                                             title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                                                                            <span className="min-w-0">Утвердить</span>
+                                                                            <span>Утвердить</span>
                                                                         </Button>
                                                                     );
                                                                 })()
@@ -855,7 +858,7 @@ export default function ModerationQueue({
                                                                                     title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                                 >
                                                                                     <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                                    <span className="min-w-0">Отклонить</span>
+                                                                                    <span>Отклонить</span>
                                                                                 </Button>
                                                                             );
                                                                         }
@@ -885,7 +888,7 @@ export default function ModerationQueue({
                                                                                 title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                             >
                                                                                 <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                                <span className="min-w-0">Отклонить</span>
+                                                                                <span>Отклонить</span>
                                                                             </Button>
                                                                         );
                                                                     }
@@ -906,7 +909,7 @@ export default function ModerationQueue({
                                                                             title={!isEntryScopeActive(entry) && !isAdminViewer ? 'Сезон/область деактивирована — действие недоступно' : undefined}
                                                                         >
                                                                             <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-                                                                            <span className="min-w-0">Отклонить</span>
+                                                                            <span>Отклонить</span>
                                                                         </Button>
                                                                     );
                                                                 })()
@@ -920,7 +923,7 @@ export default function ModerationQueue({
                                 </div>
 
                                 {links.length > 3 && (
-                                    <div className="border-t border-slate-200 p-4">
+                                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
                                         <Pagination links={links} />
                                     </div>
                                 )}

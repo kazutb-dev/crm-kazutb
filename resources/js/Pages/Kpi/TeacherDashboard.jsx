@@ -794,7 +794,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                 className={`cursor-pointer border-b border-slate-200 transition-colors hover:bg-slate-50 ${expanded ? 'bg-slate-50' : ''}`}
                 onClick={() => setExpanded((v) => !v)}
             >
-                <td className="ps-3 py-3">
+                <td>
                     <div className="flex items-center gap-1">
                         {expanded ? (
                             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-teal-700" />
@@ -803,18 +803,18 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
                         )}
                     </div>
                 </td>
-                <td className="py-3 font-mono text-xs text-slate-500">{entry.indicator?.code ?? '—'}</td>
-                <td className="py-3 font-medium text-slate-900">{entry.indicator?.name ?? '—'}</td>
-                <td className="py-3 text-right text-sm tabular-nums text-slate-700">{entry.indicator?.base_points ?? '—'}</td>
-                <td className="py-3 text-right text-sm tabular-nums text-slate-700">{entry.fact_value ?? '—'}</td>
-                <td className="py-3 text-right font-display text-base font-bold tabular-nums text-[#102945]">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
-                <td className="py-3">
+                <td className="font-mono text-xs text-slate-500">{entry.indicator?.code ?? '—'}</td>
+                <td className="font-medium text-slate-900">{entry.indicator?.name ?? '—'}</td>
+                <td className="text-right text-sm tabular-nums text-slate-700">{entry.indicator?.base_points ?? '—'}</td>
+                <td className="text-right text-sm tabular-nums text-slate-700">{entry.fact_value ?? '—'}</td>
+                <td className="text-right font-display text-base font-bold tabular-nums text-[#102945]">{formatScore(entry.points_for_display ?? entry.manual_points ?? entry.calculated_points)}</td>
+                <td>
                     <Badge variant={statusVariants[entry.status] ?? 'outline'} className="text-[0.7rem]">
                         {statusLabels[entry.status] ?? entry.status}
                     </Badge>
                     {isFileMissing && <Badge variant="warning" className="mt-1 text-[0.65rem]">Нужен файл</Badge>}
                 </td>
-                <td className="pe-3 py-3 text-right">
+                <td className="text-right">
                     <div className="flex justify-end gap-1">
                         <Button asChild size="sm" variant="outline">
                             <Link href={route('kpi.entries.show', entry.id)} onClick={(e) => e.stopPropagation()}>Открыть</Link>
@@ -841,7 +841,7 @@ function EntryRow({ entry, isEditable, isFileMissing, uploadFile, uploadingEntry
             </tr>
             {expanded && (
                 <tr className="border-b border-slate-200 bg-slate-50">
-                    <td colSpan={8} className="px-4 py-4">
+                    <td colSpan={8} className="py-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="sm:col-span-2">
                                 <EntryHistory history={entry.history} />
@@ -968,14 +968,14 @@ function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, u
                             <table className="admin-data-table min-w-[800px]">
                                 <thead>
                                     <tr>
-                                        <th className="ps-3 w-6"></th>
+                                        <th className="w-6"></th>
                                         <th className="w-16">Код</th>
                                         <th>Показатель</th>
                                         <th className="w-24 text-right">Базовый балл</th>
                                         <th className="w-20 text-right">Факт</th>
                                         <th className="w-20 text-right">Баллы</th>
                                         <th className="w-28">Статус</th>
-                                        <th className="w-40 text-right pe-3">Действия</th>
+                                        <th className="w-40 text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -2140,21 +2140,18 @@ export default function TeacherDashboard({
 
                 {/* ── Faculty/Department binding reminder ──────────────── */}
                 {(!currentUser?.faculty_name || !currentUser?.department_name) && (
-                    <Notice
-                        tone="info"
-                        title="Требуется привязка к структурным подразделениям"
-                        action={(
-                            <Button asChild size="sm" variant="outline" className="shrink-0">
-                                <Link href={route('profile.edit')}>Перейти в профиль</Link>
-                            </Button>
-                        )}
-                    >
-                        Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.
+                    <Notice tone="info" title="Требуется привязка к структурным подразделениям">
+                        <p>
+                            Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.
+                        </p>
+                        <Button asChild size="sm" variant="outline" className="mt-3">
+                            <Link href={route('profile.edit')}>Перейти в профиль</Link>
+                        </Button>
                     </Notice>
                 )}
 
                 {/* ── Stat tiles ─────────────────────────────────────── */}
-                <StatGrid className="xl:grid-cols-5">
+                <StatGrid>
                     <StatTile icon={BarChart3} label="Всего записей" value={summary.total_entries ?? 0} tone="navy" />
                     <StatTile icon={TrendingUp} label="Утверждено" value={summary.approved_entries ?? 0} tone="success" />
                     <StatTile icon={CircleX} label="Отклоненные" value={summary.rejected_entries ?? 0} tone="danger" />
@@ -2192,32 +2189,31 @@ export default function TeacherDashboard({
                                 <BookOpen />
                                 Справочник KPI-индикаторов
                             </CardTitle>
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                                Дополнительный раздел ({userLevelLabel})
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span>Дополнительный раздел · Индикаторы для роли: <span className="font-semibold text-[#102945]">{userLevelLabel}</span></span>
                                 <Badge variant="outline">{indicatorReferenceItems.length} индикаторов</Badge>
                             </div>
                         </CardHeader>
                         <CardContent className="p-0">
-                            <p className="border-b border-slate-200 px-5 py-3 text-sm font-semibold text-[#102945]">Индикаторы для роли: {userLevelLabel}</p>
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[980px] text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200 text-left">
-                                            <th className="px-4 py-3">Секция</th>
-                                            <th className="px-4 py-3">Структурное подразделение (проверяющее)</th>
-                                            <th className="px-4 py-3">Код</th>
-                                            <th className="px-4 py-3">Название</th>
-                                            <th className="px-4 py-3 text-right">Баллы</th>
-                                            <th className="px-4 py-3">Правила баллов</th>
-                                            <th className="px-4 py-3">Описание</th>
-                                            <th className="px-4 py-3">Статус</th>
+                                            <th>Секция</th>
+                                            <th>Структурное подразделение (проверяющее)</th>
+                                            <th>Код</th>
+                                            <th>Название</th>
+                                            <th className="text-right">Баллы</th>
+                                            <th>Правила баллов</th>
+                                            <th>Описание</th>
+                                            <th>Статус</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {indicatorReferenceItems.map((indicator) => (
                                             <tr key={indicator.id} className="border-b border-slate-200 align-top last:border-0">
-                                                <td className="px-4 py-3 text-slate-700">{indicator.module_label ?? SECTION_LABELS[indicator.section] ?? indicator.section}</td>
-                                                <td className="px-4 py-3 text-slate-700">
+                                                <td className="text-slate-700">{indicator.module_label ?? SECTION_LABELS[indicator.section] ?? indicator.section}</td>
+                                                <td className="text-slate-700">
                                                     {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
                                                         ? indicator.structural_units
                                                             .map((unit) => unit?.name)
@@ -2225,15 +2221,15 @@ export default function TeacherDashboard({
                                                             .join(', ')
                                                         : (indicator.checker_structural_unit?.name ?? 'Не указано')}
                                                 </td>
-                                                <td className="px-4 py-3 font-mono text-xs text-slate-600">{indicator.code}</td>
-                                                <td className="px-4 py-3">
+                                                <td className="font-mono text-xs text-slate-600">{indicator.code}</td>
+                                                <td>
                                                     <div className="font-medium text-slate-900">{indicator.name}</div>
                                                     <div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
-                                                <td className="max-w-[260px] whitespace-pre-line px-4 py-3 text-slate-600">{indicator.scoring_rules || '—'}</td>
-                                                <td className="px-4 py-3 text-slate-700">{indicator.description || '—'}</td>
-                                                <td className="px-4 py-3">
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
+                                                <td className="max-w-[260px] whitespace-pre-line text-slate-600">{indicator.scoring_rules || '—'}</td>
+                                                <td className="text-slate-700">{indicator.description || '—'}</td>
+                                                <td>
                                                     {indicator.is_active ? <Badge variant="success">Активен</Badge> : <Badge variant="outline">Неактивен</Badge>}
                                                 </td>
                                             </tr>

@@ -48,8 +48,8 @@ export default function Create() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <form className="space-y-5" onSubmit={submit}>
-                            <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_200px]">
+                        <form className="space-y-4" onSubmit={submit}>
+                            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
                                 <div>
                                     <FormField label="Название">
                                         <Input
@@ -83,7 +83,7 @@ export default function Create() {
                                 {errors.description && <p className="mt-1.5 text-sm text-red-700">{errors.description}</p>}
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-5">
+                            <div className="mt-2 flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button variant="outline" asChild>
                                     <Link href={route('departments.index')}>Отмена</Link>
                                 </Button>

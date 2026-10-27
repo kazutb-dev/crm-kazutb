@@ -3,7 +3,7 @@ import { FileUp, ImageUp, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { fieldId, parseIin } from './logic';
-import { buttonClassName, ChoiceGroup, Field, formatBytes, inputClassName, Notice, Section, SelectInput, TextInput, validationErrors } from './ui';
+import { buttonClassName, ChoiceGroup, Field, formatBytes, inputSizedClassName, Notice, Section, SelectInput, TextInput, validationErrors } from './ui';
 
 export default function StepEmployee({ state, set, errors, options, abilities, hiringId, photoUrl, onPhotoChange, attachments, onAttachmentsChange }) {
     const e = state.employee;
@@ -338,7 +338,7 @@ function AttachmentsSection({ hiringId, options, abilities, attachments, onAttac
             <div className="flex flex-wrap items-end gap-3">
                 <label className="block">
                     <span className="qd-field-label mb-2 block text-[#102945]">Вид документа</span>
-                    <select value={docType} onChange={(event) => setDocType(event.target.value)} disabled={busy} className={`${inputClassName} w-auto`}>
+                    <select value={docType} onChange={(event) => setDocType(event.target.value)} disabled={busy} className={`${inputSizedClassName} w-auto max-w-full`}>
                         {options.attachment_types.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
                     </select>
                 </label>

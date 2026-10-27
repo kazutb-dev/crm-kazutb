@@ -142,11 +142,11 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
             header={(
                 <PageHeader
                     eyebrow={(
-                        <>
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
                             <Link href={route('testing.index')} className="transition hover:text-[#102945]">Тестирование</Link>
-                            <span className="mx-1.5">/</span>
+                            <span>/</span>
                             <span>Проверка знаний языка</span>
-                        </>
+                        </span>
                     )}
                     title="Тесты по языкам для AI Students"
                     description="Управляйте наборами вопросов, проходными баллами и лимитом выдачи вопросов."
@@ -172,7 +172,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
             <Head title="Проверка знаний языка — Тесты" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-2">
+                <StatGrid>
                     <StatTile label="Всего тестов" value={pagination.total ?? tests.length} tone="teal" icon={Languages} />
                     <StatTile label="Активных фильтров" value={activeFilterCount} tone="navy" icon={Filter} />
                 </StatGrid>
@@ -185,7 +185,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                             applyFilters();
                         }}
                     >
-                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                             <div className="md:col-span-2">
                                 <FormField label="Поиск">
                                     <div className="relative">
@@ -226,7 +226,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                                 </select>
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
                             <Button type="submit">Применить</Button>
                             <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
                         </div>
@@ -245,7 +245,7 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                             title="Список языковых тестов"
                             actions={<Badge variant="default" className="tabular-nums">Всего: {pagination.total ?? tests.length}</Badge>}
                         />
-                        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {tests.map((test) => (
                                 <Card key={test.id} className="flex min-h-[240px] flex-col">
                                     <CardContent className="flex flex-1 flex-col gap-4">
@@ -317,18 +317,20 @@ export default function LanguageTestingTestsIndex({ tests = [], filters = {}, pa
                     </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div className="tabular-nums">Показано {tests.length} из {pagination.total ?? tests.length}</div>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" aria-label="Предыдущая страница" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
-                        <Button type="button" size="sm" variant="outline" aria-label="Следующая страница" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                {tests.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                        <div className="tabular-nums">Показано {tests.length} из {pagination.total ?? tests.length}</div>
+                        <div className="flex items-center gap-2">
+                            <Button type="button" size="sm" variant="outline" aria-label="Предыдущая страница" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
+                            <Button type="button" size="sm" variant="outline" aria-label="Следующая страница" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

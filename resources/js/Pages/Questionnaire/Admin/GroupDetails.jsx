@@ -570,7 +570,7 @@ export default function GroupDetails({ groupId }) {
                                 </FormField>
                             </div>
 
-                            <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                            <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -584,7 +584,7 @@ export default function GroupDetails({ groupId }) {
                     </DialogContent>
                 </Dialog>
 
-                <div className="grid items-start gap-6 xl:grid-cols-2">
+                <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-2">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -592,7 +592,7 @@ export default function GroupDetails({ groupId }) {
                                 Дисциплины группы
                             </CardTitle>
                         </CardHeader>
-                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
                             <div className="relative w-full sm:max-w-xs">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
@@ -610,9 +610,9 @@ export default function GroupDetails({ groupId }) {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5"><LoadingState /></div>
+                                <div className="p-5 sm:p-6"><LoadingState /></div>
                             ) : filteredAssignmentsOfGroup.length === 0 ? (
-                                <div className="px-5 py-10 text-center">
+                                <div className="px-5 py-12 text-center sm:px-6">
                                     <p className="font-display text-base font-bold text-[#102945]">Нет назначенных дисциплин</p>
                                     <p className="mt-1 text-sm text-slate-600">У группы пока нет назначенных дисциплин. Нажмите «Назначить дисциплину».</p>
                                 </div>
@@ -621,26 +621,26 @@ export default function GroupDetails({ groupId }) {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-5 py-3 text-left">Преподаватель</th>
-                                                <th className="px-5 py-3 text-left">Дисциплина</th>
-                                                <th className="px-5 py-3 text-left">Период</th>
-                                                <th className="px-5 py-3 text-left">Статус</th>
-                                                <th className="px-5 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Преподаватель</th>
+                                                <th className="whitespace-nowrap text-left">Дисциплина</th>
+                                                <th className="whitespace-nowrap text-left">Период</th>
+                                                <th className="whitespace-nowrap text-left">Статус</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredAssignmentsOfGroup.map((item) => (
                                                 <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                    <td className="px-5 py-3 font-medium text-slate-900">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
-                                                    <td className="px-5 py-3 text-slate-700">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
-                                                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
-                                                    <td className="px-5 py-3">
+                                                    <td className="font-medium text-slate-900">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
+                                                    <td className="text-slate-700">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
+                                                    <td>
                                                         <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
                                                             {item.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-5 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => openEditAssignmentDialog(item)}>
                                                                 Ред.
                                                             </Button>
@@ -665,7 +665,7 @@ export default function GroupDetails({ groupId }) {
                                 Студенты группы
                             </CardTitle>
                         </CardHeader>
-                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
                             <div className="relative w-full sm:max-w-xs">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
@@ -683,9 +683,9 @@ export default function GroupDetails({ groupId }) {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5"><LoadingState /></div>
+                                <div className="p-5 sm:p-6"><LoadingState /></div>
                             ) : studentsOfGroup.length === 0 ? (
-                                <div className="px-5 py-10 text-center">
+                                <div className="px-5 py-12 text-center sm:px-6">
                                     <p className="font-display text-base font-bold text-[#102945]">Нет студентов</p>
                                     <p className="mt-1 text-sm text-slate-600">В этой группе нет студентов. Нажмите «Привязать студента».</p>
                                 </div>
@@ -694,17 +694,17 @@ export default function GroupDetails({ groupId }) {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-5 py-3 text-left">Студент</th>
-                                                <th className="px-5 py-3 text-left">Логин</th>
-                                                <th className="px-5 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Студент</th>
+                                                <th className="whitespace-nowrap text-left">Логин</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {studentsOfGroup.map((student) => (
                                                 <tr key={student.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                    <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
-                                                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
-                                                    <td className="px-5 py-3 text-right">
+                                                    <td className="font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
+                                                    <td className="text-right">
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
@@ -798,7 +798,7 @@ export default function GroupDetails({ groupId }) {
                                 </select>
                             </FormField>
 
-                            <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                            <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button type="button" variant="outline" onClick={() => setStudentDialogOpen(false)}>
                                     Отмена
                                 </Button>

@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Notice, PageHeader, StatTile, StatusBadge } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -240,11 +240,11 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                 {!!flash?.success && <Notice tone="success"><span className="whitespace-pre-line">{flash.success}</span></Notice>}
 
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <StatGrid>
                         {summaryItems.map(item => (
                             <StatTile key={item.label} label={item.label} value={item.value} icon={item.icon} tone={item.tone} />
                         ))}
-                    </div>
+                    </StatGrid>
 
                     <Card>
                         <CardHeader>
@@ -288,8 +288,8 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                         <CardContent>
                             <form onSubmit={submitConference} className="space-y-5">
                                 <p className="text-sm text-slate-600">Тема, время, описание и выбранные участники отправляются в Zoom и календарь.</p>
-                                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_12rem]">
-                                    <div className="space-y-2">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <Label>Тема</Label>
                                         <Input
                                             value={form.data.title}
@@ -345,7 +345,7 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                 </div>
 
                                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                    <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-end lg:justify-between">
+                                    <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
                                         <div className="min-w-0">
                                             <Label>Участники</Label>
                                             {form.errors.attendee_ids && <p className="mt-1 text-xs text-red-600">{form.errors.attendee_ids}</p>}
@@ -360,8 +360,10 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                                                     placeholder="ФИО, должность, email"
                                                 />
                                             </div>
-                                            <Button type="button" variant="outline" onClick={selectVisibleEmployees} disabled={filteredEmployees.length === 0}>Выбрать</Button>
-                                            <Button type="button" variant="ghost" onClick={clearAttendees} disabled={selectedCount === 0}>Очистить</Button>
+                                            <div className="flex gap-2">
+                                                <Button type="button" variant="outline" onClick={selectVisibleEmployees} disabled={filteredEmployees.length === 0}>Выбрать</Button>
+                                                <Button type="button" variant="ghost" onClick={clearAttendees} disabled={selectedCount === 0}>Очистить</Button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -450,7 +452,11 @@ export default function CalendarConferences({ conferences = [], employees = [] }
                             </div>
 
                             {visibleConferences.length === 0 && (
-                                <div className="rounded-xl border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500">Нет конференций по выбранным условиям.</div>
+                                <div className="flex flex-col items-center gap-3 py-12 text-center">
+                                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-700"><Video className="h-5 w-5" /></span>
+                                    <p className="font-display text-base font-bold text-[#102945]">Нет конференций по выбранным условиям.</p>
+                                    <p className="max-w-sm text-sm text-slate-500">Измените поиск или статус, либо создайте конференцию в форме «Создать конференцию».</p>
+                                </div>
                             )}
 
                             {visibleConferences.length > 0 && (

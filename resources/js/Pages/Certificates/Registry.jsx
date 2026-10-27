@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DataTable, FilterBar, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Card, CardContent, FilterBar, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Award, Download, QrCode, Search } from 'lucide-react';
 import {
     Dialog,
@@ -319,7 +319,7 @@ export default function CertificatesRegistryPage() {
                             applyFilters();
                         }}
                     >
-                        <div className="grid gap-x-3 gap-y-4 md:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-3">
                             <label className="block space-y-2 md:col-span-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <div className="relative">
@@ -347,7 +347,7 @@ export default function CertificatesRegistryPage() {
                                 </select>
                             </label>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
                             <Button type="submit" disabled={registryLoading}>
                                 {registryLoading ? 'Загрузка...' : 'Применить'}
                             </Button>
@@ -367,116 +367,119 @@ export default function CertificatesRegistryPage() {
                     </form>
                 </FilterBar>
 
-                <DataTable>
-                    <table className="min-w-full text-sm">
-                        <thead className="text-left">
-                            <tr>
-                                <th className="px-4 py-3">Номер</th>
-                                <th className="px-4 py-3">ФИО</th>
-                                <th className="px-4 py-3">Тема</th>
-                                <th className="px-4 py-3">Шаблон</th>
-                                <th className="px-4 py-3">Статус</th>
-                                <th className="px-4 py-3">Выдан</th>
-                                <th className="px-4 py-3 text-right">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {registry.data.length === 0 && (
-                                <tr>
-                                    <td className="px-4 py-10 text-center text-slate-500" colSpan={7}>
-                                        {registryLoading ? 'Загрузка...' : 'Записей пока нет'}
-                                    </td>
-                                </tr>
-                            )}
+                <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="text-left">
+                                    <tr>
+                                        <th>Номер</th>
+                                        <th>ФИО</th>
+                                        <th>Тема</th>
+                                        <th>Шаблон</th>
+                                        <th>Статус</th>
+                                        <th>Выдан</th>
+                                        <th className="text-right">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {registry.data.length === 0 && (
+                                        <tr>
+                                            <td className="py-12 text-center text-slate-500" colSpan={7}>
+                                                {registryLoading ? 'Загрузка...' : 'Записей пока нет'}
+                                            </td>
+                                        </tr>
+                                    )}
 
-                            {registry.data.map((certificate) => (
-                                <tr key={certificate.id} className="border-t border-slate-200 hover:bg-slate-50">
-                                    <td className="px-4 py-3 font-mono text-[0.8125rem] font-medium text-slate-900">{certificate.certificate_number}</td>
-                                    <td className="px-4 py-3 font-medium text-slate-900">{certificate.recipient_full_name}</td>
-                                    <td className="px-4 py-3 text-slate-700">{certificate.topic}</td>
-                                    <td className="px-4 py-3 text-slate-500">
-                                        {certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <StatusBadge tone={STATUS_TONES[certificate.status] ?? 'default'}>
-                                            {statusLabel[certificate.status] ?? certificate.status}
-                                        </StatusBadge>
-                                    </td>
-                                    <td className="px-4 py-3 tabular-nums text-slate-500">
-                                        {certificate.issued_at_human ?? '-'}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex flex-wrap justify-end gap-2">
-                                            {certificate.status === 'generated' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="secondary"
-                                                    onClick={() => issueCertificate(certificate.id)}
-                                                    disabled={actionLoading}
-                                                >
-                                                    Выдать
-                                                </Button>
-                                            )}
-                                            <Button asChild size="sm" variant="outline">
-                                                <Link href={route('certificates.show', certificate.id)}>
-                                                    Открыть
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="gap-1.5"
-                                                onClick={() => openQrDialog(certificate)}
-                                            >
-                                                <QrCode className="h-3.5 w-3.5" />
-                                                QR
-                                            </Button>
-                                            {(certificate.status === 'generated' || certificate.status === 'issued') && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-red-700 hover:bg-red-50 hover:text-red-800"
-                                                    onClick={() => openRevokeDialog(certificate.id)}
-                                                    disabled={actionLoading}
-                                                >
-                                                    Отозвать
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </DataTable>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                    <div className="tabular-nums text-slate-600">Всего: {registry.meta.total ?? 0}</div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={registryLoading || (registry.meta.current_page ?? 1) <= 1}
-                            onClick={() => loadRegistry((registry.meta.current_page ?? 1) - 1)}
-                        >
-                            Назад
-                        </Button>
-                        <span className="tabular-nums text-slate-600">
-                            Стр. {registry.meta.current_page ?? 1} из {registry.meta.last_page ?? 1}
-                        </span>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={
-                                registryLoading ||
-                                (registry.meta.current_page ?? 1) >= (registry.meta.last_page ?? 1)
-                            }
-                            onClick={() => loadRegistry((registry.meta.current_page ?? 1) + 1)}
-                        >
-                            Вперед
-                        </Button>
-                    </div>
-                </div>
+                                    {registry.data.map((certificate) => (
+                                        <tr key={certificate.id} className="hover:bg-slate-50">
+                                            <td className="font-mono text-[0.8125rem] font-medium text-slate-900">{certificate.certificate_number}</td>
+                                            <td className="font-medium text-slate-900">{certificate.recipient_full_name}</td>
+                                            <td className="text-slate-700">{certificate.topic}</td>
+                                            <td className="text-slate-500">
+                                                {certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}
+                                            </td>
+                                            <td>
+                                                <StatusBadge tone={STATUS_TONES[certificate.status] ?? 'default'}>
+                                                    {statusLabel[certificate.status] ?? certificate.status}
+                                                </StatusBadge>
+                                            </td>
+                                            <td className="tabular-nums text-slate-500">
+                                                {certificate.issued_at_human ?? '-'}
+                                            </td>
+                                            <td>
+                                                <div className="flex flex-wrap justify-end gap-2">
+                                                    {certificate.status === 'generated' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="secondary"
+                                                            onClick={() => issueCertificate(certificate.id)}
+                                                            disabled={actionLoading}
+                                                        >
+                                                            Выдать
+                                                        </Button>
+                                                    )}
+                                                    <Button asChild size="sm" variant="outline">
+                                                        <Link href={route('certificates.show', certificate.id)}>
+                                                            Открыть
+                                                        </Link>
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="gap-1.5"
+                                                        onClick={() => openQrDialog(certificate)}
+                                                    >
+                                                        <QrCode className="h-3.5 w-3.5" />
+                                                        QR
+                                                    </Button>
+                                                    {(certificate.status === 'generated' || certificate.status === 'issued') && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-red-700 hover:bg-red-50 hover:text-red-800"
+                                                            onClick={() => openRevokeDialog(certificate.id)}
+                                                            disabled={actionLoading}
+                                                        >
+                                                            Отозвать
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-sm sm:px-6">
+                            <div className="tabular-nums text-slate-600">Всего: {registry.meta.total ?? 0}</div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={registryLoading || (registry.meta.current_page ?? 1) <= 1}
+                                    onClick={() => loadRegistry((registry.meta.current_page ?? 1) - 1)}
+                                >
+                                    Назад
+                                </Button>
+                                <span className="tabular-nums text-slate-600">
+                                    Стр. {registry.meta.current_page ?? 1} из {registry.meta.last_page ?? 1}
+                                </span>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={
+                                        registryLoading ||
+                                        (registry.meta.current_page ?? 1) >= (registry.meta.last_page ?? 1)
+                                    }
+                                    onClick={() => loadRegistry((registry.meta.current_page ?? 1) + 1)}
+                                >
+                                    Вперед
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </AuthenticatedLayout>
     );

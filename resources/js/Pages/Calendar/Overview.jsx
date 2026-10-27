@@ -147,7 +147,7 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="p-0">
+                        <CardContent className="p-0 sm:p-0">
                             <div className="grid grid-cols-7 border-b border-slate-200">
                                 {WEEKDAYS.map((wd, i) => (
                                     <div key={wd} className={`py-2 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>{wd}</div>
@@ -223,7 +223,7 @@ export default function CalendarOverview({ stats, upcomingEvents = [], holidays 
                                     Ближайшие встречи
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className={upcomingEvents.length === 0 ? '' : 'py-2'}>
+                            <CardContent className={upcomingEvents.length === 0 ? '' : 'py-2 sm:py-2'}>
                                 {upcomingEvents.length === 0 ? (
                                     <p className="py-4 text-center text-sm text-slate-500">Нет предстоящих встреч</p>
                                 ) : (

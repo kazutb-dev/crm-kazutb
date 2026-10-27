@@ -566,7 +566,7 @@ export default function Index({
 
     const renderSyncBadge = (user) => {
         return (
-            <StatusBadge tone={user.is_synced ? 'success' : 'default'} className="inline-flex h-6 items-center gap-1 px-2 py-0 text-[10px] font-semibold">
+            <StatusBadge tone={user.is_synced ? 'success' : 'default'} className="whitespace-nowrap">
                 <span className={`h-1.5 w-1.5 rounded-full ${user.is_synced ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                 {user.is_synced ? 'Да' : 'Нет'}
             </StatusBadge>
@@ -581,7 +581,7 @@ export default function Index({
                 type="button"
                 variant="outline"
                 size="sm"
-                className={`h-7 rounded-md border px-2.5 text-[11px] font-medium shadow-sm ${missing ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}
+                className={missing ? 'border-amber-300 text-amber-700 hover:border-amber-500 hover:bg-amber-50' : undefined}
                 onClick={() => handleEditClick(user)}
             >
                 <Pencil className="h-3.5 w-3.5" />
@@ -597,8 +597,8 @@ export default function Index({
             <Button
                 type="button"
                 size="sm"
-                variant={missing ? 'outline' : 'default'}
-                className={`h-7 rounded-md px-2.5 text-[11px] font-semibold shadow-sm ${missing ? 'border-amber-300 text-amber-800 hover:bg-amber-50' : 'bg-[#102945] text-white hover:bg-[#102945]'}`}
+                variant={missing ? 'outline' : 'ink'}
+                className={missing ? 'border-amber-300 text-amber-800 hover:border-amber-500 hover:bg-amber-50' : undefined}
                 onClick={() => handleRoleClick(user)}
             >
                 <ShieldPlus className="h-3.5 w-3.5" />
@@ -851,8 +851,8 @@ export default function Index({
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap overflow-x-hidden px-4 lg:px-6">
-                <div className="m-0 mx-auto w-full max-w-[1540px] min-w-0 overflow-hidden">
+            <div className="admin-page-wrap">
+                <div className="min-w-0">
                     <section className="min-w-0">
                         <div className="mb-4 flex min-w-0 flex-col gap-1 xl:flex-row xl:items-end xl:justify-between">
                             <h2 className="flex items-center gap-2.5 text-2xl font-bold">
@@ -1048,25 +1048,25 @@ export default function Index({
 
                             <DataTable>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full min-w-0 table-fixed text-[13px] leading-[1.25] [&_td]:px-2.5 [&_td]:py-2.5 [&_th]:px-2.5 [&_th]:py-2 [&_th]:text-[11px] [&_th]:uppercase [&_th]:tracking-[0.16em] [&_tr]:border-b [&_tr]:border-slate-200/85 [&_th:nth-child(2)]:border-r-0 [&_td:nth-child(2)]:border-r-0 [&_th:nth-child(3)]:border-l-0 [&_td:nth-child(3)]:border-l-0">
-                                        <thead className="bg-slate-100/95 backdrop-blur">
+                                    <table className="w-full min-w-[1360px] text-[13px] leading-[1.25]">
+                                        <thead>
                                             <tr>
-                                                <th className="w-[19%] text-slate-700">ФИО</th>
-                                                <th className="w-[11%] pr-3 text-slate-700">Логин</th>
-                                                <th className="w-[17%] pl-4 text-slate-700">Email</th>
-                                                <th className="w-[11%] text-slate-700">Последний вход</th>
-                                                <th className="w-[14%] text-slate-700">Должность / роль</th>
-                                                <th className="w-[17%] text-slate-700">Факультет / кафедра</th>
-                                                <th className="w-[7%] text-center text-slate-700">Входы</th>
-                                                <th className="w-[7%] text-slate-700">Статус</th>
-                                                <th className="w-[6%] text-slate-700">Синхр.</th>
-                                                <th className="w-[11%] text-right text-slate-700">Действия</th>
+                                                <th className="w-[17%]">ФИО</th>
+                                                <th className="w-[8%]">Логин</th>
+                                                <th className="w-[14%]">Email</th>
+                                                <th className="w-[10%]">Последний вход</th>
+                                                <th className="w-[11%]">Должность / роль</th>
+                                                <th className="w-[14%]">Факультет / кафедра</th>
+                                                <th className="w-[6%] text-center">Входы</th>
+                                                <th className="w-[7%]">Статус</th>
+                                                <th className="w-[5%]">Синхр.</th>
+                                                <th className="w-px whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="[&_tr:hover]:bg-slate-50/70 [&_tr]:transition-colors">
+                                        <tbody>
                                             {displayedUsers.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">
+                                                    <td colSpan={10} className="py-12 text-center text-sm text-slate-500">
                                                         Пользователи не найдены
                                                     </td>
                                                 </tr>
@@ -1087,7 +1087,7 @@ export default function Index({
                                                             </div>
                                                         </td>
 
-                                                        <td className="align-middle pe-3">
+                                                        <td className="align-top">
                                                             <div className="inline-flex max-w-[120px] items-center rounded-md border border-slate-300/95 bg-slate-100 px-1.5 py-0.5">
                                                                 <span className="block w-full truncate font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-700" title={user.login || ''}>
                                                                     {user.login || '—'}
@@ -1095,7 +1095,7 @@ export default function Index({
                                                             </div>
                                                         </td>
 
-                                                        <td className="min-w-0 align-middle pl-4">
+                                                        <td className="min-w-0 align-top">
                                                             <div className="flex min-w-0 items-center gap-2.5">
                                                                 <Mail className="h-3 w-3 shrink-0 text-slate-400" />
                                                                 <span className="block min-w-0 max-w-[190px] truncate text-[11px] leading-[1.05rem] text-slate-500" title={user.email || ''}>
@@ -1157,7 +1157,7 @@ export default function Index({
                                                                     </div>
                                                                 )}
                                                                 {bindingMissing && (
-                                                                    <Badge variant="outline" className={`inline-flex h-6 items-center rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
+                                                                    <Badge variant="outline" className={`inline-flex h-6 items-center whitespace-nowrap rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
                                                                         ⚠ Не привязан
                                                                     </Badge>
                                                                 )}
@@ -1180,7 +1180,7 @@ export default function Index({
                                                         </td>
 
                                                         <td className="align-top">
-                                                            <Badge variant="outline" className={`inline-flex h-6 items-center rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
+                                                            <Badge variant="outline" className={`inline-flex h-6 items-center whitespace-nowrap rounded-full px-2 py-0 text-[10px] font-semibold ${getBindingBadgeClass(user)}`}>
                                                                 {user.binding_label || (bindingMissing ? '⚠ Не привязан' : 'Привязан')}
                                                             </Badge>
                                                         </td>
@@ -1189,8 +1189,8 @@ export default function Index({
                                                             {renderSyncBadge(user)}
                                                         </td>
 
-                                                        <td className="align-top text-right">
-                                                            <div className="flex min-h-[28px] flex-wrap items-center justify-end gap-1.5">
+                                                        <td className="whitespace-nowrap align-top text-right">
+                                                            <div className="flex items-center justify-end gap-2">
                                                                 {renderEditButton(user)}
                                                                 {renderRoleButton(user)}
                                                             </div>
@@ -1203,7 +1203,7 @@ export default function Index({
                                 </div>
                             </DataTable>
 
-                            <div className="flex flex-col gap-2 px-1 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="text-xs font-medium text-slate-500">
                                     Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                                 </div>

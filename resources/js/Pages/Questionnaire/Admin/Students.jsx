@@ -309,7 +309,7 @@ export default function Students() {
                                     </select>
                                 </FormField>
 
-                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     {editingId && (
                                         <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
                                     )}
@@ -329,7 +329,7 @@ export default function Students() {
                                 Текущие привязки студентов
                             </CardTitle>
                         </CardHeader>
-                        <div className="border-b border-slate-200 px-5 py-4">
+                        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
                             <FormField label="Поиск">
                                 <div className="relative w-full sm:max-w-sm">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -344,9 +344,9 @@ export default function Students() {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5"><LoadingState /></div>
+                                <div className="p-5 sm:p-6"><LoadingState /></div>
                             ) : filteredStudents.length === 0 ? (
-                                <div className="px-5 py-12 text-center">
+                                <div className="px-5 py-12 text-center sm:px-6">
                                     <p className="font-display text-lg font-bold text-[#102945]">Привязки пока не созданы</p>
                                     <p className="mt-1 text-sm text-slate-600">
                                         {students.length === 0 ? 'Выберите студента и группу в форме слева, чтобы создать первую привязку.' : 'По запросу ничего не найдено — измените поиск.'}
@@ -357,26 +357,26 @@ export default function Students() {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-5 py-3 text-left">Студент</th>
-                                                <th className="px-5 py-3 text-left">Логин AD</th>
-                                                <th className="px-5 py-3 text-left">Группа</th>
-                                                <th className="px-5 py-3 text-left">Статус</th>
-                                                <th className="px-5 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Студент</th>
+                                                <th className="whitespace-nowrap text-left">Логин AD</th>
+                                                <th className="whitespace-nowrap text-left">Группа</th>
+                                                <th className="whitespace-nowrap text-left">Статус</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredStudents.map((student) => (
                                                 <tr key={student.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingId === student.id ? 'bg-teal-50' : ''}`}>
-                                                    <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
-                                                    <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
-                                                    <td className="px-5 py-3 text-slate-700">{student.group?.name || '—'}</td>
-                                                    <td className="px-5 py-3">
+                                                    <td className="font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
+                                                    <td className="whitespace-nowrap text-slate-700">{student.group?.name || '—'}</td>
+                                                    <td>
                                                         <StatusBadge tone={student.status === 'active' ? 'success' : 'default'}>
                                                             {student.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-5 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                                 Ред.

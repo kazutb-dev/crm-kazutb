@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DOCUMENT_TYPES, formatMoney } from '@/components/hr-hiring/logic';
-import { buttonClassName, DocumentStatusBadge, formatBytes, inputClassName, Notice, StatusBadge } from '@/components/hr-hiring/ui';
+import { buttonClassName, DocumentStatusBadge, formatBytes, inputClassName, inputSizedClassName, Notice, StatusBadge } from '@/components/hr-hiring/ui';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { BriefcaseBusiness, CircleAlert, Download, FilePenLine, FileSignature, History, IdCard, LoaderCircle, Paperclip, Pencil, ScanLine, Trash2, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/platform';
@@ -69,7 +69,8 @@ export default function Show({ hiring, history = [], options, abilities }) {
             )}
         >
             <Head title={`${fullName} — приём на работу`} />
-            <div className="admin-page-wrap grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="admin-page-wrap">
+            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                 <div className="space-y-6">
                     <Panel icon={IdCard} title="Сотрудник">
                         <div className="flex flex-col gap-5 sm:flex-row">
@@ -138,16 +139,16 @@ export default function Show({ hiring, history = [], options, abilities }) {
                         const missing = hiring.checks?.[type.value]?.missing ?? [];
                         return (
                             <div key={type.value} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <h4 className="font-display text-base font-bold text-[#102945]">{type.label}</h4>
-                                    <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <h4 className="min-w-0 font-display text-base font-bold text-[#102945]">{type.label}</h4>
+                                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                                         {type.value === 'contract' && (
                                             <input
                                                 value={executor}
                                                 onChange={(event) => setExecutor(event.target.value)}
                                                 placeholder="Исполнитель ОУП (по умолчанию — вы)"
                                                 title="Подпись исполнителя ОУП в разделе 11 договора"
-                                                className={`${inputClassName} w-56`}
+                                                className={`${inputSizedClassName} w-full sm:w-72`}
                                             />
                                         )}
                                         <button type="button" disabled={generating !== null} onClick={() => generate(type.value)} className={buttonClassName.secondary}>
@@ -191,6 +192,7 @@ export default function Show({ hiring, history = [], options, abilities }) {
                     </p>
                     </div>
                 </Panel>
+            </div>
             </div>
 
             <SignDialog hiringId={hiring.id} document={signing} onClose={() => setSigning(null)} />

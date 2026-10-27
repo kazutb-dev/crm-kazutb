@@ -212,6 +212,20 @@ function resolveEntryStructuralConfirmations(entry) {
     return resolved;
 }
 
+function InlineEmpty({ icon: Icon, title, description = null }) {
+    return (
+        <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
+            </div>
+            <div className="max-w-sm space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm text-slate-600">{description}</p> : null}
+            </div>
+        </div>
+    );
+}
+
 export default function EntryShow({ entry, permissions = {}, moderationContext = {} }) {
     const form = useForm({
         comment: '',
@@ -283,7 +297,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
     return (
         <AuthenticatedLayout
             headerRight={
-                <div className="flex items-center gap-2">
+                <div className="hidden items-center gap-2 lg:flex">
                     <Button asChild size="sm" variant="outline">
                         <Link href={route('kpi.review-queue')}>Корректировка данных - Кафедра</Link>
                     </Button>
@@ -306,6 +320,16 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                             {statusLabels[entry.status] ?? entry.status}
                         </Badge>
                     )}
+                    actions={(
+                        <div className="flex w-full flex-wrap gap-2 lg:hidden">
+                            <Button asChild size="sm" variant="outline">
+                                <Link href={route('kpi.review-queue')}>Корректировка данных - Кафедра</Link>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
+                                <Link href={route('kpi.approval-queue')}>Корректировка данных - Деканат</Link>
+                            </Button>
+                        </div>
+                    )}
                 />
             )}
         >
@@ -315,14 +339,14 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                 <StatGrid>
                     <StatTile
                         label="Сотрудник"
-                        value={<span className="text-xl leading-snug">{entry.user?.name ?? '—'}</span>}
-                        hint={entry.user?.email ?? 'Без email'}
+                        value={<span className="block min-w-0 text-base leading-snug [overflow-wrap:anywhere] sm:text-xl">{entry.user?.name ?? '—'}</span>}
+                        hint={<span className="[overflow-wrap:anywhere]">{entry.user?.email ?? 'Без email'}</span>}
                         tone="navy"
                         icon={User}
                     />
                     <StatTile
                         label="Период"
-                        value={<span className="text-xl leading-snug">{entry.period?.name ?? '—'}</span>}
+                        value={<span className="block min-w-0 text-base leading-snug [overflow-wrap:anywhere] sm:text-xl">{entry.period?.name ?? '—'}</span>}
                         hint={stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'}
                         tone="teal"
                         icon={CalendarRange}
@@ -330,13 +354,13 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                     <StatTile label="Баллы" value={resolvePoints(entry)} tone="gold" icon={Award} />
                     <StatTile
                         label="Последнее изменение"
-                        value={<span className="text-xl leading-snug">{formatDateTime(entry.updated_at)}</span>}
+                        value={<span className="block min-w-0 text-base leading-snug [overflow-wrap:anywhere] sm:text-xl">{formatDateTime(entry.updated_at)}</span>}
                         tone="neutral"
                         icon={Clock3}
                     />
                 </StatGrid>
 
-                <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
                     <div className="space-y-6">
                         <Card>
                             <CardHeader>
@@ -352,7 +376,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                     <InfoField label="Фактическое значение"><span className="tabular-nums">{entry.fact_value ?? '—'}</span></InfoField>
                                     <InfoField label="Факультет">{entry.faculty?.name ?? '—'}</InfoField>
                                     <InfoField label="Кафедра" className="md:col-span-2">{entry.department?.name ?? '—'}</InfoField>
-                                    <InfoField label="Комментарий исполнителя" className="md:col-span-2">
+                                    <InfoField label="Комментарий исполнителя" className="border-b-0 pb-0 md:col-span-2">
                                         <span className={`whitespace-pre-wrap text-sm ${entry.comment ? 'font-normal text-slate-800' : 'font-normal text-slate-500'}`}>
                                             {entry.comment || 'Комментарий отсутствует.'}
                                         </span>
@@ -407,7 +431,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                             </CardHeader>
                             <CardContent>
                                 {files.length === 0 ? (
-                                    <Notice tone="info">Файлы не прикреплены.</Notice>
+                                    <InlineEmpty icon={FileText} title="Файлы не прикреплены" description="Подтверждающие документы к этой записи не загружены." />
                                 ) : (
                                     <div className="divide-y divide-slate-200">
                                         {files.map((file) => (
@@ -445,7 +469,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                             </CardHeader>
                             <CardContent>
                                 {statusLogs.length === 0 ? (
-                                    <Notice tone="info">История изменений пока пуста.</Notice>
+                                    <InlineEmpty icon={History} title="История изменений пока пуста" description="Здесь появятся отправка, проверки и решения по записи." />
                                 ) : (
                                     <ol className="relative space-y-5 border-l border-slate-200 pl-6">
                                         {statusLogs.map((log) => (

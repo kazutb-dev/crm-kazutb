@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SEVERITY_META, SEVERITY_ORDER, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, FileText, Lightbulb, LoaderCircle, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, FileText, Inbox, Lightbulb, LoaderCircle, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const POLL_INTERVAL_MS = 4000;
@@ -217,10 +217,11 @@ export default function Show({ review }) {
                                 )}
 
                                 {findings.length === 0 ? (
-                                    <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
-                                        <p className="font-display text-base font-bold text-[#102945]">Спорных мест не найдено</p>
-                                        <p className="mt-1 text-sm text-slate-600">ИИ не нашёл спорных мест. Это не гарантия, что их нет.</p>
-                                    </div>
+                                    <InlineEmpty
+                                        icon={Lightbulb}
+                                        title="Спорных мест не найдено"
+                                        description="ИИ не нашёл спорных мест. Это не гарантия, что их нет."
+                                    />
                                 ) : (
                                     <div className="divide-y divide-slate-200">
                                         {visibleFindings.map((finding, index) => (
@@ -248,5 +249,20 @@ export default function Show({ review }) {
                 onConfirm={destroy}
             />
         </AuthenticatedLayout>
+    );
+}
+
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
     );
 }

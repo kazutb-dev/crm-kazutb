@@ -123,7 +123,7 @@ export default function DepartmentRequestsDepartments({
                     </Notice>
                 )}
 
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Отделов-получателей" value={departments.length} icon={Building2} tone="teal" hint="Доступны в форме заявки" />
                     <StatTile label="Назначений ответственных" value={handlers.length} icon={Users} tone="navy" hint="Пользователи, обрабатывающие заявки" />
                     <StatTile
@@ -143,30 +143,28 @@ export default function DepartmentRequestsDepartments({
                             description={isAdmin ? 'Добавьте существующий отдел или создайте новый в блоке «Управление» ниже.' : 'Администратор ещё не настроил отделы для заявок.'}
                         />
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                             {departments.map((department) => {
                                 const assignedHandlers = handlersByDepartment.get(department.department_id) ?? [];
                                 return (
                                     <Card key={department.id}>
-                                        <CardHeader>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <CardTitle className="flex items-center gap-2">
-                                                    <Building2 className="shrink-0" />
-                                                    {department.name}
-                                                </CardTitle>
-                                                {isAdmin && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-red-700 hover:bg-red-50"
-                                                        title="Удалить из получателей"
-                                                        aria-label="Удалить из получателей"
-                                                        onClick={() => removeRecipientDepartment(department.id)}
-                                                    >
-                                                        <Trash2 />
-                                                    </Button>
-                                                )}
-                                            </div>
+                                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Building2 className="shrink-0" />
+                                                {department.name}
+                                            </CardTitle>
+                                            {isAdmin && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-700 hover:bg-red-50"
+                                                    title="Удалить из получателей"
+                                                    aria-label="Удалить из получателей"
+                                                    onClick={() => removeRecipientDepartment(department.id)}
+                                                >
+                                                    <Trash2 />
+                                                </Button>
+                                            )}
                                         </CardHeader>
                                         <CardContent className="space-y-4">
                                             <div className="border-b border-slate-200 pb-3">
@@ -215,7 +213,7 @@ export default function DepartmentRequestsDepartments({
                     <section className="space-y-4">
                         <SectionHeader title="Управление" description="Доступно только администраторам." compact />
 
-                        <div className="grid gap-6 lg:grid-cols-2">
+                        <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -271,7 +269,7 @@ export default function DepartmentRequestsDepartments({
                                 </CardHeader>
                                 <CardContent>
                                     <form onSubmit={createDepartmentFromScratch} className="space-y-4">
-                                        <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-4 md:grid-cols-2 [&>*]:min-w-0">
                                             <div>
                                                 <FormField label="Название отдела">
                                                     <Input
@@ -308,7 +306,7 @@ export default function DepartmentRequestsDepartments({
                                         </div>
 
                                         <div className="flex justify-end border-t border-slate-200 pt-4">
-                                            <Button type="submit" disabled={createDepartmentForm.processing}>
+                                            <Button type="submit" disabled={createDepartmentForm.processing} className="h-auto min-h-10 whitespace-normal text-center">
                                                 <Plus />
                                                 Создать отдел и добавить в получатели
                                             </Button>
@@ -326,7 +324,7 @@ export default function DepartmentRequestsDepartments({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={addHandler} className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                                <form onSubmit={addHandler} className="grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] [&>*]:min-w-0">
                                     <FormField label="Отдел-получатель">
                                         <select
                                             className={qdFieldClass}

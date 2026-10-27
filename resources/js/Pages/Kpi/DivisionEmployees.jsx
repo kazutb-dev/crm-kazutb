@@ -1,11 +1,27 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, StatusBadge } from '@/components/platform';
+import { Notice, PageHeader, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Plus, Search, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Inbox, Plus, Search, Trash2, Users } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
+
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
+    );
+}
 
 export default function DivisionEmployees({ division, employees, allUsers }) {
     const [search, setSearch] = useState('');
@@ -147,9 +163,9 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
                             Сотрудники подразделения ({employees.length})
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className={employees.length === 0 ? '' : 'p-0'}>
+                    <CardContent className="p-0">
                         {employees.length === 0 ? (
-                            <EmptyState
+                            <InlineEmpty
                                 title="Нет назначенных сотрудников"
                                 description="Найдите сотрудника через поиск выше и добавьте его в подразделение."
                             />
@@ -158,7 +174,7 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
                                 {employees.map(employee => (
                                     <div
                                         key={employee.id}
-                                        className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 hover:bg-slate-50"
+                                        className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6 hover:bg-slate-50"
                                     >
                                         <div className="min-w-0 flex-1">
                                             <div className="truncate text-sm font-medium text-slate-900">{employee.name}</div>

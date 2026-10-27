@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, usePage, useForm, router } from '@inertiajs/react';
-import { EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,23 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Building2, Eye, ListChecks, PencilIcon, Plus, Trash2, Users } from 'lucide-react';
+import { Building2, Eye, Inbox, ListChecks, PencilIcon, Plus, Trash2, Users } from 'lucide-react';
+
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
+    );
+}
 
 export default function StructuralUnitsManager() {
     const { units } = usePage().props;
@@ -102,7 +118,7 @@ export default function StructuralUnitsManager() {
             <Head title="Управление структурами" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Структур" value={units.length} tone="teal" icon={Building2} />
                     <StatTile label="Индикаторов" value={recordsTotal} tone="info" icon={ListChecks} />
                     <StatTile label="Пользователей" value={usersTotal} tone="gold" icon={Users} />
@@ -112,39 +128,39 @@ export default function StructuralUnitsManager() {
                     <CardHeader>
                         <CardTitle>Список структур</CardTitle>
                     </CardHeader>
-                    <CardContent className={units.length > 0 ? 'p-0' : ''}>
+                    <CardContent className="p-0">
                         {units.length > 0 ? (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th className="px-5 py-3 text-left">Код</th>
-                                            <th className="px-5 py-3 text-left">Название</th>
-                                            <th className="px-5 py-3 text-left">Описание</th>
-                                            <th className="px-5 py-3 text-right">Индикаторы</th>
-                                            <th className="px-5 py-3 text-right">Пользователи</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="text-left">Код</th>
+                                            <th className="text-left">Название</th>
+                                            <th className="text-left">Описание</th>
+                                            <th className="text-right">Индикаторы</th>
+                                            <th className="text-right">Пользователи</th>
+                                            <th className="text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {units.map((unit) => (
                                             <tr key={unit.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                                <td className="px-5 py-3">
+                                                <td>
                                                     <Badge variant="outline" className="font-mono">{unit.code}</Badge>
                                                 </td>
-                                                <td className="px-5 py-3 font-medium text-slate-900">
+                                                <td className="font-medium text-slate-900">
                                                     {formatStructuralUnitLabel(unit)}
                                                 </td>
-                                                <td className="px-5 py-3 text-slate-500">
+                                                <td className="text-slate-500">
                                                     {unit.description || '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <Badge variant="secondary" className="tabular-nums">{unit.records_count || 0}</Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <Badge variant="outline" className="tabular-nums">{unit.users_count || 0}</Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <div className="flex justify-end gap-1">
                                                         <Button
                                                             variant="outline"
@@ -183,7 +199,7 @@ export default function StructuralUnitsManager() {
                                 </table>
                             </div>
                         ) : (
-                            <EmptyState
+                            <InlineEmpty
                                 title="Структурные подразделения не найдены"
                                 description="Добавьте первое структурное подразделение, чтобы привязывать к нему индикаторы и пользователей."
                                 action={(

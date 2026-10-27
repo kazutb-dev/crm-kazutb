@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, FilterBar, InfoField, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
+import { EmptyState, FilterBar, InfoField, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -166,48 +167,53 @@ export default function StaffPage({ applications = [], documents = [] }) {
                             : 'Измените поиск или выберите другой статус.'}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="min-w-full text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">Студент</th>
-                                    <th className="px-5 text-left">Контакты</th>
-                                    <th className="px-5 text-left">Группа</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    <th className="px-5 text-left">Дата подачи</th>
-                                    <th className="px-5 text-right">Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredApplications.map((application) => {
-                                    const statusMeta = getStatusMeta(application.status);
-
-                                    return (
-                                        <tr key={application.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                            <td className="px-5 py-3.5">
-                                                <div className="font-medium text-slate-900">{application.full_name}</div>
-                                                <div className="text-xs tabular-nums text-slate-500">#{application.id}</div>
-                                            </td>
-                                            <td className="px-5 py-3.5">
-                                                <div className="text-slate-700">{application.user?.email ?? '—'}</div>
-                                                <div className="text-xs tabular-nums text-slate-500">{application.phone}</div>
-                                            </td>
-                                            <td className="px-5 py-3.5 text-slate-700">{application.student_group}</td>
-                                            <td className="px-5 py-3.5">
-                                                <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
-                                            </td>
-                                            <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{application.created_at}</td>
-                                            <td className="px-5 py-3.5 text-right">
-                                                <Button type="button" size="sm" variant="outline" onClick={() => openDetails(application)}>
-                                                    Открыть
-                                                </Button>
-                                            </td>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Студент</th>
+                                            <th className="text-left">Контакты</th>
+                                            <th className="text-left">Группа</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Дата подачи</th>
+                                            <th className="text-right">Действие</th>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </DataTable>
+                                    </thead>
+                                    <tbody>
+                                        {filteredApplications.map((application) => {
+                                            const statusMeta = getStatusMeta(application.status);
+
+                                            return (
+                                                <tr key={application.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                    <td>
+                                                        <div className="font-medium text-slate-900">{application.full_name}</div>
+                                                        <div className="text-xs tabular-nums text-slate-500">#{application.id}</div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="text-slate-700">{application.user?.email ?? '—'}</div>
+                                                        <div className="text-xs tabular-nums text-slate-500">{application.phone}</div>
+                                                    </td>
+                                                    <td className="text-slate-700">{application.student_group}</td>
+                                                    <td>
+                                                        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                                                    </td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{application.created_at}</td>
+                                                    <td className="text-right">
+                                                        <Button type="button" size="sm" variant="outline" onClick={() => openDetails(application)}>
+                                                            Открыть
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 

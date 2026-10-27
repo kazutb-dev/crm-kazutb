@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, FilterBar, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { EmptyState, FilterBar, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router, usePage } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, CircleCheck, CircleX, Inbox, Layers, Loader, Search } from 'lucide-react';
@@ -81,7 +82,7 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
 
                 <div className="space-y-2">
                     <p className="qd-field-label text-slate-500">Статистика (текущая страница)</p>
-                    <StatGrid className="xl:grid-cols-5">
+                    <StatGrid>
                         <StatTile label="Всего" value={stats.total} icon={Layers} tone="navy" />
                         <StatTile label="Новые" value={stats.new} icon={Inbox} tone="info" />
                         <StatTile label="В работе" value={stats.in_progress} icon={Loader} tone="warning" />
@@ -147,94 +148,97 @@ export default function AdminIndex({ requests, departments = [], isAdmin = false
                         description="По выбранным условиям заявок нет. Измените поиск, статус или отдел."
                     />
                 ) : (
-                    <DataTable>
-                        <table className="min-w-full text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">ID / Тема</th>
-                                    <th className="px-5 text-left">Отдел</th>
-                                    <th className="px-5 text-left">Автор</th>
-                                    <th className="px-5 text-left">Дата отправки</th>
-                                    <th className="px-5 text-left">Дата решения</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    <th className="px-5 text-left">Ответ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.map((req) => {
-                                    const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
-
-                                    const departmentText = asText(req.department);
-                                    const submittedByText = asText(req.submitted_by);
-                                    const closedByText = asText(req.closed_by, '—');
-
-                                    return (
-                                        <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
-                                            <td className="px-5 py-3.5">
-                                                <p className="font-medium text-slate-900">
-                                                    <span className="tabular-nums text-slate-500">#{req.id}</span> {req.title}
-                                                </p>
-                                                {req.room && (
-                                                    <p className="mt-1 text-xs text-slate-500">Кабинет: {req.room}</p>
-                                                )}
-                                                {req.description && (
-                                                    <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">{req.description}</p>
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-3.5 text-slate-700">{departmentText}</td>
-                                            <td className="px-5 py-3.5 text-slate-700">{submittedByText}</td>
-                                            <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
-                                            <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
-                                            <td className="px-5 py-3.5">
-                                                <Badge variant={meta.variant}>{meta.label}</Badge>
-                                            </td>
-                                            <td className="px-5 py-3.5 text-slate-700">
-                                                {req.note ? (
-                                                    <div>
-                                                        <p>{req.note}</p>
-                                                        {req.closed_by && (
-                                                            <p className="mt-1 text-xs text-slate-500">Обработал: {closedByText}</p>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    '—'
-                                                )}
-                                            </td>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">ID / Тема</th>
+                                            <th className="text-left">Отдел</th>
+                                            <th className="text-left">Автор</th>
+                                            <th className="text-left">Дата отправки</th>
+                                            <th className="text-left">Дата решения</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Ответ</th>
                                         </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
+                                    </thead>
+                                    <tbody>
+                                        {data.map((req) => {
+                                            const meta = statusMeta[req.status] ?? { label: req.status, variant: 'secondary' };
 
-                {/* Pagination */}
-                {last_page > 1 && (
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-500">
-                            Страница {current_page} из {last_page}
-                        </span>
-                        <div className="flex gap-1.5">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={current_page <= 1}
-                                onClick={() => applyFilter({ page: current_page - 1 })}
-                                aria-label="Предыдущая страница"
-                            >
-                                <ChevronLeft />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={current_page >= last_page}
-                                onClick={() => applyFilter({ page: current_page + 1 })}
-                                aria-label="Следующая страница"
-                            >
-                                <ChevronRight />
-                            </Button>
-                        </div>
-                    </div>
+                                            const departmentText = asText(req.department);
+                                            const submittedByText = asText(req.submitted_by);
+                                            const closedByText = asText(req.closed_by, '—');
+
+                                            return (
+                                                <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
+                                                    <td>
+                                                        <p className="font-medium text-slate-900">
+                                                            <span className="tabular-nums text-slate-500">#{req.id}</span> {req.title}
+                                                        </p>
+                                                        {req.room && (
+                                                            <p className="mt-1 text-xs text-slate-500">Кабинет: {req.room}</p>
+                                                        )}
+                                                        {req.description && (
+                                                            <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">{req.description}</p>
+                                                        )}
+                                                    </td>
+                                                    <td className="text-slate-700">{departmentText}</td>
+                                                    <td className="text-slate-700">{submittedByText}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
+                                                    <td>
+                                                        <Badge variant={meta.variant}>{meta.label}</Badge>
+                                                    </td>
+                                                    <td className="text-slate-700">
+                                                        {req.note ? (
+                                                            <div>
+                                                                <p>{req.note}</p>
+                                                                {req.closed_by && (
+                                                                    <p className="mt-1 text-xs text-slate-500">Обработал: {closedByText}</p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            '—'
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {last_page > 1 && (
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
+                                    <span className="text-xs font-medium text-slate-500">
+                                        Страница {current_page} из {last_page}
+                                    </span>
+                                    <div className="flex gap-1.5">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={current_page <= 1}
+                                            onClick={() => applyFilter({ page: current_page - 1 })}
+                                            aria-label="Предыдущая страница"
+                                        >
+                                            <ChevronLeft />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={current_page >= last_page}
+                                            onClick={() => applyFilter({ page: current_page + 1 })}
+                                            aria-label="Следующая страница"
+                                        >
+                                            <ChevronRight />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </AuthenticatedLayout>
