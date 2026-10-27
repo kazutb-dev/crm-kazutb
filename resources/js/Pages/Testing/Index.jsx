@@ -178,7 +178,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
 
             <div className="admin-page-wrap space-y-6">
                 {/* ── Hero banner ── */}
-                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#123153] via-[#1b4d74] to-[#139AA4] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
+                <Card className="overflow-hidden border-0 bg-gradient-to-br from-[#082834] via-[#14696d] to-[#067a75] text-white shadow-[0_20px_50px_-20px_rgba(12,45,78,0.55)] rounded-3xl">
                     <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl space-y-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-white/90 backdrop-blur-sm">
@@ -192,8 +192,8 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                 Привязка предмета выступает контейнером для тестов. После ее создания можно наполнять предмет вопросами, публиковать тесты и анализировать прохождения.
                             </p>
                             <div className="flex flex-wrap items-center gap-3 mt-4 pt-1">
-                                <Button onClick={() => setBindOpen(true)} className="bg-white text-[#132844] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
-                                    <Plus className="h-4 w-4 text-[#132844]" />
+                                <Button onClick={() => setBindOpen(true)} className="bg-white text-[#102945] hover:bg-white/95 gap-2 rounded-xl transition-all font-semibold shadow-md border-0 h-10 px-5">
+                                    <Plus className="h-4 w-4 text-[#102945]" />
                                     Привязать предмет
                                 </Button>
                                 {bindings.length > 0 && (
@@ -221,8 +221,8 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                 {/* ── Main content: List of teacher's bindings ── */}
                 <Card className="border border-slate-200/60 shadow-[0_4px_20px_rgba(15,23,42,0.02)] rounded-2xl">
                     <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-slate-100">
-                        <CardTitle className="text-xl font-bold text-[#132844] font-sans">Мои привязанные предметы</CardTitle>
-                        <Badge className="bg-[#139AA4]/10 text-[#139AA4] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#139AA4]/10">
+                        <CardTitle className="text-xl font-bold text-[#102945] font-sans">Мои привязанные предметы</CardTitle>
+                        <Badge className="bg-[#067a75]/10 text-[#067a75] border-0 px-2.5 py-0.5 rounded-lg font-semibold hover:bg-[#067a75]/10">
                             Всего: {bindings.length}
                         </Badge>
                     </CardHeader>
@@ -234,7 +234,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                 <p className="mt-2 text-sm text-slate-400 leading-relaxed">
                                     Чтобы начать создавать тесты и проводить опросы, привяжите учебный предмет к своему личному кабинету.
                                 </p>
-                                <Button onClick={() => setBindOpen(true)} className="mt-6 gap-2 bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90">
+                                <Button onClick={() => setBindOpen(true)} className="mt-6 gap-2 bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90">
                                     <Plus className="h-4 w-4" />
                                     Привязать предмет
                                 </Button>
@@ -246,7 +246,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                         <div className="space-y-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-[#132844] leading-snug group-hover:text-[#139AA4] transition-colors">{binding.subject?.name}</h3>
+                                                    <h3 className="text-lg font-bold text-[#102945] leading-snug group-hover:text-[#067a75] transition-colors">{binding.subject?.name}</h3>
                                                     {binding.subject?.code && (
                                                         <span className="mt-1.5 font-mono text-[11px] tracking-wider text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md inline-block">
                                                             {binding.subject.code}
@@ -269,23 +269,23 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                             <div className="grid grid-cols-3 gap-3">
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Студентов</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{binding.students_count || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.students_count || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Тестов</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{binding.tests_count || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.tests_count || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Попыток</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{binding.attempts_count || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.attempts_count || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Ср. балл</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{binding.average_score || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.average_score || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Макс. балл</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844] tracking-tight">{binding.max_score || 0}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945] tracking-tight">{binding.max_score || 0}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-emerald-50/40 p-3 border border-emerald-100/30">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-emerald-600">Успешность</div>
@@ -304,7 +304,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                                     </Button>
                                                 </Link>
                                                 <Link href={route('testing.bindings.show', binding.id)}>
-                                                    <Button type="button" className="h-9 px-4 rounded-xl text-xs bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-sm">
+                                                    <Button type="button" className="h-9 px-4 rounded-xl text-xs bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-sm">
                                                         Открыть тесты
                                                     </Button>
                                                 </Link>
@@ -327,7 +327,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
             }}>
                 <DialogContent className="max-w-2xl border-slate-200/50 shadow-2xl rounded-2xl p-6">
                     <DialogHeader className="pb-3 border-b border-slate-100">
-                        <DialogTitle className="text-xl font-bold text-[#132844] font-sans">Привязать новый предмет</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-[#102945] font-sans">Привязать новый предмет</DialogTitle>
                         <DialogDescription className="text-slate-500 text-sm mt-1 leading-normal">
                             Выберите необходимый предмет из каталога, чтобы добавить его в свой список для создания тестов.
                         </DialogDescription>
@@ -340,7 +340,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                             value={modalSearch}
                             onChange={(e) => setModalSearch(e.target.value)}
                             placeholder="Поиск предмета по названию или коду…"
-                            className="pl-9 pr-8 h-10 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#139AA4]/20 focus-visible:border-[#139AA4] rounded-lg"
+                            className="pl-9 pr-8 h-10 border-slate-200 focus-visible:ring-2 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-lg"
                         />
                         {modalSearch && (
                             <button
@@ -380,7 +380,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                                         size="sm"
                                         disabled={creatingSubjectId !== null}
                                         onClick={() => createBinding(subject.id)}
-                                        className="h-9 px-3 gap-1 bg-[#139AA4] hover:bg-[#139AA4]/95 text-white rounded-lg text-xs"
+                                        className="h-9 px-3 gap-1 bg-[#067a75] hover:bg-[#067a75]/95 text-white rounded-lg text-xs"
                                     >
                                         <Plus className="h-3.5 w-3.5" />
                                         {creatingSubjectId === subject.id ? '...' : 'Привязать'}

@@ -101,7 +101,7 @@ export default function StructuralUnitsManager() {
 
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-[#132844]">Список структур</CardTitle>
+                        <CardTitle className="text-base text-[#102945]">Список структур</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {units.length > 0 ? (

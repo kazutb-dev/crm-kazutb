@@ -22,7 +22,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
             <Head title={`Аналитика - ${binding.subject?.name || 'Тестирование'}`} />
 
             <div className="admin-page-wrap space-y-6">
-                <Card className="admin-surface overflow-hidden border-0 bg-gradient-to-r from-[#123153] via-[#15466a] to-[#139AA4] text-white">
+                <Card className="admin-surface overflow-hidden border-0 bg-gradient-to-r from-[#082834] via-[#0e3a3f] to-[#067a75] text-white">
                     <CardContent className="flex flex-col gap-5 p-6 sm:p-8">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -70,7 +70,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                 <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                     <Card className="admin-surface">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-xl text-[#132844]">Сводка по тестам</CardTitle>
+                            <CardTitle className="text-xl text-[#102945]">Сводка по тестам</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {testAnalytics.length === 0 ? (
@@ -84,7 +84,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                                             <div className="flex flex-col gap-4">
                                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                                     <div>
-                                                        <h2 className="text-lg font-semibold text-[#132844]">{item.title}</h2>
+                                                        <h2 className="text-lg font-semibold text-[#102945]">{item.title}</h2>
                                                         <div className="mt-2 flex flex-wrap items-center gap-2">
                                                             <Badge className={item.status === 'published' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'}>
                                                                 {item.status === 'published' ? 'Опубликован' : 'Черновик'}
@@ -95,7 +95,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
 
                                                     <div className="text-right text-sm text-slate-500">
                                                         <div>Последнее прохождение</div>
-                                                        <div className="mt-1 font-medium text-[#132844]">{formatDate(item.last_completed_at)}</div>
+                                                        <div className="mt-1 font-medium text-[#102945]">{formatDate(item.last_completed_at)}</div>
                                                     </div>
                                                 </div>
 
@@ -115,7 +115,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
 
                     <Card className="admin-surface">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-xl text-[#132844]">Последние результаты</CardTitle>
+                            <CardTitle className="text-xl text-[#102945]">Последние результаты</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {results.length === 0 ? (
@@ -128,7 +128,7 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                                         <div key={result.id} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <div className="font-semibold text-[#132844]">{result.user_name || 'Пользователь'}</div>
+                                                    <div className="font-semibold text-[#102945]">{result.user_name || 'Пользователь'}</div>
                                                     <div className="mt-1 text-sm text-slate-500">{result.user_email || 'Без email'}</div>
                                                     <div className="mt-2 text-sm text-slate-600">{result.test_title}</div>
                                                 </div>
@@ -141,15 +141,15 @@ export default function BindingAnalytics({ binding, analytics, testAnalytics = [
                                             <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
                                                 <div className="rounded-2xl bg-slate-50 p-3">
                                                     <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Балл</div>
-                                                    <div className="mt-1 font-semibold text-[#132844]">{result.score}</div>
+                                                    <div className="mt-1 font-semibold text-[#102945]">{result.score}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50 p-3">
                                                     <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Верно</div>
-                                                    <div className="mt-1 font-semibold text-[#132844]">{result.correct_answers_count}</div>
+                                                    <div className="mt-1 font-semibold text-[#102945]">{result.correct_answers_count}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50 p-3">
                                                     <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Дата</div>
-                                                    <div className="mt-1 font-semibold text-[#132844]">{formatDate(result.completed_at)}</div>
+                                                    <div className="mt-1 font-semibold text-[#102945]">{formatDate(result.completed_at)}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -171,7 +171,7 @@ function StatCard({ icon: Icon, label, value }) {
                 <Icon className="h-4 w-4" />
                 {label}
             </div>
-            <div className="mt-2 text-2xl font-semibold text-[#132844]">{value}</div>
+            <div className="mt-2 text-2xl font-semibold text-[#102945]">{value}</div>
         </div>
     );
 }

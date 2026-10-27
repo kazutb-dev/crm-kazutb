@@ -1,13 +1,22 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { usePanelDesign } from "@/components/ui/panel-design"
 
-const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("rounded-2xl border border-border/80 bg-card/95 text-card-foreground shadow-[0_16px_40px_rgba(15,36,63,0.08)] backdrop-blur", className)}
-    {...props} />
-))
+const Card = React.forwardRef(({ className, ...props }, ref) => {
+  const panel = usePanelDesign()
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        panel
+          ? "rounded-[14px] border border-slate-200 bg-white text-slate-900 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]"
+          : "rounded-2xl border border-border/80 bg-card/95 text-card-foreground shadow-[0_16px_40px_rgba(15,36,63,0.08)] backdrop-blur",
+        className
+      )}
+      {...props} />
+  )
+})
 Card.displayName = "Card"
 
 const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
@@ -18,12 +27,20 @@ const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
 ))
 CardHeader.displayName = "CardHeader"
 
-const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("font-semibold leading-none tracking-tight text-foreground", className)}
-    {...props} />
-))
+const CardTitle = React.forwardRef(({ className, ...props }, ref) => {
+  const panel = usePanelDesign()
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        panel
+          ? "font-display text-lg font-bold leading-snug tracking-[-0.01em] text-[#102945]"
+          : "font-semibold leading-none tracking-tight text-foreground",
+        className
+      )}
+      {...props} />
+  )
+})
 CardTitle.displayName = "CardTitle"
 
 const CardDescription = React.forwardRef(({ className, ...props }, ref) => (

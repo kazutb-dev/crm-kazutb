@@ -487,14 +487,14 @@ function ResultScoreCard({ result, label = 'Итоговый рейтинг R' }
     return (
         <div className="rounded-xl border border-border/80 bg-white/90 backdrop-blur shadow-[0_6px_18px_rgba(15,36,63,0.07)] overflow-hidden">
             {/* accent bar */}
-            <div className="h-1 w-full bg-gradient-to-r from-[#139AA4] via-[#1a6bb5] to-[#132844]" />
+            <div className="h-1 w-full bg-gradient-to-r from-[#067a75] via-[#2c5a86] to-[#102945]" />
             <div className="flex flex-wrap items-center gap-x-8 gap-y-4 px-5 py-4">
                 {/* R score */}
                 <div>
                     <p className="text-[0.7rem] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
                     <p className={[
                         'text-4xl font-bold tabular-nums leading-none',
-                        rVal > 0 ? 'text-[#139AA4]' : 'text-muted-foreground/50',
+                        rVal > 0 ? 'text-[#067a75]' : 'text-muted-foreground/50',
                     ].join(' ')}>
                         {fmt(rVal)}
                     </p>
@@ -716,12 +716,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                     <th className="w-12 text-right">K4</th>
                                     <th className="w-12 text-right">K5</th>
                                     <th className="w-12 text-right">НПУ</th>
-                                    <th className="w-16 text-right pe-3 text-[#139AA4]">R</th>
+                                    <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
                                 </>
                             ) : (
                                 <>
                                     <th className="w-16 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#139AA4]">
+                                    <th className="w-20 text-right pe-3 text-[#067a75]">
                                         {isLive ? 'Баллы' : 'R'}
                                     </th>
                                 </>
@@ -744,12 +744,12 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k5)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k6)}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 ) : (
                                     <>
                                         <td className="text-right tabular-nums font-medium text-emerald-600">{t.approved_entries}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </>
                                 )}
                             </tr>
@@ -763,18 +763,18 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
 
 function ReportHeading({ text, academicYear, period }) {
     return (
-        <div className="mb-4 overflow-hidden rounded-lg border border-[#132844]/20 bg-[#132844]/5">
-            <div className="flex items-center gap-2.5 border-b border-[#132844]/10 bg-[#132844]/8 px-4 py-2">
-                <FileText className="h-3.5 w-3.5 shrink-0 text-[#132844]/60" />
-                <span className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#132844]/70">
+        <div className="mb-4 overflow-hidden rounded-lg border border-[#102945]/20 bg-[#102945]/5">
+            <div className="flex items-center gap-2.5 border-b border-[#102945]/10 bg-[#102945]/8 px-4 py-2">
+                <FileText className="h-3.5 w-3.5 shrink-0 text-[#102945]/60" />
+                <span className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-[#102945]/70">
                     Официальный отчёт
                 </span>
             </div>
             <div className="px-4 py-3 text-center">
-                <p className="text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#132844]">
+                <p className="text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#102945]">
                     {text}
                 </p>
-                <p className="mt-1 text-sm font-semibold text-[#139AA4]">
+                <p className="mt-1 text-sm font-semibold text-[#067a75]">
                     {academicYear?.name ?? '—'}
                 </p>
             </div>
@@ -854,7 +854,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-44">Кафедра</th>
                             <th className="w-44">ФИО зав.каф.</th>
                             <th className="w-16 text-right">НПУ</th>
-                            <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
+                            <th className="w-20 text-right text-[#067a75]">Рейтинг</th>
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
@@ -873,7 +873,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 <td className="text-sm max-w-[11rem] truncate" title={row.department_name ?? ''}>{row.department_name ?? '—'}</td>
                                 <td className="font-medium max-w-[11rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                                 <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
-                                <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
+                                <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
@@ -896,7 +896,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <th className="w-52">Факультет</th>
                             <th className="w-52">ФИО декана</th>
                             <th className="w-16 text-right">НПУ</th>
-                            <th className="w-20 text-right text-[#139AA4]">Рейтинг</th>
+                            <th className="w-20 text-right text-[#067a75]">Рейтинг</th>
                             <th className="w-14 text-right">УМР</th>
                             <th className="w-14 text-right">НИР</th>
                             <th className="w-14 text-right">СВР</th>
@@ -914,7 +914,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                                 <td className="text-sm max-w-[13rem] truncate" title={row.faculty_name ?? ''}>{row.faculty_name ?? '—'}</td>
                                 <td className="font-medium max-w-[13rem] truncate" title={row.name ?? ''}>{row.name ?? '—'}</td>
                                 <td className="text-right tabular-nums">{fmt(getRateValue(row))}</td>
-                                <td className="text-right tabular-nums font-bold text-[#139AA4]">{fmt(row.rank_score)}</td>
+                                <td className="text-right tabular-nums font-bold text-[#067a75]">{fmt(row.rank_score)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k1)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k2)}</td>
                                 <td className="text-right tabular-nums">{fmt(row.k3)}</td>
@@ -941,7 +941,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                         <th className="w-14 text-right">К4 (УПК)</th>
                         <th className="w-14 text-right">К5 (Опрос)</th>
                         <th className="w-14 text-right">НПУ</th>
-                        <th className="w-20 text-right text-[#139AA4]">Рейтинг (R)</th>
+                        <th className="w-20 text-right text-[#067a75]">Рейтинг (R)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -962,7 +962,7 @@ function ProfessionalRatingTable({ rows, mode = 'pps', onRowClick, searchQuery =
                             <td className="text-right tabular-nums">{fmt(row.npu_threshold ?? getRateValue(row))}</td>
                             <td className={[
                                 'pe-3 text-right tabular-nums font-bold',
-                                Number(row.rank_score ?? 0) < 0 ? 'text-red-500' : 'text-[#139AA4]',
+                                Number(row.rank_score ?? 0) < 0 ? 'text-red-500' : 'text-[#067a75]',
                             ].join(' ')}>
                                 {fmt(row.rank_score)}
                             </td>
@@ -984,7 +984,7 @@ function RankBandGrid({ groups = [] }) {
             {groups.map((group) => (
                 <div key={group.key} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{group.label}</p>
-                    <p className="mt-1 text-xl font-semibold text-[#132844]">{Number(group.count ?? 0)}</p>
+                    <p className="mt-1 text-xl font-semibold text-[#102945]">{Number(group.count ?? 0)}</p>
                     <p className="text-[11px] text-muted-foreground">сотрудников</p>
                 </div>
             ))}
@@ -1010,7 +1010,7 @@ function PositionGroupTable({ groups = [] }) {
                     {groups.map((group) => (
                         <tr key={group.key}>
                             <td className="ps-3 font-medium">{group.label}</td>
-                            <td className="pe-3 text-right tabular-nums font-semibold text-[#139AA4]">{Number(group.count ?? 0)}</td>
+                            <td className="pe-3 text-right tabular-nums font-semibold text-[#067a75]">{Number(group.count ?? 0)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -1224,7 +1224,7 @@ function DeptTable({ departments, showFaculty = false }) {
                         <th className="w-14 text-right">ППС</th>
                         <th className="w-20 text-right">Записей</th>
                         <th className="w-20 text-right">Утв.</th>
-                        <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                        <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1236,7 +1236,7 @@ function DeptTable({ departments, showFaculty = false }) {
                             <td className="text-right tabular-nums">{d.teacher_count ?? d.user_count ?? '—'}</td>
                             <td className="text-right tabular-nums">{d.total_entries ?? d.approved_entries ?? '—'}</td>
                             <td className="text-right tabular-nums font-semibold text-emerald-600">{d.approved ?? d.approved_entries ?? '—'}</td>
-                            <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                            <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                 {d.rank_score != null ? fmt(d.rank_score) : '—'}
                             </td>
                         </tr>
@@ -1290,11 +1290,11 @@ function TabNav({ tabs, active, onChange }) {
                         className={[
                             'flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all',
                             isActive
-                                ? 'bg-white shadow-sm text-[#132844] border border-border/60'
+                                ? 'bg-white shadow-sm text-[#102945] border border-border/60'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-white/60',
                         ].join(' ')}
                     >
-                        {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-[#139AA4]' : ''}`} />}
+                        {Icon && <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-[#067a75]' : ''}`} />}
                         {TAB_LABELS[tab] ?? tab}
                     </button>
                 );
@@ -1309,9 +1309,9 @@ function ReportCard({ icon: Icon, title, subtitle, children, accent, actions }) 
     return (
         <Card className="admin-surface">
             <CardHeader className="pb-3 pt-4">
-                <CardTitle className="flex items-center justify-between gap-3 text-sm font-semibold text-[#132844]">
+                <CardTitle className="flex items-center justify-between gap-3 text-sm font-semibold text-[#102945]">
                     <span className="flex items-center gap-2">
-                        {Icon && <Icon className="h-4 w-4 text-[#139AA4]" />}
+                        {Icon && <Icon className="h-4 w-4 text-[#067a75]" />}
                         {title}
                     </span>
                     <span className="flex items-center gap-2">
@@ -1341,7 +1341,7 @@ function RatingFormulaBar({ formula, note }) {
             <FileText className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
                 <span className="font-medium text-foreground">Формула рейтинга: </span>
-                <span className="font-semibold text-[#132844]">{formula}</span>
+                <span className="font-semibold text-[#102945]">{formula}</span>
                 {note && <span className="text-muted-foreground"> · {note}</span>}
             </div>
         </InfoBar>
@@ -1538,12 +1538,12 @@ function DeanView({ summary, academicYear, period, filters }) {
 // ─── donut chart (pure SVG, no dependencies) ─────────────────────────────────
 
 const STATUS_CHART_COLORS = {
-    approved: '#10b981',
-    submitted: '#3b82f6',
-    reviewed: '#8b5cf6',
-    pending_dean: '#f59e0b',
-    pending_structural: '#f97316',
-    returned: '#ef4444',
+    approved: '#3fb57a',
+    submitted: '#5b86b5',
+    reviewed: '#2c5a86',
+    pending_dean: '#e2b53e',
+    pending_structural: '#d9853f',
+    returned: '#d64540',
     rejected: '#dc2626',
     locked: '#6b7280',
 };
@@ -1600,13 +1600,13 @@ function DonutChart({ segments, size = 140, thickness = 30 }) {
 
 // ─── horizontal bar helper ────────────────────────────────────────────────────
 
-function HBar({ label, value, maxValue, displayValue, barClass = 'bg-[#139AA4]' }) {
+function HBar({ label, value, maxValue, displayValue, barClass = 'bg-[#067a75]' }) {
     const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
     return (
         <div>
             <div className="mb-0.5 flex items-center justify-between">
                 <span className="max-w-[60%] truncate text-xs font-medium text-foreground/80">{label}</span>
-                <span className="tabular-nums text-xs font-semibold text-[#139AA4]">{displayValue ?? value}</span>
+                <span className="tabular-nums text-xs font-semibold text-[#067a75]">{displayValue ?? value}</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted/50">
                 <div
@@ -1718,7 +1718,7 @@ function OverviewTab({ summary }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Status donut */}
                 <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Распределение по статусам</p>
+                    <p className="mb-3 text-sm font-semibold text-[#102945]">Распределение по статусам</p>
                     <div className="flex items-center gap-4">
                         <div className="relative shrink-0">
                             <DonutChart segments={donutSegments} size={120} thickness={26} />
@@ -1741,7 +1741,7 @@ function OverviewTab({ summary }) {
 
                 {/* Section distribution */}
                 <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Записи по разделам KPI</p>
+                    <p className="mb-3 text-sm font-semibold text-[#102945]">Записи по разделам KPI</p>
                     {sectionItems.length > 0 ? (
                         <div className="space-y-3">
                             {sectionItems.map((s) => (
@@ -1769,7 +1769,7 @@ function OverviewTab({ summary }) {
 
                 {/* Faculty approved bars */}
                 <div className={card}>
-                    <p className="mb-3 text-sm font-semibold text-[#132844]">Факультеты — утверждено / всего</p>
+                    <p className="mb-3 text-sm font-semibold text-[#102945]">Факультеты — утверждено / всего</p>
                     {faculties.length > 0 ? (
                         <div className="space-y-2.5">
                             {[...faculties]
@@ -1781,7 +1781,7 @@ function OverviewTab({ summary }) {
                                         value={f.approved}
                                         maxValue={maxFacultyApproved}
                                         displayValue={`${f.approved} / ${f.total_entries}`}
-                                        barClass="bg-gradient-to-r from-[#139AA4] to-[#1a6bb5]"
+                                        barClass="bg-gradient-to-r from-[#067a75] to-[#2c5a86]"
                                     />
                                 ))}
                         </div>
@@ -1793,7 +1793,7 @@ function OverviewTab({ summary }) {
 
             {/* ── Faculty rating with progress bars ── */}
             <div className={card}>
-                <p className="mb-3 text-sm font-semibold text-[#132844]">Рейтинг факультетов</p>
+                <p className="mb-3 text-sm font-semibold text-[#102945]">Рейтинг факультетов</p>
                 {faculties.length > 0 ? (
                     <div className="space-y-3">
                         {[...faculties]
@@ -1808,7 +1808,7 @@ function OverviewTab({ summary }) {
                                                 <span className="text-muted-foreground">{f.user_count} чел.</span>
                                                 <span className="font-semibold text-emerald-600">{f.approved} утв.</span>
                                                 {f.rank_score != null && (
-                                                    <span className="w-16 text-right font-bold tabular-nums text-[#139AA4]">
+                                                    <span className="w-16 text-right font-bold tabular-nums text-[#067a75]">
                                                         R {fmt(f.rank_score)}
                                                     </span>
                                                 )}
@@ -1816,7 +1816,7 @@ function OverviewTab({ summary }) {
                                         </div>
                                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40">
                                             <div
-                                                className="h-1.5 rounded-full bg-gradient-to-r from-[#139AA4] to-[#1a6bb5]"
+                                                className="h-1.5 rounded-full bg-gradient-to-r from-[#067a75] to-[#2c5a86]"
                                                 style={{ width: `${(f.approved / maxFacultyApproved) * 100}%` }}
                                             />
                                         </div>
@@ -1832,7 +1832,7 @@ function OverviewTab({ summary }) {
             {/* ── Top-10 ПС ── */}
             <div className={card}>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-[#132844]">Топ-10 ППС</p>
+                    <p className="text-sm font-semibold text-[#102945]">Топ-10 ППС</p>
                     <div className="ml-auto flex flex-wrap gap-2">
                         <select
                             className={SELECT_CLS + ' pe-8'}
@@ -1871,7 +1871,7 @@ function OverviewTab({ summary }) {
                                     <th className="w-14 text-right">НИР</th>
                                     <th className="w-14 text-right">СВР</th>
                                     <th className="w-14 text-right">УПК</th>
-                                    <th className="w-16 text-right pe-3 text-[#139AA4]">R</th>
+                                    <th className="w-16 text-right pe-3 text-[#067a75]">R</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1889,7 +1889,7 @@ function OverviewTab({ summary }) {
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k2)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k3)}</td>
                                         <td className="text-right tabular-nums text-sm">{fmt(t.k4)}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">{fmt(t.rank_score)}</td>
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">{fmt(t.rank_score)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -1943,7 +1943,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                             <th className="w-20 text-right">Записей</th>
                                             <th className="w-20 text-right">Утв.</th>
                                             <th className="w-14 text-right">%</th>
-                                            <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                                            <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1954,7 +1954,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                                 <td className="text-right tabular-nums">{f.total_entries}</td>
                                                 <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
                                                 <td className="text-right tabular-nums text-muted-foreground text-xs">{pct(f.approved, f.total_entries)}</td>
-                                                <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                                                <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                                     {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                                 </td>
                                             </tr>
@@ -1979,7 +1979,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                     <th className="w-20 text-right">ППС</th>
                                     <th className="w-20 text-right">Записей</th>
                                     <th className="w-20 text-right">Утв.</th>
-                                    <th className="w-20 text-right pe-3 text-[#139AA4]">R</th>
+                                    <th className="w-20 text-right pe-3 text-[#067a75]">R</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1990,7 +1990,7 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                                         <td className="text-right tabular-nums">{f.user_count}</td>
                                         <td className="text-right tabular-nums">{f.total_entries}</td>
                                         <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                        <td className="pe-3 text-right tabular-nums font-bold text-[#139AA4]">
+                                        <td className="pe-3 text-right tabular-nums font-bold text-[#067a75]">
                                             {f.rank_score != null ? fmt(f.rank_score) : '—'}
                                         </td>
                                     </tr>

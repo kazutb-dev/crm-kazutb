@@ -183,7 +183,7 @@ export default function Students() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Студенты</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Студенты</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Привязка студентов к группам с выбором из локальной базы или AD.</p>
                         </div>
                         <Badge variant="secondary" className="w-fit">{students.length} привязок</Badge>
@@ -196,7 +196,7 @@ export default function Students() {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[430px_1fr]">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">{editingId ? 'Редактирование привязки' : 'Новая привязка студента'}</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">{editingId ? 'Редактирование привязки' : 'Новая привязка студента'}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form className="space-y-3" onSubmit={submit}>
@@ -221,7 +221,7 @@ export default function Students() {
 
                                 {!editingId && (
                                     <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
-                                        <p className="text-xs font-medium text-[#132844]">Если студента нет в системе, выполните поиск в AD</p>
+                                        <p className="text-xs font-medium text-[#102945]">Если студента нет в системе, выполните поиск в AD</p>
                                         <div className="flex gap-2">
                                             <Input
                                                 placeholder="Поиск в AD (ФИО, логин, email)"
@@ -302,7 +302,7 @@ export default function Students() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="flex items-center gap-2 text-base text-[#132844]"><Users className="h-4 w-4 text-[#139AA4]" />Текущие привязки студентов</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-base text-[#102945]"><Users className="h-4 w-4 text-[#067a75]" />Текущие привязки студентов</CardTitle>
                                 <div className="relative w-full sm:w-72">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
@@ -335,7 +335,7 @@ export default function Students() {
                                         <tbody>
                                             {filteredStudents.map((student) => (
                                                 <tr key={student.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#132844]">{student.full_name}</td>
+                                                    <td className="px-3 py-2 font-medium text-[#102945]">{student.full_name}</td>
                                                     <td className="px-3 py-2">{student.login || student.user?.ad_login || '—'}</td>
                                                     <td className="px-3 py-2">{student.group?.name || '—'}</td>
                                                     <td className="px-3 py-2">

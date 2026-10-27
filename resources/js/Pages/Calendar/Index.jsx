@@ -39,18 +39,18 @@ const TYPE_META = {
 };
 
 const TYPE_COLOR_HEX = {
-    meeting: '#3b82f6',
-    vacation: '#10b981',
-    business_trip: '#8b5cf6',
-    sick_leave: '#f97316',
-    personal: '#ec4899',
-    remote: '#14b8a6',
+    meeting: '#5b86b5',
+    vacation: '#3fb57a',
+    business_trip: '#2c5a86',
+    sick_leave: '#d9853f',
+    personal: '#a4531f',
+    remote: '#0a9d96',
     other: '#6b7280',
 };
 
 const PRESET_COLORS = [
-    '#3b82f6', '#10b981', '#8b5cf6', '#f97316', '#ec4899',
-    '#14b8a6', '#6b7280', '#ef4444', '#f59e0b', '#06b6d4',
+    '#5b86b5', '#3fb57a', '#2c5a86', '#d9853f', '#a4531f',
+    '#0a9d96', '#6b7280', '#d64540', '#e2b53e', '#09bab2',
     '#84cc16', '#a855f7',
 ];
 

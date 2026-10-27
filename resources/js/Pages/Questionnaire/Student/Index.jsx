@@ -322,7 +322,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Анкетирование / Студент</p>
-                                <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Личный кабинет анкетирования</h1>
+                                <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Личный кабинет анкетирования</h1>
                                 <p className="mt-1 text-sm text-muted-foreground">Прогресс сохраняется автоматически. Можно вернуться и продолжить позже.</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -367,7 +367,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-muted-foreground">Прогресс заполнения</span>
-                                    <span className="font-medium text-[#132844]">{answeredCount} / {questions.length}</span>
+                                    <span className="font-medium text-[#102945]">{answeredCount} / {questions.length}</span>
                                 </div>
                                 <Progress value={progressPercent} />
                             </div>
@@ -390,7 +390,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base text-[#132844]">Мои дисциплины</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">Мои дисциплины</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {loading ? (
@@ -413,9 +413,9 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                 key={bucket.id}
                                                 type="button"
                                                 onClick={() => selectDiscipline(bucket)}
-                                                className={`w-full rounded-lg border px-3 py-3 text-left transition ${active ? 'border-[#139AA4] bg-[#e9fbfc]' : 'border-border hover:bg-muted/40'}`}
+                                                className={`w-full rounded-lg border px-3 py-3 text-left transition ${active ? 'border-[#067a75] bg-[#f0f8f7]' : 'border-border hover:bg-muted/40'}`}
                                             >
-                                                <p className="font-medium text-[#132844]">{bucket.discipline.name}</p>
+                                                <p className="font-medium text-[#102945]">{bucket.discipline.name}</p>
                                                 <p className="mt-1 text-xs text-muted-foreground">
                                                     {availableCount > 0
                                                         ? `Доступно анкет: ${availableCount}`
@@ -434,7 +434,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#132844]">Форма анкеты</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Форма анкеты</CardTitle>
                                 <div className="flex flex-wrap gap-2">
                                     <Button type="button" variant="outline" size="sm" className="gap-2" onClick={resetDraft} disabled={!canSubmitSelected}>
                                         <RotateCcw className="h-4 w-4" />
@@ -454,7 +454,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                 <div className="space-y-4">
                                     <div className="rounded-lg border border-border/80 bg-muted/20 p-3">
                                         <p className="text-xs uppercase tracking-wide text-muted-foreground">Выбрано</p>
-                                        <p className="mt-1 text-sm font-semibold text-[#132844]">{selectedItem.discipline?.name}</p>
+                                        <p className="mt-1 text-sm font-semibold text-[#102945]">{selectedItem.discipline?.name}</p>
                                         <p className="mt-1 text-xs text-muted-foreground">Преподаватель: {selectedItem.teacher?.name || 'Не указан'}</p>
                                         <div className="mt-2">
                                             <Badge variant={canSubmitSelected ? 'secondary' : 'outline'}>
@@ -475,7 +475,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                             key={`${item.group_discipline_id}`}
                                                             type="button"
                                                             onClick={() => selectAssignment(item)}
-                                                            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${active ? 'border-[#139AA4] bg-[#e9fbfc] text-[#0b5d63]' : 'border-border text-muted-foreground hover:bg-muted/40'}`}
+                                                            className={`rounded-full border px-3 py-1 text-xs font-medium transition ${active ? 'border-[#067a75] bg-[#f0f8f7] text-[#0b5d63]' : 'border-border text-muted-foreground hover:bg-muted/40'}`}
                                                         >
                                                             {(item.teacher?.name || 'Преподаватель')} · {item.survey_state_label || 'нет статуса'}
                                                         </button>
@@ -494,7 +494,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                     {canSubmitSelected && questions.map((question, index) => (
                                         <div key={question.id} className="rounded-lg border border-border/80 p-4">
                                             <p className="text-xs uppercase tracking-wide text-muted-foreground">Вопрос {index + 1}</p>
-                                            <p className="mt-1 text-sm font-medium text-[#132844]">{question.question_text}</p>
+                                            <p className="mt-1 text-sm font-medium text-[#102945]">{question.question_text}</p>
 
                                             {(question.question_type === 'single_choice' || question.question_type === 'multiple_choice') && (
                                                 <select

@@ -67,7 +67,7 @@ function Donut({ segments, total, size = 100, stroke = 10 }) {
     );
 }
 
-function KpiCard({ icon: Icon, label, value, trend = null, trendValue = null, color = '#3b82f6' }) {
+function KpiCard({ icon: Icon, label, value, trend = null, trendValue = null, color = '#5b86b5' }) {
     const isTrendUp = trend === 'up';
     const TrendIcon = isTrendUp ? TrendingUp : TrendingDown;
     
@@ -80,8 +80,8 @@ function KpiCard({ icon: Icon, label, value, trend = null, trendValue = null, co
                     </div>
                     {trend && (
                         <div className="flex items-center gap-1">
-                            <TrendIcon className="h-4 w-4" style={{ color: isTrendUp ? '#10b981' : '#ef4444' }} />
-                            <span className="text-xs font-semibold" style={{ color: isTrendUp ? '#10b981' : '#ef4444' }}>
+                            <TrendIcon className="h-4 w-4" style={{ color: isTrendUp ? '#3fb57a' : '#d64540' }} />
+                            <span className="text-xs font-semibold" style={{ color: isTrendUp ? '#3fb57a' : '#d64540' }}>
                                 {trendValue}%
                             </span>
                         </div>
@@ -301,25 +301,25 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                 : `За ${days} дней`;
 
     const summarySegments = [
-        { name: 'Все пользователи', value: employeesTotal, color: '#10b981' },
-        { name: fromDate || days !== '1' ? 'Ранний выход за период' : 'Ранний выход', value: earlyPeriodPeople, color: '#f59e0b' },
-        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали сегодня', value: latePeriodPeople, color: '#ef4444' },
+        { name: 'Все пользователи', value: employeesTotal, color: '#3fb57a' },
+        { name: fromDate || days !== '1' ? 'Ранний выход за период' : 'Ранний выход', value: earlyPeriodPeople, color: '#e2b53e' },
+        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали сегодня', value: latePeriodPeople, color: '#d64540' },
     ];
 
     const todaySegments = [
-        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали', value: latePeriodPeople, color: '#ef4444' },
-        { name: fromDate || days !== '1' ? 'Без опозданий' : 'Вовремя', value: Math.max(employeesActive - latePeriodPeople, 0), color: '#22c55e' },
+        { name: fromDate || days !== '1' ? 'Опоздали за период' : 'Опоздали', value: latePeriodPeople, color: '#d64540' },
+        { name: fromDate || days !== '1' ? 'Без опозданий' : 'Вовремя', value: Math.max(employeesActive - latePeriodPeople, 0), color: '#3fb57a' },
     ];
 
     const earlySegments = [
-        { name: fromDate || days !== '1' ? 'Ушли раньше за период' : 'Ушли раньше', value: earlyPeriodPeople, color: '#f59e0b' },
-        { name: fromDate || days !== '1' ? 'Без раннего ухода' : 'Остались', value: Math.max(employeesActive - earlyPeriodPeople, 0), color: '#22c55e' },
+        { name: fromDate || days !== '1' ? 'Ушли раньше за период' : 'Ушли раньше', value: earlyPeriodPeople, color: '#e2b53e' },
+        { name: fromDate || days !== '1' ? 'Без раннего ухода' : 'Остались', value: Math.max(employeesActive - earlyPeriodPeople, 0), color: '#3fb57a' },
     ];
 
     const top3 = topDivisions.slice(0, 3).map((row, idx) => ({
         name: row.division,
         value: Number(row.late_people ?? 0),
-        color: ['#f97316', '#06b6d4', '#8b5cf6'][idx],
+        color: ['#d9853f', '#09bab2', '#2c5a86'][idx],
     }));
     const topRest = topDivisions.slice(3).reduce((acc, row) => acc + Number(row.late_people ?? 0), 0);
     if (topRest > 0) {
@@ -589,7 +589,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                                                 className="h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold text-white"
                                                 style={{
                                                     background: idx < 3 
-                                                        ? ['#f97316', '#06b6d4', '#8b5cf6'][idx] 
+                                                        ? ['#d9853f', '#09bab2', '#2c5a86'][idx] 
                                                         : '#9ca3af'
                                                 }}
                                             >

@@ -295,10 +295,10 @@ export default function Specialities() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex items-center justify-between pt-6">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Специальности</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Специальности</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Справочник специальностей для привязки образовательных программ.</p>
                         </div>
-                        <GraduationCap className="h-6 w-6 text-[#139AA4]" />
+                        <GraduationCap className="h-6 w-6 text-[#067a75]" />
                     </CardContent>
                 </Card>
 
@@ -309,7 +309,7 @@ export default function Specialities() {
                     <Card className="border-border/80 bg-white/90 shadow-sm">
                         <CardHeader className="pb-2">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <CardTitle className="text-base text-[#132844]">Список специальностей</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">Список специальностей</CardTitle>
                                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                                     <Button type="button" className="gap-2" onClick={openCreateDialog}>
                                         <Plus className="h-4 w-4" />
@@ -346,7 +346,7 @@ export default function Specialities() {
                                         <tbody>
                                             {filtered.map((item) => (
                                                 <tr key={item.id} className="border-b last:border-b-0">
-                                                    <td className="px-3 py-2 font-medium text-[#132844]">{item.name}</td>
+                                                    <td className="px-3 py-2 font-medium text-[#102945]">{item.name}</td>
                                                     <td className="px-3 py-2">{getDepartmentName(item)}</td>
                                                     <td className="px-3 py-2">{item.educational_programs_count ?? 0}</td>
                                                     <td className="px-3 py-2">
@@ -423,7 +423,7 @@ export default function Specialities() {
                 <SheetContent side="right" className="w-full sm:max-w-2xl">
                     <SheetHeader>
                         <SheetTitle className="flex items-center gap-2">
-                            <BookOpenText className="h-4 w-4 text-[#139AA4]" />
+                            <BookOpenText className="h-4 w-4 text-[#067a75]" />
                             ОП специальности: {openedSpeciality?.name}
                         </SheetTitle>
                         <SheetDescription>
@@ -434,7 +434,7 @@ export default function Specialities() {
                     <div className="mt-4 space-y-4">
                         <Card className="border-border/80 bg-white/90 shadow-sm">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-base text-[#132844]">{programEditingId ? 'Редактирование ОП' : 'Новая ОП'}</CardTitle>
+                                <CardTitle className="text-base text-[#102945]">{programEditingId ? 'Редактирование ОП' : 'Новая ОП'}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <form className="space-y-3" onSubmit={submitProgram}>
@@ -458,7 +458,7 @@ export default function Specialities() {
                         <Card className="border-border/80 bg-white/90 shadow-sm">
                             <CardHeader className="pb-2">
                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <CardTitle className="text-base text-[#132844]">Образовательные программы</CardTitle>
+                                    <CardTitle className="text-base text-[#102945]">Образовательные программы</CardTitle>
                                     <div className="relative w-full sm:w-72">
                                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input className="pl-9" placeholder="Поиск ОП" value={programSearch} onChange={(e) => setProgramSearch(e.target.value)} />
@@ -481,7 +481,7 @@ export default function Specialities() {
                                             <tbody>
                                                 {specialityPrograms.map((program) => (
                                                     <tr key={program.id} className="border-b last:border-b-0">
-                                                        <td className="px-3 py-2 font-medium text-[#132844]">{program.name}</td>
+                                                        <td className="px-3 py-2 font-medium text-[#102945]">{program.name}</td>
                                                         <td className="px-3 py-2">
                                                             <Badge variant={program.status === 'active' ? 'default' : 'secondary'} className={program.status === 'active' ? 'bg-emerald-600 text-white' : ''}>
                                                                 {program.status}

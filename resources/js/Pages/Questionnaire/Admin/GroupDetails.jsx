@@ -440,7 +440,7 @@ export default function GroupDetails({ groupId }) {
             <Head title="Анкетирование - Детали группы" />
 
             <div className="admin-page-wrap">
-                <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-[#132844] via-[#1b3a60] to-[#245279] text-white shadow-lg">
+                <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-[#102945] via-[#1b3a60] to-[#245279] text-white shadow-lg">
                     <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
                     <div className="pointer-events-none absolute -bottom-24 left-20 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
                     <CardContent className="relative flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
@@ -471,15 +471,15 @@ export default function GroupDetails({ groupId }) {
                         <div className="grid gap-3 sm:grid-cols-3">
                             <div className="rounded-xl border border-cyan-200/70 bg-cyan-50/60 px-3 py-2 text-sm">
                                 <span className="text-muted-foreground">Специальность: </span>
-                                <span className="font-medium text-[#132844]">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</span>
+                                <span className="font-medium text-[#102945]">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</span>
                             </div>
                             <div className="rounded-xl border border-indigo-200/70 bg-indigo-50/60 px-3 py-2 text-sm">
                                 <span className="text-muted-foreground">ОП: </span>
-                                <span className="font-medium text-[#132844]">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</span>
+                                <span className="font-medium text-[#102945]">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</span>
                             </div>
                             <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/60 px-3 py-2 text-sm">
                                 <span className="text-muted-foreground">Кафедра: </span>
-                                <span className="font-medium text-[#132844]">{getGroupDepartment(group)?.name || '—'}</span>
+                                <span className="font-medium text-[#102945]">{getGroupDepartment(group)?.name || '—'}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -574,7 +574,7 @@ export default function GroupDetails({ groupId }) {
                 <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
+                            <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
                                 <BookOpenText className="h-4 w-4 text-indigo-600" />
                                 Дисциплины группы
                             </CardTitle>
@@ -644,7 +644,7 @@ export default function GroupDetails({ groupId }) {
                 <Card className="border-border/80 bg-white shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="flex items-center gap-2 text-base text-[#132844]">
+                            <CardTitle className="flex items-center gap-2 text-base text-[#102945]">
                                 <Users className="h-4 w-4 text-cyan-600" />
                                 Студенты группы
                             </CardTitle>
@@ -683,7 +683,7 @@ export default function GroupDetails({ groupId }) {
                                     <tbody>
                                         {studentsOfGroup.map((student) => (
                                             <tr key={student.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2 font-medium text-[#132844]">{student.full_name}</td>
+                                                <td className="px-3 py-2 font-medium text-[#102945]">{student.full_name}</td>
                                                 <td className="px-3 py-2">{student.login || student.user?.ad_login || '—'}</td>
                                                 <td className="px-3 py-2 text-right">
                                                     <Button
@@ -754,7 +754,7 @@ export default function GroupDetails({ groupId }) {
                                             onClick={() => setStudentForm((prev) => ({ ...prev, student_key: choice.key }))}
                                         >
                                             <span>
-                                                <span className="block text-sm font-medium text-[#132844]">{choice.title}</span>
+                                                <span className="block text-sm font-medium text-[#102945]">{choice.title}</span>
                                                 <span className="block text-xs text-muted-foreground">{choice.subtitle}</span>
                                             </span>
                                             <Badge variant={choice.source === 'ad' ? 'secondary' : 'outline'}>{choice.source.toUpperCase()}</Badge>
@@ -810,7 +810,7 @@ function MetricCard({ title, value, icon = null, accent = 'cyan' }) {
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
+                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
                 </div>
                 {icon}
             </CardContent>

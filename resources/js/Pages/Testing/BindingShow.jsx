@@ -71,7 +71,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
 
             <div className="admin-page-wrap space-y-6">
                 {/* Header card with subject details and brief analytics */}
-                <Card className="overflow-hidden border-0 bg-gradient-to-r from-[#123153] via-[#15466a] to-[#0f8b94] text-white shadow-[0_16px_40px_-24px_rgba(15,35,58,0.6)] rounded-3xl">
+                <Card className="overflow-hidden border-0 bg-gradient-to-r from-[#082834] via-[#0e3a3f] to-[#00625e] text-white shadow-[0_16px_40px_-24px_rgba(15,35,58,0.6)] rounded-3xl">
                     <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <Link href={route('testing.index')}>
@@ -133,18 +133,18 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                     <CardHeader className="pb-3 border-b border-slate-100">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
-                                <CardTitle className="text-xl font-bold text-[#132844] font-sans">Тесты по предмету</CardTitle>
+                                <CardTitle className="text-xl font-bold text-[#102945] font-sans">Тесты по предмету</CardTitle>
                                 <p className="mt-1 text-xs text-slate-400">Создавайте новые тесты, управляйте вопросами и отслеживайте результаты сдачи.</p>
                             </div>
 
                             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row items-center">
                                 <div className="relative min-w-[280px] w-full sm:w-auto">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
-                                    <Input className="pl-9 h-10 border-slate-200 focus-visible:ring-[#139AA4]/20 focus-visible:border-[#139AA4] rounded-lg text-xs" placeholder="Поиск по тестам…" value={search} onChange={(event) => setSearch(event.target.value)} />
+                                    <Input className="pl-9 h-10 border-slate-200 focus-visible:ring-[#067a75]/20 focus-visible:border-[#067a75] rounded-lg text-xs" placeholder="Поиск по тестам…" value={search} onChange={(event) => setSearch(event.target.value)} />
                                 </div>
 
                                 <Link href={route('testing.tests.create', binding.id)} className="w-full sm:w-auto shrink-0">
-                                    <Button type="button" className="gap-2 h-10 px-4 w-full sm:w-auto rounded-lg text-xs bg-gradient-to-r from-[#1b4d74] to-[#139AA4] hover:opacity-90 shadow-sm">
+                                    <Button type="button" className="gap-2 h-10 px-4 w-full sm:w-auto rounded-lg text-xs bg-gradient-to-r from-[#14696d] to-[#067a75] hover:opacity-90 shadow-sm">
                                         <Plus className="h-4 w-4" />
                                         Создать тест
                                     </Button>
@@ -169,7 +169,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                                 <div className="space-y-1.5">
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <h2 className="text-lg font-bold text-[#132844]">{test.title}</h2>
+                                                        <h2 className="text-lg font-bold text-[#102945]">{test.title}</h2>
                                                         <Badge className={statusTone[test.status] || 'bg-slate-200 text-slate-700'}>
                                                             {test.status === 'published' ? 'Опубликован' : 'Черновик'}
                                                         </Badge>
@@ -195,19 +195,19 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                             <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Вопросов в тесте</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844]">{test.question_count}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945]">{test.question_count}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Подготовлено</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844]">{test.questions_total}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945]">{test.questions_total}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Прохождений</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844]">{test.results_count}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945]">{test.results_count}</div>
                                                 </div>
                                                 <div className="rounded-2xl bg-slate-50/70 p-3 border border-slate-100/50">
                                                     <div className="text-[10px] uppercase font-semibold tracking-wider text-slate-400">Средний балл</div>
-                                                    <div className="mt-1 text-lg font-bold text-[#132844]">{test.average_score}</div>
+                                                    <div className="mt-1 text-lg font-bold text-[#102945]">{test.average_score}</div>
                                                 </div>
                                             </div>
 
@@ -218,7 +218,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => toggleTestExpand(test.id)}
-                                                    className="gap-2 text-[#139AA4] hover:text-[#139AA4]/80 hover:bg-[#139AA4]/5 font-semibold text-xs py-1.5 px-3 rounded-lg transition-colors"
+                                                    className="gap-2 text-[#067a75] hover:text-[#067a75]/80 hover:bg-[#067a75]/5 font-semibold text-xs py-1.5 px-3 rounded-lg transition-colors"
                                                 >
                                                     {isExpanded ? (
                                                         <>
@@ -250,14 +250,14 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                                     <div className="grid gap-5 lg:grid-cols-2">
                                                         {/* Questions Box */}
                                                         <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                                                            <div className="mb-3 text-[11px] uppercase font-bold tracking-widest text-[#132844] flex items-center gap-1.5">
-                                                                <span className="h-1.5 w-1.5 rounded-full bg-[#139AA4]" />
+                                                            <div className="mb-3 text-[11px] uppercase font-bold tracking-widest text-[#102945] flex items-center gap-1.5">
+                                                                <span className="h-1.5 w-1.5 rounded-full bg-[#067a75]" />
                                                                 Вопросы ({test.questions.length})
                                                             </div>
                                                             <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2">
                                                                 {test.questions.map((question) => (
                                                                     <div key={question.id} className="flex items-start gap-3 rounded-xl bg-white p-3 text-xs text-slate-700 shadow-sm border border-slate-100/50">
-                                                                        <span className="mt-0.5 inline-flex h-5.5 w-5.5 flex-shrink-0 items-center justify-center rounded-lg bg-[#123153]/10 text-[10px] font-bold text-[#123153]">
+                                                                        <span className="mt-0.5 inline-flex h-5.5 w-5.5 flex-shrink-0 items-center justify-center rounded-lg bg-[#082834]/10 text-[10px] font-bold text-[#082834]">
                                                                             {question.position}
                                                                         </span>
                                                                         <div>
@@ -271,7 +271,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
 
                                                         {/* Results Box */}
                                                         <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                                                            <div className="mb-3 text-[11px] uppercase font-bold tracking-widest text-[#132844] flex items-center gap-1.5">
+                                                            <div className="mb-3 text-[11px] uppercase font-bold tracking-widest text-[#102945] flex items-center gap-1.5">
                                                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                                                                 Результаты сдачи ({test.results?.length || 0})
                                                             </div>
@@ -291,7 +291,7 @@ export default function BindingShow({ binding, tests = [], analytics }) {
                                                                                 {test.results.map((res) => (
                                                                                     <tr key={res.id} className="hover:bg-slate-50/30">
                                                                                         <td className="px-3 py-2.5 font-medium text-slate-700 leading-snug">{res.user_name}</td>
-                                                                                        <td className="px-3 py-2.5 text-center font-bold text-[#132844]">{res.score}%</td>
+                                                                                        <td className="px-3 py-2.5 text-center font-bold text-[#102945]">{res.score}%</td>
                                                                                         <td className="px-3 py-2.5 text-center">
                                                                                             {res.passed ? (
                                                                                                 <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10">

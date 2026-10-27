@@ -57,7 +57,7 @@ export default function Reports() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardContent className="flex flex-col gap-4 pt-6 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight text-[#132844]">Анкетирование - Отчеты</h1>
+                            <h1 className="text-2xl font-semibold tracking-tight text-[#102945]">Анкетирование - Отчеты</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Сводка результатов анкетирования по преподавателям и дисциплинам.</p>
                         </div>
                         <Badge variant="secondary" className="w-fit">{responses.length} ответов</Badge>
@@ -65,9 +65,9 @@ export default function Reports() {
                 </Card>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard title="Всего ответов" value={summary?.total_responses ?? 0} icon={<UsersRound className="h-5 w-5 text-[#139AA4]" />} />
+                    <StatCard title="Всего ответов" value={summary?.total_responses ?? 0} icon={<UsersRound className="h-5 w-5 text-[#067a75]" />} />
                     <StatCard title="Средний балл" value={summary?.average_score ?? '—'} icon={<Star className="h-5 w-5 text-amber-500" />} />
-                    <StatCard title="В выборке" value={filteredResponses.length} icon={<BarChart3 className="h-5 w-5 text-[#139AA4]" />} />
+                    <StatCard title="В выборке" value={filteredResponses.length} icon={<BarChart3 className="h-5 w-5 text-[#067a75]" />} />
                     <StatCard title="Анкет" value={new Set(responses.map((item) => item.survey_id)).size} />
                 </div>
 
@@ -76,7 +76,7 @@ export default function Reports() {
                 <Card className="border-border/80 bg-white/90 shadow-sm">
                     <CardHeader className="pb-2">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CardTitle className="text-base text-[#132844]">Последние ответы</CardTitle>
+                            <CardTitle className="text-base text-[#102945]">Последние ответы</CardTitle>
                             <div className="relative w-full sm:w-80">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                 <Input className="pl-9" placeholder="Поиск по анкете, студенту, дисциплине" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -101,7 +101,7 @@ export default function Reports() {
                                     <tbody>
                                         {filteredResponses.map((row) => (
                                             <tr key={row.id} className="border-b last:border-b-0">
-                                                <td className="px-3 py-2 font-medium text-[#132844]">{row.survey?.title || row.survey_id}</td>
+                                                <td className="px-3 py-2 font-medium text-[#102945]">{row.survey?.title || row.survey_id}</td>
                                                 <td className="px-3 py-2">{row.student?.full_name || row.student_id}</td>
                                                 <td className="px-3 py-2">{row.teacher?.name || row.teacher?.display_name || row.teacher_id}</td>
                                                 <td className="px-3 py-2">{row.discipline?.name || row.discipline_id}</td>
@@ -125,7 +125,7 @@ function StatCard({ title, value, icon = null }) {
             <CardContent className="flex items-center justify-between pt-6">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-semibold text-[#132844]">{value}</p>
+                    <p className="text-2xl font-semibold text-[#102945]">{value}</p>
                 </div>
                 {icon}
             </CardContent>

@@ -300,7 +300,7 @@ export default function AdminIndex({
                                                             applyFilters(next);
                                                         }}
                                                         className={`inline-flex h-7 items-center rounded-full border px-2.5 text-[11px] font-semibold transition-colors ${active
-                                                            ? 'border-[#17314f] bg-[#17314f] text-white'
+                                                            ? 'border-[#102945] bg-[#102945] text-white'
                                                             : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}
                                                     >
                                                         {chip.label}
@@ -310,7 +310,7 @@ export default function AdminIndex({
                                         </div>
 
                                         <div className="ml-auto flex items-center gap-1.5">
-                                            <Button type="button" className="h-8 rounded-md bg-[#17314f] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#10263f]" onClick={() => applyFilters()}>
+                                            <Button type="button" className="h-8 rounded-md bg-[#102945] px-3 text-[11px] font-semibold text-white shadow-sm hover:bg-[#102945]" onClick={() => applyFilters()}>
                                                 Применить
                                             </Button>
                                             <Button type="button" variant="outline" className="h-8 rounded-md border-slate-300 px-3 text-[11px] font-semibold text-slate-700 shadow-sm hover:bg-white" onClick={resetFilters}>
@@ -434,7 +434,7 @@ export default function AdminIndex({
                                             key={`${link.label}-${index}`}
                                             variant={link.active ? 'default' : 'outline'}
                                             size="sm"
-                                            className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${link.active ? 'bg-[#17314f] hover:bg-[#10263f]' : 'border-slate-300 bg-white'}`}
+                                            className={`h-8 rounded-md px-2.5 text-xs shadow-sm ${link.active ? 'bg-[#102945] hover:bg-[#102945]' : 'border-slate-300 bg-white'}`}
                                             disabled={!link.url}
                                             asChild={Boolean(link.url)}
                                         >

@@ -150,7 +150,7 @@ export default function SurveyGroups({ groups = [], students = [] }) {
             <div className="admin-page-wrap">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-white/90 px-5 py-4 shadow-[0_6px_18px_rgba(15,36,63,0.07)] backdrop-blur">
                     <div>
-                        <h1 className="text-base font-bold leading-tight text-[#132844]">Анкетирование - Группы</h1>
+                        <h1 className="text-base font-bold leading-tight text-[#102945]">Анкетирование - Группы</h1>
                         <p className="mt-1 text-xs text-muted-foreground">KPI-стиль управления академическими группами и привязками студентов.</p>
                     </div>
                     <Button type="button" onClick={openCreate} className="gap-2">
@@ -169,7 +169,7 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                     <CardHeader>
                         <CardTitle className="admin-table-title flex items-center justify-between gap-2">
                             <span className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-[#139AA4]" />
+                                <Users className="h-4 w-4 text-[#067a75]" />
                                 Список групп
                             </span>
                             <Badge variant="outline">{groups.length}</Badge>

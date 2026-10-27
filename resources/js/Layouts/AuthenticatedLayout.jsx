@@ -1,10 +1,11 @@
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { PanelDesignProvider } from '@/components/ui/panel-design';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Head, usePage, router } from '@inertiajs/react';
-import { Home } from 'lucide-react';
+import { ChevronRight, Home } from 'lucide-react';
 import ReminderProfileModal from '@/components/ReminderProfileModal';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -142,6 +143,44 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         'Testing/BindingShow': 'Тестирование — Привязка предмета',
         'Testing/TestForm': 'Тестирование — Конструктор теста',
         'Testing/BindingAnalytics': 'Тестирование — Аналитика',
+        'Calendar/Overview': 'Календарь — Обзор',
+        'Calendar/My': 'Календарь — Мой календарь',
+        'Calendar/Shared': 'Календарь — Совместное управление',
+        'Calendar/EmployeeProfile': 'Календарь — Профиль сотрудника',
+        'Certificates/GeneratePage': 'Сертификаты — Генерация',
+        'Certificates/Registry': 'Сертификаты — Реестр',
+        'Nav/AdminRoutes': 'Маршруты навигации',
+        'Kpi/StructuralDivisionDashboard': 'KPI — Структурные подразделения',
+        'Kpi/ApprovedEmployees': 'KPI — Прошедшие полную проверку',
+        'Kpi/DivisionEmployees': 'KPI — Сотрудники подразделения',
+        'Kpi/SummaryTeacherCard': 'KPI — Карточка преподавателя',
+        'Kpi/Settings': 'KPI — Настройки',
+        'Kpi/DivisionTables': 'KPI — Таблицы подразделений',
+        'Kpi/Analytics': 'KPI — Аналитика',
+        'Kpi/Access': 'KPI — Доступ к модулям',
+        'Special/LoginImage': 'Приветствие',
+        'Positions/Index': 'Должности',
+        'PositionRequests/AdminIndex': 'Заявки на изменение должности',
+        'Announcements/Index': 'Объявления',
+        'AcademicMobility/StudentPage': 'Академическая мобильность',
+        'AcademicMobility/StaffPage': 'Академическая мобильность',
+        'AcademicMobility/StudentStatusPage': 'Академическая мобильность — Статус заявки',
+        'Questionnaire/Admin/Reports': 'Анкетирование — Отчёты',
+        'Questionnaire/Admin/Students': 'Анкетирование — Студенты',
+        'Questionnaire/Admin/Groups': 'Анкетирование — Группы',
+        'Questionnaire/Admin/GroupAssignments': 'Анкетирование — Назначения',
+        'Questionnaire/Admin/GroupDetails': 'Анкетирование — Детали группы',
+        'Questionnaire/Admin/Questions': 'Анкетирование — Опросы и вопросы',
+        'Questionnaire/Admin/TeacherDisciplines': 'Анкетирование — Преподаватели',
+        'Questionnaire/Admin/Disciplines': 'Анкетирование — Дисциплины',
+        'Admin/SurveyStudents': 'Анкетирование — Студенты',
+        'Admin/SurveyGroups': 'Анкетирование — Группы',
+        'Testing/Subjects': 'Тестирование — Управление предметами',
+        'HR/PercoLateEmployee': 'HR — Карточка опозданий',
+        'HR/PercoTimetracking': 'HR — Рабочее время',
+        'HR/DivisionLatePeople': 'HR — Опоздавшие сотрудники',
+        'HR/PercoDayEvents': 'HR — История проходов за день',
+        'Errors/403': 'Доступ запрещён',
     };
 
     const pageTitleBase =
@@ -189,62 +228,66 @@ export default function AuthenticatedLayout({ header, headerRight, children }) {
         return null;
     })();
 
-    const pageTitle = queueScopeTitle ? `${pageTitleBase} — ${queueScopeTitle}` : pageTitleBase;
-    // The top bar shows the component path; the HR module gets readable names instead of «Hr · Hiring».
-    const [section = 'Раздел', sectionPage = 'Страница'] = component.startsWith('Hr/Hiring/')
+    // «Раздел — Страница» titles become a breadcrumb trail plus the page name; the HR module keeps its own trail.
+    const titleParts = pageTitleBase.split(' — ');
+    const pageName = titleParts.at(-1);
+    const trail = component.startsWith('Hr/Hiring/')
         ? ['Отдел кадров', 'Приём на работу']
-        : component.split('/');
+        : titleParts.slice(0, -1);
+    const breadcrumbs = component === 'Dashboard' ? ['КазУТБ CRM'] : ['Панель', ...trail];
 
     return (
         <SidebarProvider>
             <Head />
             <AppSidebar />
-            <SidebarInset>
-                <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
-                    <div style={{ position: 'absolute', left: -120, top: -180, width: 320, height: 320, borderRadius: '50%', background: 'rgba(9,186,178,0.12)', filter: 'blur(72px)' }} />
-                    <div style={{ position: 'absolute', right: -140, top: -140, width: 384, height: 384, borderRadius: '50%', background: 'rgba(252,187,89,0.12)', filter: 'blur(80px)' }} />
-                </div>
+            <SidebarInset className="qd-panel">
+                <PanelDesignProvider>
+                    {/* Reminder Modal for incomplete profile */}
+                    <ReminderProfileModal
+                        open={showReminder}
+                        onClose={() => setShowReminder(false)}
+                        goToProfile={goToProfile}
+                    />
 
-                {/* Reminder Modal for incomplete profile */}
-                <ReminderProfileModal
-                    open={showReminder}
-                    onClose={() => setShowReminder(false)}
-                    goToProfile={goToProfile}
-                />
-
-                <header className="admin-shell-topbar">
-                    <div className="admin-shell-topbar-row">
-                        <SidebarTrigger className="h-9 w-9 rounded-md border border-border/80 bg-white/90" />
-                        <Separator orientation="vertical" className="h-5" />
-                        <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="outline" style={{ borderColor: 'var(--teal-200)', background: 'var(--teal-50)', color: 'var(--teal-800)' }}>{section}</Badge>
-                                <p className="truncate text-sm font-medium text-muted-foreground/90">{sectionPage}</p>
+                    <header className="admin-shell-topbar">
+                        <div className="admin-shell-topbar-row">
+                            <SidebarTrigger className="h-10 w-10 shrink-0 border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50" />
+                            <div className="min-w-0 flex-1">
+                                <nav aria-label="Навигационная цепочка" className="flex min-w-0 items-center gap-1 text-xs font-medium text-slate-500">
+                                    {breadcrumbs.map((crumb, index) => (
+                                        <span key={`${crumb}-${index}`} className="flex min-w-0 items-center gap-1">
+                                            {index > 0 && <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />}
+                                            <span className="truncate">{crumb}</span>
+                                        </span>
+                                    ))}
+                                </nav>
+                                <div className="mt-0.5 flex min-w-0 items-center gap-2">
+                                    <h1 className="truncate font-display text-[1.375rem] font-bold leading-tight tracking-[-0.01em] text-[#102945]">{pageName}</h1>
+                                    {queueScopeTitle && <Badge className="max-w-[40%] shrink truncate">{queueScopeTitle}</Badge>}
+                                </div>
                             </div>
-                            <h1 className="mt-0.5 truncate text-[1.1rem] font-semibold" style={{ color: 'var(--navy-800)', fontFamily: 'var(--font-sans)' }}>{pageTitle}</h1>
+
+                            <Button asChild variant="outline" className="hidden sm:inline-flex">
+                                <a href={import.meta.env.VITE_HOME_URL ?? '/'}>
+                                    <Home />
+                                    Главная
+                                </a>
+                            </Button>
+
+                            {headerRight && <div className="admin-header-actions shrink-0">{headerRight}</div>}
                         </div>
+                    </header>
 
-                        <a
-                            href={import.meta.env.VITE_HOME_URL ?? '/'}
-                            className="hidden h-9 items-center gap-2 rounded-lg border border-border/80 bg-white/90 px-3 text-sm font-medium text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/30 sm:inline-flex"
-                        >
-                            <Home className="h-4 w-4" />
-                            Главная
-                        </a>
-
-                        {headerRight && <div className="admin-header-actions shrink-0">{headerRight}</div>}
-                    </div>
-                </header>
-
-                {header && (
-                    <div className="px-4 pt-4 sm:px-6 sm:pt-6">
-                        <div className="admin-surface p-5 sm:p-6">
-                            {header}
+                    {header && (
+                        <div className="px-4 pt-6 sm:px-8 sm:pt-8">
+                            <div className="admin-surface p-5 sm:p-6">
+                                {header}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                <main className="flex-1">{children}</main>
+                    <main className="flex-1">{children}</main>
+                </PanelDesignProvider>
             </SidebarInset>
         </SidebarProvider>
     );
