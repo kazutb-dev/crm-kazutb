@@ -2,12 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatGrid, StatTile } from '@/components/platform';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import {
-    Award, Building2, Camera, ClipboardList, GraduationCap,
-    History, Mail, MapPin, Phone, Shield, Trash2, User,
-} from 'lucide-react';
+import { Award, Camera, ChevronDown, Shield, Trash2, User } from 'lucide-react';
 import { useRef, useState } from 'react';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
@@ -131,18 +127,13 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                         <h1>{profile.name}</h1>
                         <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="success">{profile.role_label}</Badge>
-                            {profile.sync_status === 'ad' && <Badge variant="info">AD</Badge>}
+                            {isAdmin && profile.sync_status === 'ad' && <Badge variant="info">AD</Badge>}
                             {!isStudent && (
                                 <span className="text-sm text-slate-600">
                                     {profile.position_title || 'Должность не указана'}
                                     {profile.faculty?.name ? ` · ${profile.faculty.name}` : ''}
                                 </span>
                             )}
-                        </div>
-                        <div className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-sm text-slate-600">
-                            {profile.email && <span className="flex items-center gap-1.5"><Mail className="h-4 w-4 text-teal-700" />{profile.email}</span>}
-                            {(profile.phone || profile.ad_phone) && <span className="flex items-center gap-1.5"><Phone className="h-4 w-4 text-teal-700" />{profile.phone || profile.ad_phone}</span>}
-                            {profile.office_location && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-teal-700" />{profile.office_location}</span>}
                         </div>
                     </div>
                     {canEdit && !isEditing && (
@@ -170,150 +161,130 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                     </Card>
                 )}
 
-                <StatGrid>
-                    <StatTile label="Заполненность" value={profile.profile_completion_label ?? '—'} tone="teal" icon={ClipboardList} hint="Профиль сотрудника" />
-                    <StatTile
-                        label="Последний вход"
-                        value={profile.last_login_at ? new Date(profile.last_login_at).toLocaleDateString('ru-RU') : '—'}
-                        tone="navy"
-                        icon={History}
-                        hint={profile.last_login_at ? new Date(profile.last_login_at).toLocaleTimeString('ru-RU') : 'Входов ещё не было'}
-                    />
-                    <StatTile label="Входов" value={profile.login_count ?? 0} tone="info" icon={History} hint="Всего входов в систему" />
-                    <StatTile
-                        label="Зарегистрирован"
-                        value={profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : '—'}
-                        tone="gold"
-                        icon={User}
-                        hint={profile.updated_profile_at ? `Профиль обновлён ${new Date(profile.updated_profile_at).toLocaleDateString('ru-RU')}` : null}
-                    />
-                    <StatTile label="Синхронизация" value={profile.sync_label ?? '—'} tone={profile.sync_status === 'ad' ? 'info' : 'neutral'} icon={Shield} />
-                </StatGrid>
+                <div className={`grid items-start gap-4 ${certificates.length > 0 ? 'xl:grid-cols-[minmax(0,1fr)_380px]' : ''}`}>
+                    <Section icon={User} title="Контакты и работа">
+                        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+                            <InfoRow label="Email" value={profile.email} showEmpty />
+                            <InfoRow label="Телефон" value={profile.phone || profile.ad_phone} showEmpty />
+                            <InfoRow label="Telegram" value={profile.telegram} />
+                            <InfoRow label="Кабинет" value={profile.office_location} showEmpty />
+                            {isStudent ? (
+                                profile.student_binding ? (
+                                    <>
+                                        <InfoRow label="Группа" value={profile.student_binding.group?.name} showEmpty />
+                                        <InfoRow label="Кафедра" value={profile.student_binding.department?.name} />
+                                        <InfoRow label="Специальность" value={profile.student_binding.speciality?.name} />
+                                        <InfoRow label="Образовательная программа" value={profile.student_binding.educational_program?.name} />
+                                    </>
+                                ) : (
+                                    <InfoRow label="Группа" value={null} showEmpty />
+                                )
+                            ) : (
+                                <>
+                                    <InfoRow label="Должность" value={profile.position_title || profile.ad_title} showEmpty />
+                                    <InfoRow label="Факультет" value={profile.faculty?.name} showEmpty />
+                                    <InfoRow label="Кафедра" value={profile.department?.name} />
+                                    {profile.divisions?.length > 0 && (
+                                        <div className="border-b border-slate-200 pb-2 sm:col-span-2 xl:col-span-3">
+                                            <span className="qd-field-label text-slate-500">Подразделения</span>
+                                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                                {profile.divisions.map((d) => (
+                                                    <Badge key={d.id} variant="secondary" className="text-xs">{d.name}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            {profile.bio && <div className="sm:col-span-2 xl:col-span-3"><InfoRow label="О себе" value={profile.bio} /></div>}
+                        </div>
+                    </Section>
 
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                    {/* Left column */}
-                    <div className="space-y-4">
-                        <Section icon={User} title="Основные данные">
-                            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 2xl:grid-cols-4">
-                                <InfoRow label="ФИО" value={profile.name} showEmpty />
-                                <InfoRow label="Email" value={profile.email} mono showEmpty />
-                                <InfoRow label="Телефон" value={profile.phone || profile.ad_phone} showEmpty />
-                                <InfoRow label="Должность" value={profile.position_title || profile.ad_title} showEmpty />
-                                <InfoRow label="Кабинет" value={profile.office_location} showEmpty />
-                                <InfoRow label="Telegram" value={profile.telegram} showEmpty />
-                                <InfoRow label="Видимость профиля" value={profile.profile_visibility_label} showEmpty />
-                                <InfoRow label="Email подтверждён" value={profile.email_verified_at ? new Date(profile.email_verified_at).toLocaleDateString('ru-RU') : 'Нет'} />
-                                {profile.bio && <div className="sm:col-span-2"><InfoRow label="О себе" value={profile.bio} /></div>}
+                    {certificates.length > 0 && (
+                        <Section icon={Award} title={`Сертификаты · ${certificates.length}`}>
+                            <div className="divide-y divide-slate-200">
+                                {certificates.map((cert) => (
+                                    <div key={cert.id} className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-medium text-slate-800">{cert.title || cert.certificate_number}</p>
+                                            <p className="text-xs text-muted-foreground">{cert.issued_at ? new Date(cert.issued_at).toLocaleDateString('ru-RU') : '—'}</p>
+                                        </div>
+                                        <Badge variant={cert.status === 'issued' ? 'default' : 'secondary'} className="shrink-0 text-xs">
+                                            {cert.status === 'issued' ? 'Выдан' : cert.status}
+                                        </Badge>
+                                    </div>
+                                ))}
                             </div>
                         </Section>
+                    )}
+                </div>
 
-                        <div className={`grid gap-4 ${!isStudent ? 'lg:grid-cols-2' : ''}`}>
-                            <Section icon={Building2} title="Организационная структура">
-                                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                                    {!isStudent ? (
-                                        <>
-                                            <InfoRow label="Факультет" value={profile.faculty?.name} showEmpty />
-                                            <InfoRow label="Кафедра" value={profile.department?.name} showEmpty />
-                                            <div className="border-b border-slate-200 pb-2 sm:col-span-2">
-                                                <span className="qd-field-label text-slate-500">Подразделения</span>
-                                                {profile.divisions?.length > 0 ? (
-                                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                                        {profile.divisions.map((d) => (
-                                                            <Badge key={d.id} variant="secondary" className="text-xs">{d.name}</Badge>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <p className="mt-1 text-sm text-slate-400">Не указано</p>
-                                                )}
-                                            </div>
-                                        </>
-                                    ) : profile.student_binding ? (
-                                        <>
-                                            <InfoRow label="Группа" value={profile.student_binding.group?.name} showEmpty />
-                                            <InfoRow label="Кафедра" value={profile.student_binding.department?.name} showEmpty />
-                                            <InfoRow label="Специальность" value={profile.student_binding.speciality?.name} showEmpty />
-                                            <InfoRow label="Образовательная программа" value={profile.student_binding.educational_program?.name} showEmpty />
-                                        </>
-                                    ) : (
-                                        <p className="text-sm text-slate-500 sm:col-span-2">Привязка к группе не задана.</p>
-                                    )}
-                                </div>
-                            </Section>
-
+                {/* Account and access details are for administrators only, folded away by default */}
+                {isAdmin && (
+                    <details className="group rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5 [&::-webkit-details-marker]:hidden">
+                            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em] text-[#102945]">
+                                <Shield className="h-4 w-4 text-teal-700" />
+                                Служебная информация
+                            </span>
+                            <span className="flex items-center gap-2 text-xs text-slate-500">
+                                Видно только администраторам
+                                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+                            </span>
+                        </summary>
+                        <div className="grid gap-x-6 gap-y-3 border-t border-slate-200 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
+                            <InfoRow label="Роль" value={profile.role_label} />
+                            <InfoRow label="Заполненность профиля" value={profile.profile_completion_label} />
+                            <InfoRow label="Синхронизация" value={profile.sync_label} />
+                            <InfoRow label="Видимость профиля" value={profile.profile_visibility_label} />
+                            <InfoRow
+                                label="Последний вход"
+                                value={profile.last_login_at ? new Date(profile.last_login_at).toLocaleString('ru-RU') : 'Входов ещё не было'}
+                            />
+                            <InfoRow label="Входов" value={String(profile.login_count ?? 0)} />
+                            <InfoRow label="Зарегистрирован" value={profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : null} />
+                            <InfoRow label="Email подтверждён" value={profile.email_verified_at ? new Date(profile.email_verified_at).toLocaleDateString('ru-RU') : 'Нет'} />
                             {!isStudent && (
-                                <Section icon={GraduationCap} title="Академические данные">
-                                    <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                                        <InfoRow label="Учёное звание" value={profile.ad_title} showEmpty />
-                                        <InfoRow label="Тип сотрудника" value={profile.ad_employee_type} showEmpty />
-                                        <InfoRow label="Ставка" value={profile.kpi_workload_rate ? `${profile.kpi_workload_rate}` : null} showEmpty />
-                                        <InfoRow label="Описание AD" value={profile.ad_description} showEmpty />
+                                <>
+                                    <InfoRow label="Учёное звание" value={profile.ad_title} />
+                                    <InfoRow label="Тип сотрудника" value={profile.ad_employee_type} />
+                                    <InfoRow label="Ставка" value={profile.kpi_workload_rate ? `${profile.kpi_workload_rate}` : null} />
+                                    <InfoRow label="Описание AD" value={profile.ad_description} />
+                                </>
+                            )}
+                            {grants.length > 0 && (
+                                <div className="border-b border-slate-200 pb-2 sm:col-span-2">
+                                    <span className="qd-field-label text-slate-500">Дополнительные права (KPI)</span>
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {grants.map((g, i) => (
+                                            <Badge key={g.id ?? i} variant="outline" className="border-emerald-200 bg-emerald-50 text-xs text-emerald-800">
+                                                {g.permission ?? g}
+                                            </Badge>
+                                        ))}
                                     </div>
-                                </Section>
+                                </div>
+                            )}
+                            {elevatedAuthority && (elevatedAuthority.has_business || elevatedAuthority.has_technical || elevatedAuthority.has_operator) && (
+                                <div className="border-b border-slate-200 pb-2 sm:col-span-2">
+                                    <span className="qd-field-label text-slate-500">Повышенный доступ</span>
+                                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                        {elevatedAuthority.has_business && <Badge variant="outline" className="border-blue-200 bg-blue-50 text-xs text-blue-800">Бизнес-суперадмин</Badge>}
+                                        {elevatedAuthority.has_technical && <Badge variant="outline" className="border-red-200 bg-red-50 text-xs text-red-800">Технический суперадмин</Badge>}
+                                        {elevatedAuthority.has_operator && <Badge variant="outline" className="border-teal-200 bg-teal-50 text-xs text-teal-800">Оператор платформы</Badge>}
+                                    </div>
+                                </div>
+                            )}
+                            {recentActivity.length > 0 && (
+                                <div className="sm:col-span-2 xl:col-span-4">
+                                    <span className="qd-field-label text-slate-500">Последние действия</span>
+                                    <div className="mt-1.5 divide-y divide-slate-100">
+                                        {recentActivity.map((action, i) => <ActivityRow key={action.id ?? i} action={action} />)}
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    </div>
-
-                    {/* Right column */}
-                    <div className="space-y-4">
-                        <Section icon={Shield} title="Роли и доступ">
-                            <div className="space-y-3">
-                                <InfoRow label="Роль" value={profile.role_label} />
-                                {grants.length > 0 && (
-                                    <div className="border-b border-slate-200 pb-2">
-                                        <span className="qd-field-label text-slate-500">Дополнительные права (KPI)</span>
-                                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                            {grants.map((g, i) => (
-                                                <Badge key={g.id ?? i} variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-800 text-xs">
-                                                    {g.permission ?? g}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {elevatedAuthority && (elevatedAuthority.has_business || elevatedAuthority.has_technical || elevatedAuthority.has_operator) && (
-                                    <div>
-                                        <span className="qd-field-label text-slate-500">Повышенный доступ</span>
-                                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                                            {elevatedAuthority.has_business && <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800 text-xs">Бизнес-суперадмин</Badge>}
-                                            {elevatedAuthority.has_technical && <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800 text-xs">Технический суперадмин</Badge>}
-                                            {elevatedAuthority.has_operator && <Badge variant="outline" className="border-teal-200 bg-teal-50 text-teal-800 text-xs">Оператор платформы</Badge>}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </Section>
-
-                        <Section icon={Award} title={`Сертификаты${certificates.length > 0 ? ` · ${certificates.length}` : ''}`}>
-                            {certificates.length > 0 ? (
-                                <div className="divide-y divide-slate-200">
-                                    {certificates.map((cert) => (
-                                        <div key={cert.id} className="flex items-center justify-between gap-2 py-2 first:pt-0 last:pb-0">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium text-slate-800">{cert.title || cert.certificate_number}</p>
-                                                <p className="text-xs text-muted-foreground">{cert.issued_at ? new Date(cert.issued_at).toLocaleDateString('ru-RU') : '—'}</p>
-                                            </div>
-                                            <Badge variant={cert.status === 'issued' ? 'default' : 'secondary'} className="shrink-0 text-xs">
-                                                {cert.status === 'issued' ? 'Выдан' : cert.status}
-                                            </Badge>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">Нет выданных сертификатов</p>
-                            )}
-                        </Section>
-
-                        <Section icon={History} title="Последние действия">
-                            {recentActivity.length > 0 ? (
-                                <div className="divide-y divide-border/40">
-                                    {recentActivity.map((action, i) => <ActivityRow key={action.id ?? i} action={action} />)}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">Нет записей активности</p>
-                            )}
-                        </Section>
-                    </div>
-                </div>
+                    </details>
+                )}
             </div>
         </AuthenticatedLayout>
     );
