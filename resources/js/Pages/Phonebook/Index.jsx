@@ -1246,7 +1246,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                     <EmptyState title="Записей не найдено" description="Измените запрос или выберите другой департамент." action={<Button type="button" variant="outline" onClick={clearFilters}>Сбросить фильтры</Button>} />
                 ) : (
                     <div className="grid items-start gap-6 2xl:grid-cols-[17rem_minmax(0,1fr)]">
-                        <nav aria-label="Подразделения" className="hidden 2xl:sticky 2xl:top-28 2xl:block">
+                        <nav aria-label="Подразделения" className="hidden 2xl:sticky 2xl:top-6 2xl:block">
                             <p className="qd-field-label mb-3 px-3">Подразделения</p>
                             <ul className="space-y-0.5">
                                 {localSections.map((section) => {
@@ -1309,7 +1309,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                     key={sectionKey(section)}
                                     id={anchorId(section)}
                                     data-section-key={sectionKey(section)}
-                                    className="scroll-mt-28"
+                                    className="scroll-mt-6"
                                     onDragOver={(event) => {
                                         if (canManageDirectory) {
                                             event.preventDefault();
