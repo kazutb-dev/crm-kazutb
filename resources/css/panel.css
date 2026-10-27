@@ -188,7 +188,6 @@
 
   /* ---- Typography defaults: one element selector beats the base layer, any page utility beats these ---- */
   :where(.qd-panel, .qd-scope) :is(h1, h2) {
-    font-family: var(--qd-font-display);
     color: var(--qd-ink);
     letter-spacing: -0.01em;
   }
@@ -223,18 +222,18 @@
 
   /* ---- Shell building blocks used across panel pages ---- */
   :where(.qd-panel) .admin-page-wrap {
-    padding: 1.5rem 1rem 3rem;
+    padding: 1rem 1rem 2rem;
     animation: qd-rise 0.45s var(--qd-ease-out) both;
   }
 
   @media (min-width: 640px) {
     :where(.qd-panel) .admin-page-wrap {
-      padding: 2rem 2rem 3.5rem;
+      padding: 1.25rem 1.5rem 2.5rem;
     }
   }
 
   :where(.qd-panel) .admin-page-wrap > * + * {
-    margin-top: 1.5rem;
+    margin-top: 1rem;
   }
 
   :where(.qd-panel) .admin-surface {
@@ -303,11 +302,10 @@
   }
 
   :where(.qd-panel) .admin-data-table td {
-    padding: 0.875rem 0.75rem 0.875rem 0;
+    padding: 0.625rem 0.75rem 0.625rem 0;
   }
 
   :where(.qd-panel) .admin-table-title {
-    font-family: var(--qd-font-display);
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--qd-ink);
@@ -371,12 +369,12 @@
 
 /* Card body default padding — zero specificity, so any padding utility on the page wins */
 :where(.qd-panel, .qd-scope) :where([data-qd='card-content']) {
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 @media (min-width: 640px) {
   :where(.qd-panel, .qd-scope) :where([data-qd='card-content']) {
-    padding: 1.5rem;
+    padding: 1.25rem;
   }
 }
 
@@ -384,7 +382,7 @@
 :is(.qd-panel, .qd-scope) [data-qd='card-header'] {
   gap: 0.25rem;
   margin: 0;
-  padding: 0.875rem 1.25rem;
+  padding: 0.625rem 1rem;
   border-bottom: 1px solid var(--qd-border);
   border-top-left-radius: calc(var(--qd-radius-card) - 1px);
   border-top-right-radius: calc(var(--qd-radius-card) - 1px);
@@ -393,7 +391,7 @@
 
 @media (min-width: 640px) {
   :is(.qd-panel, .qd-scope) [data-qd='card-header'] {
-    padding-inline: 1.5rem;
+    padding-inline: 1.25rem;
   }
 }
 
@@ -424,21 +422,21 @@
   color: var(--qd-fg-muted);
 }
 
-/* Page intro (AuthenticatedLayout header slot): the hero of the design page */
 /* Page title block: no wash or rule of its own, sits on the page background above the content */
 .qd-hero {
   position: relative;
-  padding: 1.5rem 1rem 0;
+  padding: 1.25rem 1rem 0;
 }
 
 @media (min-width: 640px) {
   .qd-hero {
-    padding: 2rem 2rem 0;
+    padding: 1.5rem 1.5rem 0;
   }
 }
 
-.qd-hero :is(h1, h2) {
-  font-family: inherit;
+/* The page title is the only Literata text in the panel */
+.qd-panel .qd-hero :is(h1, h2) {
+  font-family: var(--qd-font-display);
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.25;
@@ -457,8 +455,8 @@
 
 :is(.qd-panel, .qd-scope) thead th {
   border-bottom: 1px solid var(--qd-border);
-  padding-top: 0.875rem;
-  padding-bottom: 0.875rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
 }
 
 :is(.qd-panel, .qd-scope) tbody tr {
@@ -496,27 +494,27 @@
 }
 
 :is(.qd-panel, .qd-scope) table :is(th, td):first-child {
-  padding-left: 1.25rem;
+  padding-left: 1rem;
 }
 
 :is(.qd-panel, .qd-scope) table :is(th, td):last-child {
-  padding-right: 1.25rem;
+  padding-right: 1rem;
 }
 
-/* match the card body inset (24px from 640px up) so the first column lines up with card content */
+/* match the card body inset (20px from 640px up) so the first column lines up with card content */
 @media (min-width: 640px) {
   :is(.qd-panel, .qd-scope) table :is(th, td):first-child {
-    padding-left: 1.5rem;
+    padding-left: 1.25rem;
   }
 
   :is(.qd-panel, .qd-scope) table :is(th, td):last-child {
-    padding-right: 1.5rem;
+    padding-right: 1.25rem;
   }
 }
 
 :where(.qd-panel, .qd-scope) tbody td {
-  padding-top: 0.875rem;
-  padding-bottom: 0.875rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
 }
 
 :where(.qd-panel, .qd-scope) tbody tr {
@@ -525,4 +523,14 @@
 
 :where(.qd-panel, .qd-scope) tbody tr:last-child {
   border-bottom: 0;
+}
+
+/* Literata is reserved for the page title: every other display text in the panel uses the UI sans */
+:is(.qd-panel, .qd-scope) .font-display {
+  font-family: inherit;
+}
+
+/* One vertical rhythm for page sections, whatever space-y the page set */
+.qd-panel .admin-page-wrap > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem;
 }

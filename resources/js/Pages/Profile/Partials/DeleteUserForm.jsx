@@ -52,18 +52,18 @@ export default function DeleteUserForm({ className = '' }) {
     };
 
     return (
-        <section className={`rounded-[14px] border border-red-200 bg-red-50 p-5 sm:p-6 ${className}`}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <section className={`rounded-[14px] border border-red-200 bg-red-50 px-5 py-4 ${className}`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-red-100 text-red-700">
-                        <TriangleAlert className="h-5 w-5" />
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-red-100 text-red-700">
+                        <TriangleAlert className="h-4 w-4" />
                     </span>
                     <header>
-                        <h2 className="font-display text-lg font-bold text-red-800">
+                        <h2 className="font-display text-base font-bold text-red-800">
                             Удаление аккаунта
                         </h2>
 
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-700">
+                        <p className="mt-0.5 max-w-3xl text-sm text-slate-700">
                             После удаления аккаунт и все связанные данные будут безвозвратно удалены. Сначала сохраните нужную информацию.
                         </p>
                     </header>

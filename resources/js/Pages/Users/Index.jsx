@@ -580,12 +580,13 @@ export default function Index({
             <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className={missing ? 'border-amber-300 text-amber-700 hover:border-amber-500 hover:bg-amber-50' : undefined}
+                size="icon"
+                title="Редактировать"
+                aria-label="Редактировать"
+                className={`h-9 w-9 ${missing ? 'border-amber-300 text-amber-700 hover:border-amber-500 hover:bg-amber-50' : ''}`}
                 onClick={() => handleEditClick(user)}
             >
                 <Pencil className="h-3.5 w-3.5" />
-                Редактировать
             </Button>
         );
     };
@@ -854,9 +855,9 @@ export default function Index({
             <div className="admin-page-wrap">
                 <div className="min-w-0">
                     <section className="min-w-0">
-                        <div className="mb-4 flex min-w-0 flex-col gap-1 xl:flex-row xl:items-end xl:justify-between">
-                            <h2 className="flex items-center gap-2.5 text-2xl font-bold">
-                                <Users className="h-6 w-6 text-teal-700" />
+                        <div className="mb-3 flex min-w-0 flex-col gap-1 xl:flex-row xl:items-center xl:justify-between">
+                            <h2 className="flex items-center gap-2 text-lg font-bold text-[#102945]">
+                                <Users className="h-5 w-5 text-teal-700" />
                                 {pageTitle ?? 'Пользователи'}
                             </h2>
                             <div className="text-xs font-medium text-slate-500">
@@ -864,7 +865,7 @@ export default function Index({
                             </div>
                         </div>
 
-                        <div className="space-y-5">
+                        <div className="space-y-4">
                             <div className="flex flex-wrap gap-x-6 gap-y-1 border-b border-slate-200">
                                 {tabOptions.map((tabOption) => (
                                     <button
@@ -881,9 +882,9 @@ export default function Index({
                                 ))}
                             </div>
 
-                            <div className="rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] sm:p-5">
-                                <div className="grid min-w-0 gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-12">
-                                    <label className="relative space-y-2 md:col-span-2 xl:col-span-12">
+                            <div className="rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+                                <div className="grid min-w-0 items-end gap-3 md:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-[minmax(0,2fr)_repeat(6,minmax(0,1fr))_auto]">
+                                    <label className="relative space-y-2 md:col-span-2 2xl:col-span-1">
                                         <span className="qd-field-label block">Поиск</span>
                                         <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
                                         <Input
@@ -894,10 +895,10 @@ export default function Index({
                                         />
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Сортировка</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.sort_by}
                                             onChange={(e) => filterForm.setData('sort_by', e.target.value)}
                                     >
@@ -911,10 +912,10 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Порядок</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.sort_dir}
                                             onChange={(e) => filterForm.setData('sort_dir', e.target.value)}
                                     >
@@ -923,10 +924,10 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Синхронизация</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.synced}
                                             onChange={(e) => filterForm.setData('synced', e.target.value)}
                                     >
@@ -936,10 +937,10 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Последний вход</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.last_login_range}
                                             onChange={(e) => filterForm.setData('last_login_range', e.target.value)}
                                     >
@@ -950,10 +951,10 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Факультет</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.faculty_id}
                                             onChange={(e) => filterForm.setData('faculty_id', e.target.value)}
                                     >
@@ -964,10 +965,10 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <label className="space-y-2 xl:col-span-2">
+                                    <label className="min-w-0 space-y-2">
                                         <span className="qd-field-label block">Кафедра</span>
                                         <select
-                                            className="h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-sm"
+                                            className="h-10 w-full truncate rounded-[10px] border border-slate-300 bg-white px-3 pr-8 text-sm"
                                             value={filterForm.data.department_id}
                                             onChange={(e) => filterForm.setData('department_id', e.target.value)}
                                     >
@@ -978,11 +979,8 @@ export default function Index({
                                         </select>
                                     </label>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4 md:col-span-2 xl:col-span-12">
-                                        <div className="text-xs font-medium text-slate-500">
-                                            Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
-                                        </div>
-                                        <div className="ml-auto flex items-center gap-1.5">
+                                    <div className="flex flex-wrap items-center justify-end gap-2 md:col-span-2 lg:col-span-4 2xl:col-span-1">
+                                        <div className="flex items-center gap-2">
                                             <Button type="button" onClick={() => submitFilters({}, true, { suppressNextSearch: true })}>
                                                 Применить
                                             </Button>
@@ -1119,7 +1117,7 @@ export default function Index({
                                                         </td>
 
                                                         <td className="align-top">
-                                                            <div className="space-y-1">
+                                                            <div className="flex flex-col items-start gap-1">
                                                                 <Badge className={`inline-flex h-6 max-w-full items-center rounded-full border px-2 py-0 text-[10px] font-semibold ${getRoleBadgeClass(user)}`}>
                                                                     {resolveRoleLabel(user)}
                                                                 </Badge>
@@ -1135,11 +1133,11 @@ export default function Index({
                                                         </td>
 
                                                         <td className="align-top">
-                                                            <div className="space-y-1 text-[12px]">
-                                                                <div className="line-clamp-2 font-medium leading-[1.1rem] text-slate-900" title={user.display_faculty || user.faculty_name || ''}>
+                                                            <div className="min-w-0 max-w-[200px] space-y-0.5 text-[12px]">
+                                                                <div className="truncate font-medium leading-[1.1rem] text-slate-900" title={user.display_faculty || user.faculty_name || ''}>
                                                                     {user.display_faculty || user.faculty_name || '—'}
                                                                 </div>
-                                                                <div className="line-clamp-2 text-slate-500" title={user.display_department || user.department_name || user.ad_department || ''}>
+                                                                <div className="truncate text-slate-500" title={user.display_department || user.department_name || user.ad_department || ''}>
                                                                     {user.display_department || user.department_name || user.ad_department || '—'}
                                                                 </div>
                                                                 {Array.isArray(user.display_divisions) && user.display_divisions.length > 0 && (
@@ -1165,17 +1163,16 @@ export default function Index({
                                                         </td>
 
                                                         <td className="align-top text-center">
-                                                            <div className="inline-flex min-w-[52px] flex-col items-center gap-1">
-                                                                <div className={`text-lg font-semibold tracking-tight ${user.login_count > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
+                                                            <div className="inline-flex min-w-[52px] flex-col items-center gap-1" title={`${user.login_count} входов`}>
+                                                                <div className={`text-sm font-semibold tabular-nums ${user.login_count > 0 ? 'text-slate-900' : 'text-slate-400'}`}>
                                                                     {user.login_count}
                                                                 </div>
-                                                                <div className="h-1 w-12 overflow-hidden rounded-full bg-slate-100">
+                                                                <div className="h-1 w-10 overflow-hidden rounded-full bg-slate-100">
                                                                     <div
                                                                         className={`h-full rounded-full ${user.login_count > 0 ? 'bg-[#102945]' : 'bg-slate-300'}`}
                                                                         style={{ width: `${Math.min(100, Math.max(6, user.login_count * 12))}%` }}
                                                                     />
                                                                 </div>
-                                                                <div className="text-[10px] text-slate-500">входов</div>
                                                             </div>
                                                         </td>
 
@@ -1201,9 +1198,8 @@ export default function Index({
                                         </tbody>
                                     </table>
                                 </div>
-                            </DataTable>
 
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-2.5 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="text-xs font-medium text-slate-500">
                                     Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                                 </div>
@@ -1272,6 +1268,7 @@ export default function Index({
                                     </Button>
                                 </div>
                             </div>
+                            </DataTable>
                         </div>
                     </section>
                 </div>

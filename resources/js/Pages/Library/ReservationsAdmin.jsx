@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FilterBar, LoadingState, Notice, PageHeader, StatusBadge, UnderlineTabs } from '@/components/platform';
+import { LoadingState, Notice, PageHeader, StatusBadge, UnderlineTabs } from '@/components/platform';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Head } from '@inertiajs/react';
@@ -34,6 +34,7 @@ const STATUS_TABS = [
 export default function ReservationsAdmin() {
     const [items, setItems] = useState([]);
     const [links, setLinks] = useState([]);
+    const [total, setTotal] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmittingId, setIsSubmittingId] = useState(null);
     const [error, setError] = useState('');
@@ -80,9 +81,11 @@ export default function ReservationsAdmin() {
 
             setItems(payload?.data ?? []);
             setLinks(payload?.links ?? []);
+            setTotal(Number(payload?.total ?? (payload?.data ?? []).length));
         } catch (fetchError) {
             setItems([]);
             setLinks([]);
+            setTotal(0);
             setError(fetchError.message || 'Не удалось загрузить брони.');
         } finally {
             setIsLoading(false);
@@ -92,6 +95,11 @@ export default function ReservationsAdmin() {
     useEffect(() => {
         loadReservations();
     }, [queryString]);
+
+    const pageCounts = items.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] ?? 0) + 1;
+        return acc;
+    }, {});
 
     const handleAction = async (reservationId, action) => {
         const note = window.prompt('Комментарий (необязательно):', '');
@@ -154,32 +162,32 @@ export default function ReservationsAdmin() {
                     }}
                 />
 
-                <FilterBar>
+                {error && <Notice tone="danger" title="Ошибка загрузки">{error}</Notice>}
+
+                {isLoading && <LoadingState label="Загрузка броней..." />}
+
+                <Card className="overflow-hidden">
                     <form
-                        className="space-y-4"
+                        className="grid items-end gap-3 border-b border-slate-200 px-5 py-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto_auto]"
                         onSubmit={(event) => {
                             event.preventDefault();
                             setPage(1);
                             setQuery(queryDraft);
                         }}
                     >
-                        <div className="max-w-2xl">
-                            <label className="block space-y-2">
-                                <span className="qd-field-label block">Поиск</span>
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        value={queryDraft}
-                                        onChange={(event) => setQueryDraft(event.target.value)}
-                                        placeholder="Книга, автор, email, табельный номер"
-                                        className="pl-9"
-                                    />
-                                </div>
-                            </label>
-
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    value={queryDraft}
+                                    onChange={(event) => setQueryDraft(event.target.value)}
+                                    placeholder="Книга, автор, ISBN, email, табельный номер"
+                                    className="pl-9"
+                                />
+                            </div>
+                        </label>
+                        <div className="flex items-center gap-2">
                             <Button type="submit" disabled={isLoading}>Найти</Button>
                             <Button
                                 type="button"
@@ -195,17 +203,18 @@ export default function ReservationsAdmin() {
                                 Сбросить
                             </Button>
                         </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 md:h-10 md:justify-end">
+                            <span className="font-medium tabular-nums text-slate-700">Найдено: {total}</span>
+                            {Object.entries(pageCounts).map(([key, count]) => (
+                                <StatusBadge key={key} tone={STATUS_TONES[key] ?? 'default'}>
+                                    {statusLabels[key] ?? key}: {count}
+                                </StatusBadge>
+                            ))}
+                        </div>
                     </form>
-                </FilterBar>
-
-                {error && <Notice tone="danger" title="Ошибка загрузки">{error}</Notice>}
-
-                {isLoading && <LoadingState label="Загрузка броней..." />}
-
-                <Card className="overflow-hidden">
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[900px] text-sm">
+                            <table className="w-full min-w-[1080px] text-sm">
                                 <thead>
                                     <tr>
                                         <th className="text-left">ID</th>
@@ -214,13 +223,14 @@ export default function ReservationsAdmin() {
                                         <th className="text-left">Статус</th>
                                         <th className="text-left">IP</th>
                                         <th className="text-left">Дата</th>
+                                        <th className="text-left">Решение</th>
                                         <th className="text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {!isLoading && items.length === 0 && (
                                         <tr>
-                                            <td className="py-12 text-center text-slate-500" colSpan={7}>
+                                            <td className="py-8 text-center text-slate-500" colSpan={8}>
                                                 Брони не найдены.
                                             </td>
                                         </tr>
@@ -253,6 +263,19 @@ export default function ReservationsAdmin() {
                                                 <td className="font-mono text-xs text-slate-600">{item.source_ip}</td>
                                                 <td className="tabular-nums text-slate-600">
                                                     {item.requested_at ? new Date(item.requested_at).toLocaleString('ru-RU') : '-'}
+                                                </td>
+                                                <td className="max-w-xs text-slate-600">
+                                                    {item.reviewed_at ? (
+                                                        <>
+                                                            <div className="text-xs tabular-nums text-slate-500">
+                                                                {new Date(item.reviewed_at).toLocaleString('ru-RU')}
+                                                                {item.reviewer?.name ? ` · ${item.reviewer.name}` : ''}
+                                                            </div>
+                                                            {item.review_note ? <div className="line-clamp-2 text-xs">{item.review_note}</div> : null}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-400">—</span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <div className="flex justify-end gap-2">

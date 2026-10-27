@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Clock3, Download, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock3, Download, Timer, TrendingUp, UserRound } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export default function PercoLateEmployee({ employee = null, events = [], filters = {} }) {
@@ -63,6 +63,27 @@ export default function PercoLateEmployee({ employee = null, events = [], filter
         return sorted;
     }, [events, sortConfig]);
 
+    const maxLate = events.reduce((acc, row) => Math.max(acc, Number(row.late_time ?? 0) || 0), 0);
+    const WEEKDAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    // 'YYYY-MM-DD' is parsed as a local date so the weekday does not shift with the time zone.
+    const parseDay = (value) => {
+        if (!value) return null;
+        const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+        const date = match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+    const weekdayCounts = useMemo(() => {
+        const counts = WEEKDAYS.map(() => 0);
+        events.forEach((row) => {
+            const date = parseDay(row.late_date);
+            if (date) {
+                counts[(date.getDay() + 6) % 7] += 1;
+            }
+        });
+        return counts;
+    }, [events]);
+    const maxWeekday = Math.max(...weekdayCounts, 0);
+
     const handleExport = () => {
         exportToExcelCsv({
             fileName: 'hr_late_employee.csv',
@@ -107,63 +128,101 @@ export default function PercoLateEmployee({ employee = null, events = [], filter
         >
             <Head title="HR / Карточка опозданий сотрудника" />
 
-            <div className="admin-page-wrap space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <UserRound className="shrink-0" />
-                            Карточка сотрудника
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-3">
-                        <InfoField label="ФИО">{fullName}</InfoField>
-                        <InfoField label="Подразделение">{employee?.division ?? '—'}</InfoField>
-                        <InfoField label="Должность">{employee?.position ?? '—'}</InfoField>
-                    </CardContent>
-                </Card>
-
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
-                    <StatTile label="Кол-во опозданий" value={employee?.late_count ?? 0} icon={Clock3} tone="copper" />
+                    <StatTile label="Кол-во опозданий" value={employee?.late_count ?? 0} icon={Clock3} tone="copper" hint={filters?.from ? `${fmtDate(filters.from)} – ${fmtDate(filters.to)}` : null} />
                     <StatTile label="Суммарно (мин)" value={fmtMinutes(employee?.total_late_time ?? 0)} icon={Clock3} tone="danger" />
-                    <StatTile label="Среднее (мин)" value={fmtMinutes(employee?.avg_late_time ?? 0)} icon={Clock3} tone="navy" />
+                    <StatTile label="Среднее (мин)" value={fmtMinutes(employee?.avg_late_time ?? 0)} icon={Timer} tone="navy" />
+                    <StatTile label="Максимум (мин)" value={fmtMinutes(maxLate)} icon={TrendingUp} tone="gold" />
+                    <StatTile label="Последнее опоздание" value={<span className="text-xl">{fmtDate(employee?.last_late_date)}</span>} icon={CalendarDays} tone="neutral" />
                 </StatGrid>
 
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <Clock3 className="shrink-0" />
                             Полная информация по опозданиям
                         </CardTitle>
+                        <span className="text-xs tabular-nums text-slate-500">{events.length}</span>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {events.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">За выбранный период опозданий нет.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">За выбранный период опозданий нет.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[560px] text-sm">
                                     <thead>
                                         <tr className="text-left">
+                                            <th className="w-12">#</th>
                                             <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_date')}>Дата{sortIndicator('late_date')}</button></th>
+                                            <th>День недели</th>
                                             <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Во сколько зашел{sortIndicator('first_enter_time')}</button></th>
                                             <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>На сколько опоздал (мин){sortIndicator('late_time')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {displayedEvents.map((row, idx) => (
-                                            <tr key={`${row.late_date}-${idx}`} className="border-b border-slate-200 last:border-0">
-                                                <td className="font-medium tabular-nums text-slate-900">{fmtDate(row.late_date)}</td>
-                                                <td className="font-semibold tabular-nums text-[#102945]">{fmtTime(row.first_enter_time)}</td>
-                                                <td className="text-right">
-                                                    <StatusBadge tone="danger" className="tabular-nums">{fmtMinutes(row.late_time)}</StatusBadge>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {displayedEvents.map((row, idx) => {
+                                            const date = parseDay(row.late_date);
+                                            const weekday = date ? WEEKDAYS[(date.getDay() + 6) % 7] : '—';
+                                            return (
+                                                <tr key={`${row.late_date}-${idx}`} className="border-b border-slate-200 last:border-0">
+                                                    <td className="tabular-nums text-slate-400">{idx + 1}</td>
+                                                    <td className="font-medium tabular-nums text-slate-900">{fmtDate(row.late_date)}</td>
+                                                    <td className="text-slate-600">{weekday}</td>
+                                                    <td className="font-semibold tabular-nums text-[#102945]">{fmtTime(row.first_enter_time)}</td>
+                                                    <td className="text-right">
+                                                        <StatusBadge tone="danger" className="tabular-nums">{fmtMinutes(row.late_time)}</StatusBadge>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
                         )}
                     </CardContent>
                 </Card>
+
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserRound className="shrink-0" />
+                                Карточка сотрудника
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
+                            <InfoField label="ФИО" className="sm:col-span-2">{fullName}</InfoField>
+                            <InfoField label="Подразделение">{employee?.division ?? '—'}</InfoField>
+                            <InfoField label="Должность">{employee?.position ?? '—'}</InfoField>
+                            <InfoField label="Табельный номер"><span className="tabular-nums">{employee?.tabel_number ?? '—'}</span></InfoField>
+                        </CardContent>
+                    </Card>
+
+                    {events.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarDays className="shrink-0" />
+                                    По дням недели
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                {WEEKDAYS.map((label, idx) => (
+                                    <div key={label} className="flex items-center gap-3 text-sm">
+                                        <span className="w-6 text-slate-600">{label}</span>
+                                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                            <div className="h-1.5 rounded-full bg-red-500" style={{ width: `${maxWeekday > 0 ? (weekdayCounts[idx] / maxWeekday) * 100 : 0}%` }} />
+                                        </div>
+                                        <span className="w-6 text-right text-xs tabular-nums text-slate-500">{weekdayCounts[idx]}</span>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

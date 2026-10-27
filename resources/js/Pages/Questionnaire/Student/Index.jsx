@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
+import { FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -314,6 +314,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
     };
 
     const availableToSubmitCount = filteredItems.filter((item) => item.can_submit).length;
+    const completedCount = filteredItems.filter((item) => item.survey_state === 'completed').length;
 
     const setAnswerField = (questionId, field, value) => setAnswers((prev) => ({
         ...prev,
@@ -346,38 +347,9 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                     <StatTile label="Дисциплин" value={disciplineBuckets.length} tone="navy" icon={BookOpen} />
                     <StatTile label="Назначений" value={filteredItems.length} tone="teal" icon={ClipboardList} />
                     <StatTile label="Доступно к прохождению" value={availableToSubmitCount} tone="success" icon={CircleCheck} hint={availableToSubmitCount > 0 ? 'Выберите дисциплину слева и ответьте на вопросы' : null} />
+                    <StatTile label="Пройдено" value={completedCount} tone="info" icon={FileCheck2} hint={filteredItems.length ? `Из ${filteredItems.length} назначений` : null} />
                     <StatTile label="Черновик" value={draftSavedAt ? 'есть' : 'нет'} tone="gold" icon={Clock3} hint={draftSavedAt ? `Сохранён в ${new Date(draftSavedAt).toLocaleTimeString()}` : 'Сохраняется автоматически'} />
                 </StatGrid>
-
-                <FilterBar>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <FormField label="Курс">
-                            <select
-                                className={qdFieldClass}
-                                value={courseFilter}
-                                onChange={(e) => setCourseFilter(e.target.value)}
-                            >
-                                <option value="all">Все курсы</option>
-                                {availableCourses.map((course) => (
-                                    <option key={course} value={String(course)}>{course} курс</option>
-                                ))}
-                            </select>
-                        </FormField>
-
-                        <FormField label="Семестр">
-                            <select
-                                className={qdFieldClass}
-                                value={semesterFilter}
-                                onChange={(e) => setSemesterFilter(e.target.value)}
-                            >
-                                <option value="all">Все семестры</option>
-                                {availableSemesters.map((semester) => (
-                                    <option key={semester} value={semester}>{semester}</option>
-                                ))}
-                            </select>
-                        </FormField>
-                    </div>
-                </FilterBar>
 
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
@@ -388,19 +360,47 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                     </Notice>
                 )}
 
-                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[320px_1fr]">
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
                     <Card className="xl:sticky xl:top-5">
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                             <CardTitle className="flex items-center gap-2">
                                 <BookOpen />
                                 Мои дисциплины
                             </CardTitle>
+                            <span className="text-xs tabular-nums text-slate-500">{disciplineBuckets.length}</span>
                         </CardHeader>
+                        <div className="grid grid-cols-2 gap-3 border-b border-slate-200 px-5 py-3 sm:px-6">
+                            <FormField label="Курс">
+                                <select
+                                    className={qdFieldClass}
+                                    value={courseFilter}
+                                    onChange={(e) => setCourseFilter(e.target.value)}
+                                >
+                                    <option value="all">Все курсы</option>
+                                    {availableCourses.map((course) => (
+                                        <option key={course} value={String(course)}>{course} курс</option>
+                                    ))}
+                                </select>
+                            </FormField>
+
+                            <FormField label="Семестр">
+                                <select
+                                    className={qdFieldClass}
+                                    value={semesterFilter}
+                                    onChange={(e) => setSemesterFilter(e.target.value)}
+                                >
+                                    <option value="all">Все семестры</option>
+                                    {availableSemesters.map((semester) => (
+                                        <option key={semester} value={semester}>{semester}</option>
+                                    ))}
+                                </select>
+                            </FormField>
+                        </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5 sm:p-6"><LoadingState /></div>
+                                <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                             ) : disciplineBuckets.length === 0 ? (
-                                <p className="px-5 py-6 text-sm text-slate-600 sm:px-6">
+                                <p className="px-5 py-4 text-sm text-slate-600 sm:px-6">
                                     {visibleItems.length > 0
                                         ? 'По выбранным фильтрам дисциплины не найдены.'
                                         : 'Нет доступных дисциплин для анкетирования.'}
@@ -411,6 +411,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                         const active = selectedDisciplineId === bucket.id;
                                         const availableCount = bucket.items.filter((item) => item.can_submit).length;
                                         const hasSurvey = bucket.items.some((item) => item.survey_id);
+                                        const bucketTeachers = Array.from(new Set(bucket.items.map((item) => item.teacher?.name).filter(Boolean)));
 
                                         return (
                                             <li key={bucket.id}>
@@ -418,11 +419,12 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                     type="button"
                                                     onClick={() => selectDiscipline(bucket)}
                                                     aria-current={active ? 'true' : undefined}
-                                                    className={`relative flex w-full items-start justify-between gap-3 px-5 py-3 text-left transition-colors sm:px-6 ${active ? 'bg-teal-50 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-teal-600' : 'hover:bg-slate-50'}`}
+                                                    className={`relative flex w-full items-start justify-between gap-3 px-5 py-2.5 text-left transition-colors sm:px-6 ${active ? 'bg-teal-50 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-teal-600' : 'hover:bg-slate-50'}`}
                                                 >
                                                     <span className="min-w-0">
                                                         <span className={`block font-medium ${active ? 'text-[#102945]' : 'text-slate-900'}`}>{bucket.discipline.name}</span>
-                                                        <span className={`mt-1 block text-xs ${availableCount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                                        {bucketTeachers.length > 0 && <span className="block truncate text-xs text-slate-500">{bucketTeachers.join(', ')}</span>}
+                                                        <span className={`mt-0.5 block text-xs ${availableCount > 0 ? 'text-emerald-700' : 'text-slate-500'}`}>
                                                             {availableCount > 0
                                                                 ? `Доступно анкет: ${availableCount}`
                                                                 : hasSurvey
@@ -463,16 +465,16 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                         </CardHeader>
                         <CardContent>
                             {!selectedItem ? (
-                                <div className="flex flex-col items-center gap-3 py-12 text-center">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                        <ClipboardList className="h-6 w-6" />
+                                <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <ClipboardList className="h-5 w-5" />
                                     </div>
-                                    <p className="font-display text-lg font-bold text-[#102945]">Выберите дисциплину слева</p>
+                                    <p className="font-semibold text-[#102945]">Выберите дисциплину слева</p>
                                     <p className="max-w-sm text-sm text-slate-600">Откройте дисциплину из списка «Мои дисциплины», чтобы увидеть вопросы анкеты.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-6">
-                                    <div className="space-y-3 border-b border-slate-200 pb-5">
+                                <div className="space-y-4">
+                                    <div className="space-y-3 border-b border-slate-200 pb-4">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="min-w-0">
                                                 <p className="qd-field-label text-slate-500">Выбрано</p>
@@ -482,6 +484,24 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                     Преподаватель: {selectedItem.teacher?.name || 'Не указан'}
                                                 </p>
                                             </div>
+                                            <dl className="grid grow grid-cols-2 gap-x-6 gap-y-2 text-sm sm:max-w-3xl sm:grid-cols-4">
+                                                <div>
+                                                    <dt className="qd-field-label text-slate-500">Анкета</dt>
+                                                    <dd className="mt-0.5 text-slate-900">{selectedItem.survey_title || '—'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="qd-field-label text-slate-500">Группа</dt>
+                                                    <dd className="mt-0.5 text-slate-900">{selectedItem.group?.name || '—'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="qd-field-label text-slate-500">Период</dt>
+                                                    <dd className="mt-0.5 tabular-nums text-slate-900">{[selectedItem.academic_year, selectedItem.semester ? `${selectedItem.semester} сем.` : null].filter(Boolean).join(' · ') || '—'}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt className="qd-field-label text-slate-500">Сроки</dt>
+                                                    <dd className="mt-0.5 whitespace-nowrap tabular-nums text-slate-900">{selectedItem.start_date || selectedItem.end_date ? `${selectedItem.start_date || '…'} – ${selectedItem.end_date || '…'}` : '—'}</dd>
+                                                </div>
+                                            </dl>
                                             <Badge variant={canSubmitSelected ? 'success' : 'outline'}>
                                                 {selectedItem.survey_state_label || 'Статус анкетирования неизвестен'}
                                             </Badge>
@@ -528,13 +548,13 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                     )}
 
                                     {canSubmitSelected && (
-                                        <ol className="space-y-4">
+                                        <ol className="space-y-3">
                                             {questions.map((question, index) => {
                                                 const answered = isAnswered(question, answers[question.id]);
                                                 const isChoice = question.question_type === 'single_choice' || question.question_type === 'multiple_choice';
 
                                                 return (
-                                                    <li key={question.id} className="rounded-[14px] border border-slate-200 bg-white p-4 sm:p-5">
+                                                    <li key={question.id} className="rounded-[14px] border border-slate-200 bg-white p-4">
                                                         <div className="flex items-start gap-3">
                                                             <span
                                                                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${answered ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}
@@ -543,18 +563,18 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                                 {answered ? <Check className="h-4 w-4" /> : index + 1}
                                                             </span>
                                                             <div className="min-w-0 flex-1">
-                                                                <p className="qd-field-label text-slate-500">Вопрос {index + 1}</p>
+                                                                <p className="qd-field-label text-slate-500">Вопрос {index + 1}{question.is_required ? ' · обязательный' : ''}</p>
                                                                 <p className="mt-1 text-[0.9375rem] font-medium leading-relaxed text-[#102945]">{question.question_text}</p>
 
                                                                 {isChoice && (
-                                                                    <div role="radiogroup" aria-label={question.question_text} className="mt-3 grid gap-2 sm:grid-cols-2">
+                                                                    <div role="radiogroup" aria-label={question.question_text} className="mt-3 grid gap-2 sm:[grid-template-columns:repeat(auto-fill,minmax(13rem,1fr))]">
                                                                         {(question.options || []).map((option) => {
                                                                             const checked = String(answers[question.id]?.option_id || '') === String(option.id);
 
                                                                             return (
                                                                                 <label
                                                                                     key={option.id}
-                                                                                    className={`flex cursor-pointer items-center gap-3 rounded-[10px] border px-3 py-2.5 text-sm transition-colors ${checked ? 'border-teal-600 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
+                                                                                    className={`flex cursor-pointer items-center gap-3 rounded-[10px] border px-3 py-2 text-sm transition-colors ${checked ? 'border-teal-600 bg-teal-50 text-[#102945]' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
                                                                                 >
                                                                                     <input
                                                                                         type="radio"
@@ -574,7 +594,7 @@ export default function QuestionnaireStudentIndex({ selectedSurveyId = null }) {
                                                                 {question.question_type === 'text' && (
                                                                     <textarea
                                                                         className={`${qdFieldClass} mt-3 h-auto py-2.5`}
-                                                                        rows={4}
+                                                                        rows={3}
                                                                         placeholder="Ваш ответ"
                                                                         value={answers[question.id]?.text_answer || ''}
                                                                         onChange={(e) => setAnswerField(question.id, 'text_answer', e.target.value)}

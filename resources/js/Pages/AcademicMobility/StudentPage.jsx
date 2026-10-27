@@ -153,6 +153,7 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
     };
 
     const attachedCount = Object.keys(files).length;
+    const totalSize = Object.values(files).reduce((sum, file) => sum + (file?.size ?? 0), 0);
 
     return (
         <AuthenticatedLayout
@@ -166,7 +167,7 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
             )}
         >
             <div className="admin-page-wrap">
-                <form onSubmit={submit} className="mx-auto max-w-5xl space-y-6">
+                <form onSubmit={submit} className="space-y-4">
                     {resubmission?.enabled ? (
                         <Notice tone="warning" title="Предыдущая заявка была отклонена">
                             <p>Вы можете подать заявку повторно после исправления замечаний.</p>
@@ -178,138 +179,145 @@ export default function StudentPage({ documents = DOCUMENT_OPTIONS, user, resubm
                         </Notice>
                     ) : null}
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <UserRound className="shrink-0" />
-                                Данные заявителя
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <FormGrid>
-                                <div className="space-y-2">
-                                    <Label className="block">ФИО</Label>
-                                    <Input
-                                        type="text"
-                                        value={user?.name ?? props.auth?.user?.name ?? ''}
-                                        disabled
-                                        readOnly
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="block">Email</Label>
-                                    <Input
-                                        type="email"
-                                        value={user?.email ?? props.auth?.user?.email ?? ''}
-                                        disabled
-                                        readOnly
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone" className="block">Телефон</Label>
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        value={form.phone}
-                                        onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                                        required
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="student_group" className="block">Группа</Label>
-                                    <Input
-                                        id="student_group"
-                                        type="text"
-                                        value={form.student_group}
-                                        onChange={(event) => setForm((current) => ({ ...current, student_group: event.target.value }))}
-                                        required
-                                    />
-                                </div>
-                            </FormGrid>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Paperclip className="shrink-0" />
-                                Прикрепите документы
-                            </CardTitle>
-                            <p className="text-sm text-slate-600">Выберите тип документа и загрузите файл. Можно прикрепить несколько документов.</p>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="divide-y divide-slate-200">
-                                {documentList.map((document) => {
-                                    const attached = Boolean(files[document]);
-                                    return (
-                                        <div key={document} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-center md:justify-between">
-                                            <div className="flex items-start gap-3">
-                                                <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${attached ? 'bg-emerald-100 text-emerald-700' : 'bg-teal-50 text-teal-700'}`}>
-                                                    {attached ? <CircleCheck className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                                                </span>
-                                                <div>
-                                                    <p className="font-medium text-slate-900">{document}</p>
-                                                    <p className="text-sm text-slate-500">Загрузите файл для этого документа.</p>
+                    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <Paperclip className="shrink-0" />
+                                    Прикрепите документы
+                                </CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">
+                                    {attachedCount} из {documentList.length} · {formatBytes(totalSize)} · до 10 МБ на файл
+                                </span>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="mb-2 text-sm text-slate-600">Выберите тип документа и загрузите файл. Можно прикрепить несколько документов.</p>
+                                <div className="divide-y divide-slate-200">
+                                    {documentList.map((document) => {
+                                        const attached = Boolean(files[document]);
+                                        return (
+                                            <div key={document} className="flex flex-col gap-2 py-2.5 md:flex-row md:items-center md:justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${attached ? 'bg-emerald-100 text-emerald-700' : 'bg-teal-50 text-teal-700'}`}>
+                                                        {attached ? <CircleCheck className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                                    </span>
+                                                    <div>
+                                                        <p className="font-medium text-slate-900">{document}</p>
+                                                        <p className="text-xs tabular-nums text-slate-500">
+                                                            {attached ? `Прикреплён · ${formatBytes(files[document].size)}` : 'Загрузите файл для этого документа.'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full md:max-w-sm">
+                                                    <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-dashed px-3 py-2 text-sm transition-colors ${attached ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:bg-teal-50'}`}>
+                                                        <span className="truncate">{attached ? files[document].name : 'Выбрать файл'}</span>
+                                                        <span className="shrink-0 text-xs font-bold uppercase tracking-[0.07em] text-teal-700">{attached ? 'Заменить' : 'Обзор'}</span>
+                                                        <input
+                                                            type="file"
+                                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+                                                            className="sr-only"
+                                                            onChange={(event) => handleFileChange(document, event.target.files?.[0] ?? null)}
+                                                        />
+                                                    </label>
+                                                    {fileErrors[document] && (
+                                                        <p className="mt-1 text-xs font-medium text-red-700">{fileErrors[document]}</p>
+                                                    )}
+                                                    {!fileErrors[document] && serverFileErrorsByDocument[document] && (
+                                                        <p className="mt-1 text-xs font-medium text-red-700">{serverFileErrorsByDocument[document]}</p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="w-full md:max-w-md">
-                                                <label className={`flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border border-dashed px-3 py-2.5 text-sm transition-colors ${attached ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:bg-teal-50'}`}>
-                                                    <span className="truncate">{attached ? files[document].name : 'Выбрать файл'}</span>
-                                                    <span className="shrink-0 text-xs font-bold uppercase tracking-[0.07em] text-teal-700">{attached ? 'Заменить' : 'Обзор'}</span>
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-                                                        className="sr-only"
-                                                        onChange={(event) => handleFileChange(document, event.target.files?.[0] ?? null)}
-                                                    />
-                                                </label>
-                                                {attached && (
-                                                    <p className="mt-1 text-xs tabular-nums text-slate-500">Размер: {formatBytes(files[document].size)}</p>
-                                                )}
-                                                {fileErrors[document] && (
-                                                    <p className="mt-1 text-xs font-medium text-red-700">{fileErrors[document]}</p>
-                                                )}
-                                                {!fileErrors[document] && serverFileErrorsByDocument[document] && (
-                                                    <p className="mt-1 text-xs font-medium text-red-700">{serverFileErrorsByDocument[document]}</p>
-                                                )}
-                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {errors.document_files && (
+                                    <Notice tone="danger" className="mt-3">{errors.document_files}</Notice>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <div className="space-y-4">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <UserRound className="shrink-0" />
+                                        Данные заявителя
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <FormGrid className="gap-3">
+                                        <div className="space-y-2">
+                                            <Label className="block">ФИО</Label>
+                                            <Input
+                                                type="text"
+                                                value={user?.name ?? props.auth?.user?.name ?? ''}
+                                                disabled
+                                                readOnly
+                                            />
                                         </div>
-                                    );
-                                })}
-                            </div>
 
-                            {errors.document_files && (
-                                <Notice tone="danger" className="mb-4">{errors.document_files}</Notice>
-                            )}
-                        </CardContent>
-                    </Card>
+                                        <div className="space-y-2">
+                                            <Label className="block">Email</Label>
+                                            <Input
+                                                type="email"
+                                                value={user?.email ?? props.auth?.user?.email ?? ''}
+                                                disabled
+                                                readOnly
+                                            />
+                                        </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <MessageSquareText className="shrink-0" />
-                                Комментарий
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Label htmlFor="notes" className="sr-only">Комментарий</Label>
-                            <Textarea
-                                id="notes"
-                                value={form.notes}
-                                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                                placeholder="Дополнительная информация"
-                            />
-                        </CardContent>
-                    </Card>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="phone" className="block">Телефон</Label>
+                                            <Input
+                                                id="phone"
+                                                type="tel"
+                                                value={form.phone}
+                                                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                                                required
+                                            />
+                                        </div>
 
-                    <div className="flex justify-end">
-                        <Button type="submit" size="lg">
-                            <Send />
-                            Отправить заявку
-                        </Button>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="student_group" className="block">Группа</Label>
+                                            <Input
+                                                id="student_group"
+                                                type="text"
+                                                value={form.student_group}
+                                                onChange={(event) => setForm((current) => ({ ...current, student_group: event.target.value }))}
+                                                required
+                                            />
+                                        </div>
+                                    </FormGrid>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <MessageSquareText className="shrink-0" />
+                                        Комментарий
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <Label htmlFor="notes" className="sr-only">Комментарий</Label>
+                                    <Textarea
+                                        id="notes"
+                                        rows={3}
+                                        value={form.notes}
+                                        onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                                        placeholder="Дополнительная информация"
+                                    />
+                                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                                        <span className="text-xs tabular-nums text-slate-500">Прикреплено: {attachedCount} из {documentList.length}</span>
+                                        <Button type="submit">
+                                            <Send />
+                                            Отправить заявку
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
                 </form>
             </div>

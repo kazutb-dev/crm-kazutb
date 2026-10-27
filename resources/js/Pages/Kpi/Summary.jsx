@@ -450,9 +450,9 @@ function StatCard({ icon: Icon, label, value, sub, accent = 'default' }) {
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, icon: Icon = Inbox }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
             </div>
             <div className="max-w-md space-y-1">
                 <p className="font-display text-base font-bold text-[#102945]">{title}</p>
@@ -464,12 +464,12 @@ function InlineEmpty({ title, description = null, icon: Icon = Inbox }) {
 
 // Padded block inside a flush (p-0) card, separated from the table below by a rule.
 function CardSection({ children, className = '' }) {
-    return <div className={`space-y-5 border-b border-slate-200 px-5 py-5 sm:px-6 ${className}`}>{children}</div>;
+    return <div className={`space-y-4 border-b border-slate-200 px-5 py-4 sm:px-6 ${className}`}>{children}</div>;
 }
 
 // Toolbar row above a table inside a flush card.
 function CardToolbar({ children }) {
-    return <div className="border-b border-slate-200 px-5 py-4 sm:px-6">{children}</div>;
+    return <div className="border-b border-slate-200 px-5 py-3 sm:px-6">{children}</div>;
 }
 
 // ─── result score card ───────────────────────────────────────────────────────
@@ -480,13 +480,13 @@ function ResultScoreCard({ result, label = 'Итоговый рейтинг R' }
     const rVal = Number(result.rank_score ?? 0);
 
     return (
-        <div className="relative overflow-hidden rounded-[14px] bg-[#082834] p-6 text-white">
+        <div className="relative overflow-hidden rounded-[14px] bg-[#082834] px-5 py-4 text-white">
             <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" aria-hidden="true" />
-            <div className="relative flex flex-wrap items-end gap-x-10 gap-y-6">
+            <div className="relative flex flex-wrap items-end gap-x-8 gap-y-4">
                 <div>
                     <p className="qd-kicker text-teal-300">{label}</p>
                     <p className={[
-                        'mt-3 font-display text-5xl font-bold tabular-nums leading-none',
+                        'mt-2 font-display text-4xl font-bold tabular-nums leading-none',
                         rVal > 0 ? 'text-white' : 'text-white/40',
                     ].join(' ')}>
                         {fmt(rVal)}
@@ -532,13 +532,13 @@ function SectionEntriesTable({ sections }) {
     }
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-3">
             {allSections.map(([section, entries]) => {
                 const sectionTotal = entries.reduce((s, e) => s + Number(e.points ?? 0), 0);
                 const iconCls = SECTION_ICON_COLOR[section] ?? SECTION_ICON_COLOR.other;
                 return (
                     <div key={section} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2">
                             <div className="flex min-w-0 items-center gap-2.5">
                                 <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${iconCls}`}>
                                     {SECTION_SHORT[section] ?? section}
@@ -635,7 +635,7 @@ function SectionEntriesTable({ sections }) {
 function TotalsChips({ totals }) {
     if (!totals) return null;
     return (
-        <div className="mb-5 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
             <StatusBadge tone="default">Всего: <strong className="ml-1 tabular-nums">{totals.total}</strong></StatusBadge>
             {totals.submitted > 0 && (
                 <StatusBadge tone="info">Подано: <strong className="ml-1 tabular-nums">{totals.submitted}</strong></StatusBadge>
@@ -739,14 +739,14 @@ function RankingTable({ teachers, showFaculty = false, showDept = false, showKSc
 
 function ReportHeading({ text, academicYear, period }) {
     return (
-        <div className="border-b border-slate-200 px-5 py-5 text-center sm:px-6">
-            <p className="qd-kicker">Официальный отчёт</p>
-            <p className="mt-2 text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#102945]">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-slate-200 px-5 py-3 text-center sm:px-6">
+            <span className="qd-kicker">Официальный отчёт</span>
+            <span className="text-[0.75rem] font-bold uppercase leading-relaxed tracking-[0.08em] text-[#102945]">
                 {text}
-            </p>
-            <p className="mt-1 font-display text-base font-bold text-teal-700">
+            </span>
+            <span className="font-display text-base font-bold text-teal-700">
                 {academicYear?.name ?? '—'}
-            </p>
+            </span>
         </div>
     );
 }
@@ -949,12 +949,14 @@ function RankBandGrid({ groups = [] }) {
     }
 
     return (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {groups.map((group) => (
-                <div key={group.key} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                    <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600">{group.label}</p>
-                    <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-[#102945]">{Number(group.count ?? 0)}</p>
-                    <p className="text-[11px] text-slate-500">сотрудников</p>
+                <div key={group.key} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                    <p className="truncate text-[0.6875rem] font-bold uppercase tracking-[0.1em] text-slate-600" title={group.label}>{group.label}</p>
+                    <p className="mt-1 flex items-baseline gap-1.5">
+                        <span className="font-display text-xl font-bold tabular-nums text-[#102945]">{Number(group.count ?? 0)}</span>
+                        <span className="text-[11px] text-slate-500">сотрудников</span>
+                    </p>
                 </div>
             ))}
         </div>
@@ -1074,12 +1076,7 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
     };
 
     return (
-        <div className="space-y-6">
-            <InfoBar>
-                <BarChart3 className="mt-0.5 h-4 w-4 shrink-0" />
-                K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК, K5 — Анкетирование. НПУ вычитается из суммы как отдельный показатель. Нажмите на строку для просмотра карточки сотрудника.
-            </InfoBar>
-
+        <div className="space-y-4">
             <ReportCard
                 flush
                 icon={FileText}
@@ -1097,25 +1094,31 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                     <RatingFormulaBar
                         formula="R = (K1 + K2 + K3 + K4 + K5) - НПУ"
                         note="НПУ определяется по степени (настройки НПУ)"
-                    />
+                    >
+                        K1 — УМР, K2 — НИР, K3 — СВР, K4 — УПК, K5 — Анкетирование. НПУ вычитается из суммы как отдельный показатель. Нажмите на строку для просмотра карточки сотрудника.
+                    </RatingFormulaBar>
 
-                    {rankGroups.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                            <RankBandGrid groups={rankGroups} />
-                        </div>
-                    )}
+                    {(rankGroups.length > 0 || positionGroups.length > 0) && (
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+                            {rankGroups.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
+                                    <RankBandGrid groups={rankGroups} />
+                                </div>
+                            )}
 
-                    {positionGroups.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="qd-field-label text-slate-500">Списки по должностям</p>
-                            <PositionGroupTable groups={positionGroups} />
+                            {positionGroups.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="qd-field-label text-slate-500">Списки по должностям</p>
+                                    <PositionGroupTable groups={positionGroups} />
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardSection>
 
                 <CardToolbar>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)_auto] xl:items-end">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,2fr)] xl:items-end">
                         <label className="block space-y-2">
                             <span className="qd-field-label block">Факультет</span>
                             <select
@@ -1156,9 +1159,16 @@ function PpsReportSection({ rows, academicYear, period, subtitle, filters, onExp
                             />
                         </label>
 
-                        <p className="text-xs font-medium text-slate-500 md:col-span-2 xl:col-span-1 xl:pb-3">
-                            Показано: <span className="tabular-nums">{filteredRows.length}</span> из <span className="tabular-nums">{allRows.length}</span>
-                        </p>
+                    </div>
+                    <div className="mt-2">
+                        <RatingStatsLine
+                            rows={filteredRows}
+                            shown={(
+                                <span className="font-medium">
+                                    Показано: <span className="tabular-nums">{filteredRows.length}</span> из <span className="tabular-nums">{allRows.length}</span>
+                                </span>
+                            )}
+                        />
                     </div>
                 </CardToolbar>
 
@@ -1224,7 +1234,7 @@ function DeptTable({ departments, showFaculty = false }) {
 function TabNav({ tabs, active, onChange }) {
     return (
         <UnderlineTabs
-            className="mb-6"
+            className="mb-4"
             items={tabs.map((tab) => ({ key: tab, label: TAB_LABELS[tab] ?? tab, icon: TAB_ICONS[tab] }))}
             value={active}
             onChange={onChange}
@@ -1267,22 +1277,86 @@ function ExcelButton({ onClick, title }) {
 
 function InfoBar({ children }) {
     return (
-        <div className="flex items-start gap-3 rounded-[14px] border border-teal-200 bg-teal-50 px-4 py-3.5 text-sm leading-relaxed text-slate-700 [&>svg]:text-teal-700">
+        <div className="flex items-start gap-3 rounded-[14px] border border-teal-200 bg-teal-50 px-4 py-2.5 text-sm leading-relaxed text-slate-700 [&>svg]:text-teal-700">
             {children}
         </div>
     );
 }
 
-function RatingFormulaBar({ formula, note }) {
+function RatingFormulaBar({ formula, note, children = null }) {
     return (
         <InfoBar>
             <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-            <div>
+            <div className="min-w-0">
                 <span className="font-medium text-slate-700">Формула рейтинга: </span>
                 <span className="font-semibold text-[#102945]">{formula}</span>
                 {note && <span className="text-slate-500"> · {note}</span>}
+                {children ? <p className="text-xs text-slate-500">{children}</p> : null}
             </div>
         </InfoBar>
+    );
+}
+
+function ratingStats(rows = []) {
+    const scores = rows
+        .map((row) => Number(row?.rank_score))
+        .filter((value) => Number.isFinite(value));
+    if (!scores.length) return null;
+    const total = scores.reduce((sum, value) => sum + value, 0);
+    return {
+        avg: total / scores.length,
+        max: Math.max(...scores),
+        min: Math.min(...scores),
+        negative: scores.filter((value) => value < 0).length,
+    };
+}
+
+function RatingStatsLine({ rows = [], shown = null }) {
+    const stats = ratingStats(rows);
+    return (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+            {shown}
+            {stats && (
+                <>
+                    <span>Средний R: <strong className="tabular-nums text-[#102945]">{fmt(stats.avg)}</strong></span>
+                    <span>Макс.: <strong className="tabular-nums text-[#067a75]">{fmt(stats.max)}</strong></span>
+                    <span>Мин.: <strong className="tabular-nums text-[#102945]">{fmt(stats.min)}</strong></span>
+                    {stats.negative > 0 && (
+                        <span>Ниже НПУ: <strong className="tabular-nums text-red-700">{stats.negative}</strong></span>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+// Search + formula in one toolbar row for the dean / head-of-department rating cards.
+function RatingToolbar({ value, onChange, placeholder, formula, note, rows = [], groups = [] }) {
+    return (
+        <>
+            <CardToolbar>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] xl:items-end">
+                    <label className="block space-y-2">
+                        <span className="qd-field-label block">Поиск</span>
+                        <Input value={value} onChange={onChange} placeholder={placeholder} />
+                    </label>
+                    <div className="space-y-2">
+                        <RatingFormulaBar formula={formula} note={note} />
+                    </div>
+                </div>
+                {ratingStats(rows) && (
+                    <div className="mt-2">
+                        <RatingStatsLine rows={rows} />
+                    </div>
+                )}
+            </CardToolbar>
+            {groups.length > 0 && (
+                <CardSection className="space-y-2">
+                    <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
+                    <RankBandGrid groups={groups} />
+                </CardSection>
+            )}
+        </>
     );
 }
 
@@ -1293,7 +1367,7 @@ function TeacherView({ summary }) {
     const mineRatingRow = useMemo(() => buildMinePpsRow(summary), [summary]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {summary.result ? (
                 <ResultScoreCard result={summary.result} label="Мой итоговый рейтинг R" />
             ) : (
@@ -1353,7 +1427,7 @@ function HodView({ summary, academicYear, period, filters }) {
             <TabNav tabs={tabs} active={validTab} onChange={setTab} />
 
             {validTab === 'mine' && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {summary.own_result ? (
                         <ResultScoreCard result={summary.own_result} label="Мой рейтинг R (зав. кафедрой)" />
                     ) : (
@@ -1376,7 +1450,7 @@ function HodView({ summary, academicYear, period, filters }) {
             )}
 
             {validTab === 'department' && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {summary.dept_result ? (
                         <ResultScoreCard result={summary.dept_result} label={`Рейтинг кафедры: ${summary.department?.name ?? ''}`} />
                     ) : (
@@ -1385,19 +1459,31 @@ function HodView({ summary, academicYear, period, filters }) {
                             Итоговый рейтинг кафедры ещё не сформирован. Данные появятся после закрытия периода.
                         </InfoBar>
                     )}
-                    <ReportCard
-                        icon={Building2}
-                        title={summary.department?.name ?? 'Кафедра'}
-                    >
-                        <StatGrid>
-                            <StatCard icon={Users} label="ППС кафедры" value={summary.teachers?.length ?? 0} />
-                            <StatCard
-                                label="Сдали KPI"
-                                value={summary.teachers?.filter((t) => t.approved_entries > 0).length ?? 0}
-                                accent="green"
-                            />
-                        </StatGrid>
-                    </ReportCard>
+                    <StatGrid>
+                        <StatCard
+                            icon={Users}
+                            label="ППС кафедры"
+                            value={summary.teachers?.length ?? 0}
+                            sub={summary.department?.name ?? 'Кафедра'}
+                        />
+                        <StatCard
+                            label="Сдали KPI"
+                            value={summary.teachers?.filter((t) => t.approved_entries > 0).length ?? 0}
+                            accent="green"
+                            sub={pct(summary.teachers?.filter((t) => t.approved_entries > 0).length ?? 0, summary.teachers?.length ?? 0) + ' ППС'}
+                        />
+                        <StatCard
+                            label="Не сдали"
+                            value={summary.teachers?.filter((t) => !(t.approved_entries > 0)).length ?? 0}
+                            accent="amber"
+                        />
+                        <StatCard
+                            icon={TrendingUp}
+                            label="Средний R"
+                            value={ratingStats(summary.teachers ?? []) ? fmt(ratingStats(summary.teachers ?? []).avg) : '—'}
+                            accent="teal"
+                        />
+                    </StatGrid>
                 </div>
             )}
 
@@ -1424,7 +1510,7 @@ function DeanView({ summary, academicYear, period, filters }) {
             <TabNav tabs={tabs} active={validTab} onChange={setTab} />
 
             {validTab === 'mine' && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {summary.own_result ? (
                         <ResultScoreCard result={summary.own_result} label="Мой рейтинг R (декан)" />
                     ) : (
@@ -1447,7 +1533,7 @@ function DeanView({ summary, academicYear, period, filters }) {
             )}
 
             {validTab === 'departments' && (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {summary.faculty_result && (
                         <ResultScoreCard result={summary.faculty_result} label={`Рейтинг факультета: ${summary.faculty?.name ?? ''}`} />
                     )}
@@ -1586,6 +1672,8 @@ function OverviewTab({ summary }) {
         Number(statusCounts.pending_dean ?? 0) +
         Number(statusCounts.pending_structural ?? 0);
     const returnedCount = Number(statusCounts.returned ?? 0) + Number(statusCounts.rejected ?? 0);
+    const awaitingApprovalCount = Number(statusCounts.pending_structural ?? 0) + Number(statusCounts.pending_dean ?? 0);
+    const participantsTotal = (summary.faculties ?? []).reduce((sum, f) => sum + Number(f.user_count ?? 0), 0);
     const approvalRate = nonDraftTotal > 0 ? Math.round((approvedCount / nonDraftTotal) * 100) : 0;
 
     // Donut segments
@@ -1635,9 +1723,9 @@ function OverviewTab({ summary }) {
     }, [summary.top_teachers, topFilter]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <StatGrid>
-                <StatCard icon={BarChart3} label="Всего записей" value={nonDraftTotal} />
+                <StatCard icon={BarChart3} label="Всего записей" value={nonDraftTotal} sub="без черновиков" />
                 <StatCard
                     icon={TrendingUp}
                     label="Утверждено"
@@ -1646,12 +1734,24 @@ function OverviewTab({ summary }) {
                     sub={`${approvalRate}% от общего`}
                 />
                 <StatCard label="Подано" value={statusCounts.submitted ?? 0} accent="blue" />
-                <StatCard label="На проверке" value={pendingCount} accent="amber" />
+                <StatCard
+                    label="На проверке"
+                    value={pendingCount}
+                    accent="amber"
+                    sub={`на утверждении: ${awaitingApprovalCount}`}
+                />
                 <StatCard label="Возвращено" value={returnedCount} />
                 <StatCard label="Черновики" value={statusCounts.draft ?? 0} />
+                <StatCard
+                    icon={Users}
+                    label="Участников"
+                    value={participantsTotal}
+                    accent="teal"
+                    sub={`факультетов: ${faculties.length}`}
+                />
             </StatGrid>
 
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader>
                         <CardTitle>Распределение по статусам</CardTitle>
@@ -1692,6 +1792,7 @@ function OverviewTab({ summary }) {
                                             <div className="flex items-center gap-3 text-xs tabular-nums">
                                                 <span className="text-slate-500">{s.value} зап.</span>
                                                 <span className="font-semibold text-emerald-700">{s.approved} утв.</span>
+                                                {Number(s.points) > 0 && <span className="font-semibold text-[#102945]">{fmt(s.points)} б.</span>}
                                             </div>
                                         </div>
                                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
@@ -1736,62 +1837,76 @@ function OverviewTab({ summary }) {
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4" />
-                        Рейтинг факультетов
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className={faculties.length > 0 ? 'p-0' : ''}>
-                    {faculties.length > 0 ? (
-                        <div>
-                            {[...faculties]
-                                .sort((a, b) => (b.rank_score ?? b.approved) - (a.rank_score ?? a.approved))
-                                .map((f, i) => (
-                                    <div key={f.id} className="flex items-center gap-4 border-b border-slate-200 px-5 py-3 last:border-0">
-                                        <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
-                                            {i + 1}
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="mb-1.5 flex items-center justify-between gap-2">
-                                                <span className="truncate text-sm font-medium text-slate-900">{f.name}</span>
-                                                <div className="flex shrink-0 items-center gap-3 text-xs tabular-nums">
-                                                    <span className="text-slate-500">{f.user_count} чел.</span>
-                                                    <span className="font-semibold text-emerald-700">{f.approved} утв.</span>
-                                                    {f.rank_score != null && (
-                                                        <span className="w-20 text-right font-bold text-[#067a75]">
-                                                            R {fmt(f.rank_score)}
-                                                        </span>
-                                                    )}
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2 2xl:items-start">
+            <ReportCard
+                flush
+                icon={GraduationCap}
+                title="Факультеты — обзор и рейтинг"
+                subtitle={faculties.length > 0 ? `${faculties.length} фак.` : null}
+            >
+                {faculties.length > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="admin-data-table min-w-[560px]">
+                            <thead>
+                                <tr>
+                                    <th className="w-10 text-center">№</th>
+                                    <th>Факультет</th>
+                                    <th className="w-20 text-right">Участников</th>
+                                    <th className="w-16 text-right">Записей</th>
+                                    <th className="w-14 text-right">Утв.</th>
+                                    <th className="w-14 text-right">%</th>
+                                    <th className="w-20 text-right text-[#067a75]">R</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[...faculties]
+                                    .sort((a, b) => (b.rank_score ?? b.approved) - (a.rank_score ?? a.approved))
+                                    .map((f, i) => (
+                                        <tr key={f.id}>
+                                            <td className="text-center">
+                                                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {i + 1}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="font-medium text-slate-900">{f.name}</div>
+                                                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                                                    <div
+                                                        className="h-1.5 rounded-full bg-teal-600"
+                                                        style={{ width: `${(f.approved / maxFacultyApproved) * 100}%` }}
+                                                    />
                                                 </div>
-                                            </div>
-                                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                                                <div
-                                                    className="h-1.5 rounded-full bg-teal-600"
-                                                    style={{ width: `${(f.approved / maxFacultyApproved) * 100}%` }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                        </div>
-                    ) : (
-                        <p className="text-xs text-slate-500">Нет данных</p>
-                    )}
-                </CardContent>
-            </Card>
+                                            </td>
+                                            <td className="text-right tabular-nums">{f.user_count}</td>
+                                            <td className="text-right tabular-nums">{f.total_entries}</td>
+                                            <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
+                                            <td className="text-right text-xs tabular-nums text-slate-500">{pct(f.approved, f.total_entries)}</td>
+                                            <td className="text-right tabular-nums font-bold text-[#067a75]">
+                                                {f.rank_score != null ? fmt(f.rank_score) : '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <InlineEmpty title="Нет данных." />
+                )}
+            </ReportCard>
 
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                     <CardTitle className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         Топ-10 ППС
                     </CardTitle>
+                    <span className="text-xs font-medium text-slate-500">
+                        {top10.length} из {(summary.top_teachers ?? []).length}
+                    </span>
                 </CardHeader>
                 <CardContent className="p-0">
                     <CardToolbar>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-3 md:grid-cols-2">
                         <label className="block space-y-2">
                             <span className="qd-field-label block">Факультет</span>
                             <select
@@ -1846,7 +1961,7 @@ function OverviewTab({ summary }) {
                                                     {i + 1}
                                                 </span>
                                             </td>
-                                            <td className="font-medium text-slate-900">{t.name}</td>
+                                            <td className="whitespace-nowrap font-medium text-slate-900">{t.name}</td>
                                             <td className="max-w-[9rem] truncate text-sm text-slate-500" title={t.faculty_name ?? ''}>
                                                 {t.faculty_name ?? '—'}
                                             </td>
@@ -1871,6 +1986,7 @@ function OverviewTab({ summary }) {
                     )}
                 </CardContent>
             </Card>
+            </div>
         </div>
     );
 }
@@ -1881,60 +1997,10 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
     const [hodSearch, setHodSearch] = useState('');
     const [deanSearch, setDeanSearch] = useState('');
 
-    const statusCounts = summary.status_counts ?? {};
-    const nonDraftTotal = Object.entries(statusCounts)
-        .filter(([s]) => s !== 'draft')
-        .reduce((sum, [, v]) => sum + Number(v), 0);
-
     return (
         <div>
             <TabNav tabs={tabs} active={tab} onChange={setTab} />
 
-            {tab === 'overview' && (
-                <div className="mb-6 space-y-6">
-                    <StatGrid>
-                        <StatCard icon={BarChart3} label="Всего (без черновиков)" value={nonDraftTotal} />
-                        <StatCard icon={TrendingUp} label="Утверждено" value={statusCounts.approved ?? 0} accent="green" />
-                        <StatCard label="Подано" value={statusCounts.submitted ?? 0} accent="blue" />
-                        <StatCard label="На утверждении" value={(statusCounts.pending_structural ?? 0) + (statusCounts.pending_dean ?? 0)} accent="amber" />
-                    </StatGrid>
-
-                    <ReportCard flush icon={GraduationCap} title="Факультеты — обзор">
-                        {!summary.faculties?.length ? (
-                            <InlineEmpty title="Нет данных." />
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="admin-data-table min-w-[480px]">
-                                    <thead>
-                                        <tr>
-                                            <th>Факультет</th>
-                                            <th className="w-20 text-right">Участников</th>
-                                            <th className="w-20 text-right">Записей</th>
-                                            <th className="w-20 text-right">Утв.</th>
-                                            <th className="w-14 text-right">%</th>
-                                            <th className="w-20 text-right text-[#067a75]">R</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {(summary.faculties ?? []).map((f) => (
-                                            <tr key={f.id}>
-                                                <td className="font-medium">{f.name}</td>
-                                                <td className="text-right tabular-nums">{f.user_count}</td>
-                                                <td className="text-right tabular-nums">{f.total_entries}</td>
-                                                <td className="text-right tabular-nums font-semibold text-emerald-600">{f.approved}</td>
-                                                <td className="text-right text-xs tabular-nums text-slate-500">{pct(f.approved, f.total_entries)}</td>
-                                                <td className="text-right tabular-nums font-bold text-[#067a75]">
-                                                    {f.rank_score != null ? fmt(f.rank_score) : '—'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </ReportCard>
-                </div>
-            )}
             {tab === 'overview' && <OverviewTab summary={summary} />}
 
             {tab === 'faculties' && (
@@ -1998,28 +2064,15 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                         <ExcelButton onClick={() => onExportRatingExcel?.('hods')} title="Экспортировать таблицу зав. кафедрами в Excel" />
                     }
                 >
-                    <CardSection>
-                        <RatingFormulaBar
-                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
-                            note="НПУ определяется по настройкам для зав. кафедрой"
-                        />
-                        {(summary.hod_rank_groups?.length ?? 0) > 0 && (
-                            <div className="space-y-2">
-                                <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                                <RankBandGrid groups={summary.hod_rank_groups ?? []} />
-                            </div>
-                        )}
-                    </CardSection>
-                    <CardToolbar>
-                        <label className="block max-w-xl space-y-2">
-                            <span className="qd-field-label block">Поиск</span>
-                            <Input
-                                value={hodSearch}
-                                onChange={(e) => setHodSearch(e.target.value)}
-                                placeholder="Поиск по таблице зав. кафедрами"
-                            />
-                        </label>
-                    </CardToolbar>
+                    <RatingToolbar
+                        value={hodSearch}
+                        onChange={(e) => setHodSearch(e.target.value)}
+                        placeholder="Поиск по таблице зав. кафедрами"
+                        formula="R = (K1 + K2 + K3 + K4) - НПУ"
+                        note="НПУ определяется по настройкам для зав. кафедрой"
+                        rows={summary.top_hods ?? []}
+                        groups={summary.hod_rank_groups ?? []}
+                    />
                     <ReportHeading
                         text="РЕЗУЛЬТАТЫ РЕЙТИНГА ЗАВ.КАФЕДРАМИ АО «КАЗУТБ ИМ. К. КУЛАЖАНОВА» ЗА"
                         period={period}
@@ -2049,28 +2102,15 @@ function AdminView({ summary, academicYear, period, filters, onExportRatingExcel
                         <ExcelButton onClick={() => onExportRatingExcel?.('deans')} title="Экспортировать таблицу деканов в Excel" />
                     }
                 >
-                    <CardSection>
-                        <RatingFormulaBar
-                            formula="R = (K1 + K2 + K3 + K4) - НПУ"
-                            note="НПУ определяется по настройкам для декана"
-                        />
-                        {(summary.dean_rank_groups?.length ?? 0) > 0 && (
-                            <div className="space-y-2">
-                                <p className="qd-field-label text-slate-500">Группировка рейтинга по диапазонам</p>
-                                <RankBandGrid groups={summary.dean_rank_groups ?? []} />
-                            </div>
-                        )}
-                    </CardSection>
-                    <CardToolbar>
-                        <label className="block max-w-xl space-y-2">
-                            <span className="qd-field-label block">Поиск</span>
-                            <Input
-                                value={deanSearch}
-                                onChange={(e) => setDeanSearch(e.target.value)}
-                                placeholder="Поиск по таблице деканов"
-                            />
-                        </label>
-                    </CardToolbar>
+                    <RatingToolbar
+                        value={deanSearch}
+                        onChange={(e) => setDeanSearch(e.target.value)}
+                        placeholder="Поиск по таблице деканов"
+                        formula="R = (K1 + K2 + K3 + K4) - НПУ"
+                        note="НПУ определяется по настройкам для декана"
+                        rows={summary.top_deans ?? []}
+                        groups={summary.dean_rank_groups ?? []}
+                    />
                     <ReportHeading
                         text="РЕЗУЛЬТАТЫ РЕЙТИНГА ДЕКАНОВ АО «КАЗУТБ ИМ. К. КУЛАЖАНОВА» ЗА"
                         period={period}

@@ -1,6 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, StatusBadge, UnderlineTabs } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge, UnderlineTabs } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,19 +41,21 @@ function PointsBadge({ value }) {
     );
 }
 
+const RULE_GRID = 'grid gap-3 lg:grid-cols-[1.1fr_120px_1.4fr_40px] lg:items-center';
+
 function RuleRow({ rule, index, onChange, onRemove }) {
     return (
-        <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 lg:grid-cols-[1.1fr_140px_1.2fr_auto]">
-            <label className="block space-y-2">
-                <span className="qd-field-label block">Должность</span>
+        <div className={`${RULE_GRID} border-b border-slate-200 py-2.5 last:border-b-0`}>
+            <label className="block space-y-2 lg:space-y-0">
+                <span className="qd-field-label block lg:sr-only">Должность</span>
                 <Input
                     value={rule.label}
                     onChange={(e) => onChange(index, 'label', e.target.value)}
                     placeholder="Например: Профессор"
                 />
             </label>
-            <label className="block space-y-2">
-                <span className="qd-field-label block">Баллы</span>
+            <label className="block space-y-2 lg:space-y-0">
+                <span className="qd-field-label block lg:sr-only">Баллы</span>
                 <Input
                     type="number"
                     min="0"
@@ -62,15 +64,15 @@ function RuleRow({ rule, index, onChange, onRemove }) {
                     onChange={(e) => onChange(index, 'points', e.target.value)}
                 />
             </label>
-            <label className="block space-y-2">
-                <span className="qd-field-label block">Ключевые слова</span>
+            <label className="block space-y-2 lg:space-y-0">
+                <span className="qd-field-label block lg:sr-only">Ключевые слова</span>
                 <Input
                     value={rule.keywords_text}
                     onChange={(e) => onChange(index, 'keywords_text', e.target.value)}
                     placeholder="через запятую: профессор, и.о. профессора"
                 />
             </label>
-            <div className="flex items-end">
+            <div className="flex items-end lg:items-center lg:justify-end">
                 <Button type="button" variant="ghost" size="icon" onClick={() => onRemove(index)} aria-label="Удалить правило" title="Удалить правило">
                     <Trash2 className="h-4 w-4 text-red-600" />
                 </Button>
@@ -112,6 +114,13 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
             points: npuSettings.dean?.points ?? 0,
         },
     });
+
+    const rulePoints = data.teacher.rules.map((rule) => Number(rule.points)).filter((value) => Number.isFinite(value));
+    const ruleRange = rulePoints.length > 0 ? `${Math.min(...rulePoints)}–${Math.max(...rulePoints)}` : '—';
+    const specialDepartmentCodes = data.hod.special_department_codes_text
+        .split(/[,\n]/)
+        .map((code) => code.trim())
+        .filter(Boolean);
 
     const updateRule = (index, field, value) => {
         setData('teacher', {
@@ -220,7 +229,14 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                 <UnderlineTabs items={tabItems} value={activeTab} onChange={setActiveTab} />
 
                 {activeTab === 'settings' && (
-                    <form className="grid gap-6 xl:grid-cols-[1.4fr_1fr]" onSubmit={submit}>
+                    <form className="space-y-4" onSubmit={submit}>
+                        <StatGrid>
+                            <StatTile label="Правил ППС" value={data.teacher.rules.length} tone="teal" icon={ListChecks} hint={`НПУ по умолчанию: ${data.teacher.default_points}`} />
+                            <StatTile label="Диапазон ППС" value={ruleRange} tone="navy" icon={Users} hint="Мин–макс баллов по правилам" />
+                            <StatTile label="Декан" value={data.dean.points} tone="gold" icon={GraduationCap} hint="Фиксированное значение" />
+                            <StatTile label="Завкафедрой" value={data.hod.default_points} tone="info" icon={Building2} hint={`Льготные: ${data.hod.special_points} · кафедр: ${specialDepartmentCodes.length}`} />
+                        </StatGrid>
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] xl:items-start">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -228,8 +244,8 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                     ППС: НПУ по должности
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-5">
-                                <div className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[220px_1fr]">
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-3 border-b border-slate-200 pb-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center">
                                     <div>
                                         <span className="qd-field-label block">НПУ по умолчанию</span>
                                         <p className="mt-1 text-xs text-slate-500">Применяется, если должность не попала ни под одно правило.</p>
@@ -246,10 +262,16 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center justify-between gap-3 pb-2">
                                         <span className="qd-field-label">Правила по должностям</span>
                                         <span className="text-xs tabular-nums text-slate-500">{data.teacher.rules.length}</span>
+                                    </div>
+                                    <div className={`${RULE_GRID} hidden border-b border-slate-200 pb-2 lg:grid`} aria-hidden="true">
+                                        <span className="qd-field-label text-slate-500">Должность</span>
+                                        <span className="qd-field-label text-slate-500">Баллы</span>
+                                        <span className="qd-field-label text-slate-500">Ключевые слова (через запятую)</span>
+                                        <span />
                                     </div>
                                     {data.teacher.rules.map((rule, index) => (
                                         <RuleRow
@@ -260,7 +282,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                             onRemove={removeRule}
                                         />
                                     ))}
-                                    <Button type="button" variant="secondary" onClick={addRule}>
+                                    <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={addRule}>
                                         <Plus className="h-4 w-4" />
                                         Добавить правило
                                     </Button>
@@ -268,7 +290,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                             </CardContent>
                         </Card>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -300,8 +322,8 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         Завкафедры
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-5 text-sm">
-                                    <label className="block space-y-2 border-b border-slate-200 pb-5">
+                                <CardContent className="space-y-4 text-sm">
+                                    <label className="block space-y-2 border-b border-slate-200 pb-4">
                                         <span className="qd-field-label block">Базовое значение для заведующего кафедрой</span>
                                         <Input
                                             type="number"
@@ -312,11 +334,12 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         />
                                     </label>
 
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         <div className="flex items-center gap-2 font-semibold text-[#102945]">
                                             <BookOpen className="h-4 w-4 text-amber-600" />
                                             Специальное значение для отдельных кафедр
                                         </div>
+                                        <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                                         <label className="block space-y-2">
                                             <span className="qd-field-label block">Льготные баллы</span>
                                             <Input
@@ -330,32 +353,35 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                         <label className="block space-y-2">
                                             <span className="qd-field-label block">Коды кафедр</span>
                                             <Textarea
-                                                rows={4}
+                                                rows={2}
+                                                className="min-h-[72px]"
                                                 value={data.hod.special_department_codes_text}
                                                 onChange={(e) => setData('hod', { ...data.hod, special_department_codes_text: e.target.value })}
                                                 placeholder="Например: ГиИЯ, СГД, ФВ"
                                             />
                                             <span className="block text-xs text-slate-500">Можно вводить через запятую или с новой строки.</span>
                                         </label>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-4 sm:px-6 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] xl:col-span-2">
-                            <p className="text-sm text-slate-600">
-                                Изменения применяются к KPI-сводкам сразу после сохранения.
-                            </p>
-                            <Button type="submit" disabled={processing} className="min-w-32">
-                                <Save className="h-4 w-4" />
-                                {processing ? 'Сохранение...' : (recentlySuccessful ? 'Сохранено' : 'Сохранить')}
-                            </Button>
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-5 py-3 shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+                                <p className="text-xs text-slate-600">
+                                    Изменения применяются к KPI-сводкам сразу после сохранения.
+                                </p>
+                                <Button type="submit" disabled={processing} className="min-w-32">
+                                    <Save className="h-4 w-4" />
+                                    {processing ? 'Сохранение...' : (recentlySuccessful ? 'Сохранено' : 'Сохранить')}
+                                </Button>
+                            </div>
                         </div>
+                    </div>
                     </form>
                 )}
 
                 {activeTab === 'access' && (
-                    <div className="space-y-6">
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[420px_minmax(0,1fr)] xl:items-start">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -371,7 +397,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                 )}
 
                                 <form className="space-y-4" onSubmit={submitAccess}>
-                                    <div className="grid gap-4 lg:grid-cols-2">
+                                    <div className="grid gap-4">
                                         <div className="space-y-2">
                                             <span className="qd-field-label block">Сотрудник</span>
                                             <Input
@@ -411,6 +437,7 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                                 </div>
                                             )}
                                             {accessForm.errors.user_id && <div className="text-xs text-red-700">{accessForm.errors.user_id}</div>}
+                                            <span className="block text-xs text-slate-500">В справочнике {staffOptions.length} сотрудников; показываются первые 8 совпадений.</span>
                                         </div>
 
                                         {requiresFullAccessReason && (
@@ -437,22 +464,26 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                             </CardContent>
                         </Card>
 
-                        {accessGrants.length === 0 ? (
-                            <EmptyState
-                                title="Текущих доступов нет"
-                                description="Пока никому не назначен KPI-админ доступ. Выберите сотрудника в форме выше."
-                            />
-                        ) : (
                             <Card>
-                                <CardHeader>
+                                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                                     <CardTitle className="flex items-center gap-2">
                                         <Users />
                                         Текущие доступы
                                     </CardTitle>
+                                    <Badge variant="outline" className="tabular-nums">{accessGrants.length}</Badge>
                                 </CardHeader>
                                 <CardContent className="p-0">
+                                    {accessGrants.length === 0 ? (
+                                        <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                                <ShieldCheck className="h-4 w-4" />
+                                            </div>
+                                            <p className="text-sm font-semibold text-[#102945]">Текущих доступов нет</p>
+                                            <p className="max-w-md text-sm text-slate-600">Пока никому не назначен KPI-админ доступ. Выберите сотрудника в форме слева.</p>
+                                        </div>
+                                    ) : (
                                     <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[860px] text-sm">
+                                        <table className="w-full min-w-[760px] text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-200 text-left">
                                                     <th>Сотрудник</th>
@@ -487,9 +518,9 @@ export default function KpiSettings({ npuSettings = {}, periods, academicYears =
                                             </tbody>
                                         </table>
                                     </div>
+                                    )}
                                 </CardContent>
                             </Card>
-                        )}
                     </div>
                 )}
 

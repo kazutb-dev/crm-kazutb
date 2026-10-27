@@ -3,7 +3,7 @@ import { Button, EmptyState, FilterBar, FormField, Input, PageHeader, StatGrid, 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, Link, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Download, Filter, ListChecks, Search, X } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Download, Filter, ListChecks, Search, Target, X, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 function formatDate(value) {
@@ -32,6 +32,9 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
     const [status, setStatus] = useState(filters.status ?? '');
     const [fromDate, setFromDate] = useState(filters.from_date ?? '');
     const [toDate, setToDate] = useState(filters.to_date ?? '');
+
+    const passedCount = results.filter((result) => result.status === 'passed').length;
+    const avgPercent = results.length ? Math.round(results.reduce((sum, result) => sum + (Number(result.percentage) || 0), 0) / results.length) : null;
 
     const activeFilterCount = useMemo(() => [search, testId, language, status, fromDate, toDate].filter((value) => String(value ?? '').trim() !== '').length, [fromDate, language, search, status, testId, toDate]);
 
@@ -128,70 +131,69 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
             <div className="admin-page-wrap space-y-6">
                 <StatGrid>
                     <StatTile label="Результатов" value={pagination.total ?? results.length} tone="teal" icon={ListChecks} />
-                    <StatTile label="Активных фильтров" value={activeFilterCount} tone="navy" icon={Filter} />
+                    <StatTile label="Сдали" value={passedCount} tone="success" icon={CheckCircle2} hint={results.length ? `${Math.round((passedCount / results.length) * 100)}% на странице` : 'на странице'} />
+                    <StatTile label="Не сдали" value={results.length - passedCount} tone="danger" icon={XCircle} hint="на странице" />
+                    <StatTile label="Средний %" value={avgPercent === null ? '—' : `${avgPercent}%`} tone="gold" icon={Target} hint="на странице" />
+                    <StatTile label="Активных фильтров" value={activeFilterCount} tone="neutral" icon={Filter} />
                 </StatGrid>
 
                 <FilterBar>
                     <form
-                        className="space-y-4"
+                        className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1.3fr)_repeat(4,minmax(0,1fr))_auto] xl:items-end"
                         onSubmit={(event) => {
                             event.preventDefault();
                             applyFilters();
                         }}
                     >
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-                            <div className="md:col-span-2 xl:col-span-6">
-                                <FormField label="Поиск">
-                                    <div className="relative max-w-xl">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                        <Input
-                                            value={search}
-                                            onChange={(event) => setSearch(event.target.value)}
-                                            placeholder="Быстрый поиск по ID, имени, email…"
-                                            className="pl-9 pr-9"
-                                        />
-                                        {search && (
-                                            <button type="button" aria-label="Очистить поиск" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                                                <X className="h-3.5 w-3.5" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </FormField>
-                            </div>
-                            <div className="xl:col-span-2">
-                                <FormField label="Тест">
-                                    <select value={testId} onChange={(event) => setTestId(event.target.value)} className={qdFieldClass}>
-                                        <option value="">Все тесты</option>
-                                        {tests.map((test) => (
-                                            <option key={test.id} value={test.id}>{test.name}</option>
-                                        ))}
-                                    </select>
-                                </FormField>
-                            </div>
-                            <FormField label="Язык">
-                                <select value={language} onChange={(event) => setLanguage(event.target.value)} className={qdFieldClass}>
-                                    <option value="">Все языки</option>
-                                    {Object.entries(languageOptions).map(([value, label]) => (
-                                        <option key={value} value={value}>{label}</option>
-                                    ))}
-                                </select>
-                            </FormField>
-                            <FormField label="Статус">
-                                <select value={status} onChange={(event) => setStatus(event.target.value)} className={qdFieldClass}>
-                                    <option value="">Все статусы</option>
-                                    {Object.entries(statusOptions).map(([value, label]) => (
-                                        <option key={value} value={value}>{label}</option>
-                                    ))}
-                                </select>
-                            </FormField>
-                            <FormField label="С даты">
-                                <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
-                            </FormField>
-                            <FormField label="По дату">
-                                <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+                        <div className="md:col-span-2 xl:col-span-1">
+                            <FormField label="Поиск">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        value={search}
+                                        onChange={(event) => setSearch(event.target.value)}
+                                        placeholder="Быстрый поиск по ID, имени, email…"
+                                        className="pl-9 pr-9"
+                                    />
+                                    {search && (
+                                        <button type="button" aria-label="Очистить поиск" onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
+                                </div>
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
+                        <FormField label="Тест">
+                            <select value={testId} onChange={(event) => setTestId(event.target.value)} className={qdFieldClass}>
+                                <option value="">Все тесты</option>
+                                {tests.map((test) => (
+                                    <option key={test.id} value={test.id}>{test.name}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                        <FormField label="Язык">
+                            <select value={language} onChange={(event) => setLanguage(event.target.value)} className={qdFieldClass}>
+                                <option value="">Все языки</option>
+                                {Object.entries(languageOptions).map(([value, label]) => (
+                                    <option key={value} value={value}>{label}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                        <FormField label="Статус">
+                            <select value={status} onChange={(event) => setStatus(event.target.value)} className={qdFieldClass}>
+                                <option value="">Все статусы</option>
+                                {Object.entries(statusOptions).map(([value, label]) => (
+                                    <option key={value} value={value}>{label}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                        <FormField label="С даты">
+                            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+                        </FormField>
+                        <FormField label="По дату">
+                            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+                        </FormField>
+                        <div className="flex flex-wrap items-center gap-2 md:col-span-2 xl:col-span-1">
                             <Button type="submit">Применить</Button>
                             <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
                         </div>
@@ -217,10 +219,8 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                     <thead className="text-left">
                                         <tr>
                                             <th>ID</th>
-                                            <th>Имя</th>
-                                            <th>Фамилия</th>
-                                            <th>Email</th>
-                                            <th>Телефон</th>
+                                            <th>Студент</th>
+                                            <th>Контакты</th>
                                             <th>Язык</th>
                                             <th>Тест</th>
                                             <th className="text-right">Верно</th>
@@ -233,18 +233,26 @@ export default function LanguageTestingStatisticsIndex({ results = [], filters =
                                     </thead>
                                     <tbody>
                                         {results.map((result) => (
-                                            <tr key={result.id} className="align-top hover:bg-slate-50">
+                                            <tr key={result.id} className="hover:bg-slate-50">
                                                 <td className="font-medium tabular-nums text-slate-900">{result.id}</td>
-                                                <td>{result.first_name}</td>
-                                                <td>{result.last_name}</td>
-                                                <td className="text-slate-600">{result.email}</td>
-                                                <td className="tabular-nums text-slate-600">{result.phone || '—'}</td>
+                                                <td className="font-medium text-slate-900">{result.last_name} {result.first_name}</td>
+                                                <td className="text-slate-600">
+                                                    {result.email}
+                                                    <span className="ml-2 tabular-nums text-xs text-slate-500">{result.phone || '—'}</span>
+                                                </td>
                                                 <td>{result.language_label}</td>
                                                 <td>{result.test_name}</td>
                                                 <td className="text-right tabular-nums">{result.correct_answers}</td>
                                                 <td className="text-right tabular-nums">{result.total_questions}</td>
                                                 <td className="text-right tabular-nums">{result.score}</td>
-                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{result.percentage}%</td>
+                                                <td className="text-right">
+                                                    <div className="ml-auto flex w-24 items-center justify-end gap-2">
+                                                        <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                                                            <div className={`h-1.5 rounded-full ${result.status === 'passed' ? 'bg-emerald-600' : 'bg-red-500'}`} style={{ width: `${Math.min(100, Math.max(0, Number(result.percentage) || 0))}%` }} />
+                                                        </div>
+                                                        <span className="font-semibold tabular-nums text-[#102945]">{result.percentage}%</span>
+                                                    </div>
+                                                </td>
                                                 <td>
                                                     <StatusBadge tone={result.status === 'passed' ? 'success' : 'danger'}>{result.status_label}</StatusBadge>
                                                 </td>

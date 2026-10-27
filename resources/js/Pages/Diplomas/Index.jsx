@@ -163,15 +163,26 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
         const medium = check.items?.find((item) => item.risk_level === 'medium');
 
         if (high) {
-            return <Badge variant="destructive">Высокий риск <span className="tabular-nums">{high.score}</span></Badge>;
+            return withDate(<Badge variant="destructive">Высокий риск <span className="tabular-nums">{high.score}</span></Badge>, check);
         }
 
         if (medium) {
-            return <Badge variant="warning">Средний риск <span className="tabular-nums">{medium.score}</span></Badge>;
+            return withDate(<Badge variant="warning">Средний риск <span className="tabular-nums">{medium.score}</span></Badge>, check);
         }
 
-        return <Badge variant="success">Низкий риск</Badge>;
+        return withDate(<Badge variant="success">Низкий риск</Badge>, check);
     };
+
+    const withDate = (badge, check) => (
+        <div className="space-y-1">
+            {badge}
+            {check.checked_at ? (
+                <div className="text-xs tabular-nums text-slate-500">
+                    {String(check.checked_at).slice(0, 10)} · совпадений: {check.items?.length ?? 0}
+                </div>
+            ) : null}
+        </div>
+    );
 
     return (
         <AuthenticatedLayout
@@ -388,12 +399,13 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
                     <Card className="overflow-hidden">
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[1100px] text-sm">
+                                <table className="w-full min-w-[1200px] text-sm">
                                     <thead>
                                         <tr>
                                             <th className="text-left">ID</th>
                                             <th className="text-left">Год / семестр</th>
                                             <th className="text-left">Тема</th>
+                                            <th className="text-left">Студент / руководитель</th>
                                             <th className="text-left">ОП</th>
                                             <th className="text-left">Статус</th>
                                             <th className="text-left">Проверка</th>
@@ -411,7 +423,17 @@ export default function Index({ diplomas, faculties = [], departments = [], prog
                                                     <div className="font-medium text-slate-900">{diploma.title_ru}</div>
                                                     <div className="text-xs text-slate-500">
                                                         {diploma.department?.name} / {diploma.faculty?.name}
+                                                        {diploma.type ? <> · {diploma.type}</> : null}
                                                     </div>
+                                                    {Array.isArray(diploma.keywords) && diploma.keywords.length > 0 ? (
+                                                        <div className="mt-1 line-clamp-1 text-xs text-slate-500">
+                                                            {diploma.keywords.join(', ')}
+                                                        </div>
+                                                    ) : null}
+                                                </td>
+                                                <td className="text-slate-700">
+                                                    <div>{diploma.student?.name ?? diploma.external_student_code ?? '—'}</div>
+                                                    <div className="text-xs text-slate-500">{diploma.supervisor?.name ?? 'Руководитель не указан'}</div>
                                                 </td>
                                                 <td className="text-slate-600">{diploma.program?.name ?? '—'}</td>
                                                 <td>

@@ -564,17 +564,17 @@ export default function Index({ sections, totalUsers, departments, filters }) {
     const renderRowActions = (item) => (
         <div className="flex shrink-0 items-center justify-end gap-1">
             {canManageDirectory && (
-                <Button type="button" variant="ghost" size="icon" className="h-9 w-9" title="Редактировать" aria-label={`Редактировать: ${item.full_name}`} onClick={() => openEditDialog(item)}>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Редактировать" aria-label={`Редактировать: ${item.full_name}`} onClick={() => openEditDialog(item)}>
                     <Pencil className="h-4 w-4" />
                 </Button>
             )}
             {canManagePhotos && (
-                <Button type="button" variant="ghost" size="icon" className="h-9 w-9" title="Фото" aria-label={`Фото: ${item.full_name}`} onClick={() => openPhotoDialog(item)}>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8" title="Фото" aria-label={`Фото: ${item.full_name}`} onClick={() => openPhotoDialog(item)}>
                     <ImageIcon className="h-4 w-4" />
                 </Button>
             )}
             {canManageDirectory && (
-                <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-700 hover:bg-red-50 hover:text-red-800" title="Удалить" aria-label={`Удалить: ${item.full_name}`} onClick={() => handleDeleteUser(item)}>
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-700 hover:bg-red-50 hover:text-red-800" title="Удалить" aria-label={`Удалить: ${item.full_name}`} onClick={() => handleDeleteUser(item)}>
                     <Trash2 className="h-4 w-4" />
                 </Button>
             )}
@@ -588,12 +588,12 @@ export default function Index({ sections, totalUsers, departments, filters }) {
             onClick={() => setSelectedUser(item)}
             className="group/person flex min-w-0 items-center gap-3 rounded-[10px] text-left focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600/30"
         >
-            <ContactAvatar item={item} />
+            <ContactAvatar item={item} className="h-9 w-9 rounded-full text-xs" />
             <span className="min-w-0">
                 <span className="block font-semibold leading-snug text-[#102945] group-hover/person:text-teal-700">
                     <Highlight text={item.full_name} query={appliedSearch} />
                 </span>
-                <span className="mt-0.5 line-clamp-2 text-sm text-slate-500">
+                <span className="line-clamp-2 text-[13px] leading-snug text-slate-500">
                     {item.job_title ? <Highlight text={item.job_title} query={appliedSearch} /> : 'Должность не указана'}
                 </span>
             </span>
@@ -604,7 +604,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
         <li
             key={item.id}
             {...dragProps(section, item)}
-            className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 px-5 py-3.5 transition-colors hover:bg-slate-50 sm:px-6 2xl:grid-cols-[minmax(0,1.3fr)_14rem_minmax(0,1fr)_auto] ${draggingUserId === item.id ? 'opacity-50' : ''}`}
+            className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-1.5 px-5 py-2.5 transition-colors hover:bg-slate-50 sm:px-6 2xl:grid-cols-[minmax(0,1.25fr)_14rem_minmax(0,1fr)_minmax(0,0.75fr)_auto] ${draggingUserId === item.id ? 'opacity-50' : ''}`}
         >
             <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2 2xl:col-start-auto 2xl:row-start-auto">
                 {canManageDirectory && (
@@ -613,7 +613,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 {renderPerson(item)}
             </div>
 
-            <div className={`col-span-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm 2xl:contents ${canManageDirectory ? 'pl-[4.25rem]' : 'pl-14'}`}>
+            <div className={`col-span-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm 2xl:contents ${canManageDirectory ? 'pl-[3.75rem]' : 'pl-12'}`}>
                 <div className="flex min-w-0 items-center gap-2">
                     {item.phone ? (
                         <a href={telHref(item.phone)} className="inline-flex items-center gap-2 whitespace-nowrap font-medium tabular-nums text-[#102945] hover:text-teal-700">
@@ -626,19 +626,19 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                     <InnerPhone value={item.inner_phone} />
                 </div>
 
-                <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-1 2xl:block 2xl:space-y-0.5">
-                    {item.email && (
+                <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-1 2xl:contents">
+                    {item.email ? (
                         <a href={`mailto:${item.email}`} className="flex min-w-0 items-center gap-2 text-slate-700 hover:text-teal-700">
                             <Mail className="h-4 w-4 shrink-0 text-slate-400" />
                             <span className="truncate">{item.email}</span>
                         </a>
-                    )}
-                    {item.office && (
+                    ) : <span className="hidden 2xl:block" aria-hidden="true" />}
+                    {item.office ? (
                         <div className="flex min-w-0 items-center gap-2 text-slate-500">
                             <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
                             <span className="truncate">{item.office}</span>
                         </div>
-                    )}
+                    ) : <span className="hidden 2xl:block" aria-hidden="true" />}
                 </div>
             </div>
 
@@ -658,9 +658,9 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 type="button"
                 draggable={false}
                 onClick={() => setSelectedUser(item)}
-                className="group/card flex flex-col items-center gap-3 px-5 pb-4 pt-6 text-center focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-teal-600/30"
+                className="group/card flex flex-col items-center gap-2.5 px-4 pb-3 pt-5 text-center focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-teal-600/30"
             >
-                <ContactAvatar item={item} className="h-24 w-24 rounded-full text-2xl" />
+                <ContactAvatar item={item} className="h-20 w-20 rounded-full text-xl" />
                 <span className="min-w-0">
                     <span className="line-clamp-2 font-display text-base font-bold leading-snug text-[#102945] group-hover/card:text-teal-700">
                         <Highlight text={item.full_name} query={appliedSearch} />
@@ -671,7 +671,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 </span>
             </button>
 
-            <div className="mt-auto space-y-2 border-t border-slate-200 bg-slate-50/60 px-5 py-4 text-sm">
+            <div className="mt-auto space-y-1.5 border-t border-slate-200 bg-slate-50/60 px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
                     {item.phone ? (
                         <a href={telHref(item.phone)} className="inline-flex min-w-0 items-center gap-2 font-medium tabular-nums text-[#102945] hover:text-teal-700">
@@ -1245,7 +1245,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                 {localSections.length === 0 ? (
                     <EmptyState title="Записей не найдено" description="Измените запрос или выберите другой департамент." action={<Button type="button" variant="outline" onClick={clearFilters}>Сбросить фильтры</Button>} />
                 ) : (
-                    <div className="grid items-start gap-6 2xl:grid-cols-[17rem_minmax(0,1fr)]">
+                    <div className="grid items-start gap-5 2xl:grid-cols-[16rem_minmax(0,1fr)]">
                         <nav aria-label="Подразделения" className="hidden 2xl:sticky 2xl:top-6 2xl:block">
                             <p className="qd-field-label mb-3 px-3">Подразделения</p>
                             <ul className="space-y-0.5">
@@ -1257,7 +1257,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                             <button
                                                 type="button"
                                                 onClick={() => jumpToSection(section)}
-                                                className={`flex w-full items-center justify-between gap-3 rounded-[10px] border-l-2 px-3 py-2 text-left text-sm transition-colors ${active
+                                                className={`flex w-full items-center justify-between gap-3 rounded-[10px] border-l-2 px-3 py-1.5 text-left text-sm transition-colors ${active
                                                     ? 'border-teal-700 bg-white font-semibold text-[#102945] shadow-[0_1px_2px_0_rgba(25,28,29,0.06)]'
                                                     : 'border-transparent text-slate-600 hover:bg-white/70 hover:text-[#102945]'}`}
                                             >
@@ -1270,7 +1270,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             </ul>
                         </nav>
 
-                        <div className="min-w-0 space-y-5">
+                        <div className="min-w-0 space-y-4">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                                 <p className="text-sm text-slate-600">
                                     <span className="font-semibold tabular-nums text-[#102945]">{shownCount}</span>
@@ -1338,7 +1338,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                 <h2 className="font-display text-lg font-bold text-[#102945]">{section.name}</h2>
                                                 <span className="text-xs font-semibold tabular-nums text-slate-500">{(section.items ?? []).length}</span>
                                             </div>
-                                            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr))]">
+                                            <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,14rem),1fr))]">
                                                 {(section.items ?? []).map((item) => renderCard(section, item))}
                                             </div>
                                         </div>

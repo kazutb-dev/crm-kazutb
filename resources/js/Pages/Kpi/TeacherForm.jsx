@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, Notice, PageHeader, Segmented, StatGrid, StatTile } from '@/components/platform';
+import { EmptyState, PageHeader, Segmented, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -282,7 +282,7 @@ export default function TeacherForm({
                     />
                     <StatTile
                         label="Окно подачи"
-                        value={period ? <span className="block text-base sm:text-xl">{formatDate(period.start_date)}</span> : '—'}
+                        value={period ? <span className="block text-base sm:text-xl">{formatDate(period.start_date)} – {formatDate(period.end_date)}</span> : '—'}
                         hint={period ? `${period.name} · до ${formatDate(period.end_date)}` : 'Активный период не открыт'}
                         tone="navy"
                         icon={CalendarRange}
@@ -297,10 +297,6 @@ export default function TeacherForm({
                     />
                 ) : (
                     <>
-                        <Notice tone="brand" title={`Период: ${period.name}`}>
-                            Окно подачи: {formatDate(period.start_date)} - {formatDate(period.end_date)}.
-                        </Notice>
-
                         {sectionKeys.map((section) => {
                             const Icon = sectionIcons[section] ?? NotebookPen;
                             const sectionRows = groupedSections[section] ?? [];
@@ -369,7 +365,7 @@ export default function TeacherForm({
                                                             </td>
                                                             <td>
                                                                 <textarea
-                                                                    className="min-h-20 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed"
+                                                                    className="min-h-10 w-full rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed"
                                                                     value={row.comment ?? ''}
                                                                     disabled
                                                                     readOnly
@@ -438,13 +434,13 @@ export default function TeacherForm({
                             );
                         })}
 
-                        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-white p-4 shadow-[0_8px_24px_0_rgba(25,28,29,0.08)] sm:flex-row sm:items-center sm:justify-between">
+                        <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-[14px] border border-slate-200 bg-white px-4 py-3 shadow-[0_8px_24px_0_rgba(25,28,29,0.08)] sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0">
                                 <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[#102945]">
                                     Общий статус отправки:
                                     <Badge variant={statusVariants[overallStatus] ?? 'outline'}>{statusLabels[overallStatus] ?? overallStatus}</Badge>
                                 </p>
-                                <p className="mt-1 text-sm text-slate-600">
+                                <p className="mt-0.5 text-sm text-slate-600">
                                     {isPlanStage && 'Сейчас редактируются только плановые значения.'}
                                     {isFactStage && 'Сейчас редактируются фактические значения и подтверждающие файлы.'}
                                     {isReviewStage && 'Период в review: форма доступна только для просмотра.'}

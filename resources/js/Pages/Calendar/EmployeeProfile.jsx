@@ -41,6 +41,7 @@ function getMonthCells(year, month) {
     const cells = [];
     for (let i = 0; i < startOffset; i++) cells.push(null);
     for (let d = 1; d <= totalDays; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
     return cells;
 }
 function fmtTime(dt) {
@@ -183,19 +184,19 @@ function DayPanel({ day, year, month, events, onMeeting }) {
             </CardHeader>
             <CardContent className="space-y-3">
                 {dayEvents.length === 0 && (
-                    <p className="py-4 text-center text-sm text-slate-500">Событий нет</p>
+                    <p className="py-3 text-center text-sm text-slate-500">Событий нет</p>
                 )}
                 {dayEvents.map(event => {
                     const s = event.status === 'conflict' ? EVENT_STYLE.conflict : (TYPE_META[event.type] ?? TYPE_META.other);
                     return (
-                        <div key={event.id} className={`rounded-[10px] border-l-4 p-3.5 ${s.bg}`}>
+                        <div key={event.id} className={`rounded-[10px] border-l-4 px-3 py-2.5 ${s.bg}`}>
                             <div className="flex flex-wrap items-center gap-2">
                                 <p className={`text-sm font-semibold ${s.text}`}>{event.title}</p>
                                 <Badge variant="outline" className="bg-white">
                                     {event.status === 'conflict' ? 'Конфликт' : (TYPE_META[event.type]?.label ?? event.type)}
                                 </Badge>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-1.5">
+                            <div className="flex items-center gap-1.5 mt-1">
                                 <Clock className="size-3 text-slate-500" />
                                 <p className="text-xs tabular-nums text-slate-600">
                                     {fmtTime(event.starts_at)} — {fmtTime(event.ends_at)}
@@ -443,6 +444,11 @@ export default function CalendarEmployeeProfile({ employee, events = [], year, m
     const monthLabel = `${MONTH_NAMES[monthIdx]} ${year}`;
 
     const statusKey = employee?.calendar_status;
+    const monthTypeCounts = events.reduce((acc, e) => {
+        const key = TYPE_META[e.type] ? e.type : 'other';
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+    }, {});
 
     const monthNav = (
         <div className="flex items-center gap-2">
@@ -516,6 +522,7 @@ export default function CalendarEmployeeProfile({ employee, events = [], year, m
                     <Notice tone="success">{flash.success}</Notice>
                 )}
 
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
                 {/* calendar grid */}
                 <MonthCalendar
                     year={year}
@@ -527,6 +534,7 @@ export default function CalendarEmployeeProfile({ employee, events = [], year, m
                     toolbar={monthNav}
                 />
 
+                <div className="space-y-4">
                 {/* selected day events */}
                 <DayPanel
                     day={selectedDay}
@@ -535,6 +543,32 @@ export default function CalendarEmployeeProfile({ employee, events = [], year, m
                     events={events}
                     onMeeting={openMeeting}
                 />
+
+                <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <CalendarDays className="shrink-0" />
+                            За месяц
+                        </CardTitle>
+                        <span className="text-xs font-semibold tabular-nums text-slate-500">{events.length}</span>
+                    </CardHeader>
+                    <CardContent className="space-y-1.5">
+                        {Object.entries(TYPE_META).map(([key, meta]) => (
+                            <div key={key} className="flex items-center gap-2 text-xs">
+                                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} />
+                                <span className="flex-1 text-slate-700">{meta.label}</span>
+                                <span className="font-semibold tabular-nums text-[#102945]">{monthTypeCounts[key] ?? 0}</span>
+                            </div>
+                        ))}
+                        <div className="flex items-center gap-2 border-t border-slate-200 pt-2 text-xs">
+                            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-600" />
+                            <span className="flex-1 text-slate-700">Конфликты</span>
+                            <span className="font-semibold tabular-nums text-[#102945]">{events.filter(e => e.status === 'conflict').length}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+                </div>
+                </div>
 
                 <MeetingModal
                     open={meetingOpen}

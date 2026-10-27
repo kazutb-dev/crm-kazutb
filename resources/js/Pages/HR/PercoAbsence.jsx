@@ -8,7 +8,7 @@ import { Head, router } from '@inertiajs/react';
 import { CircleX, Clock3, Download, Search, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-export default function PercoAbsence({ staff, divisions = [], filters = {}, summary = {}, divisionStats = [], latestAbsenceDate = null }) {
+export default function PercoAbsence({ staff, divisions = [], filters = {}, range = {}, summary = {}, divisionStats = [], latestAbsenceDate = null }) {
     const items = staff?.data ?? [];
     const links = staff?.links ?? [];
     const meta = staff?.meta ?? {};
@@ -152,10 +152,10 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
         >
             <Head title="HR / Отсутствующие" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <FilterBar>
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+                    <form onSubmit={handleSearch}>
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
                             <label className="relative block space-y-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
@@ -188,19 +188,19 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                             <FormField label="С даты">
                                 <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
                             </FormField>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                            <Button type="submit">
-                                <Search className="h-4 w-4" />
-                                Найти
-                            </Button>
+                            <div className="flex items-end justify-end md:col-span-2 xl:col-span-1">
+                                <Button type="submit">
+                                    <Search className="h-4 w-4" />
+                                    Найти
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
                 <StatGrid>
-                    <StatTile label="Событий отсутствия" value={totalEvents} icon={CircleX} tone="danger" />
-                    <StatTile label="Отсутствующих сотрудников" value={totalPeople} icon={Users} tone="info" />
+                    <StatTile label="Событий отсутствия" value={totalEvents} icon={CircleX} tone="danger" hint={range?.from ? `${fmtDate(range.from)} – ${fmtDate(range.to)}` : null} />
+                    <StatTile label="Отсутствующих сотрудников" value={totalPeople} icon={Users} tone="info" hint={totalPeople > 0 ? `В среднем ${(totalEvents / totalPeople).toFixed(1)} на сотрудника` : null} />
                     <StatTile label="Суммарно, минут" value={totalAbsentMinutes} icon={Clock3} tone="danger" />
                     <StatTile label="Среднее отсутствие, минут" value={avgAbsentMinutes} icon={Clock3} tone="navy" />
                 </StatGrid>
@@ -211,16 +211,20 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                     </Notice>
                 )}
 
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,1fr)_380px] 2xl:items-start">
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <CircleX className="shrink-0" />
                             Dashboard отсутствий: кто не пришел на работу
                         </CardTitle>
+                        <span className="text-xs tabular-nums text-slate-500">
+                            На странице: {items.length}{meta?.total != null ? ` · всего ${meta.total}` : ''}
+                        </span>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[820px] text-sm">
@@ -266,14 +270,14 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle>Подразделения с наибольшим числом отсутствий</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {divisionStats.length === 0 ? (
                             <p className="text-sm text-slate-500">Нет данных по подразделениям.</p>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {divisionStats.map((row, idx) => {
                                     const events = Number(row.absence_events ?? 0);
                                     const people = Number(row.absence_people ?? 0);
@@ -281,12 +285,15 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
 
                                     return (
                                         <div key={`${row.division}-${idx}`}>
-                                            <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-                                                <span className="truncate font-medium text-slate-900">{row.division || 'Без подразделения'}</span>
-                                                <span className="text-slate-500">{events} отсутствий • {people} сотрудников</span>
+                                            <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                                                <span className="min-w-0 truncate font-medium text-slate-900" title={row.division || 'Без подразделения'}>
+                                                    <span className="mr-1.5 tabular-nums text-slate-400">{idx + 1}.</span>
+                                                    {row.division || 'Без подразделения'}
+                                                </span>
+                                                <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-slate-500">{events} отсутств. • {people} сотр.</span>
                                             </div>
-                                            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                                                <div className="h-2 rounded-full bg-red-500" style={{ width: `${width}%` }} />
+                                            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                                <div className="h-1.5 rounded-full bg-red-500" style={{ width: `${width}%` }} />
                                             </div>
                                         </div>
                                     );
@@ -295,6 +302,7 @@ export default function PercoAbsence({ staff, divisions = [], filters = {}, summ
                         )}
                     </CardContent>
                 </Card>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

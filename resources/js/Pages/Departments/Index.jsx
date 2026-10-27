@@ -206,7 +206,7 @@ export default function Index({ departments }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Всего кафедр" value={total} icon={Building2} tone="teal" hint="Во всём справочнике" />
                     <StatTile label="На странице" value={items.length} icon={Layers} tone="navy" hint={departments?.last_page > 1 ? `Страница ${departments.current_page} из ${departments.last_page}` : 'Все записи на одной странице'} />
@@ -251,7 +251,7 @@ export default function Index({ departments }) {
                                                         <span className="text-slate-400">—</span>
                                                     )}
                                                 </td>
-                                                <td className="max-w-md text-slate-600">
+                                                <td className="max-w-xl text-slate-600">
                                                     {department.description || <span className="text-slate-400">—</span>}
                                                 </td>
                                                 <td className="text-right">

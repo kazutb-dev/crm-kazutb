@@ -580,7 +580,7 @@ export default function Index({
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Факультеты" value={stats.faculties} icon={Landmark} tone="teal" hint="В единой структуре" />
                     <StatTile label="Кафедры" value={stats.departments} icon={Building2} tone="navy" hint="Привязаны к факультетам" />
@@ -606,7 +606,7 @@ export default function Index({
                         )}
                     />
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         {items.map((faculty) => (
                             <Card key={faculty.id}>
                                 <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
@@ -626,121 +626,103 @@ export default function Index({
                                         </Button>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="space-y-5">
-                                    <div className="flex flex-wrap items-start justify-between gap-4">
-                                        <p className="max-w-3xl text-sm leading-relaxed text-slate-600">
-                                            {faculty.description || 'Описание не заполнено'}
-                                        </p>
-                                        <div className="flex gap-6 text-sm">
+                                <CardContent className="space-y-3">
+                                    <div className="grid gap-x-6 gap-y-3 border-b border-slate-200 pb-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] lg:items-center">
+                                        <div className="min-w-0">
+                                            <span className="qd-field-label block text-slate-500">Описание</span>
+                                            <p className="mt-1 text-sm leading-snug text-slate-600">
+                                                {faculty.description || 'Описание не заполнено'}
+                                            </p>
+                                        </div>
+                                        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 lg:border-l lg:border-slate-200 lg:pl-6">
+                                            <div className="min-w-0 space-y-1">
+                                                <span className="qd-field-label block text-slate-500">Руководство факультета (декан)</span>
+                                                {faculty.deans.length === 0 ? (
+                                                    <Badge variant="warning">Декан не назначен</Badge>
+                                                ) : (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {faculty.deans.map((dean) => (
+                                                            <button
+                                                                key={dean.id}
+                                                                type="button"
+                                                                onClick={() => openStaffDialog({
+                                                                    userId: dean.id,
+                                                                    role: 'dean',
+                                                                    facultyId: faculty.id,
+                                                                    departmentId: '',
+                                                                })}
+                                                                className="flex items-center gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-2.5 py-1 text-left transition-colors hover:border-teal-400"
+                                                            >
+                                                                <Crown className="h-4 w-4 shrink-0 text-teal-700" />
+                                                                <span>
+                                                                    <span className="block text-sm font-semibold text-[#102945]">{dean.name}</span>
+                                                                    <span className="block text-xs text-slate-500">{dean.email || 'без email'}</span>
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openStaffDialog({
+                                                    userId: faculty.deans[0]?.id ?? '',
+                                                    role: 'dean',
+                                                    facultyId: faculty.id,
+                                                    departmentId: '',
+                                                })}
+                                            >
+                                                Назначить декана
+                                            </Button>
+                                        </div>
+                                        <div className="flex gap-6 text-sm lg:border-l lg:border-slate-200 lg:pl-6">
                                             <div>
                                                 <div className="qd-field-label text-slate-500">Кафедр</div>
-                                                <div className="font-display text-xl font-bold tabular-nums text-[#102945]">{faculty.department_count}</div>
+                                                <div className="text-xl font-bold tabular-nums text-[#102945]">{faculty.department_count}</div>
                                             </div>
                                             <div>
                                                 <div className="qd-field-label text-slate-500">Сотрудников</div>
-                                                <div className="font-display text-xl font-bold tabular-nums text-[#102945]">{faculty.staff_count}</div>
+                                                <div className="text-xl font-bold tabular-nums text-[#102945]">{faculty.staff_count}</div>
+                                            </div>
+                                            <div>
+                                                <div className="qd-field-label text-slate-500">Без зав.</div>
+                                                <div className="text-xl font-bold tabular-nums text-[#102945]">
+                                                    {faculty.departments.filter((department) => (department.heads ?? []).length === 0).length}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-200 py-3">
-                                        <div className="min-w-0 space-y-2">
-                                            <span className="qd-field-label block text-slate-500">Руководство факультета (декан)</span>
-                                            {faculty.deans.length === 0 ? (
-                                                <Badge variant="warning">Декан не назначен</Badge>
-                                            ) : (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {faculty.deans.map((dean) => (
-                                                        <button
-                                                            key={dean.id}
-                                                            type="button"
-                                                            onClick={() => openStaffDialog({
-                                                                userId: dean.id,
-                                                                role: 'dean',
-                                                                facultyId: faculty.id,
-                                                                departmentId: '',
-                                                            })}
-                                                            className="flex items-center gap-2.5 rounded-[10px] border border-teal-200 bg-teal-50 px-3 py-1.5 text-left transition-colors hover:border-teal-400"
-                                                        >
-                                                            <Crown className="h-4 w-4 shrink-0 text-teal-700" />
-                                                            <span>
-                                                                <span className="block text-sm font-semibold text-[#102945]">{dean.name}</span>
-                                                                <span className="block text-xs text-slate-500">{dean.email || 'без email'}</span>
-                                                            </span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => openStaffDialog({
-                                                userId: faculty.deans[0]?.id ?? '',
-                                                role: 'dean',
-                                                facultyId: faculty.id,
-                                                departmentId: '',
-                                            })}
-                                        >
-                                            Назначить декана
-                                        </Button>
                                     </div>
 
                                     <div>
                                         <span className="qd-field-label block text-slate-500">Кафедры</span>
                                         {faculty.departments.length === 0 ? (
-                                            <p className="pt-3 text-sm text-slate-500">Кафедры ещё не добавлены.</p>
+                                            <p className="pt-2 text-sm text-slate-500">Кафедры ещё не добавлены.</p>
                                         ) : (
                                             <div className="divide-y divide-slate-200">
                                                 {faculty.departments.map((department) => (
-                                                    <div key={department.id} className="space-y-3 py-4 last:pb-0">
-                                                        <div className="flex flex-wrap items-start justify-between gap-2">
-                                                            <div className="min-w-0">
-                                                                <div className="flex flex-wrap items-center gap-2">
-                                                                    <p className="font-semibold text-slate-900">{department.name}</p>
-                                                                    {department.code && <Badge variant="outline">{department.code}</Badge>}
-                                                                </div>
-                                                                <p className="text-xs text-slate-500">
-                                                                    Сотрудников: <span className="tabular-nums">{department.staff_count}</span>
-                                                                </p>
+                                                    <div key={department.id} className="grid gap-3 py-2.5 last:pb-0 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)_auto] xl:items-center">
+                                                        <div className="min-w-0">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="font-semibold text-slate-900">{department.name}</p>
+                                                                {department.code && <Badge variant="outline">{department.code}</Badge>}
                                                             </div>
-
-                                                            <div className="flex flex-wrap gap-2">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => openDepartmentEditDialog(department, faculty.id)}
-                                                                >
-                                                                    <Pencil />
-                                                                    Кафедра
-                                                                </Button>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => openStaffDialog({
-                                                                        userId: department.heads[0]?.id ?? '',
-                                                                        role: 'hod',
-                                                                        facultyId: faculty.id,
-                                                                        departmentId: department.id,
-                                                                    })}
-                                                                >
-                                                                    Назначить заведующего
-                                                                </Button>
-                                                                <Button
-                                                                    variant="destructive"
-                                                                    size="sm"
-                                                                    onClick={() => handleDeleteDepartment(department)}
-                                                                >
-                                                                    <Trash2 />
-                                                                    Удалить
-                                                                </Button>
-                                                            </div>
+                                                            <p className="text-xs text-slate-500">
+                                                                Сотрудников: <span className="tabular-nums">{department.staff_count}</span>
+                                                                {' · '}
+                                                                {(department.heads ?? []).length > 0
+                                                                    ? <>Зав.: <span className="font-medium text-slate-700">{department.heads.map((head) => head.name).join(', ')}</span></>
+                                                                    : <span className="text-amber-700">Заведующий не назначен</span>}
+                                                            </p>
+                                                            {department.description ? (
+                                                                <p className="line-clamp-2 text-xs text-slate-500" title={department.description}>{department.description}</p>
+                                                            ) : null}
                                                         </div>
 
                                                         {department.staff.length === 0 ? (
                                                             <p className="text-xs text-slate-500">Сотрудники кафедры не привязаны.</p>
                                                         ) : (
-                                                            <div className="flex flex-wrap gap-2">
+                                                            <div className="flex min-w-0 flex-wrap gap-2">
                                                                 {department.staff.map((employee) => (
                                                                     <button
                                                                         key={employee.id}
@@ -751,20 +733,51 @@ export default function Index({
                                                                             facultyId: employee.faculty_id,
                                                                             departmentId: employee.department_id,
                                                                         })}
-                                                                        className="min-w-[180px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition-colors hover:border-teal-400"
+                                                                        className="rounded-[10px] border border-slate-200 bg-white px-2.5 py-1 text-left transition-colors hover:border-teal-400"
                                                                     >
                                                                         <span className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
                                                                             <Users className="h-3.5 w-3.5 text-slate-400" />
                                                                             {employee.name}
+                                                                            <Badge variant={roleBadgeVariant(employee.role_slug)} className="text-[10px]">
+                                                                                {employee.role_label}
+                                                                            </Badge>
                                                                         </span>
                                                                         <span className="block text-xs text-slate-500">{employee.email || 'без email'}</span>
-                                                                        <Badge variant={roleBadgeVariant(employee.role_slug)} className="mt-1.5 text-[10px]">
-                                                                            {employee.role_label}
-                                                                        </Badge>
                                                                     </button>
                                                                 ))}
                                                             </div>
                                                         )}
+
+                                                        <div className="flex flex-wrap gap-2 xl:justify-end">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => openDepartmentEditDialog(department, faculty.id)}
+                                                            >
+                                                                <Pencil />
+                                                                Кафедра
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openStaffDialog({
+                                                                    userId: department.heads[0]?.id ?? '',
+                                                                    role: 'hod',
+                                                                    facultyId: faculty.id,
+                                                                    departmentId: department.id,
+                                                                })}
+                                                            >
+                                                                Назначить заведующего
+                                                            </Button>
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                onClick={() => handleDeleteDepartment(department)}
+                                                            >
+                                                                <Trash2 />
+                                                                Удалить
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

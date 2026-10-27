@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, InfoField, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
+import { InfoField, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -81,6 +81,9 @@ export default function StaffPage({ applications = [], documents = [] }) {
         rejected: applications.filter((item) => item.status === 'rejected').length,
     }), [applications]);
 
+    const decided = statusCounts.accepted + statusCounts.rejected;
+    const filesTotal = applications.reduce((sum, item) => sum + (item.document_files?.length ?? 0), 0);
+
     const openDetails = (application) => {
         setSelectedApplication(application);
         setReviewNotes((prev) => ({
@@ -125,71 +128,81 @@ export default function StaffPage({ applications = [], documents = [] }) {
                 <StatGrid>
                     <StatTile label="Всего заявок" value={applications.length} icon={Plane} tone="navy" />
                     <StatTile label="На рассмотрении" value={statusCounts.pending} icon={Clock3} tone="warning" hint="Ждут решения" />
-                    <StatTile label="Принято" value={statusCounts.accepted} icon={CircleCheck} tone="success" />
+                    <StatTile label="Принято" value={statusCounts.accepted} icon={CircleCheck} tone="success" hint={decided ? `${Math.round((statusCounts.accepted / decided) * 100)}% решений` : null} />
                     <StatTile label="Отклонено" value={statusCounts.rejected} icon={CircleX} tone="danger" />
+                    <StatTile label="Файлов в заявках" value={filesTotal} icon={FileText} tone="neutral" hint={applications.length ? `≈ ${(filesTotal / applications.length).toFixed(1)} на заявку` : null} />
                 </StatGrid>
 
-                <UnderlineTabs
-                    items={[
-                        { key: 'all', label: 'Все', count: applications.length },
-                        { key: 'pending', label: 'На рассмотрении', count: statusCounts.pending },
-                        { key: 'accepted', label: 'Принято', count: statusCounts.accepted },
-                        { key: 'rejected', label: 'Отклонено', count: statusCounts.rejected },
-                    ]}
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                />
-
-                <FilterBar>
-                    <label className="block space-y-2">
-                        <span className="qd-field-label block">Поиск</span>
-                        <span className="relative block">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <Input
-                                type="text"
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                placeholder="Поиск по ФИО, email, группе, телефону"
-                                className="pl-9"
-                            />
-                        </span>
-                    </label>
-                    <div className="mt-4 border-t border-slate-200 pt-3 text-xs font-medium text-slate-500">
-                        Показано {filteredApplications.length} из {applications.length}
+                <Card className="overflow-hidden">
+                    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-slate-200 px-5 pt-3 sm:px-6">
+                        <UnderlineTabs
+                            className="border-b-0"
+                            items={[
+                                { key: 'all', label: 'Все', count: applications.length },
+                                { key: 'pending', label: 'На рассмотрении', count: statusCounts.pending },
+                                { key: 'accepted', label: 'Принято', count: statusCounts.accepted },
+                                { key: 'rejected', label: 'Отклонено', count: statusCounts.rejected },
+                            ]}
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                        />
+                        <div className="flex w-full flex-wrap items-center gap-3 pb-3 sm:w-auto">
+                            <span className="text-xs font-medium tabular-nums text-slate-500">
+                                Показано {filteredApplications.length} из {applications.length}
+                            </span>
+                            <span className="relative block w-full sm:w-80">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    type="text"
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Поиск по ФИО, email, группе, телефону"
+                                    aria-label="Поиск"
+                                    className="pl-9"
+                                />
+                            </span>
+                        </div>
                     </div>
-                </FilterBar>
 
-                {filteredApplications.length === 0 ? (
-                    <EmptyState
-                        title="Заявки не найдены"
-                        description={applications.length === 0
-                            ? 'Студенты ещё не подавали заявки на академическую мобильность.'
-                            : 'Измените поиск или выберите другой статус.'}
-                    />
-                ) : (
-                    <Card className="overflow-hidden">
-                        <CardContent className="p-0">
+                    <CardContent className="p-0">
+                        {filteredApplications.length === 0 ? (
+                            <div className="flex flex-col items-center gap-1.5 px-5 py-8 text-center">
+                                <Plane className="h-5 w-5 text-teal-700" aria-hidden="true" />
+                                <p className="font-semibold text-[#102945]">Заявки не найдены</p>
+                                <p className="text-sm text-slate-600">
+                                    {applications.length === 0
+                                        ? 'Студенты ещё не подавали заявки на академическую мобильность.'
+                                        : 'Измените поиск или выберите другой статус.'}
+                                </p>
+                            </div>
+                        ) : (
                             <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
+                                <table className="w-full min-w-[1000px] text-sm">
                                     <thead>
                                         <tr>
                                             <th className="text-left">Студент</th>
                                             <th className="text-left">Контакты</th>
                                             <th className="text-left">Группа</th>
+                                            <th className="text-left">Документы</th>
                                             <th className="text-left">Статус</th>
-                                            <th className="text-left">Дата подачи</th>
+                                            <th className="text-left">Подана</th>
+                                            <th className="text-left">Рассмотрена</th>
                                             <th className="text-right">Действие</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredApplications.map((application) => {
                                             const statusMeta = getStatusMeta(application.status);
+                                            const files = application.document_files ?? [];
 
                                             return (
-                                                <tr key={application.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <tr key={application.id} className="align-top hover:bg-slate-50">
                                                     <td>
                                                         <div className="font-medium text-slate-900">{application.full_name}</div>
-                                                        <div className="text-xs tabular-nums text-slate-500">#{application.id}</div>
+                                                        <div className="text-xs tabular-nums text-slate-500">
+                                                            #{application.id}
+                                                            {application.notes ? <span className="ml-2 text-teal-700" title={application.notes}>есть комментарий</span> : null}
+                                                        </div>
                                                     </td>
                                                     <td>
                                                         <div className="text-slate-700">{application.user?.email ?? '—'}</div>
@@ -197,11 +210,18 @@ export default function StaffPage({ applications = [], documents = [] }) {
                                                     </td>
                                                     <td className="text-slate-700">{application.student_group}</td>
                                                     <td>
+                                                        <div className="font-medium tabular-nums text-slate-900">{files.length}</div>
+                                                        <div className="max-w-[260px] truncate text-xs text-slate-500" title={files.map((file) => file.document_type).join(', ')}>
+                                                            {files.map((file) => file.document_type).join(', ') || '—'}
+                                                        </div>
+                                                    </td>
+                                                    <td>
                                                         <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
                                                     </td>
                                                     <td className="whitespace-nowrap tabular-nums text-slate-700">{application.created_at}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-500">{application.reviewed_at ?? '—'}</td>
                                                     <td className="text-right">
-                                                        <Button type="button" size="sm" variant="outline" onClick={() => openDetails(application)}>
+                                                        <Button type="button" size="sm" variant={application.status === 'pending' ? 'default' : 'outline'} onClick={() => openDetails(application)}>
                                                             Открыть
                                                         </Button>
                                                     </td>
@@ -211,10 +231,9 @@ export default function StaffPage({ applications = [], documents = [] }) {
                                     </tbody>
                                 </table>
                             </div>
-
-                        </CardContent>
-                    </Card>
-                )}
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog open={Boolean(selectedApplication)} onOpenChange={(open) => { if (!open) closeDetails(); }}>
@@ -231,8 +250,8 @@ export default function StaffPage({ applications = [], documents = [] }) {
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-5 text-sm text-slate-700">
-                                <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                            <div className="space-y-4 text-sm text-slate-700">
+                                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
                                     <InfoField label="Email">{selectedApplication.user?.email ?? '—'}</InfoField>
                                     <InfoField label="Телефон">{selectedApplication.phone}</InfoField>
                                     <InfoField label="Группа">{selectedApplication.student_group}</InfoField>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertCircle, BarChart3, Bot, Copy, Download, FileDown, LogOut, Sparkles, TrendingDown, Users } from 'lucide-react';
+import { AlertCircle, BarChart3, Bot, Building2, Copy, Download, FileDown, LogOut, Sparkles, TrendingDown, UserCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
@@ -300,6 +300,9 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
         top3.push({ name: 'Остальные', value: topRest, color: '#9AA8A4' });
     }
     const topTotal = top3.reduce((acc, row) => acc + row.value, 0);
+    const lateEventsTotal = topDivisions.reduce((acc, row) => acc + Number(row.late_events ?? 0), 0);
+    const maxLateEvents = topDivisions.reduce((acc, row) => Math.max(acc, Number(row.late_events ?? 0)), 0);
+    const pct = (value, base) => (base > 0 ? `${((value / base) * 100).toFixed(1)}%` : '0%');
 
     const generateAiReport = (type = 'summary') => {
         setAiReportType(type);
@@ -395,9 +398,9 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
         >
             <Head title="HR / Dashboard" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <FilterBar>
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
                         <FormField label="Подразделение">
                             <select
                                 value={division}
@@ -428,7 +431,7 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                             </select>
                         </FormField>
 
-                        <FormField label="С даты" hint="Если указана, заменяет период">
+                        <FormField label="С даты (заменяет период)">
                             <input
                                 type="date"
                                 value={fromDate}
@@ -441,13 +444,15 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
 
                 <StatGrid>
                     <StatTile label="Всего сотрудников" value={employeesTotal} tone="navy" icon={Users} />
-                    <StatTile label="Активных" value={employeesActive} tone="teal" icon={Users} />
+                    <StatTile label="Активных" value={employeesActive} tone="teal" icon={UserCheck} hint={`${pct(employeesActive, employeesTotal)} от всех`} />
                     <button type="button" onClick={openLatePeriod} className="block rounded-[14px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40" title="Открыть список опоздавших за выбранный период">
-                        <StatTile label="Опоздали" value={latePeriodPeople} tone="danger" icon={TrendingDown} hint={periodTitle} />
+                        <StatTile label="Опоздали" value={latePeriodPeople} tone="danger" icon={TrendingDown} hint={`${periodTitle} · ${pct(latePeriodPeople, employeesActive)} активных`} />
                     </button>
                     <button type="button" onClick={openEarlyPeriod} className="block rounded-[14px] text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600/40" title="Открыть список ушедших раньше за выбранный период">
-                        <StatTile label="Ушли раньше" value={earlyPeriodPeople} tone="gold" icon={LogOut} hint={periodTitle} />
+                        <StatTile label="Ушли раньше" value={earlyPeriodPeople} tone="gold" icon={LogOut} hint={`${periodTitle} · ${pct(earlyPeriodPeople, employeesActive)} активных`} />
                     </button>
+                    <StatTile label="События опозданий" value={lateEventsTotal} tone="copper" icon={BarChart3} hint="Сумма по подразделениям" />
+                    <StatTile label="Подразделений" value={topDivisions.length} tone="info" icon={Building2} hint={`С опозданиями · последнее: ${formatDate(summary.latest_late_date)}`} />
                 </StatGrid>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -520,6 +525,67 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                     />
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] xl:items-start">
+                <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <BarChart3 className="shrink-0" />
+                            Все подразделения по опозданиям
+                        </CardTitle>
+                        <span className="text-xs font-medium text-slate-500">{topDivisions.length} подразд. · {lateEventsTotal} событий</span>
+                    </CardHeader>
+                    <CardContent className={topDivisions.length === 0 ? '' : 'p-0 sm:p-0'}>
+                        {topDivisions.length === 0 ? (
+                            <p className="py-8 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[560px] text-sm">
+                                    <thead className="border-b border-slate-200">
+                                        <tr>
+                                            <th className="w-12 text-left">#</th>
+                                            <th className="text-left">Подразделение</th>
+                                            <th className="text-right">События</th>
+                                            <th className="text-right">Сотрудников</th>
+                                            <th className="w-[22%] text-left">Доля событий</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {topDivisions.map((row, idx) => {
+                                            const events = Number(row.late_events ?? 0);
+                                            return (
+                                                <tr
+                                                    key={`${row.division}-${idx}`}
+                                                    onClick={() => row.division_id && handleDivisionClick(row.division_id, row.division)}
+                                                    className="group cursor-pointer border-b border-slate-200 last:border-0 hover:bg-slate-50"
+                                                    title="Открыть список опоздавших сотрудников подразделения"
+                                                >
+                                                    <td>
+                                                        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold tabular-nums ${RANK_STYLES[idx] ?? 'bg-slate-100 text-slate-600'}`}>
+                                                            {idx + 1}
+                                                        </span>
+                                                    </td>
+                                                    <td className="font-medium text-slate-900 group-hover:text-teal-700">{row.division}</td>
+                                                    <td className="text-right font-semibold tabular-nums text-[#102945]">{events}</td>
+                                                    <td className="text-right tabular-nums text-slate-700">{row.late_people}</td>
+                                                    <td>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                                                <div className="h-full rounded-full bg-red-500" style={{ width: `${maxLateEvents > 0 ? (events / maxLateEvents) * 100 : 0}%` }} />
+                                                            </div>
+                                                            <span className="w-12 text-right text-xs tabular-nums text-slate-500">{pct(events, lateEventsTotal)}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                    <div className="space-y-4">
                 <DarkPanel
                     kicker="ИИ помощник HR"
                     title="Готовые отчёты и выводы в один клик"
@@ -540,13 +606,12 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                         </>
                     )}
                 >
-                    Формирование готовых отчетов и выводов в один клик. Нажмите одну из кнопок — помощник сформирует отчет автоматически по выбранному периоду и подразделению.
+                    Нажмите кнопку — помощник сформирует отчёт по выбранному периоду и подразделению.
                 </DarkPanel>
 
                 {aiReportText && (
                     <Card>
-                        <CardHeader>
-                            <div className="flex flex-wrap items-center justify-between gap-3">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                                 <CardTitle className="flex items-center gap-2">
                                     <Bot className="shrink-0" />
                                     Отчёт ИИ помощника
@@ -561,55 +626,19 @@ export default function HrDashboard({ summary = {}, series = [], topDivisions = 
                                         Скачать TXT
                                     </Button>
                                 </div>
-                            </div>
                         </CardHeader>
                         <CardContent>
                             <textarea
                                 value={aiReportText}
                                 onChange={(e) => setAiReportText(e.target.value)}
-                                className={`${qdFieldClass} h-auto min-h-[240px] whitespace-pre-wrap py-3 leading-relaxed`}
+                                className={`${qdFieldClass} h-auto min-h-[220px] whitespace-pre-wrap py-3 leading-relaxed`}
                             />
                         </CardContent>
                     </Card>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <CardTitle className="flex items-center gap-2">
-                                <BarChart3 className="shrink-0" />
-                                Все подразделения по опозданиям
-                            </CardTitle>
-                            <span className="text-xs font-medium text-slate-500">Количество опоздавших пользователей</span>
-                        </div>
-                    </CardHeader>
-                    <CardContent className={topDivisions.length === 0 ? '' : 'p-0 sm:p-0'}>
-                        {topDivisions.length === 0 ? (
-                            <p className="py-12 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
-                        ) : (
-                            <div className="divide-y divide-slate-200">
-                                {topDivisions.map((row, idx) => (
-                                    <div
-                                        key={`${row.division}-${idx}`}
-                                        onClick={() => row.division_id && handleDivisionClick(row.division_id, row.division)}
-                                        className="group flex cursor-pointer items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-slate-50 sm:px-6"
-                                    >
-                                        <div className="flex min-w-0 flex-1 items-center gap-4">
-                                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold tabular-nums ${RANK_STYLES[idx] ?? 'bg-slate-100 text-slate-600'}`}>
-                                                {idx + 1}
-                                            </span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium text-slate-900 group-hover:text-teal-700">{row.division}</p>
-                                                <p className="text-xs tabular-nums text-slate-500">{row.late_events} событий • {row.late_people} сотр.</p>
-                                            </div>
-                                        </div>
-                                        <p className="font-display text-xl font-bold tabular-nums text-[#102945]">{row.late_events}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

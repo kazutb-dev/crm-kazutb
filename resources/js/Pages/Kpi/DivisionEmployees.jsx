@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Notice, PageHeader, StatusBadge } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,12 +11,12 @@ import { useCallback, useRef, useState } from 'react';
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Inbox className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-4 w-4" />
             </div>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                <p className="text-sm font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}
@@ -70,16 +71,18 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
         >
             <Head title={`Сотрудники: ${division.name}`} />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[400px_minmax(0,1fr)] xl:items-start">
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
                             Добавить сотрудника
                         </CardTitle>
+                        <Badge variant="outline" className="tabular-nums" title="Доступно для добавления">{allUsers.length - employees.length}</Badge>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div className="relative space-y-2" ref={searchRef}>
                                 <span className="qd-field-label block">Поиск сотрудника</span>
                                 <div className="relative">
@@ -157,48 +160,60 @@ export default function DivisionEmployees({ division, employees, allUsers }) {
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
-                            Сотрудники подразделения ({employees.length})
+                            Сотрудники подразделения
                         </CardTitle>
+                        <Badge variant="secondary" className="tabular-nums">{employees.length}</Badge>
                     </CardHeader>
                     <CardContent className="p-0">
                         {employees.length === 0 ? (
                             <InlineEmpty
                                 title="Нет назначенных сотрудников"
-                                description="Найдите сотрудника через поиск выше и добавьте его в подразделение."
+                                description="Найдите сотрудника в блоке «Добавить сотрудника» и добавьте его в подразделение."
                             />
                         ) : (
-                            <div>
-                                {employees.map(employee => (
-                                    <div
-                                        key={employee.id}
-                                        className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-0 sm:px-6 hover:bg-slate-50"
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <div className="truncate text-sm font-medium text-slate-900">{employee.name}</div>
-                                            <div className="truncate text-xs text-slate-500">
-                                                {employee.email}
-                                                {employee.ad_department && ` · ${employee.ad_department}`}
-                                                {employee.ad_title && ` · ${employee.ad_title}`}
-                                            </div>
-                                        </div>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => handleRemove(employee.id)}
-                                            title="Удалить из подразделения"
-                                            className="text-red-700 hover:bg-red-50"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[640px] text-sm">
+                                    <thead className="border-b border-slate-200">
+                                        <tr>
+                                            <th className="text-left">#</th>
+                                            <th className="text-left">Сотрудник</th>
+                                            <th className="text-left">Email</th>
+                                            <th className="text-left">Отдел</th>
+                                            <th className="text-left">Должность</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {employees.map((employee, index) => (
+                                            <tr key={employee.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td className="tabular-nums text-slate-500">{index + 1}</td>
+                                                <td className="font-medium text-slate-900">{employee.name}</td>
+                                                <td className="break-all text-slate-600">{employee.email}</td>
+                                                <td className="text-slate-600">{employee.ad_department || '—'}</td>
+                                                <td className="text-slate-600">{employee.ad_title || '—'}</td>
+                                                <td className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleRemove(employee.id)}
+                                                        title="Удалить из подразделения"
+                                                        className="text-red-700 hover:bg-red-50"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </CardContent>
                 </Card>
+                </div>
             </div>
         </AuthenticatedLayout>
     );

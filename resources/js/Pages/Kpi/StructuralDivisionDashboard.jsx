@@ -176,12 +176,13 @@ export default function StructuralDivisionDashboard({
         >
             <Head title="KPI — Структурные подразделения" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Этап" value={stageLabels[stage] ?? '—'} tone="teal" icon={BarChart3} />
                     <StatTile label="Сумма баллов" value={Number(summary.total_points ?? 0).toFixed(2)} tone="gold" />
                     <StatTile label="Черновики" value={summary.draft_entries ?? 0} tone="neutral" />
                     <StatTile label="Отправлено" value={summary.submitted_entries ?? 0} tone="info" />
+                    <StatTile label="Записей" value={entries?.total ?? (entries?.data ?? []).length} tone="navy" icon={ListChecks} hint={`Показателей доступно: ${indicators.length}`} />
                 </StatGrid>
 
                 {!period ? (
@@ -193,7 +194,7 @@ export default function StructuralDivisionDashboard({
                     <>
                         {(modules.length > 0 || statusOptions.length > 0) && (
                             <FilterBar>
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                     {modules.length > 0 && (
                                         <FormField label="Раздел">
                                             <select
@@ -235,6 +236,8 @@ export default function StructuralDivisionDashboard({
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
+                                    <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_160px_minmax(0,1.5fr)] lg:items-start">
+                                    <div className="space-y-1">
                                     <FormField label="Показатель">
                                         <select
                                             className={qdFieldClass}
@@ -250,8 +253,10 @@ export default function StructuralDivisionDashboard({
                                         </select>
                                     </FormField>
                                     {addForm.errors.indicator_id && (
-                                        <p className="-mt-2 text-xs text-red-700">{addForm.errors.indicator_id}</p>
+                                        <p className="text-xs text-red-700">{addForm.errors.indicator_id}</p>
                                     )}
+                                    </div>
+                                    <div className="space-y-1">
                                     <FormField label={isPlanStage ? 'Плановое значение' : 'Фактическое значение'}>
                                         <Input
                                             type="number"
@@ -263,16 +268,19 @@ export default function StructuralDivisionDashboard({
                                         />
                                     </FormField>
                                     {addForm.errors.value && (
-                                        <p className="-mt-2 text-xs text-red-700">{addForm.errors.value}</p>
+                                        <p className="text-xs text-red-700">{addForm.errors.value}</p>
                                     )}
+                                    </div>
                                     <FormField label="Комментарий">
                                         <textarea
-                                            className={`${qdFieldClass} h-auto min-h-16 py-2`}
+                                            rows={1}
+                                            className={`${qdFieldClass} h-auto min-h-10 py-2`}
                                             value={addForm.data.comment}
                                             onChange={(e) => addForm.setData('comment', e.target.value)}
                                             placeholder="Необязательно"
                                         />
                                     </FormField>
+                                    </div>
                                     <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                                         <Button
                                             type="button"
@@ -318,7 +326,7 @@ export default function StructuralDivisionDashboard({
                             </CardHeader>
                             <CardContent className={entryData.length === 0 ? '' : 'p-0'}>
                                 {entryData.length === 0 ? (
-                                    <div className="flex min-h-32 flex-col items-center justify-center gap-2 text-center text-slate-500">
+                                    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center text-slate-500">
                                         <CircleAlert className="h-6 w-6 text-slate-400" />
                                         <p className="text-sm">Нет записей. Добавьте показатель с помощью кнопки выше.</p>
                                     </div>

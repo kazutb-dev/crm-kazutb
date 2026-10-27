@@ -45,9 +45,11 @@ export default function Settings(props) {
                     onChange={select}
                 />
                 {tab === 'employer' && (
-                    <div className="space-y-6">
-                        <NumberingCard numbering={props.numbering} />
+                    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
                         <EmployerTab {...props} />
+                        <div className="xl:sticky xl:top-4">
+                            <NumberingCard numbering={props.numbering} />
+                        </div>
                     </div>
                 )}
                 {tab === 'templates' && <TemplatesTab {...props} />}
@@ -68,7 +70,7 @@ function EmployerTab({ employer, employerFields }) {
 
     return (
         <Panel as="form" onSubmit={submit} icon={Building2} title="Реквизиты работодателя" description="Реквизиты подставляются в преамбулу, раздел 11 договора и приказ. Перерыв — значение по умолчанию для новых договоров.">
-            <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
+            <div className="grid gap-x-4 gap-y-4 md:grid-cols-2 2xl:grid-cols-3">
                 {Object.entries(employerFields).map(([key, label]) => (
                     <div key={key} className={MULTILINE.includes(key) ? 'md:col-span-1' : ''}>
                         <label htmlFor={`employer-${key}`} className="qd-field-label mb-2 block text-[#102945]">{label}</label>
@@ -107,15 +109,15 @@ function NumberingCard({ numbering }) {
             onSubmit={submit}
             icon={Hash}
             title="Нумерация приказов «-К»"
-            description="Другие кадровые приказы «-К» нумеруются вне системы. Укажите последний выданный номер — подсказка следующего номера приказа о приёме продолжит с него. Номер действует для указанного года; с 1 января счёт начинается заново."
+            description="Другие приказы «-К» нумеруются вне системы. Укажите последний выданный номер — подсказка номера приказа о приёме продолжит с него. Номер действует для указанного года; с 1 января счёт начинается заново."
         >
-            <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-wrap items-end gap-3">
                 <div>
                     <label htmlFor="numbering-year" className="qd-field-label mb-2 block text-[#102945]">Год</label>
-                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputSizedClassName} w-28`} />
+                    <input id="numbering-year" type="number" value={form.data.year ?? ''} onChange={(event) => form.setData('year', event.target.value === '' ? '' : Number(event.target.value))} className={`${inputSizedClassName} w-24`} />
                 </div>
                 <div>
-                    <label htmlFor="numbering-last" className="qd-field-label mb-2 block text-[#102945]">Последний номер приказа вне системы</label>
+                    <label htmlFor="numbering-last" className="qd-field-label mb-2 block text-[#102945]">Последний номер вне системы</label>
                     <div className="flex items-center gap-2">
                         <input id="numbering-last" inputMode="numeric" value={form.data.last_order_number} onChange={(event) => form.setData('last_order_number', event.target.value.replace(/\D/g, ''))} placeholder="например, 415" className={`${inputSizedClassName} w-40 font-mono`} />
                         <span className="font-mono text-sm font-semibold text-slate-600">-К</span>
@@ -153,13 +155,13 @@ function TemplatesTab({ templates }) {
     };
 
     return (
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-            <div className="space-y-6">
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
+            <div className="space-y-4">
                 {DOCUMENT_TYPES.map((type) => (
                     <Panel key={type.value} icon={FileText} title={type.label} flush>
                         <ul className="divide-y divide-slate-200 text-sm">
                             {(templates[type.value] ?? []).map((template) => (
-                                <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 sm:px-6">
+                                <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-2.5">
                                     <span className="min-w-0">
                                         <span className="font-semibold text-slate-900">Версия {template.version}</span>
                                         {template.is_active && <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">активна</span>}
@@ -274,7 +276,7 @@ function CatalogRow({ kind, row, categories, editable }) {
     };
 
     return (
-        <div className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto] lg:items-center">
+        <div className="grid gap-3 py-2.5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto] lg:items-center">
             <div className="min-w-0">
                 <p className="font-semibold text-slate-900">{row.name}</p>
                 <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -431,14 +433,14 @@ function RightsTab({ members, capabilities }) {
 function Panel({ as: Tag = 'section', icon: Icon, title, description = null, flush = false, className = '', children, ...props }) {
     return (
         <Tag className={`overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)] ${className}`} {...props}>
-            <header className="border-b border-slate-200 bg-slate-50 px-5 py-3.5 sm:px-6">
+            <header className="border-b border-slate-200 bg-slate-50 px-5 py-3">
                 <h3 className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
                     {Icon && <Icon className="h-4 w-4 text-teal-700" />}
                     {title}
                 </h3>
-                {description && <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">{description}</p>}
+                {description && <p className="mt-1 max-w-5xl text-xs leading-relaxed text-slate-600">{description}</p>}
             </header>
-            <div className={flush ? '' : 'space-y-4 p-5 sm:p-6'}>{children}</div>
+            <div className={flush ? '' : 'space-y-4 px-5 py-4'}>{children}</div>
         </Tag>
     );
 }

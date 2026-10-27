@@ -158,6 +158,9 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
         });
     };
 
+    const stalePending = requests.filter((item) => item.status === 'pending' && item.created_at
+        && (Date.now() - new Date(item.created_at).getTime()) > 3 * 86_400_000).length;
+
     const currentPage = pagination.current_page ?? 1;
     const lastPage = pagination.last_page ?? 1;
 
@@ -183,7 +186,8 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
 
             <div className="admin-page-wrap space-y-6">
                 {canManageFoundation ? (
-                    <Notice tone="danger" title="Управление администратора">
+                    <Notice tone="danger">
+                        <span className="font-semibold text-red-800">Управление администратора.</span>{' '}
                         Одобрение и отклонение требуют указания причины для опасных действий. Все решения записываются в журнал аудита.
                     </Notice>
                 ) : null}
@@ -194,22 +198,14 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
 
                 <StatGrid>
                     <StatTile label="Всего" value={(summary.total ?? 0).toLocaleString('ru-RU')} tone="navy" icon={ClipboardCheck} />
-                    <StatTile label="Ожидает" value={(summary.pending ?? 0).toLocaleString('ru-RU')} tone="warning" icon={ShieldAlert} />
+                    <StatTile label="Ожидает" value={(summary.pending ?? 0).toLocaleString('ru-RU')} tone="warning" icon={ShieldAlert} hint={stalePending > 0 ? `Дольше 3 дн. на этой странице: ${stalePending}` : null} />
                     <StatTile label="Одобрено" value={(summary.approved ?? 0).toLocaleString('ru-RU')} tone="success" icon={ShieldCheck} />
                     <StatTile label="Отклонено" value={(summary.rejected ?? 0).toLocaleString('ru-RU')} tone="danger" icon={XCircle} />
                 </StatGrid>
 
                 <FilterBar>
-                    <div className="mb-4 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
-                            <Filter className="h-4 w-4 text-teal-700" />
-                            Фильтры
-                        </div>
-                        <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-                        <label className="relative block space-y-2 md:col-span-2 xl:col-span-2">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto] xl:items-end">
+                        <label className="relative block space-y-2 md:col-span-2 xl:col-span-1">
                             <span className="qd-field-label block">Поиск</span>
                             <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
                             <Input
@@ -269,6 +265,11 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 <option value="all">Все видимые</option>
                             </select>
                         </FormField>
+
+                        <div className="flex h-10 items-center gap-2 md:col-span-2 xl:col-span-1">
+                            <Filter className="h-4 w-4 text-teal-700" aria-hidden="true" />
+                            <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
+                        </div>
                     </div>
                 </FilterBar>
 
@@ -289,7 +290,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                         </div>
                     ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-[1400px]">
+                        <table className="min-w-[1180px]">
                                 <thead>
                                     <tr>
                                         <th>Пользователь</th>
@@ -379,7 +380,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
             </div>
 
             <Dialog open={Boolean(selectedRequest)} onOpenChange={(open) => !open && setSelectedRequest(null)}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
                     {selectedRequest ? (
                         <>
                             <DialogHeader>
@@ -389,32 +390,32 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                 <Card>
                                     <CardHeader><CardTitle>Текущее значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.current_value, null, 2)}</pre>
+                                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.current_value, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader><CardTitle>Запрошенное значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.requested_value, null, 2)}</pre>
+                                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.requested_value, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader><CardTitle>Подтверждённое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.approved_value ?? {}, null, 2)}</pre>
+                                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.approved_value ?? {}, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 
                                 <Card>
                                     <CardHeader><CardTitle>Применяемое значение</CardTitle></CardHeader>
                                     <CardContent className="space-y-2 text-sm">
-                                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.effective_value ?? {}, null, 2)}</pre>
+                                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-700">{JSON.stringify(selectedRequest.effective_value ?? {}, null, 2)}</pre>
                                     </CardContent>
                                 </Card>
 

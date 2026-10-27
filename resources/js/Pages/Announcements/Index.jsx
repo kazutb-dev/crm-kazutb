@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { CircleAlert, FilePen, ImageOff, Megaphone, Pencil, Plus, Radio, Trash2 } from 'lucide-react';
+import { CalendarClock, CircleAlert, FilePen, ImageOff, Megaphone, Pencil, Plus, Radio, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
 
 function Field({ label, error, children }) {
@@ -61,6 +61,16 @@ export default function Index({ announcements }) {
     const activeCount = items.filter((item) => item.is_active).length;
     const draftCount = items.length - activeCount;
     const importantCount = items.filter((item) => item.is_important).length;
+    const nowStamp = new Date().toISOString().slice(0, 16);
+    const withEventCount = items.filter((item) => item.event_date).length;
+    const upcomingEvents = items
+        .filter((item) => item.event_date && item.event_date >= nowStamp)
+        .sort((a, b) => a.event_date.localeCompare(b.event_date));
+    const authorCounts = Object.entries(items.reduce((acc, item) => {
+        const name = item.author_name || 'Система';
+        acc[name] = (acc[name] ?? 0) + 1;
+        return acc;
+    }, {})).sort((a, b) => b[1] - a[1]);
 
     const handleDelete = (announcement) => {
         setConfirmState({
@@ -267,12 +277,19 @@ export default function Index({ announcements }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Всего объявлений" value={total} icon={Megaphone} tone="teal" hint="Во всём разделе" />
                     <StatTile label="Активные" value={activeCount} icon={Radio} tone="success" hint="Среди показанных" />
                     <StatTile label="Черновики" value={draftCount} icon={FilePen} tone="neutral" hint="Среди показанных" />
                     <StatTile label="Важные" value={importantCount} icon={CircleAlert} tone="danger" hint="Среди показанных" />
+                    <StatTile
+                        label="С датой события"
+                        value={withEventCount}
+                        icon={CalendarClock}
+                        tone="info"
+                        hint={`Предстоит: ${upcomingEvents.length}`}
+                    />
                 </StatGrid>
 
                 {items.length === 0 ? (
@@ -287,7 +304,8 @@ export default function Index({ announcements }) {
                         )}
                     />
                 ) : (
-                    <Card className="overflow-hidden">
+                    <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <Card className="min-w-0 overflow-hidden">
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[900px] text-sm">
@@ -311,16 +329,16 @@ export default function Index({ announcements }) {
                                                             <img
                                                                 src={announcement.image_url}
                                                                 alt={announcement.title}
-                                                                className="h-14 w-14 shrink-0 rounded-[10px] border border-slate-200 object-cover"
+                                                                className="h-11 w-11 shrink-0 rounded-[10px] border border-slate-200 object-cover"
                                                             />
                                                         ) : (
-                                                            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-slate-400" title="Без картинки">
+                                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-slate-400" title="Без картинки">
                                                                 <ImageOff className="h-5 w-5" />
                                                             </span>
                                                         )}
                                                         <div className="min-w-0">
                                                             <div className="font-medium text-slate-900">{announcement.title}</div>
-                                                            <p className="mt-1 line-clamp-2 max-w-md text-xs text-slate-500">
+                                                            <p className="mt-0.5 line-clamp-2 max-w-xl text-xs text-slate-500">
                                                                 {announcement.content}
                                                             </p>
                                                         </div>
@@ -396,6 +414,61 @@ export default function Index({ announcements }) {
                             )}
                         </CardContent>
                     </Card>
+
+                    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-1">
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarClock className="shrink-0" />
+                                    Ближайшие мероприятия
+                                </CardTitle>
+                                <span className="text-xs font-medium leading-none text-slate-500 tabular-nums">{upcomingEvents.length}</span>
+                            </CardHeader>
+                            <CardContent>
+                                {upcomingEvents.length === 0 ? (
+                                    <p className="text-sm text-slate-500">Предстоящих мероприятий среди показанных нет.</p>
+                                ) : (
+                                    <div className="divide-y divide-slate-200">
+                                        {upcomingEvents.map((item) => (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => openEditDialog(item)}
+                                                className="group flex w-full items-start gap-3 py-2 text-left first:pt-0 last:pb-0"
+                                            >
+                                                <span className="mt-0.5 shrink-0 rounded-[8px] bg-teal-50 px-2 py-1 text-xs font-semibold tabular-nums text-teal-700">
+                                                    {item.event_date_human}
+                                                </span>
+                                                <span className="min-w-0 text-sm font-medium text-slate-900 group-hover:text-teal-700">
+                                                    {item.title}
+                                                    {item.is_important ? <Badge variant="destructive" className="ml-1.5 align-middle">Важное</Badge> : null}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <UserRound className="shrink-0" />
+                                    Авторы
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="divide-y divide-slate-200">
+                                    {authorCounts.map(([name, count]) => (
+                                        <div key={name} className="flex items-center justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                                            <span className="min-w-0 truncate text-slate-700">{name}</span>
+                                            <span className="shrink-0 font-semibold tabular-nums text-[#102945]">{count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    </div>
                 )}
             </div>
             <ConfirmDialog

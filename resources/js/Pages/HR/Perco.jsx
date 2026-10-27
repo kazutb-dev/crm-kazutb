@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FilterBar, FormField, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { FilterBar, FormField, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, router } from '@inertiajs/react';
-import { Download, Search, Users } from 'lucide-react';
+import { Building2, Download, Search, UserCheck, UserMinus, UserX, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function Perco({ staff, divisions = [], filters = {} }) {
@@ -89,6 +89,11 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
         return sorted;
     }, [items, sortConfig]);
 
+    const pageDismissed = items.filter((row) => row.is_dismissed).length;
+    const pageActive = items.filter((row) => !row.is_dismissed && row.is_active && !row.is_block).length;
+    const pageBlocked = items.length - pageDismissed - pageActive;
+    const pageDivisions = new Set(items.map((row) => row.division).filter(Boolean)).size;
+
     const handleExport = () => {
         exportToExcelCsv({
             fileName: 'hr_perco_staff.csv',
@@ -131,11 +136,11 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
         >
             <Head title="HR / Сотрудники" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 {/* Filters */}
                 <FilterBar>
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+                    <form onSubmit={handleSearch}>
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto]">
                             <label className="relative block space-y-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
@@ -161,30 +166,37 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
                                     ))}
                                 </select>
                             </FormField>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
-                            <span className="text-xs font-medium text-slate-500">
-                                {meta?.total != null ? <>Найдено: <span className="tabular-nums">{meta.total}</span></> : null}
-                            </span>
-                            <Button type="submit">
-                                <Search className="h-4 w-4" />
-                                Найти
-                            </Button>
+                            <div className="flex items-end justify-end">
+                                <Button type="submit">
+                                    <Search className="h-4 w-4" />
+                                    Найти
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
-                {/* Table */}
+                <StatGrid>
+                    <StatTile label="Найдено" value={meta?.total ?? items.length} icon={Users} tone="navy" hint={`На странице: ${items.length}`} />
+                    <StatTile label="Активные" value={pageActive} icon={UserCheck} tone="success" hint="На текущей странице" />
+                    <StatTile label="Заблокированы" value={pageBlocked} icon={UserX} tone="neutral" hint="На текущей странице" />
+                    <StatTile label="Уволены" value={pageDismissed} icon={UserMinus} tone="danger" hint="На текущей странице" />
+                    <StatTile label="Подразделений" value={pageDivisions} icon={Building2} tone="info" hint={`На странице · в справочнике: ${divisions.length}`} />
+                </StatGrid>
+
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <Users className="shrink-0" />
                             Все сотрудники
                         </CardTitle>
+                        <span className="text-xs tabular-nums text-slate-500">
+                            На странице: {items.length}{meta?.total != null ? ` · всего ${meta.total}` : ''}
+                        </span>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[760px] text-sm">

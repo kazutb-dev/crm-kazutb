@@ -70,14 +70,14 @@ export default function Show({ hiring, history = [], options, abilities }) {
         >
             <Head title={`${fullName} — приём на работу`} />
             <div className="admin-page-wrap">
-            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                <div className="space-y-6">
+            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="space-y-4">
                     <Panel icon={IdCard} title="Сотрудник">
-                        <div className="flex flex-col gap-5 sm:flex-row">
-                            <div className="flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-400">
+                        <div className="flex flex-col gap-4 sm:flex-row">
+                            <div className="flex h-28 w-[5.25rem] shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-slate-300 bg-slate-50 text-xs text-slate-400">
                                 {e.photo_url ? <img src={e.photo_url} alt="Фото сотрудника" className="h-full w-full object-cover" /> : 'Фото 3×4'}
                             </div>
-                            <dl className="grid flex-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                            <dl className="grid flex-1 gap-x-5 gap-y-3 sm:grid-cols-2 2xl:grid-cols-3">
                                 <Info label="ИИН" mono>{text(e.iin)}</Info>
                                 <Info label="Дата рождения">{date(e.birth_date)}{e.gender && `, ${e.gender === 'm' ? 'мужской' : 'женский'}`}</Info>
                                 <Info label="Удостоверение" wide>{e.id_card_number ? `№${e.id_card_number} от ${date(e.id_card_issued_at)}, ${label('issuers', e.id_card_issuer ?? 'mvd')}` : '—'}</Info>
@@ -93,7 +93,7 @@ export default function Show({ hiring, history = [], options, abilities }) {
                     </Panel>
 
                     <Panel icon={BriefcaseBusiness} title="Назначение и условия">
-                        <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                        <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2 2xl:grid-cols-3">
                             <Info label="Категория" wide>{text(options.categories.find((item) => item.value === h.staff_category)?.name)}</Info>
                             <Info label="Дата приёма">{date(h.start_date)}</Info>
                             <Info label="Испытательный срок">{label('probation', h.probation_months ?? 0)}</Info>
@@ -110,13 +110,13 @@ export default function Show({ hiring, history = [], options, abilities }) {
 
                     <Panel icon={History} title="История действий">
                         {history.length === 0 ? <p className="text-sm text-slate-500">Пока пусто.</p> : (
-                            <ol className="max-h-96 overflow-y-auto pr-1 text-sm">
+                            <ol className="max-h-80 overflow-y-auto pr-1 text-sm">
                                 {history.map((item, index) => (
-                                    <li key={index} className="flex items-start gap-3 border-b border-slate-200 py-2.5 last:border-0">
+                                    <li key={index} className="flex items-start gap-3 border-b border-slate-200 py-1.5 last:border-0">
                                         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-teal-500" />
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block text-slate-800">{item.description}</span>
-                                            <span className="mt-0.5 block text-xs text-slate-500"><span className="font-mono tabular-nums">{item.at}</span> · {item.actor}</span>
+                                        <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3">
+                                            <span className="min-w-0 text-slate-800">{item.description}</span>
+                                            <span className="shrink-0 text-xs text-slate-500"><span className="font-mono tabular-nums">{item.at}</span> · {item.actor}</span>
                                         </span>
                                     </li>
                                 ))}
@@ -125,12 +125,13 @@ export default function Show({ hiring, history = [], options, abilities }) {
                     </Panel>
                 </div>
 
+                <div className="space-y-4">
                 <Panel
                     icon={FileSignature}
                     title="Документы"
                     action={<Link href={route('hr.hiring.edit', hiring.id)} className={buttonClassName.ghost}><FilePenLine className="h-4 w-4" /> Предпросмотр в мастере</Link>}
                 >
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                     {[...new Set(DOCUMENT_TYPES.flatMap((type) => hiring.checks?.[type.value]?.warnings ?? []))].map((warning) => (
                         <Notice key={warning} tone="warning" icon={CircleAlert}>{warning}</Notice>
                     ))}
@@ -138,7 +139,7 @@ export default function Show({ hiring, history = [], options, abilities }) {
                         const versions = hiring.documents[type.value] ?? [];
                         const missing = hiring.checks?.[type.value]?.missing ?? [];
                         return (
-                            <div key={type.value} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                            <div key={type.value} className="space-y-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3">
                                 <div className="flex flex-wrap items-center justify-between gap-3">
                                     <h4 className="min-w-0 font-display text-base font-bold text-[#102945]">{type.label}</h4>
                                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
@@ -160,10 +161,10 @@ export default function Show({ hiring, history = [], options, abilities }) {
                                 {missing.length > 0 && (
                                     <Notice tone="warning">Не хватает: {missing.map((item) => item.label).join(', ')}.</Notice>
                                 )}
-                                {versions.length === 0 ? <p className="text-sm text-slate-500">Документ ещё не формировался.</p> : (
+                                {versions.length === 0 ? <p className="text-xs text-slate-500">Документ ещё не формировался.</p> : (
                                     <ul className="divide-y divide-slate-200 border-t border-slate-200 text-sm">
                                         {versions.map((doc) => (
-                                            <li key={doc.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                                            <li key={doc.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                                                 <span className="flex min-w-0 items-baseline gap-2">
                                                     <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 text-xs font-bold tabular-nums text-[#102945]">v{doc.version}</span>
                                                     <span className="text-xs text-slate-500">
@@ -192,6 +193,8 @@ export default function Show({ hiring, history = [], options, abilities }) {
                     </p>
                     </div>
                 </Panel>
+
+                </div>
             </div>
             </div>
 
@@ -211,7 +214,7 @@ function Panel({ icon: Icon, title, action = null, children }) {
                 </h3>
                 {action}
             </header>
-            <div className="p-5 sm:p-6">{children}</div>
+            <div className="px-4 py-4 sm:px-5">{children}</div>
         </section>
     );
 }
@@ -219,9 +222,9 @@ function Panel({ icon: Icon, title, action = null, children }) {
 /** Read-only value: label in spaced capitals over the value, separated by a rule. */
 function Info({ label, mono = false, wide = false, children }) {
     return (
-        <div className={`flex flex-col gap-1 border-b border-slate-200 pb-3 ${wide ? 'sm:col-span-2' : ''}`}>
+        <div className={`flex min-w-0 flex-col gap-0.5 border-b border-slate-200 pb-2 ${wide ? 'sm:col-span-2' : ''}`}>
             <dt className="qd-field-label text-slate-500">{label}</dt>
-            <dd className={`text-[0.9375rem] font-medium text-slate-900 ${mono ? 'font-mono text-sm' : ''}`}>{children}</dd>
+            <dd className={`break-words text-sm font-medium text-slate-900 ${mono ? 'font-mono' : ''}`}>{children}</dd>
         </div>
     );
 }

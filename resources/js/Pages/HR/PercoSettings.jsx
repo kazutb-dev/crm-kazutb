@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageHeader, StatusBadge } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, useForm } from '@inertiajs/react';
-import { ChevronDown, ChevronRight, Download, Search, Settings2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Eye, EyeOff, FolderTree, Network, Search, Settings2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 function TreeCheckbox({ checked, indeterminate, onChange }) {
@@ -168,6 +168,18 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
     const filteredTree = useMemo(() => filterTree(tree, query), [tree, query]);
     const foundCount = useMemo(() => flattenNodes(filteredTree).length, [filteredTree]);
 
+    const visibleCount = data.visible_division_ids.length;
+    const hiddenCount = Math.max(allDivisionIds.length - visibleCount, 0);
+    const rootStats = useMemo(() => tree.map((node) => {
+        const ids = descendantMap.get(node.id) ?? [node.id];
+        return {
+            id: node.id,
+            name: node.name,
+            total: ids.length,
+            visible: ids.filter((id) => visibleSet.has(id)).length,
+        };
+    }), [tree, descendantMap, visibleSet]);
+
     const toggleExpand = (id) => {
         setExpandedIds((prev) => {
             const next = new Set(prev);
@@ -246,8 +258,15 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
         >
             <Head title="HR / Настройки Perco" />
 
-            <div className="admin-page-wrap space-y-6">
-                <form className="space-y-6" onSubmit={submit}>
+            <div className="admin-page-wrap space-y-4">
+                <StatGrid>
+                    <StatTile label="Всего подразделений" value={allDivisionIds.length} icon={Network} tone="navy" />
+                    <StatTile label="Видно в HR" value={visibleCount} icon={Eye} tone="success" hint={allDivisionIds.length > 0 ? `${Math.round((visibleCount / allDivisionIds.length) * 100)}% от всех` : null} />
+                    <StatTile label="Скрыто" value={hiddenCount} icon={EyeOff} tone="neutral" />
+                    <StatTile label="Корневых групп" value={tree.length} icon={FolderTree} tone="teal" hint={query !== '' ? `Найдено узлов: ${foundCount}` : null} />
+                </StatGrid>
+
+                <form className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start" onSubmit={submit}>
                     <Card>
                         <CardHeader>
                             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -271,24 +290,24 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
                                 </div>
                             </div>
                         </CardHeader>
-                        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-                            <label className="relative block max-w-xl space-y-2">
-                                <span className="qd-field-label block">Поиск подразделения</span>
-                                <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
+                        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-3 sm:px-6">
+                            <label className="relative block w-full sm:w-96">
+                                <span className="sr-only">Поиск подразделения</span>
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     value={divisionSearch}
                                     onChange={(e) => setDivisionSearch(e.target.value)}
                                     placeholder="Поиск подразделения..."
-                                    className="pl-9"
+                                    className="h-9 pl-9"
                                 />
                             </label>
-                            <p className="mt-2 text-xs text-slate-500">
+                            <p className="text-xs text-slate-500">
                                 Найдено узлов: <span className="font-semibold tabular-nums text-slate-700">{foundCount}</span>
                                 <span className="mx-2 text-slate-300">·</span>
                                 Видно подразделений: <span className="font-semibold tabular-nums text-slate-700">{data.visible_division_ids.length}</span>
                             </p>
                         </div>
-                        <CardContent className="max-h-[560px] overflow-auto p-3 sm:p-4">
+                        <CardContent className="max-h-[70vh] overflow-auto p-3 sm:p-4">
                             {filteredTree.length === 0 ? (
                                 <p className="px-2 py-8 text-center text-sm text-slate-500">Подразделения не найдены.</p>
                             ) : (
@@ -309,7 +328,7 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
                                 </div>
                             )}
                         </CardContent>
-                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
+                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
                             {recentlySuccessful && (
                                 <span className="text-sm font-medium text-emerald-700">Настройки сохранены.</span>
                             )}
@@ -317,6 +336,31 @@ export default function PercoSettings({ divisions = [], setting = { visible_divi
                                 {processing ? 'Сохранение...' : 'Сохранить настройки'}
                             </Button>
                         </div>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <FolderTree className="shrink-0" />
+                                Видимость по группам
+                            </CardTitle>
+                            <span className="text-xs tabular-nums text-slate-500">{tree.length}</span>
+                        </CardHeader>
+                        <CardContent className="max-h-[70vh] space-y-3 overflow-auto">
+                            {rootStats.length === 0 ? (
+                                <p className="py-6 text-center text-sm text-slate-500">Подразделений нет.</p>
+                            ) : rootStats.map((row) => (
+                                <div key={row.id}>
+                                    <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                                        <span className="min-w-0 truncate font-medium text-slate-900" title={row.name}>{row.name}</span>
+                                        <span className="shrink-0 text-xs tabular-nums text-slate-500">{row.visible} / {row.total}</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                        <div className="h-1.5 rounded-full bg-teal-600" style={{ width: `${row.total > 0 ? (row.visible / row.total) * 100 : 0}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
                     </Card>
                 </form>
             </div>

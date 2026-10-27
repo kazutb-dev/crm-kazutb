@@ -13,7 +13,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { EmptyState, FilterBar, InfoField, LoadingState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
+import { EmptyState, InfoField, LoadingState, Notice, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     BookOpen,
@@ -269,7 +269,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 key={sub.id}
                 onClick={() => setSelectedSubjectId(sub.id)}
                 aria-pressed={isSelected}
-                className={`group flex w-full items-center justify-between gap-3 border-l-[3px] px-5 py-3 text-left transition-colors ${
+                className={`group flex w-full items-center justify-between gap-3 border-l-[3px] py-2 pl-12 pr-5 text-left transition-colors ${
                     isSelected
                         ? 'border-l-teal-600 bg-teal-50'
                         : hasBindings
@@ -277,9 +277,9 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                             : 'border-l-amber-400 bg-white hover:bg-slate-50'
                 }`}
             >
-                <span className="flex min-w-0 flex-col">
+                <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
                     <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-[#102945]' : 'text-slate-900 group-hover:text-teal-700'}`}>{sub.name}</span>
-                    {sub.code && <span className="mt-0.5 font-mono text-[11px] text-slate-500">{sub.code}</span>}
+                    {sub.code && <span className="font-mono text-[11px] text-slate-500">{sub.code}</span>}
                 </span>
                 {hasBindings ? (
                     <Badge variant="success" className="shrink-0">Учителей: {sub.bindings.length}</Badge>
@@ -292,35 +292,37 @@ export default function Subjects({ disciplines = [], departments = [], filters }
 
     const renderGroup = ({ key, icon: GroupIcon, name, code, list, emptyText }) => {
         const isExpanded = !!expandedDepts[key];
+        const bound = list.filter((item) => item.bindings?.length > 0).length;
         return (
-            <div key={key} className="overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-[0_1px_2px_0_rgba(25,28,29,0.04)]">
+            <div key={key}>
                 <button
                     type="button"
                     onClick={() => toggleDept(key)}
                     aria-expanded={isExpanded}
-                    className={`flex w-full select-none items-center justify-between gap-3 px-5 py-4 text-left transition-colors ${
-                        isExpanded ? 'border-b border-slate-200 bg-slate-50' : 'bg-white hover:bg-slate-50'
+                    className={`flex w-full select-none items-center justify-between gap-3 px-5 py-2.5 text-left transition-colors ${
+                        isExpanded ? 'bg-slate-50' : 'bg-white hover:bg-slate-50'
                     }`}
                 >
                     <span className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-100 text-teal-700">
-                            <GroupIcon className="h-4 w-4" />
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-teal-100 text-teal-700">
+                            <GroupIcon className="h-3.5 w-3.5" />
                         </span>
-                        <span className="min-w-0">
-                            <span className="block text-[0.9375rem] font-semibold text-[#102945]">{name}</span>
-                            {code && <span className="mt-0.5 block font-mono text-[11px] tracking-wider text-slate-500">{code}</span>}
-                        </span>
+                        <span className="min-w-0 truncate text-sm font-semibold text-[#102945]">{name}</span>
+                        {code && <span className="shrink-0 font-mono text-[11px] tracking-wider text-slate-500">{code}</span>}
                     </span>
-                    <span className="flex shrink-0 items-center gap-3">
+                    <span className="flex shrink-0 items-center gap-2">
+                        {list.length > 0 ? (
+                            <span className="hidden text-xs tabular-nums text-slate-500 sm:inline">с преподавателем: {bound} · свободно: {list.length - bound}</span>
+                        ) : null}
                         <Badge variant="secondary" className="tabular-nums">{list.length} предм.</Badge>
                         <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                     </span>
                 </button>
 
                 {isExpanded && (
-                    <div className="divide-y divide-slate-200">
+                    <div className="divide-y border-t border-slate-200">
                         {list.length === 0 ? (
-                            <div className="p-4 text-center text-sm text-slate-500">{emptyText}</div>
+                            <div className="px-5 py-3 text-center text-sm text-slate-500">{emptyText}</div>
                         ) : (
                             list.map(renderSubjectRow)
                         )}
@@ -328,6 +330,19 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 )}
             </div>
         );
+    };
+
+    const boundSubjects = disciplines.filter((item) => item.bindings?.length > 0).length;
+    const teacherBindings = disciplines.reduce((sum, item) => sum + (item.bindings?.length || 0), 0);
+    const allExpanded = Object.keys(expandedDepts).length > 0 && Object.values(expandedDepts).every(Boolean);
+    const toggleAll = () => {
+        if (allExpanded) {
+            setExpandedDepts({});
+            return;
+        }
+        const next = { unassigned: true };
+        departments.forEach((dept) => { next[dept.id] = true; });
+        setExpandedDepts(next);
     };
 
     return (
@@ -360,7 +375,7 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 <PageHeader
                     eyebrow="Справочник предметов"
                     title="Список предметов по кафедрам"
-                    description="Выберите предмет из списка по кафедрам слева, чтобы в правой части экрана посмотреть детали о нём и список преподавателей, которые его преподают."
+                    description="Выберите предмет в списке кафедр — справа откроются его карточка и преподаватели, которые его ведут."
                 />
             )}
         >
@@ -394,67 +409,75 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                 <StatGrid>
                     <StatTile label="Всего предметов" value={disciplines.length} tone="teal" icon={BookOpen} />
                     <StatTile label="Всего кафедр" value={departments.length} tone="navy" icon={Building2} />
+                    <StatTile label="С преподавателями" value={boundSubjects} tone="success" icon={Link2} hint={`Привязок: ${teacherBindings}`} />
+                    <StatTile label="Свободные" value={disciplines.length - boundSubjects} tone="warning" icon={BookOpen} hint="без привязанных преподавателей" />
+                    <StatTile label="Без кафедры" value={unassignedSubjects.length} tone="neutral" icon={GraduationCap} />
                 </StatGrid>
 
-                <FilterBar>
-                    <label className="block max-w-md space-y-2">
-                        <span className="qd-field-label block">Поиск</span>
-                        <div className="relative">
-                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <Input
-                                value={search}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                placeholder="Быстрый поиск по названию или коду предмета…"
-                                className="pl-9 pr-9"
-                            />
-                            {search && (
-                                <button
-                                    type="button"
-                                    aria-label="Очистить поиск"
-                                    onClick={() => handleSearch('')}
-                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                                >
-                                    <X className="h-3.5 w-3.5" />
-                                </button>
-                            )}
-                        </div>
-                    </label>
-                </FilterBar>
-
                 {/* ── Two column master-detail layout ── */}
-                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_440px]">
                     {/* Left column: Collapsible departments list */}
-                    <div className="space-y-3 lg:col-span-7">
-                        {departments.map(dept => {
-                            const deptSubjects = subjectsByDept[dept.id] || [];
+                    <Card className="overflow-hidden">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><Building2 className="h-4 w-4" />Кафедры и предметы</CardTitle>
+                            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                                <div className="relative w-full sm:w-72">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        value={search}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        placeholder="Поиск по названию или коду…"
+                                        aria-label="Поиск предмета"
+                                        className="pl-9 pr-9"
+                                    />
+                                    {search && (
+                                        <button
+                                            type="button"
+                                            aria-label="Очистить поиск"
+                                            onClick={() => handleSearch('')}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={toggleAll}>
+                                    {allExpanded ? 'Свернуть все' : 'Развернуть все'}
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="divide-y divide-slate-200 p-0">
+                            {departments.map(dept => {
+                                const deptSubjects = subjectsByDept[dept.id] || [];
 
-                            // Skip empty departments if search query is active
-                            if (search && deptSubjects.length === 0) return null;
+                                // Skip empty departments if search query is active
+                                if (search && deptSubjects.length === 0) return null;
 
-                            return renderGroup({
-                                key: dept.id,
-                                icon: Building2,
-                                name: dept.name,
-                                code: dept.code,
-                                list: deptSubjects,
-                                emptyText: 'Нет предметов на этой кафедре',
-                            });
-                        })}
+                                return renderGroup({
+                                    key: dept.id,
+                                    icon: Building2,
+                                    name: dept.name,
+                                    code: dept.code,
+                                    list: deptSubjects,
+                                    emptyText: 'Нет предметов на этой кафедре',
+                                });
+                            })}
 
-                        {/* Unassigned subjects (Without department) */}
-                        {(!search || unassignedSubjects.length > 0) && renderGroup({
-                            key: 'unassigned',
-                            icon: GraduationCap,
-                            name: 'Без кафедры',
-                            code: null,
-                            list: unassignedSubjects,
-                            emptyText: 'Нет неназначенных предметов',
-                        })}
-                    </div>
+                            {/* Unassigned subjects (Without department) */}
+                            {(!search || unassignedSubjects.length > 0) && renderGroup({
+                                key: 'unassigned',
+                                icon: GraduationCap,
+                                name: 'Без кафедры',
+                                code: null,
+                                list: unassignedSubjects,
+                                emptyText: 'Нет неназначенных предметов',
+                            })}
+                        </CardContent>
+                    </Card>
 
                     {/* Right column: Details panel */}
-                    <div className="lg:col-span-5">
-                        <Card className="sticky top-6 flex min-h-[440px] flex-col overflow-hidden">
+                    <div>
+                        <Card className="sticky top-6 flex flex-col overflow-hidden">
                             {selectedSubject ? (
                                 <>
                                     <CardHeader>
@@ -463,9 +486,9 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                             Карточка предмета
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="flex flex-1 flex-col gap-5">
+                                    <CardContent className="flex flex-1 flex-col gap-4">
                                         <div className="space-y-2">
-                                            <div className="font-display text-2xl font-bold leading-tight text-[#102945]">{selectedSubject.name}</div>
+                                            <div className="text-xl font-bold leading-tight text-[#102945]">{selectedSubject.name}</div>
                                             {selectedSubject.code && (
                                                 <Badge variant="secondary" className="font-mono tracking-wider">
                                                     Код: {selectedSubject.code}
@@ -487,17 +510,17 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                                 Привязанные преподаватели
                                             </div>
                                             {selectedSubject.bindings && selectedSubject.bindings.length > 0 ? (
-                                                <div className="max-h-[260px] divide-y divide-slate-200 overflow-y-auto rounded-xl border border-slate-200">
+                                                <div className="max-h-[360px] divide-y divide-slate-200 overflow-y-auto rounded-xl border border-slate-200">
                                                     {selectedSubject.bindings.map(binding => (
                                                         <button
                                                             type="button"
                                                             key={binding.id}
                                                             onClick={() => openDrawer(binding, selectedSubject.name)}
-                                                            className="group/teacher flex w-full items-center justify-between gap-3 bg-white px-3.5 py-3 text-left transition-colors hover:bg-teal-50"
+                                                            className="group/teacher flex w-full items-center justify-between gap-3 bg-white px-3.5 py-2 text-left transition-colors hover:bg-teal-50"
                                                             title="Посмотреть привязанных студентов и результаты"
                                                         >
                                                             <span className="flex min-w-0 items-center gap-3">
-                                                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white">
+                                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white">
                                                                     {binding.teacher?.name ? binding.teacher.name.charAt(0).toUpperCase() : 'У'}
                                                                 </span>
                                                                 <span className="min-w-0">
@@ -540,12 +563,12 @@ export default function Subjects({ disciplines = [], departments = [], filters }
                                     </CardContent>
                                 </>
                             ) : (
-                                <div className="my-auto flex flex-1 flex-col items-center justify-center p-8 text-center">
-                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                        <BookOpen className="h-7 w-7" />
+                                <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
+                                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <BookOpen className="h-5 w-5" />
                                     </div>
-                                    <div className="font-display text-lg font-bold text-[#102945]">Сведения о предмете</div>
-                                    <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-slate-600">
+                                    <div className="text-base font-bold text-[#102945]">Сведения о предмете</div>
+                                    <p className="mt-1 max-w-[320px] text-sm leading-relaxed text-slate-600">
                                         Выберите нужный предмет из списка кафедр слева, чтобы просмотреть его характеристики, коды и список закрепленных учителей.
                                     </p>
                                 </div>

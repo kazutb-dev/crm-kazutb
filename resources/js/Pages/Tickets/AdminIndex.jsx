@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -106,6 +106,10 @@ export default function AdminIndex({
     });
 
     const overdue = summaryCounts?.overdue ?? 0;
+    const totalCount = summaryCounts?.total ?? 0;
+    const shareHint = (count) => (totalCount > 0
+        ? `${Math.round(((count ?? 0) / totalCount) * 100)}% от всех заявок`
+        : 'Нет заявок');
 
     const buildFilterPayload = (data) => {
         const payload = {
@@ -172,12 +176,12 @@ export default function AdminIndex({
 
             <div className="admin-page-wrap space-y-6">
                 <StatGrid>
-                    <StatTile label="Новые" value={summaryCounts?.new ?? 0} icon={Inbox} tone="info" />
-                    <StatTile label="В работе" value={summaryCounts?.in_progress ?? 0} icon={Loader} tone="warning" />
-                    <StatTile label="Закрытые" value={summaryCounts?.closed ?? 0} icon={CircleCheck} tone="success" />
-                    <StatTile label="Всего" value={summaryCounts?.total ?? 0} icon={Layers} tone="navy" />
-                    <StatTile label="Сегодня" value={summaryCounts?.today ?? 0} icon={CalendarClock} tone="teal" />
-                    <StatTile label="За неделю" value={summaryCounts?.week ?? 0} icon={CalendarDays} tone="gold" />
+                    <StatTile label="Новые" value={summaryCounts?.new ?? 0} icon={Inbox} tone="info" hint={shareHint(summaryCounts?.new)} />
+                    <StatTile label="В работе" value={summaryCounts?.in_progress ?? 0} icon={Loader} tone="warning" hint={shareHint(summaryCounts?.in_progress)} />
+                    <StatTile label="Закрытые" value={summaryCounts?.closed ?? 0} icon={CircleCheck} tone="success" hint={shareHint(summaryCounts?.closed)} />
+                    <StatTile label="Всего" value={summaryCounts?.total ?? 0} icon={Layers} tone="navy" hint={`Просроченных: ${overdue}`} />
+                    <StatTile label="Сегодня" value={summaryCounts?.today ?? 0} icon={CalendarClock} tone="teal" hint="Поступили за сегодня" />
+                    <StatTile label="За неделю" value={summaryCounts?.week ?? 0} icon={CalendarDays} tone="gold" hint="Последние 7 дней" />
                 </StatGrid>
 
                 <UnderlineTabs
@@ -194,9 +198,14 @@ export default function AdminIndex({
                     }}
                 />
 
-                <FilterBar>
-                    <div className="grid min-w-0 gap-x-3 gap-y-4 md:grid-cols-2 xl:grid-cols-12">
-                        <label className={`space-y-2 md:col-span-2 ${canFilterByDepartment ? 'xl:col-span-4' : 'xl:col-span-6'}`}>
+                <Card className="overflow-hidden">
+                    <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
+                    <div
+                        className={`grid min-w-0 items-end gap-3 md:grid-cols-2 xl:grid-cols-3 ${canFilterByDepartment
+                            ? '2xl:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))_auto]'
+                            : '2xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_auto]'}`}
+                    >
+                        <label className="space-y-2 md:col-span-2 xl:col-span-1">
                             <span className="qd-field-label block">Поиск</span>
                             <span className="relative block">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -215,7 +224,7 @@ export default function AdminIndex({
                         </label>
 
                         {canFilterByDepartment && (
-                            <label className="space-y-2 xl:col-span-2">
+                            <label className="space-y-2">
                                 <span className="qd-field-label block">Подразделение</span>
                                 <select
                                     className={qdFieldClass}
@@ -230,7 +239,7 @@ export default function AdminIndex({
                             </label>
                         )}
 
-                        <label className="space-y-2 xl:col-span-2">
+                        <label className="space-y-2">
                             <span className="qd-field-label block">Тип</span>
                             <select
                                 className={qdFieldClass}
@@ -244,7 +253,7 @@ export default function AdminIndex({
                             </select>
                         </label>
 
-                        <label className="space-y-2 xl:col-span-2">
+                        <label className="space-y-2">
                             <span className="qd-field-label block">Ответственный</span>
                             <select
                                 className={qdFieldClass}
@@ -260,7 +269,7 @@ export default function AdminIndex({
                             </select>
                         </label>
 
-                        <label className="space-y-2 xl:col-span-2">
+                        <label className="space-y-2">
                             <span className="qd-field-label block">Период</span>
                             <select
                                 className={qdFieldClass}
@@ -273,36 +282,35 @@ export default function AdminIndex({
                             </select>
                         </label>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4 md:col-span-2 xl:col-span-12">
-                            <span className="text-xs font-medium text-slate-500">
-                                Показано {tickets?.from ?? 0}–{tickets?.to ?? 0} из {tickets?.total ?? items.length}
-                            </span>
-                            <div className="ml-auto flex items-center gap-2">
-                                <Button type="button" onClick={() => applyFilters()}>
-                                    Применить
-                                </Button>
-                                <Button type="button" variant="outline" onClick={resetFilters}>
-                                    <RefreshCw />
-                                    Сбросить
-                                </Button>
-                            </div>
+                        <div className="flex items-center gap-2 md:col-span-2 xl:col-span-1 xl:justify-end 2xl:justify-start">
+                            <Button type="button" onClick={() => applyFilters()}>
+                                Применить
+                            </Button>
+                            <Button type="button" variant="outline" onClick={resetFilters}>
+                                <RefreshCw />
+                                Сбросить
+                            </Button>
                         </div>
                     </div>
-                </FilterBar>
+                    </div>
 
                 {items.length === 0 ? (
-                    <EmptyState
-                        title="Пока нет поступивших заявок"
-                        description="Когда пользователи отправят обращение, оно появится здесь. Если заявки ожидаются — проверьте фильтры."
-                        action={(
-                            <Button variant="outline" onClick={resetFilters}>
+                    <CardContent>
+                        <div className="flex flex-col items-center gap-2 py-8 text-center">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                <Inbox className="h-5 w-5" />
+                            </span>
+                            <p className="font-semibold text-[#102945]">Пока нет поступивших заявок</p>
+                            <p className="max-w-md text-sm text-slate-600">
+                                Когда пользователи отправят обращение, оно появится здесь. Если заявки ожидаются — проверьте фильтры.
+                            </p>
+                            <Button className="mt-2" variant="outline" onClick={resetFilters}>
                                 <RefreshCw />
                                 Сбросить фильтры
                             </Button>
-                        )}
-                    />
+                        </div>
+                    </CardContent>
                 ) : (
-                    <Card className="overflow-hidden">
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1260px] table-fixed text-[13px] leading-[1.3]">
@@ -399,8 +407,12 @@ export default function AdminIndex({
                                     </tbody>
                                 </table>
                             </div>
-                            {links.length > 3 && (
-                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-end">
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
+                                <span className="text-xs font-medium text-slate-500">
+                                    Показано {tickets?.from ?? 0}–{tickets?.to ?? 0} из {tickets?.total ?? items.length}
+                                </span>
+                                {links.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-1.5">
                                     {links.map((link, index) => (
                                         <Button
                                             key={`${link.label}-${index}`}
@@ -417,10 +429,11 @@ export default function AdminIndex({
                                         </Button>
                                     ))}
                                 </div>
-                            )}
+                                )}
+                            </div>
                         </CardContent>
-                    </Card>
                 )}
+                </Card>
             </div>
         </AuthenticatedLayout>
     );

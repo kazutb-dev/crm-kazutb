@@ -98,13 +98,13 @@ export default function UpdateProfileInformation({
 
     return (
         <section className={className}>
-            <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <header className="flex flex-col gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="font-display text-lg font-bold text-[#102945]">
                         Профиль и контакты
                     </h2>
 
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                    <p className="mt-0.5 text-sm text-slate-600">
                         Обновляйте персональные данные, рабочие сведения и контактные поля.
                     </p>
                 </div>
@@ -123,10 +123,10 @@ export default function UpdateProfileInformation({
                 </div>
             </header>
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
+            <form onSubmit={submit} className="mt-4 space-y-4">
                 {!editing && (
                     <div className="space-y-4">
-                        <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+                        <div className="grid gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-4">
                             {[
                                 ['name', 'ФИО', profile.snapshot.name || 'Не указано'],
                                 ['email', 'Почта', profile.snapshot.email || 'Не указано'],
@@ -164,7 +164,7 @@ export default function UpdateProfileInformation({
                             )}
 
                             {profile.pending_academic_request && !isStudent && (
-                                <div className="md:col-span-2">
+                                <div className="md:col-span-2 xl:col-span-4">
                                     <Notice tone="warning" title="Pending academic request">
                                         <p>{pendingAcademicFaculty?.name || 'Факультет не указан'} · {pendingAcademicDepartment?.name || 'Кафедра не указана'}</p>
                                         <p className="mt-1 text-xs text-slate-500">
@@ -178,8 +178,8 @@ export default function UpdateProfileInformation({
                 )}
 
                 {editing && (
-                    <div className="space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name" className="block">ФИО</Label>
                                 <TextInput
@@ -216,7 +216,7 @@ export default function UpdateProfileInformation({
                             </div>
 
                             {!isStudent && (
-                                <div className="space-y-3 border-t border-slate-200 pt-6 md:col-span-2">
+                                <div className="space-y-3 border-t border-slate-200 pt-4 md:col-span-2 xl:order-1 xl:col-span-4">
                                     <Label className="block">Степень</Label>
 
                                     {/* Current position value shown to user */}
@@ -347,11 +347,11 @@ export default function UpdateProfileInformation({
                             )}
 
                             {!isStudent && (
-                                <div className="space-y-2 md:col-span-2">
+                                <div className="space-y-2 md:col-span-2 xl:order-2 xl:col-span-4">
                                     <Label htmlFor="request_comment" className="block">Комментарий к заявке</Label>
                                     <Textarea
                                         id="request_comment"
-                                        rows={3}
+                                        rows={2}
                                         value={data.request_comment}
                                         onChange={(e) => setData('request_comment', e.target.value)}
                                         placeholder="Кратко опишите причину изменения должности / привязки"

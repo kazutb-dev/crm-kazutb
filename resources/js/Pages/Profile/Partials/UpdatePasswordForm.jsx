@@ -51,23 +51,24 @@ export default function UpdatePasswordForm({ className = '', showHeader = true, 
     return (
         <section className={className}>
             {showHeader && (
-                <header className="flex items-start gap-3 border-b border-slate-200 pb-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700">
-                        <KeyRound className="h-5 w-5" />
+                <header className="flex items-center gap-3 border-b border-slate-200 pb-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700">
+                        <KeyRound className="h-4 w-4" />
                     </span>
                     <div>
                         <h2 className={`font-display font-bold text-[#102945] ${compact ? 'text-base' : 'text-lg'}`}>
                             Сменить пароль
                         </h2>
 
-                        <p className={`mt-1 text-sm leading-6 text-slate-600 ${compact ? 'max-w-xl' : ''}`}>
+                        <p className={`mt-0.5 text-sm text-slate-600 ${compact ? 'max-w-xl' : ''}`}>
                             Используйте длинный и уникальный пароль для повышения безопасности аккаунта.
                         </p>
                     </div>
                 </header>
             )}
 
-            <form onSubmit={updatePassword} className={`${showHeader ? 'mt-5' : ''} space-y-4`}>
+            <form onSubmit={updatePassword} className={`${showHeader ? 'mt-4' : ''} space-y-4`}>
+                <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-3'}`}>
                 <div className="space-y-2">
                     <Label htmlFor="current_password" className="block">Текущий пароль</Label>
 
@@ -86,7 +87,6 @@ export default function UpdatePasswordForm({ className = '', showHeader = true, 
                     <FieldError message={errors.current_password} />
                 </div>
 
-                <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-2'}`}>
                     <div className="space-y-2">
                         <Label htmlFor="password" className="block">Новый пароль</Label>
 

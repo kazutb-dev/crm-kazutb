@@ -1,12 +1,12 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { Pencil, Trash2, UserPlus, Users } from 'lucide-react';
+import { Mail, Pencil, Trash2, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
 
 const emptyForm = {
@@ -71,6 +71,9 @@ export default function SurveyStudents({ students = [], groups = [] }) {
         });
     };
 
+    const withoutGroup = students.filter((student) => !student.group_id).length;
+    const withEmail = students.filter((student) => student.email).length;
+
     const textFields = [
         { key: 'first_name', label: 'Имя', type: 'text' },
         { key: 'last_name', label: 'Фамилия', type: 'text' },
@@ -96,8 +99,15 @@ export default function SurveyStudents({ students = [], groups = [] }) {
             <div className="admin-page-wrap space-y-6">
                 {flash?.success && <Notice tone="success">{flash.success}</Notice>}
 
-                <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-1">
+                <StatGrid>
+                    <StatTile label="Студентов" value={students.length} tone="navy" icon={Users} />
+                    <StatTile label="Групп" value={groups.length} tone="teal" icon={Users} />
+                    <StatTile label="Без группы" value={withoutGroup} tone="warning" icon={UserPlus} />
+                    <StatTile label="С email" value={withEmail} tone="success" icon={Mail} hint={students.length ? `${Math.round((withEmail / students.length) * 100)}% студентов` : null} />
+                </StatGrid>
+
+                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[420px_minmax(0,1fr)]">
+                    <div>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -106,7 +116,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <form onSubmit={submit} className="space-y-4">
+                                <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
                                     {textFields.map((field) => (
                                         <div key={field.key} className="space-y-2">
                                             <Label htmlFor={`survey-student-${field.key}`}>{field.label}</Label>
@@ -120,7 +130,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                         </div>
                                     ))}
 
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 sm:col-span-2">
                                         <Label htmlFor="survey-student-group_id">Группа</Label>
                                         <select
                                             id="survey-student-group_id"
@@ -136,7 +146,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                         {form.errors.group_id && <p className="text-sm text-red-600">{form.errors.group_id}</p>}
                                     </div>
 
-                                    <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-3 sm:col-span-2">
                                         {editingStudent && (
                                             <Button type="button" variant="outline" onClick={startCreate}>
                                                 Отмена
@@ -151,7 +161,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                         </Card>
                     </div>
 
-                    <div className="lg:col-span-2">
+                    <div>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -161,7 +171,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {students.length === 0 ? (
-                                    <div className="px-5 py-12 text-center sm:px-6">
+                                    <div className="px-5 py-8 text-center sm:px-6">
                                         <p className="font-display text-lg font-bold text-[#102945]">Студенты еще не добавлены</p>
                                         <p className="mt-1 text-sm text-slate-600">Заполните форму «Добавить студента», чтобы создать первую запись.</p>
                                     </div>
@@ -174,6 +184,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                                     <th className="whitespace-nowrap text-left">Student ID</th>
                                                     <th className="whitespace-nowrap text-left">Группа</th>
                                                     <th className="whitespace-nowrap text-left">Email</th>
+                                                    <th className="whitespace-nowrap text-left">Телефон</th>
                                                     <th className="whitespace-nowrap text-right">Действия</th>
                                                 </tr>
                                             </thead>
@@ -184,6 +195,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                                         <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.student_id}</td>
                                                         <td className="text-slate-700">{student.group?.name || '—'}</td>
                                                         <td className="text-slate-600">{student.email || '—'}</td>
+                                                        <td className="whitespace-nowrap tabular-nums text-slate-600">{student.phone || '—'}</td>
                                                         <td className="text-right">
                                                             <div className="flex justify-end gap-2">
                                                                 <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>

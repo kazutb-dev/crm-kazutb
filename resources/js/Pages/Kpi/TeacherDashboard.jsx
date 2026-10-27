@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Award, BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, CircleX, Clock, FileText, Filter, LoaderCircle, Paperclip, Pencil, Plus, Search, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
+import { Award, BarChart3, BookOpen, CalendarRange, ChevronDown, ChevronRight, CircleX, Clock, FileText, LoaderCircle, Paperclip, Pencil, Plus, Search, Send, Trash2, TrendingUp, Upload, User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 const SECTION_SHORT = {
@@ -636,10 +636,10 @@ function ResultScoreCard({ result }) {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-wrap items-end gap-x-10 gap-y-5">
+                <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
                     <div>
                         <p className="qd-field-label text-slate-500">Рейтинг R</p>
-                        <p className={['mt-2 font-display text-5xl font-bold leading-none tabular-nums', rVal > 0 ? 'text-teal-700' : 'text-slate-300'].join(' ')}>
+                        <p className={['mt-2 font-display text-4xl font-bold leading-none tabular-nums', rVal > 0 ? 'text-teal-700' : 'text-slate-300'].join(' ')}>
                             {formatScore(rVal)}
                         </p>
                     </div>
@@ -944,60 +944,64 @@ function EntriesBySection({ items, isEditableEntry, isFileMissing, uploadFile, u
     if (allSections.length === 0) return null;
 
     return (
-        <div className="space-y-6">
-            {allSections.map(([section, entries]) => {
-                const sectionTotal = entries.reduce((s, e) => s + Number(e.points_for_display ?? e.manual_points ?? e.calculated_points ?? 0), 0);
-                const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-slate-100 text-slate-600';
+        <div className="overflow-x-auto">
+            <table className="admin-data-table min-w-[800px]">
+                <thead>
+                    <tr>
+                        <th className="w-6"></th>
+                        <th className="w-16">Код</th>
+                        <th>Показатель</th>
+                        <th className="w-28 whitespace-nowrap text-right">Базовый балл</th>
+                        <th className="w-20 text-right">Факт</th>
+                        <th className="w-20 text-right">Баллы</th>
+                        <th className="w-28">Статус</th>
+                        <th className="w-40 text-right">Действия</th>
+                    </tr>
+                </thead>
+                {allSections.map(([section, entries]) => {
+                    const sectionTotal = entries.reduce((s, e) => s + Number(e.points_for_display ?? e.manual_points ?? e.calculated_points ?? 0), 0);
+                    const approvedCount = entries.filter((e) => e.status === 'approved').length;
+                    const iconCls = SECTION_ICON_COLOR[section] ?? 'bg-slate-100 text-slate-600';
 
-                return (
-                    <div key={section}>
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5">
-                                <span className={`inline-flex h-7 min-w-9 items-center justify-center rounded-[8px] px-2 text-xs font-bold tracking-[0.06em] ${iconCls}`}>
-                                    {SECTION_SHORT[section] ?? section}
-                                </span>
-                                <span className="font-display text-base font-bold text-[#102945]">
-                                    {SECTION_LABELS[section] ?? section}
-                                </span>
-                            </div>
-                            <span className="text-xs font-semibold text-slate-500">
-                                Итого: <span className="font-display text-base font-bold tabular-nums text-[#102945]">{formatScore(sectionTotal)}</span> б.
-                            </span>
-                        </div>
-                        <div className="admin-table-wrap">
-                            <table className="admin-data-table min-w-[800px]">
-                                <thead>
-                                    <tr>
-                                        <th className="w-6"></th>
-                                        <th className="w-16">Код</th>
-                                        <th>Показатель</th>
-                                        <th className="w-24 text-right">Базовый балл</th>
-                                        <th className="w-20 text-right">Факт</th>
-                                        <th className="w-20 text-right">Баллы</th>
-                                        <th className="w-28">Статус</th>
-                                        <th className="w-40 text-right">Действия</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {entries.map((entry) => (
-                                        <EntryRow
-                                            key={entry.id}
-                                            entry={entry}
-                                            isEditable={isEditableEntry(entry)}
-                                            isFileMissing={isFileMissing(entry)}
-                                            uploadFile={uploadFile}
-                                            uploadingEntryId={uploadingEntryId}
-                                            submitEntry={submitEntry}
-                                            deleteEntry={deleteEntry}
-                                            openEditEntry={openEditEntry}
-                                        />
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                );
-            })}
+                    return (
+                        <tbody key={section}>
+                            <tr className="border-b border-slate-200 bg-slate-50">
+                                <td colSpan={8} className="!py-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex min-w-0 items-center gap-2.5">
+                                            <span className={`inline-flex h-6 min-w-9 items-center justify-center rounded-[8px] px-2 text-xs font-bold tracking-[0.06em] ${iconCls}`}>
+                                                {SECTION_SHORT[section] ?? section}
+                                            </span>
+                                            <span className="truncate text-sm font-semibold text-[#102945]">
+                                                {SECTION_LABELS[section] ?? section}
+                                            </span>
+                                            <span className="text-xs text-slate-500">
+                                                {entries.length} зап. · {approvedCount} утв.
+                                            </span>
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-500">
+                                            Итого: <span className="text-sm font-bold tabular-nums text-[#102945]">{formatScore(sectionTotal)}</span> б.
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {entries.map((entry) => (
+                                <EntryRow
+                                    key={entry.id}
+                                    entry={entry}
+                                    isEditable={isEditableEntry(entry)}
+                                    isFileMissing={isFileMissing(entry)}
+                                    uploadFile={uploadFile}
+                                    uploadingEntryId={uploadingEntryId}
+                                    submitEntry={submitEntry}
+                                    deleteEntry={deleteEntry}
+                                    openEditEntry={openEditEntry}
+                                />
+                            ))}
+                        </tbody>
+                    );
+                })}
+            </table>
         </div>
     );
 }
@@ -2140,33 +2144,56 @@ export default function TeacherDashboard({
 
                 {/* ── Faculty/Department binding reminder ──────────────── */}
                 {(!currentUser?.faculty_name || !currentUser?.department_name) && (
-                    <Notice tone="info" title="Требуется привязка к структурным подразделениям">
-                        <p>
-                            Пожалуйста, выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле. Это необходимо для корректного отображения структуры и обработки ваших KPI-показателей.
-                        </p>
-                        <Button asChild size="sm" variant="outline" className="mt-3">
-                            <Link href={route('profile.edit')}>Перейти в профиль</Link>
-                        </Button>
+                    <Notice
+                        tone="info"
+                        title="Требуется привязка к структурным подразделениям"
+                        action={(
+                            <Button asChild size="sm" variant="outline">
+                                <Link href={route('profile.edit')}>Перейти в профиль</Link>
+                            </Button>
+                        )}
+                    >
+                        Выберите <strong>факультет</strong> и <strong>кафедру</strong> в своем профиле — это нужно для корректного отображения структуры и обработки ваших KPI-показателей.
                     </Notice>
                 )}
 
                 {/* ── Stat tiles ─────────────────────────────────────── */}
                 <StatGrid>
-                    <StatTile icon={BarChart3} label="Всего записей" value={summary.total_entries ?? 0} tone="navy" />
-                    <StatTile icon={TrendingUp} label="Утверждено" value={summary.approved_entries ?? 0} tone="success" />
+                    <StatTile
+                        icon={BarChart3}
+                        label="Всего записей"
+                        value={summary.total_entries ?? 0}
+                        tone="navy"
+                        hint={`черновиков: ${summary.draft_entries ?? 0}`}
+                    />
+                    <StatTile
+                        icon={TrendingUp}
+                        label="Утверждено"
+                        value={summary.approved_entries ?? 0}
+                        tone="success"
+                        hint={summary.total_entries ? `${Math.round(((summary.approved_entries ?? 0) / summary.total_entries) * 100)}% от всех` : null}
+                    />
                     <StatTile icon={CircleX} label="Отклоненные" value={summary.rejected_entries ?? 0} tone="danger" />
-                    <StatTile icon={Clock} label="На проверке" value={summary.pending_entries ?? 0} tone="warning" />
+                    <StatTile
+                        icon={Clock}
+                        label="На проверке"
+                        value={summary.pending_entries ?? 0}
+                        tone="warning"
+                        hint={`подано: ${summary.submitted_entries ?? 0}`}
+                    />
                     <StatTile icon={Award} label="Баллов" value={formatScore(summary.total_points)} tone="gold" />
+                    {!result && (
+                        <StatTile
+                            label="Рейтинг R"
+                            value="—"
+                            tone="neutral"
+                            hint="не сформирован: период открыт или расчёт не завершён"
+                        />
+                    )}
                 </StatGrid>
 
                 {/* ── Result score card ──────────────────────────────── */}
-                {result ? (
-                    <ResultScoreCard result={result} />
-                ) : (
-                    <Notice tone="brand" title="Итоговый рейтинг ещё не сформирован">
-                        Период не закрыт или расчёт не завершён.
-                    </Notice>
-                )}
+                {result ? <ResultScoreCard result={result} /> : null}
 
                 <UnderlineTabs
                     items={[
@@ -2200,7 +2227,7 @@ export default function TeacherDashboard({
                                     <thead>
                                         <tr className="border-b border-slate-200 text-left">
                                             <th>Секция</th>
-                                            <th>Структурное подразделение (проверяющее)</th>
+                                            <th>Проверяющее подразделение</th>
                                             <th>Код</th>
                                             <th>Название</th>
                                             <th className="text-right">Баллы</th>
@@ -2245,12 +2272,8 @@ export default function TeacherDashboard({
                 {activeMainTab === 'entries' && (
                     <>
                         <FilterBar>
-                            <form className="space-y-4" onSubmit={applyFilters}>
-                                <div className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
-                                    <Filter className="h-4 w-4 text-teal-700" />
-                                    Фильтры записей
-                                </div>
-                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <form onSubmit={applyFilters}>
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,2fr)_auto] xl:items-end">
                                     <label className="block space-y-2">
                                         <span className={FIELD_LABEL}>Этап</span>
                                         <select
@@ -2297,10 +2320,10 @@ export default function TeacherDashboard({
                                             />
                                         </span>
                                     </label>
-                                </div>
-                                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                                    <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                                    <Button type="submit">Применить</Button>
+                                    <div className="flex flex-wrap justify-end gap-2 sm:col-span-2 xl:col-span-1">
+                                        <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                                        <Button type="submit">Применить</Button>
+                                    </div>
                                 </div>
                             </form>
                         </FilterBar>
@@ -2321,14 +2344,17 @@ export default function TeacherDashboard({
                                         Мои записи KPI по разделам
                                     </CardTitle>
                                     <span className="text-xs text-slate-500">
-                                        Нажмите на строку для истории утверждения
+                                        {filteredItems.length !== items.length
+                                            ? <>Показано {filteredItems.length} из {items.length} · </>
+                                            : <>{items.length} зап. · </>}
+                                        нажмите на строку для истории утверждения
                                     </span>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="p-0">
                                     <EntriesBySection items={filteredItems} isEditableEntry={isEditableEntry} isFileMissing={isFileMissing} uploadFile={uploadFile} uploadingEntryId={uploadingEntryId} submitEntry={submitEntry} deleteEntry={deleteEntry} openEditEntry={openEditEntry} />
 
                                     {links.length > 3 && (
-                                        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+                                        <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                             {links.map((link, index) => (
                                                 <Button
                                                     key={`${link.label}-${index}`}

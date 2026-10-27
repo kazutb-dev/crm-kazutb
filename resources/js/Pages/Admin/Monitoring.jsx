@@ -98,18 +98,18 @@ function Panel({ icon: Icon, title, meta = null, className = '', children }) {
 function BarList({ items, getKey, renderLabel, getValue, empty = 'Нет данных' }) {
     const max = items.length ? (getValue(items[0]) || 1) : 1;
     if (items.length === 0) {
-        return <p className="py-4 text-center text-sm text-slate-500">{empty}</p>;
+        return <p className="py-2 text-center text-sm text-slate-500">{empty}</p>;
     }
     return (
         <div>
             {items.map((item) => (
-                <div key={getKey(item)} className="border-b border-slate-200 py-2 last:border-0">
+                <div key={getKey(item)} className="border-b border-slate-200 py-1.5 last:border-0">
                     <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1 truncate text-sm text-slate-700">{renderLabel(item)}</div>
                         <span className="font-mono text-xs tabular-nums text-slate-600">{getValue(item)}</span>
                     </div>
-                    <div className="mt-1.5 h-1.5 rounded-full bg-slate-100">
-                        <div className="h-1.5 rounded-full bg-teal-500" style={{ width: `${Math.min(100, (getValue(item) / max) * 100)}%` }} />
+                    <div className="mt-1 h-1 rounded-full bg-slate-100">
+                        <div className="h-1 rounded-full bg-teal-500" style={{ width: `${Math.min(100, (getValue(item) / max) * 100)}%` }} />
                     </div>
                 </div>
             ))}
@@ -124,6 +124,9 @@ export default function Monitoring({
 }) {
     const onlineUsers = (recentUsers || []).filter(u => u.status === 'online');
     const recentOnlyUsers = (recentUsers || []).filter(u => u.status === 'recent');
+    const severityCounts = {
+        important: (eventsFeed || []).filter((item) => ['critical', 'high'].includes(item.severity)).length,
+    };
     const fmt = (value) => (value || 0).toLocaleString('ru-RU');
 
     return (
@@ -175,135 +178,151 @@ export default function Monitoring({
                         tone="navy" hint="Все источники" />
                 </StatGrid>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                    <Panel
-                        icon={Users}
-                        title="Пользователи в системе"
-                        meta={`${onlineUsers.length} онлайн · ${recentOnlyUsers.length} недавно`}
-                        className="lg:col-span-2"
-                    >
-                        {(recentUsers || []).length === 0 && (
-                            <p className="py-8 text-center text-sm text-slate-500">Нет активных пользователей</p>
-                        )}
-                        <div className="max-h-[480px] overflow-y-auto pr-1">
-                            {(recentUsers || []).map(u => (
-                                <div key={u.user_id} className="flex items-start gap-3 border-b border-slate-200 py-2.5 last:border-0">
-                                    <div className="pt-1.5"><StatusDot status={u.status} /></div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="max-w-[160px] truncate text-sm font-medium text-slate-900">{u.name}</span>
-                                            {u.role && (
-                                                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[u.role] || 'bg-slate-100 text-slate-600'}`}>
-                                                    {u.role_label || u.role}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="mt-0.5 text-xs text-slate-500">{u.email}</p>
-                                        <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
-                                            {u.last_route_name && <span className="max-w-[120px] truncate font-mono">{u.last_route_name}</span>}
-                                            {u.last_ip_address && <span className="font-mono">{u.last_ip_address}</span>}
-                                            <span className="tabular-nums">{formatDate(u.last_seen_at)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Panel>
-
-                    <Panel
-                        icon={Activity}
-                        title="Лента событий"
-                        meta={`последние ${(eventsFeed || []).length} событий`}
-                        className="lg:col-span-3"
-                    >
-                        {(eventsFeed || []).length === 0 && (
-                            <p className="py-8 text-center text-sm text-slate-500">Событий не найдено</p>
-                        )}
-                        <div className="max-h-[480px] overflow-y-auto pr-1">
-                            {(eventsFeed || []).map(item => (
-                                <div key={item.id} className="flex items-start gap-3 border-b border-slate-200 py-2.5 last:border-0">
-                                    <div className="pt-2">
-                                        <span className={`block h-2 w-2 rounded-full ${SEVERITY_CONFIG[item.severity]?.dot || 'bg-slate-400'}`} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-sm font-medium text-slate-900">
-                                                {item.event_label || item.event_key}
-                                            </span>
-                                            {item.module && <ModuleBadge module={item.module} label={item.module_label} />}
-                                            {item.severity && item.severity !== 'low' && (
-                                                <SeverityBadge severity={item.severity} label={item.severity_label} />
-                                            )}
-                                        </div>
-                                        <div className="mt-0.5 flex flex-wrap gap-3 text-xs text-slate-500">
-                                            <span className="font-medium text-slate-700">{item.actor_name}</span>
-                                            {item.subject_name && <span>{item.subject_name}{item.subject_label ? ` ${item.subject_label}` : ''}</span>}
-                                            {item.ip_address && <span className="font-mono">{item.ip_address}</span>}
-                                            <span className="ml-auto tabular-nums">{formatDate(item.created_at)}</span>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-[340px_minmax(0,1fr)_320px]">
+                    <div className="space-y-4">
+                        <Panel
+                            icon={Users}
+                            title="Пользователи в системе"
+                            meta={`${onlineUsers.length} онлайн · ${recentOnlyUsers.length} недавно`}
+                        >
+                            {(recentUsers || []).length === 0 && (
+                                <p className="py-4 text-center text-sm text-slate-500">Нет активных пользователей</p>
+                            )}
+                            <div className="max-h-[420px] overflow-y-auto pr-1">
+                                {(recentUsers || []).map(u => (
+                                    <div key={u.user_id} className="flex items-start gap-2.5 border-b border-slate-200 py-2 last:border-0">
+                                        <div className="pt-1.5"><StatusDot status={u.status} /></div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                                <span className="max-w-[180px] truncate text-sm font-medium text-slate-900">{u.name}</span>
+                                                {u.role && (
+                                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ROLE_COLORS[u.role] || 'bg-slate-100 text-slate-600'}`}>
+                                                        {u.role_label || u.role}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="truncate text-xs text-slate-500">{u.email}</p>
+                                            <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-500">
+                                                {u.last_route_name && <span className="max-w-[140px] truncate font-mono">{u.last_route_name}</span>}
+                                                {u.last_ip_address && <span className="font-mono">{u.last_ip_address}</span>}
+                                                <span className="tabular-nums">{formatDate(u.last_seen_at)}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Panel>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-                    <Panel title="События по модулям">
-                        <BarList
-                            items={(eventsByModule || []).slice(0, 8)}
-                            getKey={(item) => item.module}
-                            renderLabel={(item) => <ModuleBadge module={item.module} label={item.module_label} />}
-                            getValue={(item) => item.count}
-                        />
-                    </Panel>
-
-                    <Panel title="Топ событий">
-                        <BarList
-                            items={(eventsByType || []).slice(0, 8)}
-                            getKey={(item) => item.event}
-                            renderLabel={(item) => item.label || item.event}
-                            getValue={(item) => item.total}
-                        />
-                    </Panel>
-
-                    <Panel icon={MapPin} title="Топ маршрутов (24ч)">
-                        {(topRoutes || []).slice(0, 8).map(item => (
-                            <div key={item.route} className="flex items-center gap-2 border-b border-slate-200 py-2 last:border-0">
-                                <span className="flex-1 truncate font-mono text-xs text-slate-700">{item.route}</span>
-                                <span className="font-mono text-xs tabular-nums text-slate-500">{item.count}</span>
+                                ))}
                             </div>
-                        ))}
-                        {(topRoutes || []).length === 0 && (
-                            <p className="py-4 text-center text-sm text-slate-500">Нет данных</p>
-                        )}
-                    </Panel>
+                        </Panel>
 
-                    <Panel icon={Globe} title="IP-адреса (активные)">
-                        <BarList
-                            items={(ipHotspots || []).slice(0, 8)}
-                            getKey={(item) => item.ip}
-                            renderLabel={(item) => <span className="font-mono text-xs">{item.ip}</span>}
-                            getValue={(item) => item.events}
-                        />
-                    </Panel>
-                </div>
-
-                {(topUsers || []).length > 0 && (
-                    <Panel icon={Zap} title="Наиболее активные (6ч)">
-                        <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <Panel icon={Zap} title="Наиболее активные (6ч)" meta={(topUsers || []).length ? `${(topUsers || []).length} польз.` : null}>
+                            {(topUsers || []).length === 0 && (
+                                <p className="py-4 text-center text-sm text-slate-500">Нет данных</p>
+                            )}
                             {(topUsers || []).map((u, i) => (
-                                <div key={u.user_id} className="flex items-center gap-3 border-b border-slate-200 py-2.5">
-                                    <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
+                                <div key={u.user_id} className="flex items-center gap-2.5 border-b border-slate-200 py-1.5 last:border-0">
+                                    <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums ${i === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
                                         {i + 1}
                                     </span>
                                     <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-900">{u.name}</p>
                                     <span className="text-sm font-semibold tabular-nums text-[#102945]">{u.score} ед.</span>
                                 </div>
                             ))}
-                        </div>
-                    </Panel>
-                )}
+                        </Panel>
+                    </div>
+
+                    <Card className="min-w-0 overflow-hidden lg:col-span-2 2xl:col-span-1 2xl:row-span-1">
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <CardTitle className="flex items-center gap-2"><Activity className="h-4 w-4" />Лента событий</CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">
+                                    последние {(eventsFeed || []).length} событий
+                                    {severityCounts.important ? ` · важных: ${severityCounts.important}` : ''}
+                                </span>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {(eventsFeed || []).length === 0 ? (
+                                <p className="px-5 py-8 text-center text-sm text-slate-500">Событий не найдено</p>
+                            ) : (
+                                <div className="max-h-[720px] overflow-auto">
+                                    <table className="w-full min-w-[760px] text-sm">
+                                        <thead>
+                                            <tr>
+                                                <th className="w-32">Время</th>
+                                                <th>Событие</th>
+                                                <th>Пользователь</th>
+                                                <th>Сущность</th>
+                                                <th>IP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(eventsFeed || []).map(item => (
+                                                <tr key={item.id}>
+                                                    <td className="whitespace-nowrap text-xs tabular-nums text-slate-500">
+                                                        <span className={`mr-2 inline-block h-2 w-2 rounded-full ${SEVERITY_CONFIG[item.severity]?.dot || 'bg-slate-400'}`} />
+                                                        {formatDate(item.created_at)}
+                                                    </td>
+                                                    <td>
+                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                            <span className="font-medium text-slate-900">{item.event_label || item.event_key}</span>
+                                                            {item.module && <ModuleBadge module={item.module} label={item.module_label} />}
+                                                            {item.severity && item.severity !== 'low' && (
+                                                                <SeverityBadge severity={item.severity} label={item.severity_label} />
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="text-slate-700">{item.actor_name}</td>
+                                                    <td className="text-xs text-slate-500">{item.subject_name ? `${item.subject_name}${item.subject_label ? ` ${item.subject_label}` : ''}` : '—'}</td>
+                                                    <td className="whitespace-nowrap font-mono text-xs text-slate-500">{item.ip_address || '—'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <div className="space-y-4 lg:col-start-2 lg:row-start-1 2xl:col-start-auto 2xl:row-start-auto">
+                        <Panel title="События по модулям">
+                            <BarList
+                                items={(eventsByModule || []).slice(0, 8)}
+                                getKey={(item) => item.module}
+                                renderLabel={(item) => <ModuleBadge module={item.module} label={item.module_label} />}
+                                getValue={(item) => item.count}
+                            />
+                        </Panel>
+
+                        <Panel title="Топ событий">
+                            <BarList
+                                items={(eventsByType || []).slice(0, 8)}
+                                getKey={(item) => item.event}
+                                renderLabel={(item) => item.label || item.event}
+                                getValue={(item) => item.total}
+                            />
+                        </Panel>
+
+                        <Panel icon={MapPin} title="Топ маршрутов (24ч)">
+                            {(topRoutes || []).slice(0, 8).map(item => (
+                                <div key={item.route} className="flex items-center gap-2 border-b border-slate-200 py-1.5 last:border-0">
+                                    <span className="flex-1 truncate font-mono text-xs text-slate-700">{item.route}</span>
+                                    <span className="font-mono text-xs tabular-nums text-slate-500">{item.count}</span>
+                                </div>
+                            ))}
+                            {(topRoutes || []).length === 0 && (
+                                <p className="py-2 text-center text-sm text-slate-500">Нет данных</p>
+                            )}
+                        </Panel>
+
+                        <Panel icon={Globe} title="IP-адреса (активные)">
+                            <BarList
+                                items={(ipHotspots || []).slice(0, 8)}
+                                getKey={(item) => item.ip}
+                                renderLabel={(item) => <span className="font-mono text-xs">{item.ip}</span>}
+                                getValue={(item) => item.events}
+                            />
+                        </Panel>
+                    </div>
+                </div>
 
                 <p className="text-center text-xs text-slate-500">
                     DEV-среда · Обновите страницу для актуальных данных

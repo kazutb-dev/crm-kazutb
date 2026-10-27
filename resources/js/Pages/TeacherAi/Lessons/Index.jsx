@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LessonStatusBadge, isLessonInProgress, pluralSlides } from '@/components/teacher-ai/lesson-shared';
 import { Link, router, useForm } from '@inertiajs/react';
-import { BookOpenText, FolderOpen, Inbox, Presentation, Sparkles } from 'lucide-react';
+import { BookOpenText, CheckCircle2, FolderOpen, Gauge, Inbox, LoaderCircle, Presentation, Sparkles } from 'lucide-react';
 import { useEffect } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -59,6 +59,11 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
     const usedToday = limits?.used_today ?? 0;
     const limitReached = dailyLimit > 0 && usedToday >= dailyLimit;
     const hasInProgress = lessonList.some((lesson) => isLessonInProgress(lesson?.status));
+    const completedCount = lessonList.filter((lesson) => lesson?.status === 'completed').length;
+    const inProgressCount = lessonList.filter((lesson) => isLessonInProgress(lesson?.status)).length;
+    const failedCount = lessonList.filter((lesson) => lesson?.status === 'failed').length;
+    const slidesTotal = lessonList.reduce((sum, lesson) => sum + (Number(lesson?.slides_total) || 0), 0);
+    const presentationsCount = lessonList.filter((lesson) => lesson?.has_presentation).length;
     const canSubmit = aiEnabled && !limitReached && !form.processing
         && form.data.subject.trim().length > 0 && form.data.topic.trim().length > 0;
 
@@ -120,7 +125,15 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                     </Notice>
                 )}
 
-                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <StatGrid>
+                    <StatTile label="Сегодня" value={`${usedToday} / ${dailyLimit}`} hint={dailyLimit > 0 ? `осталось ${Math.max(dailyLimit - usedToday, 0)}` : 'лимит не задан'} icon={Gauge} tone={limitReached ? 'warning' : 'teal'} />
+                    <StatTile label="Мои материалы" value={lessonList.length} hint={failedCount > 0 ? `с ошибкой: ${failedCount}` : 'лекции и презентации'} icon={FolderOpen} tone="navy" />
+                    <StatTile label="Готово" value={completedCount} hint="можно скачать" icon={CheckCircle2} tone="success" />
+                    <StatTile label="В работе" value={inProgressCount} hint="в очереди и генерации" icon={LoaderCircle} tone="info" />
+                    <StatTile label="Слайдов" value={slidesTotal} hint={`презентаций: ${presentationsCount}`} icon={Presentation} tone="gold" />
+                </StatGrid>
+
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -129,11 +142,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                    <form onSubmit={submit} className="space-y-5">
-                        <p className="text-sm text-slate-600">
-                            Сегодня использовано <span className="font-semibold tabular-nums text-[#102945]">{usedToday}</span> из <span className="font-semibold tabular-nums text-[#102945]">{dailyLimit}</span>
-                        </p>
-
+                    <form onSubmit={submit} className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label htmlFor="subject" className="qd-field-label mb-2 block">
                                 Дисциплина / название урока <span className="text-red-600">*</span>
@@ -165,8 +175,9 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             />
                             <FieldError message={form.errors.topic} />
                         </div>
+                        </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
                             <div>
                                 <label htmlFor="language" className="qd-field-label mb-2 block">Язык материалов</label>
                                 <select
@@ -197,9 +208,6 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 />
                                 <FieldError message={form.errors.audience} />
                             </div>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label htmlFor="duration_minutes" className="qd-field-label mb-2 block">Длительность занятия</label>
                                 <select
@@ -233,13 +241,13 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             </div>
                         </div>
 
-                        <fieldset className="min-w-0 space-y-4 rounded-xl border border-slate-200 p-5">
-                            <legend className="float-left w-full font-display text-base font-bold text-[#102945]">Титульный слайд</legend>
-                            <p className="clear-both !mt-1 text-sm text-slate-600">
-                                Эти данные появятся на обложке презентации. Все поля необязательны.
-                            </p>
+                        <fieldset className="min-w-0 space-y-3 rounded-xl border border-slate-200 px-4 py-3">
+                            <legend className="float-left flex w-full flex-wrap items-baseline gap-x-2 pb-3 font-display text-sm font-bold text-[#102945]">
+                                Титульный слайд
+                                <span className="font-sans text-xs font-normal text-slate-500">— данные для обложки презентации, все поля необязательны</span>
+                            </legend>
 
-                            <div className="grid gap-4 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
+                            <div className="clear-both grid gap-4 sm:grid-cols-[minmax(0,9rem)_minmax(0,1fr)_minmax(0,1fr)]">
                                 <div>
                                     <label htmlFor="lecture_number" className="qd-field-label mb-2 block">Номер лекции</label>
                                     <input
@@ -256,12 +264,6 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                     />
                                     <FieldError message={form.errors.lecture_number} />
                                 </div>
-                                <p className="text-sm text-slate-500 sm:pt-8">
-                                    {lectureNumberPreview
-                                        ? <>На слайде: «{lectureNumberPreview}»</>
-                                        : <>От {LECTURE_NUMBER_MIN} до {LECTURE_NUMBER_MAX}: например, 7 → «7-Дәріс» / «Лекция 7».</>}
-                                </p>
-                            </div>
 
                             <div>
                                 <label htmlFor="faculty_name" className="qd-field-label mb-2 block">Факультет</label>
@@ -290,6 +292,12 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 />
                                 <FieldError message={form.errors.department_name} />
                             </div>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                                {lectureNumberPreview
+                                    ? <>На слайде: «{lectureNumberPreview}»</>
+                                    : <>Номер лекции от {LECTURE_NUMBER_MIN} до {LECTURE_NUMBER_MAX}: например, 7 → «7-Дәріс» / «Лекция 7».</>}
+                            </p>
                         </fieldset>
 
                         <div>
@@ -300,7 +308,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                 id="notes"
                                 value={form.data.notes}
                                 onChange={(event) => form.setData('notes', event.target.value)}
-                                rows={3}
+                                rows={2}
                                 maxLength={1000}
                                 placeholder="Например: больше практических примеров, добавить мини-кейс"
                                 className={textareaClassName}
@@ -313,13 +321,13 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                             студентов и сотрудников.
                         </Notice>
 
-                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
+                        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4">
                             {limitReached && (
                                 <span className="mr-auto text-sm text-amber-700">Дневной лимит генераций исчерпан.</span>
                             )}
                             <Button type="submit" disabled={!canSubmit} className="gap-2">
                                 <Sparkles className="h-4 w-4" />
-                                {form.processing ? 'Отправка…' : 'Сгенерировать лекцию и презентацию'}
+                                {form.processing ? 'Отправка…' : <><span className="sm:hidden">Сгенерировать</span><span className="hidden sm:inline">Сгенерировать лекцию и презентацию</span></>}
                             </Button>
                         </div>
                     </form>
@@ -327,12 +335,12 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                     </Card>
 
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2">
                                 <FolderOpen className="h-4 w-4" />
                                 Мои материалы
                             </CardTitle>
-                            <CardDescription>Видны только вам.</CardDescription>
+                            <span className="text-xs text-slate-500">Видны только вам · <span className="font-semibold tabular-nums">{lessonList.length}</span></span>
                         </CardHeader>
                         <CardContent className={lessonList.length === 0 ? '' : 'p-0'}>
                         {lessonList.length === 0 ? (
@@ -347,7 +355,7 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                     <li key={lesson.id}>
                                         <Link
                                             href={route('teacher-ai.lessons.show', lesson.id)}
-                                            className="flex flex-col gap-2 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
+                                            className="flex flex-col gap-1 px-5 py-2.5 transition hover:bg-slate-50"
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <span className="min-w-0 break-words font-medium text-slate-900">
@@ -359,9 +367,8 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                                 {lesson.subject && <span className="break-words">{lesson.subject}</span>}
                                                 {lesson.language_label && <span>{lesson.language_label}</span>}
                                                 {lesson.created_at && <span className="tabular-nums">{lesson.created_at}</span>}
-                                            </div>
                                             {(lesson.has_lecture || lesson.has_presentation) && (
-                                                <div className="flex flex-wrap gap-1.5">
+                                                <span className="flex flex-wrap gap-1.5">
                                                     {lesson.has_lecture && (
                                                         <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-100 px-2.5 py-0.5 text-xs font-medium text-teal-700">
                                                             <BookOpenText className="h-3 w-3" />
@@ -376,8 +383,9 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
                                                                 : 'Презентация'}
                                                         </span>
                                                     )}
-                                                </div>
+                                                </span>
                                             )}
+                                            </div>
                                         </Link>
                                     </li>
                                 ))}
@@ -393,12 +401,12 @@ export default function Index({ lessons = [], options = {}, aiEnabled = false, l
 
 function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
             </span>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}

@@ -3,7 +3,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { InfoField, Notice, PageHeader, UnderlineTabs } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { SEVERITY_META, SEVERITY_ORDER, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
+import { SEVERITY_META, SEVERITY_ORDER, SeverityCounts, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, FileText, Inbox, Lightbulb, LoaderCircle, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -16,7 +16,7 @@ function FindingCard({ finding }) {
     const meta = SEVERITY_META[finding.severity] ?? SEVERITY_META.minor;
 
     return (
-        <article className="py-5 first:pt-0 last:pb-0">
+        <article className="py-3 first:pt-0 last:pb-0">
             <div className="flex flex-wrap items-center gap-2">
                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClassName}`} />
@@ -26,15 +26,15 @@ function FindingCard({ finding }) {
             </div>
 
             {finding.quote && (
-                <blockquote className="mt-3 break-words border-l-[3px] border-teal-600 pl-3 text-sm italic text-slate-600">
+                <blockquote className="mt-2 break-words border-l-[3px] border-teal-600 pl-3 text-sm italic text-slate-600">
                     «{finding.quote}»
                 </blockquote>
             )}
 
-            <p className="mt-3 text-sm leading-6 text-slate-800">{finding.issue}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-800">{finding.issue}</p>
 
             {finding.suggestion && (
-                <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 p-3 text-sm text-[#102945]">
+                <div className="mt-2 flex items-start gap-2 rounded-[10px] border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-[#102945]">
                     <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />
                     <p><span className="font-semibold">Как исправить: </span>{finding.suggestion}</p>
                 </div>
@@ -130,11 +130,11 @@ export default function Show({ review }) {
 
                 {inProgress && (
                     <Card>
-                        <CardContent className="flex flex-col items-center justify-center px-6 py-12 text-center">
-                            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                <LoaderCircle className="h-8 w-8 animate-spin" />
+                        <CardContent className="flex flex-col items-center justify-center px-6 py-8 text-center">
+                            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                <LoaderCircle className="h-6 w-6 animate-spin" />
                             </span>
-                            <h3 className="mt-4 font-display text-lg font-bold text-[#102945]">
+                            <h3 className="mt-3 font-display text-base font-bold text-[#102945]">
                                 {review.status === 'pending' ? 'Документ в очереди на проверку' : 'ИИ анализирует документ'}
                             </h3>
                             <p className="mt-1 max-w-md text-sm text-slate-600">
@@ -174,6 +174,8 @@ export default function Show({ review }) {
                             </Notice>
                         )}
 
+                        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+                        <div className="space-y-4 xl:sticky xl:top-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -181,13 +183,13 @@ export default function Show({ review }) {
                                     Краткий пересказ
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-6">
-                                <p className="whitespace-pre-line text-[0.9375rem] leading-7 text-slate-700">{review.summary}</p>
+                            <CardContent className="space-y-4">
+                                <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{review.summary}</p>
 
                                 {review.key_points.length > 0 && (
-                                    <div className="border-t border-slate-200 pt-5">
+                                    <div className="border-t border-slate-200 pt-3">
                                         <h4 className="qd-field-label text-slate-500">Ключевые положения</h4>
-                                        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
+                                        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm leading-6 text-slate-700 marker:text-teal-600">
                                             {review.key_points.map((point, index) => (
                                                 <li key={index}>{point}</li>
                                             ))}
@@ -196,22 +198,30 @@ export default function Show({ review }) {
                                 )}
 
                                 {review.overall && (
-                                    <div className="border-t border-slate-200 pt-5">
+                                    <div className="border-t border-slate-200 pt-3">
                                         <h4 className="qd-field-label text-slate-500">Общий вывод ИИ</h4>
                                         <p className="mt-2 text-sm leading-6 text-slate-700">{review.overall}</p>
                                     </div>
                                 )}
+                                {review.focus && (
+                                    <div className="border-t border-slate-200 pt-3">
+                                        <h4 className="qd-field-label text-slate-500">Ваш комментарий для ИИ</h4>
+                                        <p className="mt-2 text-sm leading-6 text-slate-700">{review.focus}</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
+                        </div>
 
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                                 <CardTitle className="flex items-center gap-2">
                                     <TriangleAlert className="h-4 w-4" />
                                     Спорные места ({findings.length})
                                 </CardTitle>
+                                <SeverityCounts counts={review.findings_count} />
                             </CardHeader>
-                            <CardContent className="space-y-5">
+                            <CardContent className="space-y-4">
                                 {findings.length > 0 && (
                                     <UnderlineTabs items={filterTabs} value={filter} onChange={setFilter} />
                                 )}
@@ -231,10 +241,11 @@ export default function Show({ review }) {
                                 )}
                             </CardContent>
                         </Card>
+                        </div>
                     </>
                 )}
 
-                {review.focus && (
+                {review.focus && review.status !== 'completed' && (
                     <InfoField label="Ваш комментарий для ИИ" className="border-b-0">
                         <span className="font-normal text-slate-700">{review.focus}</span>
                     </InfoField>
@@ -254,12 +265,12 @@ export default function Show({ review }) {
 
 function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
             </span>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}

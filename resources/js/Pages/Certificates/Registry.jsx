@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, FilterBar, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Card, CardContent, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Award, Download, QrCode, Search } from 'lucide-react';
 import {
     Dialog,
@@ -55,6 +55,11 @@ export default function CertificatesRegistryPage() {
     const [qrDialogData, setQrDialogData] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
 
+    const pageCounts = registry.data.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] ?? 0) + 1;
+        return acc;
+    }, {});
+
     const getCsrfToken = () =>
         decodeURIComponent(document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? '');
 
@@ -63,7 +68,7 @@ export default function CertificatesRegistryPage() {
         try {
             const params = new URLSearchParams({
                 page: String(page),
-                per_page: '10',
+                per_page: '20',
             });
 
             if (nextQuery.trim() !== '') {
@@ -311,43 +316,41 @@ export default function CertificatesRegistryPage() {
             </Dialog>
 
             <div className="admin-page-wrap space-y-6">
-                <FilterBar>
+                <Card className="overflow-hidden">
                     <form
-                        className="space-y-4"
+                        className="grid items-end gap-3 border-b border-slate-200 px-5 py-4 sm:px-6 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto_minmax(0,1fr)]"
                         onSubmit={(event) => {
                             event.preventDefault();
                             applyFilters();
                         }}
                     >
-                        <div className="grid gap-4 md:grid-cols-3">
-                            <label className="block space-y-2 md:col-span-2">
-                                <span className="qd-field-label block">Поиск</span>
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        className={cn(qdFieldClass, 'pl-9')}
-                                        placeholder="Поиск по номеру, ФИО или теме"
-                                        value={query}
-                                        onChange={(event) => setQuery(event.target.value)}
-                                    />
-                                </div>
-                            </label>
-                            <label className="block space-y-2">
-                                <span className="qd-field-label block">Статус</span>
-                                <select
-                                    className={qdFieldClass}
-                                    value={status}
-                                    onChange={(event) => setStatus(event.target.value)}
-                                >
-                                    {statusOptions.map((option) => (
-                                        <option key={option.value || 'all'} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Поиск</span>
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    className={cn(qdFieldClass, 'pl-9')}
+                                    placeholder="Поиск по номеру, ФИО или теме"
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                />
+                            </div>
+                        </label>
+                        <label className="block space-y-2">
+                            <span className="qd-field-label block">Статус</span>
+                            <select
+                                className={qdFieldClass}
+                                value={status}
+                                onChange={(event) => setStatus(event.target.value)}
+                            >
+                                {statusOptions.map((option) => (
+                                    <option key={option.value || 'all'} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <div className="flex items-center gap-2">
                             <Button type="submit" disabled={registryLoading}>
                                 {registryLoading ? 'Загрузка...' : 'Применить'}
                             </Button>
@@ -364,10 +367,18 @@ export default function CertificatesRegistryPage() {
                                 Сбросить
                             </Button>
                         </div>
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 xl:h-10 xl:justify-end">
+                            {Object.keys(pageCounts).length === 0 ? (
+                                <span>На странице нет записей</span>
+                            ) : (
+                                Object.entries(pageCounts).map(([key, count]) => (
+                                    <StatusBadge key={key} tone={STATUS_TONES[key] ?? 'default'}>
+                                        {statusLabel[key] ?? key}: {count}
+                                    </StatusBadge>
+                                ))
+                            )}
+                        </div>
                     </form>
-                </FilterBar>
-
-                <Card className="overflow-hidden">
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
@@ -378,6 +389,7 @@ export default function CertificatesRegistryPage() {
                                         <th>Тема</th>
                                         <th>Шаблон</th>
                                         <th>Статус</th>
+                                        <th>Сгенерирован</th>
                                         <th>Выдан</th>
                                         <th className="text-right">Действия</th>
                                     </tr>
@@ -385,7 +397,7 @@ export default function CertificatesRegistryPage() {
                                 <tbody>
                                     {registry.data.length === 0 && (
                                         <tr>
-                                            <td className="py-12 text-center text-slate-500" colSpan={7}>
+                                            <td className="py-8 text-center text-slate-500" colSpan={8}>
                                                 {registryLoading ? 'Загрузка...' : 'Записей пока нет'}
                                             </td>
                                         </tr>
@@ -397,12 +409,17 @@ export default function CertificatesRegistryPage() {
                                             <td className="font-medium text-slate-900">{certificate.recipient_full_name}</td>
                                             <td className="text-slate-700">{certificate.topic}</td>
                                             <td className="text-slate-500">
-                                                {certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}
+                                                <div>{certificate.template_name} {certificate.template_version ? `(v${certificate.template_version})` : ''}</div>
+                                                {certificate.template_code ? <div className="font-mono text-xs text-slate-400">{certificate.template_code}</div> : null}
                                             </td>
                                             <td>
                                                 <StatusBadge tone={STATUS_TONES[certificate.status] ?? 'default'}>
                                                     {statusLabel[certificate.status] ?? certificate.status}
                                                 </StatusBadge>
+                                            </td>
+                                            <td className="tabular-nums text-slate-500">
+                                                <div>{certificate.generated_at_human ?? '-'}</div>
+                                                {certificate.creator_name ? <div className="text-xs text-slate-400">{certificate.creator_name}</div> : null}
                                             </td>
                                             <td className="tabular-nums text-slate-500">
                                                 {certificate.issued_at_human ?? '-'}

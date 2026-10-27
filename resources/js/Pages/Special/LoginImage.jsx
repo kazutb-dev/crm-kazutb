@@ -217,7 +217,7 @@ export default function LoginImage() {
             <Head title="Приветствие" />
 
             <div className="admin-page-wrap">
-                <section className="relative isolate overflow-hidden rounded-[14px] bg-[#082834] px-4 py-6 sm:px-8 sm:py-8">
+                <section className="relative isolate overflow-hidden rounded-[14px] bg-[#082834] px-4 py-5 sm:px-6 sm:py-6">
                     <div className="pointer-events-none absolute -left-24 -top-32 h-80 w-80 rounded-full bg-teal-500/20 blur-3xl" aria-hidden="true" />
                     <div className="pointer-events-none absolute -bottom-32 -right-16 h-72 w-72 rounded-full bg-amber-400/15 blur-3xl" aria-hidden="true" />
 
@@ -227,14 +227,14 @@ export default function LoginImage() {
                         className="pointer-events-none absolute inset-0 z-[9999] h-full w-full"
                     />
 
-                    <div className="relative z-20 flex flex-col items-center gap-6">
+                    <div className="relative z-20 flex flex-col items-center gap-4">
                         <p className="qd-kicker text-teal-300">Qadam · Панель управления</p>
 
                         <div className="relative mx-auto w-fit overflow-hidden rounded-[14px]">
                             <img
                                 src="/assets/images/azat-login-screen.png"
                                 alt="Приветственное изображение"
-                                className="block h-auto max-h-[calc(100vh-20rem)] max-w-full rounded-[14px] border border-white/10"
+                                className="block h-auto max-h-[calc(100vh-14rem)] max-w-full rounded-[14px] border border-white/10"
                             />
                             <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center text-[22px] font-semibold text-red-600 sm:text-lg">
                                 <div className="flex items-center gap-[50px]">

@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Notice, PageHeader, Segmented, StatusBadge, qdFieldClass } from '@/components/platform';
+import { Notice, PageHeader, Segmented, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SeverityCounts, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
 import { Link, router, useForm } from '@inertiajs/react';
-import { ClipboardPaste, FileText, Inbox, Sparkles, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ClipboardPaste, FileText, Gauge, Inbox, LoaderCircle, Sparkles, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -35,6 +35,13 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
     const maxFileMb = limits.max_file_mb ?? 10;
     const limitReached = dailyLimit > 0 && usedToday >= dailyLimit;
     const hasInProgress = reviews.some((review) => isInProgress(review.status));
+    const completedCount = reviews.filter((review) => review.status === 'completed').length;
+    const inProgressCount = reviews.filter((review) => isInProgress(review.status)).length;
+    const failedCount = reviews.filter((review) => review.status === 'failed').length;
+    const findingTotals = reviews.reduce((acc, review) => {
+        ['critical', 'major', 'minor'].forEach((key) => { acc[key] += review.findings_count?.[key] ?? 0; });
+        return acc;
+    }, { critical: 0, major: 0, minor: 0 });
     const canSubmit = aiEnabled && !limitReached && !form.processing
         && (mode === 'file' ? Boolean(form.data.document) : form.data.text.trim().length > 0);
 
@@ -96,7 +103,15 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                     </Notice>
                 )}
 
-                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <StatGrid>
+                    <StatTile label="Сегодня" value={`${usedToday} / ${dailyLimit}`} hint={dailyLimit > 0 ? `осталось ${Math.max(dailyLimit - usedToday, 0)}` : 'лимит не задан'} icon={Gauge} tone={limitReached ? 'warning' : 'teal'} />
+                    <StatTile label="Мои проверки" value={reviews.length} hint={failedCount > 0 ? `с ошибкой: ${failedCount}` : 'последние 50'} icon={FileText} tone="navy" />
+                    <StatTile label="Готово" value={completedCount} hint="результаты доступны" icon={CheckCircle2} tone="success" />
+                    <StatTile label="В работе" value={inProgressCount} hint="в очереди и анализе" icon={LoaderCircle} tone="info" />
+                    <StatTile label="Замечаний" value={findingTotals.critical + findingTotals.major + findingTotals.minor} hint={`критично ${findingTotals.critical} · важно ${findingTotals.major} · рекоменд. ${findingTotals.minor}`} icon={AlertTriangle} tone={findingTotals.critical > 0 ? 'danger' : 'gold'} />
+                </StatGrid>
+
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -105,11 +120,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={submit} className="space-y-5">
-                                <p className="text-sm text-slate-600">
-                                    Сегодня использовано <span className="font-semibold tabular-nums text-[#102945]">{usedToday}</span> из <span className="font-semibold tabular-nums text-[#102945]">{dailyLimit}</span>
-                                </p>
-
+                            <form onSubmit={submit} className="space-y-4">
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <label htmlFor="document_type" className="qd-field-label block">Тип документа</label>
@@ -142,7 +153,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     <span className="qd-field-label block">Документ</span>
                                     <Segmented
                                         value={mode}
@@ -157,10 +168,10 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                                         <div>
                                             <label
                                                 htmlFor="document"
-                                                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition hover:border-teal-500 hover:bg-teal-50"
+                                                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition hover:border-teal-500 hover:bg-teal-50"
                                             >
-                                                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                                    <FileText className="h-6 w-6" />
+                                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                                    <FileText className="h-4 w-4" />
                                                 </span>
                                                 <span className="text-sm font-semibold text-[#102945]">
                                                     {form.data.document ? form.data.document.name : 'Выберите файл'}
@@ -211,7 +222,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                                     студентов и сотрудников: ИИН, телефоны, оценки. Номера из 12 цифр скрываются автоматически.
                                 </Notice>
 
-                                <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-5">
+                                <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4">
                                     {limitReached && (
                                         <span className="mr-auto text-sm text-amber-700">Дневной лимит проверок исчерпан.</span>
                                     )}
@@ -225,12 +236,12 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                     </Card>
 
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2">
                                 <FileText className="h-4 w-4" />
                                 Мои проверки
                             </CardTitle>
-                            <CardDescription>Видны только вам.</CardDescription>
+                            <span className="text-xs text-slate-500">Видны только вам · <span className="font-semibold tabular-nums">{reviews.length}</span></span>
                         </CardHeader>
                         <CardContent className={reviews.length === 0 ? '' : 'p-0'}>
                             {reviews.length === 0 ? (
@@ -245,7 +256,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                                         <li key={review.id}>
                                             <Link
                                                 href={route('teacher-ai.reviews.show', review.id)}
-                                                className="flex flex-col gap-2 px-5 py-4 transition hover:bg-slate-50 sm:px-6"
+                                                className="flex flex-col gap-1 px-5 py-2.5 transition hover:bg-slate-50"
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <span className="min-w-0 break-words font-medium text-slate-900">{review.title}</span>
@@ -271,12 +282,12 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
 
 function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
             </span>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}

@@ -1,5 +1,5 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EmptyState, FilterBar, FormField, Notice, SectionHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { EmptyState, FilterBar, FormField, Notice, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -67,6 +67,14 @@ function formatDate(value) {
         month: '2-digit',
         year: 'numeric',
     }).format(date);
+}
+
+function periodDays(start, end) {
+    if (!start || !end) return null;
+    const a = new Date(start);
+    const b = new Date(end);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+    return Math.round((b - a) / 86400000) + 1;
 }
 
 function validateForm(data) {
@@ -183,6 +191,13 @@ export default function KpiPeriodsManager({
     const items = periods?.data ?? [];
     const links = periods?.links ?? [];
     const canManage = permissions.managePeriods ?? false;
+    const totalCount = periods?.total ?? periods?.meta?.total ?? items.length;
+    const fromIndex = periods?.from ?? periods?.meta?.from ?? null;
+    const toIndex = periods?.to ?? periods?.meta?.to ?? null;
+    const statusCounts = items.reduce((acc, item) => {
+        acc[item.status] = (acc[item.status] ?? 0) + 1;
+        return acc;
+    }, {});
 
     const [confirmState, setConfirmState] = useState({ open: false, description: '', onConfirm: null });
     const [createOpen, setCreateOpen] = useState(false);
@@ -279,9 +294,33 @@ export default function KpiPeriodsManager({
         });
     };
 
+    const createDialog = canManage ? (
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus className="h-4 w-4" />
+                    Добавить KPI-сезон
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Создание KPI-периода</DialogTitle>
+                    <DialogDescription>Настройте период и даты в рамках выбранного учебного года.</DialogDescription>
+                </DialogHeader>
+                <PeriodForm
+                    form={createForm}
+                    academicYears={academicYears}
+                    statusOptions={statusOptions}
+                    submitLabel="Создать период"
+                    onSubmit={submitCreate}
+                />
+            </DialogContent>
+        </Dialog>
+    ) : null;
+
     return (
         <>
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Dialog
                 open={editOpen}
                 onOpenChange={(open) => {
@@ -306,38 +345,10 @@ export default function KpiPeriodsManager({
                 </DialogContent>
             </Dialog>
 
-            <SectionHeader
-                title="Справочник KPI-сезонов"
-                description="Сезоны, их статусы и доступ ролей к заполнению KPI."
-                compact
-                actions={canManage ? (
-                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="h-4 w-4" />
-                                Добавить KPI-сезон
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                            <DialogHeader>
-                                <DialogTitle>Создание KPI-периода</DialogTitle>
-                                <DialogDescription>Настройте период и даты в рамках выбранного учебного года.</DialogDescription>
-                            </DialogHeader>
-                            <PeriodForm
-                                form={createForm}
-                                academicYears={academicYears}
-                                statusOptions={statusOptions}
-                                submitLabel="Создать период"
-                                onSubmit={submitCreate}
-                            />
-                        </DialogContent>
-                    </Dialog>
-                ) : null}
-            />
-
             <FilterBar>
-                <form className="space-y-4" onSubmit={applyFilters}>
-                    <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+                <form onSubmit={applyFilters} className="min-w-0 flex-1">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end">
                         <FormField label="Учебный год">
                             <select className={qdFieldClass} value={filterForm.data.academic_year_id} onChange={(e) => filterForm.setData('academic_year_id', e.target.value)}>
                                 <option value="">Все учебные годы</option>
@@ -355,13 +366,20 @@ export default function KpiPeriodsManager({
                                 ))}
                             </select>
                         </FormField>
-                    </div>
 
-                    <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-                        <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                        <Button type="submit">Применить</Button>
+                        <div className="flex flex-wrap justify-end gap-2 md:col-span-2 xl:col-span-1">
+                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                            <Button type="submit">Применить</Button>
+                        </div>
                     </div>
                 </form>
+                {/* Kept outside the filter <form>: React submit events bubble through portals. */}
+                {createDialog ? (
+                    <div className="flex justify-end border-slate-200 xl:h-10 xl:items-center xl:border-l xl:pl-3">
+                        {createDialog}
+                    </div>
+                ) : null}
+                </div>
             </FilterBar>
 
             {items.length === 0 ? (
@@ -377,11 +395,19 @@ export default function KpiPeriodsManager({
                 />
             ) : (
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <CalendarRange className="h-4 w-4" />
-                            Таблица сезонов
+                            Справочник KPI-сезонов
                         </CardTitle>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span>Всего: <strong className="tabular-nums text-[#102945]">{totalCount}</strong></span>
+                            {Object.entries(statusCounts).map(([status, count]) => (
+                                <StatusBadge key={status} tone={statusTones[status] ?? 'default'}>
+                                    {statusLabels[status] ?? status}: {count}
+                                </StatusBadge>
+                            ))}
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
@@ -389,7 +415,7 @@ export default function KpiPeriodsManager({
                                 <thead className="border-b border-slate-200">
                                     <tr className="text-left">
                                         <th>Период</th>
-                                        <th>Учебный год</th>
+                                        <th className="whitespace-nowrap">Учебный год</th>
                                         <th>Статус</th>
                                         <th>Доступы</th>
                                         <th>Даты</th>
@@ -409,7 +435,7 @@ export default function KpiPeriodsManager({
                                                 <StatusBadge tone={statusTones[period.status] ?? 'default'}>{statusLabels[period.status] ?? period.status}</StatusBadge>
                                             </td>
                                             <td>
-                                                <div className="grid grid-cols-2 gap-1.5">
+                                                <div className="grid grid-cols-2 gap-1.5 2xl:grid-cols-4">
                                                     {accessScopes.map((scope) => {
                                                         const isActive = Boolean(period[scope.field]);
                                                         const canToggle = canManage && period.status !== 'closed';
@@ -435,15 +461,17 @@ export default function KpiPeriodsManager({
                                                     })}
                                                 </div>
                                             </td>
-                                            <td className="tabular-nums">
-                                                <div className="text-slate-900">{formatDate(period.start_date)}</div>
-                                                <div className="text-slate-500">{formatDate(period.end_date)}</div>
+                                            <td className="whitespace-nowrap tabular-nums">
+                                                <div className="text-slate-900">{formatDate(period.start_date)} — {formatDate(period.end_date)}</div>
+                                                {periodDays(period.start_date, period.end_date) ? (
+                                                    <div className="text-xs text-slate-500">{periodDays(period.start_date, period.end_date)} дн.</div>
+                                                ) : null}
                                             </td>
                                             <td className="text-slate-600">
                                                 <div className="max-w-xs whitespace-pre-wrap break-words">{period.description || '—'}</div>
                                             </td>
                                             <td className="text-right">
-                                                <div className="flex flex-wrap justify-end gap-2">
+                                                <div className="flex flex-nowrap justify-end gap-2">
                                                     {canManage && period.status !== 'closed' && (
                                                         <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(period)}>
                                                             <Pencil className="h-4 w-4" />
@@ -472,25 +500,31 @@ export default function KpiPeriodsManager({
                                 </tbody>
                             </table>
                         </div>
+                        {(links.length > 3 || (fromIndex && toIndex)) && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
+                                <span className="text-xs text-slate-500">
+                                    {fromIndex && toIndex ? <>Показано {fromIndex}–{toIndex} из {totalCount}</> : null}
+                                </span>
+                                {links.length > 3 && (
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        {links.map((link) => (
+                                            <Button
+                                                key={`${link.url}-${link.label}`}
+                                                type="button"
+                                                variant={link.active ? 'default' : 'outline'}
+                                                size="sm"
+                                                disabled={!link.url}
+                                                onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
+                                            >
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-            )}
-
-            {links.length > 3 && (
-                <div className="flex flex-wrap justify-end gap-2">
-                    {links.map((link) => (
-                        <Button
-                            key={`${link.url}-${link.label}`}
-                            type="button"
-                            variant={link.active ? 'default' : 'outline'}
-                            size="sm"
-                            disabled={!link.url}
-                            onClick={() => link.url && router.visit(link.url, { preserveScroll: true, preserveState: true })}
-                        >
-                            <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                        </Button>
-                    ))}
-                </div>
             )}
         </div>
         <ConfirmDialog

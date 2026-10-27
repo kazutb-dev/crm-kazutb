@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { InfoField, PageHeader, StatusBadge } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Clock3, Download, UserRound } from 'lucide-react';
+import { ArrowLeft, Ban, Clock3, Download, LogIn, LogOut } from 'lucide-react';
 
 export default function PercoDayEvents({ employee = null, events = [], date = '', back = '' }) {
     const fmtDate = (d) => {
@@ -30,6 +30,12 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
         router.get(route('hr.perco.overtime'));
     };
 
+    const enterEvents = events.filter((row) => row.direction === 'enter');
+    const exitEvents = events.filter((row) => row.direction === 'exit');
+    const ignoredCount = events.filter((row) => row.ignored).length;
+    const firstEnter = enterEvents.length > 0 ? fmtTime(enterEvents.map((row) => row.time_label).filter(Boolean).sort()[0]) : '—';
+    const lastExit = exitEvents.length > 0 ? fmtTime(exitEvents.map((row) => row.time_label).filter(Boolean).sort().at(-1)) : '—';
+
     const handleExport = () => {
         exportToExcelCsv({
             fileName: 'hr_day_events.csv',
@@ -53,7 +59,7 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
                 <PageHeader
                     eyebrow="HR · История проходов за день"
                     title={fullName || 'Сотрудник'}
-                    description={`История проходов за ${fmtDate(date)}`}
+                    description={[employee?.division, employee?.position, `история проходов за ${fmtDate(date)}`].filter(Boolean).join(' · ')}
                     meta={<StatusBadge tone="default">Событий: {events.length}</StatusBadge>}
                     actions={(
                         <>
@@ -72,21 +78,13 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
         >
             <Head title="HR / История проходов за день" />
 
-            <div className="admin-page-wrap space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <UserRound className="shrink-0" />
-                            История проходов за {fmtDate(date)}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-2 xl:grid-cols-4">
-                        <InfoField label="ФИО">{fullName}</InfoField>
-                        <InfoField label="Подразделение">{employee?.division ?? '—'}</InfoField>
-                        <InfoField label="Должность">{employee?.position ?? '—'}</InfoField>
-                        <InfoField label="Событий"><span className="tabular-nums">{events.length}</span></InfoField>
-                    </CardContent>
-                </Card>
+            <div className="admin-page-wrap space-y-4">
+                <StatGrid>
+                    <StatTile label="Событий" value={events.length} icon={Clock3} tone="navy" hint={fmtDate(date)} />
+                    <StatTile label="Входов" value={enterEvents.length} icon={LogIn} tone="success" hint={`Первый вход: ${firstEnter}`} />
+                    <StatTile label="Выходов" value={exitEvents.length} icon={LogOut} tone="danger" hint={`Последний выход: ${lastExit}`} />
+                    <StatTile label="Игнорировано" value={ignoredCount} icon={Ban} tone="copper" />
+                </StatGrid>
 
                 <Card>
                     <CardHeader>
@@ -103,13 +101,14 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {events.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет событий за выбранный день.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">Нет событий за выбранный день.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[760px] text-sm">
                                     <thead>
                                         <tr className="text-left">
                                             <th>Время прохода</th>
+                                            <th>Направление</th>
                                             <th>Выход из</th>
                                             <th>Вход в</th>
                                             <th>Устройство</th>
@@ -132,6 +131,7 @@ export default function PercoDayEvents({ employee = null, events = [], date = ''
                                             return (
                                                 <tr key={row.id} className={`border-b border-slate-200 last:border-0 ${rowClass}`}>
                                                     <td className={`border-l-[3px] font-mono text-xs font-semibold text-[#102945] sm:text-sm ${railClass}`}>{fmtTime(row.time_label)}</td>
+                                                    <td className="text-slate-700">{row.direction === 'exit' ? 'Выход' : row.direction === 'enter' ? 'Вход' : '—'}</td>
                                                     <td className="font-medium text-red-700">{row.zone_exit || '—'}</td>
                                                     <td className="font-medium text-emerald-700">{row.zone_enter || '—'}</td>
                                                     <td className="tabular-nums text-slate-600">{row.device_id ? `#${row.device_id}` : '—'}</td>

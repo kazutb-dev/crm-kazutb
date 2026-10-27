@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EmptyState, FilterBar, FormField, LoadingState, Notice, PageHeader, StatusBadge, qdFieldClass } from '@/components/platform';
+import { FormField, LoadingState, Notice, PageHeader, Segmented, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,8 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { BookOpenCheck, Pencil, Plus, Save, Search, Trash2 } from 'lucide-react';
+
+const formatDate = (value) => (value ? new Date(value).toLocaleDateString('ru-RU') : '—');
 
 const emptyForm = {
     name: '',
@@ -26,6 +28,7 @@ export default function Disciplines() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const loadDisciplines = async () => {
         setLoading(true);
@@ -122,6 +125,13 @@ export default function Disciplines() {
     });
 
     const activeCount = disciplines.filter((discipline) => discipline.status === 'active').length;
+    const inactiveCount = disciplines.length - activeCount;
+    const withCodeCount = disciplines.filter((discipline) => discipline.code).length;
+    const lastUpdated = disciplines.reduce((latest, discipline) => {
+        const value = discipline.updated_at || discipline.created_at;
+        return value && (!latest || new Date(value) > new Date(latest)) ? value : latest;
+    }, null);
+    const visibleDisciplines = filteredDisciplines.filter((discipline) => statusFilter === 'all' || (statusFilter === 'active' ? discipline.status === 'active' : discipline.status !== 'active'));
 
     return (
         <AuthenticatedLayout
@@ -130,12 +140,6 @@ export default function Disciplines() {
                     eyebrow="Анкетирование"
                     title="Дисциплины"
                     description="Справочник дисциплин, используемых в привязках и опросах."
-                    meta={!loading ? (
-                        <div className="flex flex-wrap gap-2">
-                            <StatusBadge tone="default">Всего: {disciplines.length}</StatusBadge>
-                            <StatusBadge tone="success">Активных: {activeCount}</StatusBadge>
-                        </div>
-                    ) : null}
                     actions={(
                         <Button type="button" onClick={openCreateDialog}>
                             <Plus className="h-4 w-4" />
@@ -151,53 +155,69 @@ export default function Disciplines() {
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
 
-                <FilterBar>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                        <FormField label="Поиск">
-                            <div className="relative w-full sm:w-80">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input className="pl-9" placeholder="Название или код дисциплины" value={search} onChange={(e) => setSearch(e.target.value)} />
-                            </div>
-                        </FormField>
-                        <p className="text-sm tabular-nums text-slate-500 sm:flex sm:h-10 sm:items-center">Показано: {filteredDisciplines.length} из {disciplines.length}</p>
-                    </div>
-                </FilterBar>
+                <StatGrid>
+                    <StatTile label="Всего дисциплин" value={loading ? '…' : disciplines.length} tone="teal" icon={BookOpenCheck} />
+                    <StatTile label="Активные" value={loading ? '…' : activeCount} tone="success" hint={disciplines.length ? `${Math.round((activeCount / disciplines.length) * 100)}% справочника` : null} />
+                    <StatTile label="Неактивные" value={loading ? '…' : inactiveCount} tone="neutral" />
+                    <StatTile label="С кодом" value={loading ? '…' : withCodeCount} tone="navy" hint={disciplines.length ? `Без кода: ${disciplines.length - withCodeCount}` : null} />
+                    <StatTile label="Последнее изменение" value={<span className="text-xl">{formatDate(lastUpdated)}</span>} tone="gold" />
+                </StatGrid>
 
-                {loading ? (
-                    <LoadingState />
-                ) : filteredDisciplines.length === 0 ? (
-                    <EmptyState
-                        title={disciplines.length === 0 ? 'Дисциплины еще не добавлены' : 'Ничего не найдено'}
-                        description={disciplines.length === 0 ? 'Добавьте первую дисциплину, чтобы использовать её в привязках и опросах.' : 'Измените поисковый запрос.'}
-                        action={disciplines.length === 0 ? (
-                            <Button type="button" onClick={openCreateDialog}>
-                                <Plus className="h-4 w-4" />
-                                Добавить дисциплину
-                            </Button>
-                        ) : null}
-                    />
-                ) : (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BookOpenCheck />
-                                Список дисциплин
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
+                <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                        <CardTitle className="flex items-center gap-2">
+                            <BookOpenCheck />
+                            Список дисциплин
+                        </CardTitle>
+                        <span className="text-sm tabular-nums text-slate-500">Показано: {visibleDisciplines.length} из {disciplines.length}</span>
+                    </CardHeader>
+                    <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-3 sm:px-6">
+                        <div className="relative w-full sm:w-96">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input className="pl-9" placeholder="Название или код дисциплины" aria-label="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
+                        </div>
+                        <Segmented
+                            items={[
+                                { key: 'all', label: `Все · ${disciplines.length}` },
+                                { key: 'active', label: `Активные · ${activeCount}` },
+                                { key: 'inactive', label: `Неактивные · ${inactiveCount}` },
+                            ]}
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                        />
+                    </div>
+                    <CardContent className="p-0">
+                        {loading ? (
+                            <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
+                        ) : visibleDisciplines.length === 0 ? (
+                            <div className="flex flex-col items-center gap-2 px-5 py-8 text-center sm:px-6">
+                                <p className="font-semibold text-[#102945]">{disciplines.length === 0 ? 'Дисциплины еще не добавлены' : 'Ничего не найдено'}</p>
+                                <p className="text-sm text-slate-600">{disciplines.length === 0 ? 'Добавьте первую дисциплину, чтобы использовать её в привязках и опросах.' : 'Измените поисковый запрос или фильтр статуса.'}</p>
+                                {disciplines.length === 0 && (
+                                    <Button type="button" size="sm" className="mt-1" onClick={openCreateDialog}>
+                                        <Plus className="h-4 w-4" />
+                                        Добавить дисциплину
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
+                                            <th className="w-12 whitespace-nowrap text-right">№</th>
                                             <th className="whitespace-nowrap text-left">Название</th>
                                             <th className="whitespace-nowrap text-left">Код</th>
                                             <th className="whitespace-nowrap text-left">Статус</th>
+                                            <th className="whitespace-nowrap text-right">Создано</th>
+                                            <th className="whitespace-nowrap text-right">Обновлено</th>
                                             <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredDisciplines.map((discipline) => (
+                                        {visibleDisciplines.map((discipline, index) => (
                                             <tr key={discipline.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                <td className="text-right tabular-nums text-slate-400">{index + 1}</td>
                                                 <td className="font-medium text-slate-900">{discipline.name}</td>
                                                 <td className="whitespace-nowrap font-mono text-xs text-slate-600">{discipline.code || '—'}</td>
                                                 <td>
@@ -205,6 +225,8 @@ export default function Disciplines() {
                                                         {discipline.status}
                                                     </StatusBadge>
                                                 </td>
+                                                <td className="whitespace-nowrap text-right tabular-nums text-slate-600">{formatDate(discipline.created_at)}</td>
+                                                <td className="whitespace-nowrap text-right tabular-nums text-slate-600">{formatDate(discipline.updated_at)}</td>
                                                 <td className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => startEdit(discipline)}>
@@ -222,9 +244,9 @@ export default function Disciplines() {
                                     </tbody>
                                 </table>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog

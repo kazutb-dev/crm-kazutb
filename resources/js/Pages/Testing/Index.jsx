@@ -2,8 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { DarkPanel, PageHeader, SectionHeader, StatGrid, StatTile } from '@/components/platform';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DarkPanel, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Input } from '@/components/ui/input';
 import {
     Dialog,
@@ -13,7 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { BarChart3, Link2, Plus, Trash2, Search, X, Download, Users } from 'lucide-react';
+import { BarChart3, BookOpen, ClipboardList, Download, Link2, Plus, Search, Target, Trash2, Users, X } from 'lucide-react';
 import { useState } from 'react';
 
 function formatDate(value) {
@@ -164,6 +164,15 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
         });
     };
 
+    const withAttempts = bindings.filter((b) => Number(b.attempts_count) > 0);
+    const totals = {
+        tests: bindings.reduce((sum, b) => sum + (Number(b.tests_count) || 0), 0),
+        attempts: bindings.reduce((sum, b) => sum + (Number(b.attempts_count) || 0), 0),
+        success: withAttempts.length
+            ? Math.round(withAttempts.reduce((sum, b) => sum + (Number(b.success_rate) || 0), 0) / withAttempts.length)
+            : null,
+    };
+
     // Filter subjects that aren't bound yet
     const availableSubjects = subjects.filter(s => !s.has_binding);
 
@@ -179,7 +188,7 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                 <PageHeader
                     eyebrow="Модуль тестирования"
                     title="Тестирование"
-                    description="Создавайте тесты по своим предметам и отслеживайте результаты прохождения. Привязка предмета выступает контейнером для тестов: после ее создания можно наполнять предмет вопросами, публиковать тесты и анализировать прохождения."
+                    description="Тесты по своим предметам и результаты прохождения. Привязка предмета — контейнер для тестов: наполняйте его вопросами, публикуйте тесты и анализируйте прохождения."
                     actions={(
                         <>
                             {bindings.length > 0 && (
@@ -202,7 +211,10 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
             <div className="admin-page-wrap space-y-6">
                 <StatGrid>
                     <StatTile label="Мои привязки" value={bindings.length} tone="teal" icon={Link2} hint="Предметы, по которым вы ведёте тесты" />
-                    <StatTile label="Привязано студентов" value={total_students_count} tone="navy" icon={Users} hint="Студенты по всем привязанным предметам" />
+                    <StatTile label="Привязано студентов" value={total_students_count} tone="navy" icon={Users} hint="По всем привязанным предметам" />
+                    <StatTile label="Тестов" value={totals.tests} tone="info" icon={ClipboardList} hint={`Попыток: ${totals.attempts}`} />
+                    <StatTile label="Средняя успешность" value={totals.success === null ? '—' : `${totals.success}%`} tone="success" icon={Target} hint="по привязкам с попытками" />
+                    <StatTile label="Свободных предметов" value={availableSubjects.length} tone="gold" icon={BookOpen} hint={`из ${subjects.length} в каталоге`} />
                 </StatGrid>
 
                 {bindings.length === 0 ? (
@@ -219,67 +231,85 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                         Чтобы начать создавать тесты и проводить опросы, привяжите учебный предмет к своему личному кабинету.
                     </DarkPanel>
                 ) : (
-                    <div className="space-y-4">
-                        <SectionHeader
-                            title="Мои привязанные предметы"
-                            actions={<Badge variant="default">Всего: {bindings.length}</Badge>}
-                        />
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            {bindings.map((binding) => (
-                                <Card key={binding.id} className="flex flex-col justify-between">
-                                    <CardContent className="flex flex-1 flex-col gap-5">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <h3 className="font-display text-lg font-bold leading-snug text-[#102945]">{binding.subject?.name}</h3>
-                                                {binding.subject?.code && (
-                                                    <Badge variant="secondary" className="mt-2 font-mono tracking-wider">
-                                                        {binding.subject.code}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="shrink-0 text-red-700 hover:bg-red-50 hover:text-red-800"
-                                                onClick={() => removeBinding(binding.id, binding.subject?.name || 'предмету')}
-                                                title="Удалить привязку"
-                                                aria-label="Удалить привязку"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-
-                                        <dl className="grid grid-cols-3 gap-x-4 gap-y-4 border-t border-slate-200 pt-4">
-                                            <Metric label="Студентов" value={binding.students_count || 0} />
-                                            <Metric label="Тестов" value={binding.tests_count || 0} />
-                                            <Metric label="Попыток" value={binding.attempts_count || 0} />
-                                            <Metric label="Ср. балл" value={binding.average_score || 0} />
-                                            <Metric label="Макс. балл" value={binding.max_score || 0} />
-                                            <Metric label="Успешность" value={`${binding.success_rate || 0}%`} accent />
-                                        </dl>
-
-                                        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                                            <p className="text-xs text-slate-500">Привязан: {formatDate(binding.created_at)}</p>
-                                            <div className="flex items-center gap-2">
-                                                <Button asChild size="sm" variant="outline" className="gap-2">
-                                                    <Link href={route('testing.bindings.analytics', binding.id)}>
-                                                        <BarChart3 className="h-3.5 w-3.5" />
-                                                        Аналитика
+                    <Card className="overflow-hidden">
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" />Мои привязанные предметы</CardTitle>
+                            <Badge variant="default" className="tabular-nums">Всего: {bindings.length}</Badge>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[1040px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Предмет</th>
+                                            <th className="text-right">Студентов</th>
+                                            <th className="text-right">Тестов</th>
+                                            <th className="text-right">Попыток</th>
+                                            <th className="text-right">Ср. балл</th>
+                                            <th className="text-right">Макс. балл</th>
+                                            <th className="text-right">Успешность</th>
+                                            <th>Привязан</th>
+                                            <th className="text-right">Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bindings.map((binding) => (
+                                            <tr key={binding.id} className="hover:bg-slate-50">
+                                                <td>
+                                                    <Link href={route('testing.bindings.show', binding.id)} className="font-medium text-slate-900 hover:text-teal-700">
+                                                        {binding.subject?.name}
                                                     </Link>
-                                                </Button>
-                                                <Button asChild size="sm">
-                                                    <Link href={route('testing.bindings.show', binding.id)}>
-                                                        Открыть тесты
-                                                    </Link>
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    </div>
+                                                    {binding.subject?.code && (
+                                                        <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">{binding.subject.code}</span>
+                                                    )}
+                                                </td>
+                                                <td className="text-right tabular-nums">{binding.students_count || 0}</td>
+                                                <td className="text-right tabular-nums">{binding.tests_count || 0}</td>
+                                                <td className="text-right tabular-nums">{binding.attempts_count || 0}</td>
+                                                <td className="text-right tabular-nums">{binding.average_score || 0}</td>
+                                                <td className="text-right tabular-nums">{binding.max_score || 0}</td>
+                                                <td className="text-right">
+                                                    <div className="ml-auto flex w-28 items-center justify-end gap-2">
+                                                        <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                                                            <div className="h-1.5 rounded-full bg-emerald-600" style={{ width: `${Math.min(100, Number(binding.success_rate) || 0)}%` }} />
+                                                        </div>
+                                                        <span className="font-semibold tabular-nums text-emerald-700">{binding.success_rate || 0}%</span>
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap text-xs tabular-nums text-slate-500">{formatDate(binding.created_at)}</td>
+                                                <td className="text-right">
+                                                    <div className="flex flex-wrap justify-end gap-2">
+                                                        <Button asChild size="sm" variant="outline" className="gap-2">
+                                                            <Link href={route('testing.bindings.analytics', binding.id)}>
+                                                                <BarChart3 className="h-3.5 w-3.5" />
+                                                                Аналитика
+                                                            </Link>
+                                                        </Button>
+                                                        <Button asChild size="sm">
+                                                            <Link href={route('testing.bindings.show', binding.id)}>
+                                                                Открыть тесты
+                                                            </Link>
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-red-700 hover:bg-red-50 hover:text-red-800"
+                                                            onClick={() => removeBinding(binding.id, binding.subject?.name || 'предмету')}
+                                                            title="Удалить привязку"
+                                                            aria-label="Удалить привязку"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 
@@ -369,14 +399,5 @@ export default function TestingIndex({ subjects = [], bindings = [], total_stude
                 onConfirm={confirmState.onConfirm}
             />
         </AuthenticatedLayout>
-    );
-}
-
-function Metric({ label, value, accent = false }) {
-    return (
-        <div>
-            <dt className="qd-field-label text-slate-500">{label}</dt>
-            <dd className={`mt-1 font-display text-xl font-bold tabular-nums ${accent ? 'text-emerald-700' : 'text-[#102945]'}`}>{value}</dd>
-        </div>
     );
 }
