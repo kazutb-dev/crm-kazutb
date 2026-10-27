@@ -80,12 +80,12 @@ function PhotoPanel({ profile, canEdit }) {
 
     return (
         <div className="flex flex-col items-center gap-3">
-            <div className="relative h-24 w-24 overflow-hidden rounded-full bg-gradient-to-br from-[#102945] to-teal-500 p-1 shadow-[0_12px_32px_0_rgba(25,28,29,0.10)] ring-4 ring-white">
+            <div className="relative h-32 w-32 overflow-hidden rounded-full sm:h-40 sm:w-40 bg-gradient-to-br from-[#102945] to-teal-500 p-1 shadow-[0_12px_32px_0_rgba(25,28,29,0.10)] ring-4 ring-white">
                 <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-teal-50">
                     {avatarSrc ? (
                         <img src={avatarSrc} alt={profile.name} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
                     ) : (
-                        <span className="font-display text-3xl font-bold text-[#102945]">{getInitials(profile.name)}</span>
+                        <span className="text-4xl font-bold text-[#102945] sm:text-5xl">{getInitials(profile.name)}</span>
                     )}
                 </div>
             </div>
