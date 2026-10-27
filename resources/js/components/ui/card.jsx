@@ -19,12 +19,18 @@ const Card = React.forwardRef(({ className, ...props }, ref) => {
 })
 Card.displayName = "Card"
 
-const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-5 sm:p-6", className)}
-    {...props} />
-))
+// In the panel a card header is the Qadam panel strip: raised background, a rule below and a
+// spaced-capitals title. panel.css pins its padding and title size, which pages tuned for the old look.
+const CardHeader = React.forwardRef(({ className, ...props }, ref) => {
+  const panel = usePanelDesign()
+  return (
+    <div
+      ref={ref}
+      data-qd={panel ? "card-header" : undefined}
+      className={cn("flex flex-col space-y-1.5 p-5 sm:p-6", className)}
+      {...props} />
+  )
+})
 CardHeader.displayName = "CardHeader"
 
 const CardTitle = React.forwardRef(({ className, ...props }, ref) => {
@@ -32,6 +38,7 @@ const CardTitle = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
+      data-qd={panel ? "card-title" : undefined}
       className={cn(
         panel
           ? "font-display text-lg font-bold leading-snug tracking-[-0.01em] text-[#102945]"
@@ -43,17 +50,29 @@ const CardTitle = React.forwardRef(({ className, ...props }, ref) => {
 })
 CardTitle.displayName = "CardTitle"
 
-const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props} />
-))
+const CardDescription = React.forwardRef(({ className, ...props }, ref) => {
+  const panel = usePanelDesign()
+  return (
+    <div
+      ref={ref}
+      data-qd={panel ? "card-description" : undefined}
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props} />
+  )
+})
 CardDescription.displayName = "CardDescription"
 
-const CardContent = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-5 pt-0 sm:p-6 sm:pt-0", className)} {...props} />
-))
+const CardContent = React.forwardRef(({ className, ...props }, ref) => {
+  // Under the panel strip the body needs its own top padding; pages' p-0 / pt-4 still win.
+  const panel = usePanelDesign()
+  return (
+    <div
+      ref={ref}
+      data-qd={panel ? "card-content" : undefined}
+      className={cn(panel ? "p-5 sm:p-6" : "p-5 pt-0 sm:p-6 sm:pt-0", className)}
+      {...props} />
+  )
+})
 CardContent.displayName = "CardContent"
 
 const CardFooter = React.forwardRef(({ className, ...props }, ref) => (

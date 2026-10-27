@@ -18,13 +18,13 @@ const getInitials = (name) => {
 function Section({ icon: Icon, title, children }) {
     return (
         <Card className="shadow-sm">
-            <CardHeader className="border-b border-border/60 pb-3 pt-4">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-800">
-                    {Icon && <Icon className="h-4 w-4 shrink-0 text-slate-500" />}
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    {Icon && <Icon className="shrink-0" />}
                     {title}
                 </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">{children}</CardContent>
+            <CardContent>{children}</CardContent>
         </Card>
     );
 }
@@ -32,9 +32,9 @@ function Section({ icon: Icon, title, children }) {
 function InfoRow({ label, value, mono = false }) {
     if (value === null || value === undefined || value === '') return null;
     return (
-        <div className="flex flex-col gap-0.5 rounded-lg border border-border/50 bg-slate-50/50 px-3 py-2.5">
-            <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">{label}</span>
-            <span className={`text-sm font-medium text-slate-900 ${mono ? 'font-mono' : ''}`}>{value}</span>
+        <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
+            <span className="qd-field-label text-slate-500">{label}</span>
+            <span className={`text-[0.9375rem] font-medium text-slate-900 ${mono ? 'font-mono text-sm' : ''}`}>{value}</span>
         </div>
     );
 }
@@ -74,12 +74,12 @@ function PhotoPanel({ profile, canEdit }) {
 
     return (
         <div className="flex flex-col items-center gap-3">
-            <div className="relative h-28 w-28 overflow-hidden rounded-full bg-gradient-to-br from-slate-900 via-slate-700 to-emerald-500 p-1 shadow-lg ring-4 ring-white">
-                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
+            <div className="relative h-28 w-28 overflow-hidden rounded-full bg-gradient-to-br from-[#102945] to-teal-500 p-1 shadow-[0_12px_32px_0_rgba(25,28,29,0.10)] ring-4 ring-white">
+                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-teal-50">
                     {avatarSrc ? (
                         <img src={avatarSrc} alt={profile.name} className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} />
                     ) : (
-                        <span className="text-3xl font-bold tracking-tight text-slate-800">{getInitials(profile.name)}</span>
+                        <span className="font-display text-3xl font-bold text-[#102945]">{getInitials(profile.name)}</span>
                     )}
                 </div>
             </div>
@@ -116,41 +116,38 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
     const certificates = profile.certificates ?? [];
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout
+            header={(
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                    <PhotoPanel profile={profile} canEdit={canEdit} />
+                    <div className="min-w-0 flex-1 space-y-2">
+                        <p className="qd-kicker">{isOwnProfile ? 'Мой профиль' : 'Профиль сотрудника'}</p>
+                        <h1>{profile.name}</h1>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="success">{profile.role_label}</Badge>
+                            {profile.sync_status === 'ad' && <Badge variant="info">AD</Badge>}
+                            {!isStudent && (
+                                <span className="text-sm text-slate-600">
+                                    {profile.position_title || 'Должность не указана'}
+                                    {profile.faculty?.name ? ` · ${profile.faculty.name}` : ''}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-sm text-slate-600">
+                            {profile.email && <span className="flex items-center gap-1.5"><Mail className="h-4 w-4 text-teal-700" />{profile.email}</span>}
+                            {(profile.phone || profile.ad_phone) && <span className="flex items-center gap-1.5"><Phone className="h-4 w-4 text-teal-700" />{profile.phone || profile.ad_phone}</span>}
+                            {profile.office_location && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-teal-700" />{profile.office_location}</span>}
+                        </div>
+                    </div>
+                    {canEdit && !isEditing && (
+                        <Button className="shrink-0 self-start sm:self-center" onClick={() => setIsEditing(true)}>Редактировать профиль</Button>
+                    )}
+                </div>
+            )}
+        >
             <Head title="Профиль" />
 
             <div className="admin-page-wrap space-y-6">
-                {/* Header */}
-                <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-white shadow-[0_4px_24px_rgba(15,23,42,0.07)]">
-                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-slate-900 via-slate-700 to-emerald-500" />
-                    <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
-                        <PhotoPanel profile={profile} canEdit={canEdit} />
-                        <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{profile.name}</h1>
-                                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-800 text-xs">{profile.role_label}</Badge>
-                                {profile.sync_status === 'ad' && (
-                                    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 text-xs">AD</Badge>
-                                )}
-                            </div>
-                            {!isStudent && (
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    {profile.position_title || '—'}
-                                    {profile.faculty?.name ? ` · ${profile.faculty.name}` : ''}
-                                </p>
-                            )}
-                            <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
-                                {profile.email && <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{profile.email}</span>}
-                                {(profile.phone || profile.ad_phone) && <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />{profile.phone || profile.ad_phone}</span>}
-                                {profile.office_location && <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{profile.office_location}</span>}
-                            </div>
-                        </div>
-                        {canEdit && !isEditing && (
-                            <Button variant="outline" size="sm" className="shrink-0" onClick={() => setIsEditing(true)}>Редактировать</Button>
-                        )}
-                    </div>
-                </div>
-
                 {/* Edit form */}
                 {isEditing && (
                     <Card className="shadow-sm">
@@ -171,7 +168,7 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                     {/* Left column */}
                     <div className="space-y-6">
                         <Section icon={User} title="Основные данные">
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                                 <InfoRow label="ФИО" value={profile.name} />
                                 <InfoRow label="Email" value={profile.email} mono />
                                 <InfoRow label="Телефон" value={profile.phone || profile.ad_phone} />
@@ -182,14 +179,14 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                         </Section>
 
                         <Section icon={Building2} title="Организационная структура">
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                                 {!isStudent ? (
                                     <>
                                         <InfoRow label="Факультет" value={profile.faculty?.name} />
                                         <InfoRow label="Кафедра" value={profile.department?.name} />
                                         {profile.divisions?.length > 0 && (
-                                            <div className="sm:col-span-2 rounded-lg border border-border/50 bg-slate-50/50 px-3 py-2.5">
-                                                <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Подразделения</span>
+                                            <div className="sm:col-span-2 border-b border-slate-200 pb-3">
+                                                <span className="qd-field-label text-slate-500">Подразделения</span>
                                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                                     {profile.divisions.map((d) => (
                                                         <Badge key={d.id} variant="secondary" className="text-xs">{d.name}</Badge>
@@ -213,7 +210,7 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
 
                         {!isStudent && (
                             <Section icon={GraduationCap} title="Академические данные">
-                                <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
                                     <InfoRow label="Учёное звание" value={profile.ad_title} />
                                     <InfoRow label="Тип сотрудника" value={profile.ad_employee_type} />
                                     <InfoRow label="Ставка" value={profile.kpi_workload_rate ? `${profile.kpi_workload_rate}` : null} />
@@ -226,14 +223,11 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                     {/* Right column */}
                     <div className="space-y-6">
                         <Section icon={Shield} title="Роли и доступ">
-                            <div className="space-y-3">
-                                <div className="rounded-lg border border-border/50 bg-slate-50/50 px-3 py-2.5">
-                                    <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Роль</span>
-                                    <p className="mt-1 text-sm font-medium text-slate-900">{profile.role_label}</p>
-                                </div>
+                            <div className="space-y-4">
+                                <InfoRow label="Роль" value={profile.role_label} />
                                 {grants.length > 0 && (
-                                    <div className="rounded-lg border border-border/50 bg-slate-50/50 px-3 py-2.5">
-                                        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">Дополнительные права (KPI)</span>
+                                    <div className="border-b border-slate-200 pb-3">
+                                        <span className="qd-field-label text-slate-500">Дополнительные права (KPI)</span>
                                         <div className="mt-2 flex flex-wrap gap-1.5">
                                             {grants.map((g, i) => (
                                                 <Badge key={g.id ?? i} variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-800 text-xs">
@@ -244,8 +238,8 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                                     </div>
                                 )}
                                 {elevatedAuthority && (elevatedAuthority.has_business || elevatedAuthority.has_technical || elevatedAuthority.has_operator) && (
-                                    <div className="rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5">
-                                        <span className="text-[11px] font-medium uppercase tracking-widest text-blue-600">Повышенный доступ</span>
+                                    <div>
+                                        <span className="qd-field-label text-slate-500">Повышенный доступ</span>
                                         <div className="mt-2 flex flex-wrap gap-1.5">
                                             {elevatedAuthority.has_business && <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-800 text-xs">Бизнес-суперадмин</Badge>}
                                             {elevatedAuthority.has_technical && <Badge variant="outline" className="border-red-200 bg-red-50 text-red-800 text-xs">Технический суперадмин</Badge>}
@@ -287,7 +281,7 @@ export default function Edit({ mustVerifyEmail, status, profile }) {
                         </Section>
 
                         <Section icon={ClipboardList} title="Метаданные">
-                            <div className="space-y-2">
+                            <div className="space-y-4">
                                 <InfoRow label="Заполненность" value={profile.profile_completion_label} />
                                 <InfoRow label="Последний вход" value={profile.last_login_at ? new Date(profile.last_login_at).toLocaleString('ru-RU') : null} />
                                 <InfoRow label="Зарегистрирован" value={profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : null} />
