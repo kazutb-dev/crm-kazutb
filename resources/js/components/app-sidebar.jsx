@@ -18,6 +18,7 @@ import {
     Award,
     BarChart3,
     BookOpenText,
+    Bot,
     BriefcaseBusiness,
     Building2,
     Building,
@@ -763,6 +764,14 @@ export function AppSidebar() {
             icon: FileCheck,
             active: route().current('teacher-ai.reviews.*'),
         },
+        {
+            // AI Tutors — отдельная система на этом же домене (вход по сессии CRM), открывается полной загрузкой страницы.
+            title: 'AI-Tutors',
+            href: '/ai-tutors/',
+            icon: Bot,
+            active: false,
+            external: true,
+        },
     ] : [];
 
     const phonebookItems = [
@@ -999,10 +1008,17 @@ export function AppSidebar() {
                                     {items.map((item) => (
                                         <SidebarMenuItem key={item.title}>
                                             <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
-                                                <Link href={item.href}>
-                                                    <item.icon />
-                                                    <span>{item.title}</span>
-                                                </Link>
+                                                {item.external ? (
+                                                    <a href={item.href}>
+                                                        <item.icon />
+                                                        <span>{item.title}</span>
+                                                    </a>
+                                                ) : (
+                                                    <Link href={item.href}>
+                                                        <item.icon />
+                                                        <span>{item.title}</span>
+                                                    </Link>
+                                                )}
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>
                                     ))}
