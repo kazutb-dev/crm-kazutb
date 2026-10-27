@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Button, DataTable, EmptyState, FilterBar, FormField, FormGrid, Input, PageHeader, StatusBadge } from '@/components/platform';
+import { Button, Card, CardContent, EmptyState, FilterBar, FormField, FormGrid, Input, PageHeader, StatusBadge } from '@/components/platform';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -234,7 +234,7 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                 <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Введите текст вопроса" />
                             </div>
                         </FormField>
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4 mt-2">
                             <StatusBadge tone="default">Активных фильтров: {activeFilterCount}</StatusBadge>
                             <div className="ml-auto flex items-center gap-2">
                                 <Button type="submit">Применить</Button>
@@ -251,27 +251,28 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                         action={canManage ? <Button onClick={openCreateDialog}>Добавить вопрос</Button> : null}
                     />
                 ) : (
-                    <DataTable>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead className="text-left">
                                 <tr>
-                                    <th className="px-4 py-3 w-12"></th>
-                                    <th className="px-4 py-3">Вопрос</th>
-                                    <th className="px-4 py-3 text-center">Баллы</th>
-                                    <th className="px-4 py-3 text-center">Порядок</th>
-                                    <th className="px-4 py-3">Правильный ответ</th>
-                                    <th className="px-4 py-3 text-right">Действия</th>
+                                    <th className="w-12"></th>
+                                    <th>Вопрос</th>
+                                    <th className="text-right">Баллы</th>
+                                    <th className="text-right">Порядок</th>
+                                    <th>Правильный ответ</th>
+                                    <th className="text-right">Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {localQuestions.map((question) => (
                                     <tr
-                                        key={question.id}
-                                        className={`border-t border-slate-200 align-top hover:bg-slate-50 ${draggingQuestionId === question.id ? 'opacity-60' : ''}`}
+                                        key={question.id} className={`align-top hover:bg-slate-50 ${draggingQuestionId === question.id ? 'opacity-60' : ''}`}
                                         onDragOver={(event) => event.preventDefault()}
                                         onDrop={(event) => handleDrop(event, question.id)}
                                     >
-                                        <td className="px-4 py-4">
+                                        <td>
                                             {canManage ? (
                                                 <button
                                                     type="button"
@@ -285,7 +286,7 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                                 </button>
                                             ) : null}
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td>
                                             <div className="space-y-2">
                                                 <p className="font-medium text-slate-900">{question.question}</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -297,10 +298,10 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4 text-center tabular-nums">{question.points}</td>
-                                        <td className="px-4 py-4 text-center tabular-nums">{question.sort_order}</td>
-                                        <td className="px-4 py-4 text-slate-700">{(question.options ?? []).find((option) => option.is_correct)?.text ?? '—'}</td>
-                                        <td className="px-4 py-4">
+                                        <td className="text-right tabular-nums">{question.points}</td>
+                                        <td className="text-right tabular-nums">{question.sort_order}</td>
+                                        <td className="text-slate-700">{(question.options ?? []).find((option) => option.is_correct)?.text ?? '—'}</td>
+                                        <td>
                                             <div className="flex justify-end gap-2">
                                                 {canManage ? (
                                                     <>
@@ -318,21 +319,23 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                 ))}
                             </tbody>
                         </table>
-                    </DataTable>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 text-sm text-slate-600 sm:px-6">
+                            <div className="tabular-nums">Показано {localQuestions.length} из {pagination.total ?? localQuestions.length}</div>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
+                                <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        </CardContent>
+                    </Card>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
-                    <div className="tabular-nums">Показано {localQuestions.length} из {pagination.total ?? localQuestions.length}</div>
-                    <div className="flex items-center gap-2">
-                        <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) <= 1} onClick={() => goToPage((pagination.current_page ?? 1) - 1)}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="tabular-nums">Страница {pagination.current_page ?? 1} / {pagination.last_page ?? 1}</span>
-                        <Button type="button" size="sm" variant="outline" disabled={(pagination.current_page ?? 1) >= (pagination.last_page ?? 1)} onClick={() => goToPage((pagination.current_page ?? 1) + 1)}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
             </div>
 
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

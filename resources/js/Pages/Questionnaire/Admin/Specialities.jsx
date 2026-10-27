@@ -322,7 +322,7 @@ export default function Specialities() {
                 {success && <Notice tone="success">{success}</Notice>}
 
                 <FilterBar>
-                    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
                         <FormField label="Поиск">
                             <div className="relative">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -372,26 +372,26 @@ export default function Specialities() {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="px-5 py-3 text-left">Название</th>
-                                            <th className="px-5 py-3 text-left">Кафедра</th>
-                                            <th className="px-5 py-3 text-right">ОП</th>
-                                            <th className="px-5 py-3 text-left">Статус</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="whitespace-nowrap text-left">Название</th>
+                                            <th className="whitespace-nowrap text-left">Кафедра</th>
+                                            <th className="whitespace-nowrap text-right">ОП</th>
+                                            <th className="whitespace-nowrap text-left">Статус</th>
+                                            <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filtered.map((item) => (
                                             <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{item.name}</td>
-                                                <td className="px-5 py-3 text-slate-700">{getDepartmentName(item)}</td>
-                                                <td className="px-5 py-3 text-right tabular-nums text-slate-700">{item.educational_programs_count ?? 0}</td>
-                                                <td className="px-5 py-3">
+                                                <td className="font-medium text-slate-900">{item.name}</td>
+                                                <td className="text-slate-700">{getDepartmentName(item)}</td>
+                                                <td className="text-right tabular-nums text-slate-700">{item.educational_programs_count ?? 0}</td>
+                                                <td>
                                                     <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
                                                         {item.status}
                                                     </StatusBadge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
-                                                    <div className="inline-flex gap-2">
+                                                <td className="text-right">
+                                                    <div className="flex justify-end gap-2">
                                                         <Button type="button" variant="secondary" size="sm" onClick={() => openSpecialityPrograms(item)}>
                                                             <BookOpenText className="h-3.5 w-3.5" />
                                                             ОП
@@ -455,7 +455,7 @@ export default function Specialities() {
                             </FormField>
                         </div>
 
-                        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsSpecialityDialogOpen(false)}>
                                 Отмена
                             </Button>
@@ -508,7 +508,7 @@ export default function Specialities() {
                         </section>
 
                         <section className="space-y-3">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <h3 className="font-display text-lg font-bold text-[#102945]">Образовательные программы</h3>
                                 <div className="relative w-full sm:w-64">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -522,22 +522,22 @@ export default function Specialities() {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-4 py-3 text-left">Название</th>
-                                                <th className="px-4 py-3 text-left">Статус</th>
-                                                <th className="px-4 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Название</th>
+                                                <th className="whitespace-nowrap text-left">Статус</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {specialityPrograms.map((program) => (
                                                 <tr key={program.id} className={`border-b border-slate-200 last:border-b-0 ${programEditingId === program.id ? 'bg-teal-50' : ''}`}>
-                                                    <td className="px-4 py-3 font-medium text-slate-900">{program.name}</td>
-                                                    <td className="px-4 py-3">
+                                                    <td className="font-medium text-slate-900">{program.name}</td>
+                                                    <td>
                                                         <StatusBadge tone={program.status === 'active' ? 'success' : 'default'}>
                                                             {program.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEditProgram(program)}>Ред.</Button>
                                                             <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => removeProgram(program.id)}>
                                                                 <Trash2 className="h-3.5 w-3.5" />

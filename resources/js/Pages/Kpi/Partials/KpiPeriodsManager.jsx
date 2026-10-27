@@ -388,27 +388,27 @@ export default function KpiPeriodsManager({
                             <table className="w-full min-w-[980px] text-sm">
                                 <thead className="border-b border-slate-200">
                                     <tr className="text-left">
-                                        <th className="px-5 py-3">Период</th>
-                                        <th className="px-5 py-3">Учебный год</th>
-                                        <th className="px-5 py-3">Статус</th>
-                                        <th className="px-5 py-3">Доступы</th>
-                                        <th className="px-5 py-3">Даты</th>
-                                        <th className="px-5 py-3">Описание</th>
-                                        <th className="px-5 py-3 text-right">Действия</th>
+                                        <th>Период</th>
+                                        <th>Учебный год</th>
+                                        <th>Статус</th>
+                                        <th>Доступы</th>
+                                        <th>Даты</th>
+                                        <th>Описание</th>
+                                        <th className="text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.map((period) => (
                                         <tr key={period.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
-                                            <td className="px-5 py-4">
+                                            <td>
                                                 <div className="font-medium text-slate-900">{period.name}</div>
                                                 <div className="mt-1 text-xs text-slate-500">Создал: {period.creator?.name ?? '—'}</div>
                                             </td>
-                                            <td className="px-5 py-4 text-slate-700">{period.academic_year?.name ?? '—'}</td>
-                                            <td className="px-5 py-4">
+                                            <td className="text-slate-700">{period.academic_year?.name ?? '—'}</td>
+                                            <td>
                                                 <StatusBadge tone={statusTones[period.status] ?? 'default'}>{statusLabels[period.status] ?? period.status}</StatusBadge>
                                             </td>
-                                            <td className="px-5 py-4">
+                                            <td>
                                                 <div className="grid grid-cols-2 gap-1.5">
                                                     {accessScopes.map((scope) => {
                                                         const isActive = Boolean(period[scope.field]);
@@ -435,14 +435,14 @@ export default function KpiPeriodsManager({
                                                     })}
                                                 </div>
                                             </td>
-                                            <td className="px-5 py-4 tabular-nums">
+                                            <td className="tabular-nums">
                                                 <div className="text-slate-900">{formatDate(period.start_date)}</div>
                                                 <div className="text-slate-500">{formatDate(period.end_date)}</div>
                                             </td>
-                                            <td className="px-5 py-4 text-slate-600">
+                                            <td className="text-slate-600">
                                                 <div className="max-w-xs whitespace-pre-wrap break-words">{period.description || '—'}</div>
                                             </td>
-                                            <td className="px-5 py-4 text-right">
+                                            <td className="text-right">
                                                 <div className="flex flex-wrap justify-end gap-2">
                                                     {canManage && period.status !== 'closed' && (
                                                         <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(period)}>

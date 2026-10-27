@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SeverityCounts, StatusBadge as ReviewStatusBadge, isInProgress } from '@/components/teacher-ai/shared';
 import { Link, router, useForm } from '@inertiajs/react';
-import { ClipboardPaste, FileText, Sparkles, Upload } from 'lucide-react';
+import { ClipboardPaste, FileText, Inbox, Sparkles, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -96,7 +96,7 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                     </Notice>
                 )}
 
-                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -232,12 +232,13 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                             </CardTitle>
                             <CardDescription>Видны только вам.</CardDescription>
                         </CardHeader>
-                        <CardContent className={reviews.length === 0 ? '' : 'p-0 sm:p-0'}>
+                        <CardContent className={reviews.length === 0 ? '' : 'p-0'}>
                             {reviews.length === 0 ? (
-                                <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
-                                    <p className="font-display text-base font-bold text-[#102945]">Проверок пока нет</p>
-                                    <p className="mt-1 text-sm text-slate-600">Здесь появятся результаты ваших проверок.</p>
-                                </div>
+                                <InlineEmpty
+                                    icon={FileText}
+                                    title="Проверок пока нет"
+                                    description="Здесь появятся результаты ваших проверок."
+                                />
                             ) : (
                                 <ul className="divide-y divide-slate-200">
                                     {reviews.map((review) => (
@@ -265,5 +266,20 @@ export default function Index({ documentTypes = [], reviews = [], aiEnabled = fa
                 </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
     );
 }

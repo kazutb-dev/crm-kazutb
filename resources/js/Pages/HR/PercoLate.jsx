@@ -209,7 +209,7 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
                                 <input type="date" value={fromDate} onChange={handleFromDateChange} className={qdFieldClass} />
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="submit">
                                 <Search className="h-4 w-4" />
                                 Найти
@@ -239,27 +239,27 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
                             Dashboard опозданий: кто сколько раз опоздал
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1000px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_count')}>Кол-во опозданий{sortIndicator('late_count')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('total_late_time')}>Суммарно (мин){sortIndicator('total_late_time')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('avg_late_time')}>Среднее (мин){sortIndicator('avg_late_time')}</button></th>
-                                            <th className="py-3 pr-3"><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_late_date')}>Последнее опоздание{sortIndicator('last_late_date')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('late_count')}>Кол-во опозданий{sortIndicator('late_count')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('total_late_time')}>Суммарно (мин){sortIndicator('total_late_time')}</button></th>
+                                            <th className="text-right"><button type="button" className={SORT_BTN} onClick={() => toggleSort('avg_late_time')}>Среднее (мин){sortIndicator('avg_late_time')}</button></th>
+                                            <th><button type="button" className={SORT_BTN} onClick={() => toggleSort('last_late_date')}>Последнее опоздание{sortIndicator('last_late_date')}</button></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {displayedItems.map((row) => (
                                             <tr key={row.id} className="border-b border-slate-200 last:border-0">
-                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">
+                                                <td className="font-medium text-slate-900">
                                                     <button
                                                         type="button"
                                                         onClick={() => openEmployee(row)}
@@ -268,12 +268,12 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
                                                         {fullName(row)}
                                                     </button>
                                                 </td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 font-semibold tabular-nums text-[#102945]">{row.late_count ?? 0}</td>
-                                                <td className="py-3 pr-3 font-semibold text-red-600">{fmtMinutes(row.total_late_time)}</td>
-                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtMinutes(row.avg_late_time)}</td>
-                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.last_late_date)}</td>
+                                                <td className="text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{row.late_count ?? 0}</td>
+                                                <td className="text-right font-semibold text-red-600">{fmtMinutes(row.total_late_time)}</td>
+                                                <td className="text-right tabular-nums text-slate-700">{fmtMinutes(row.avg_late_time)}</td>
+                                                <td className="tabular-nums text-slate-700">{fmtDate(row.last_late_date)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -283,7 +283,7 @@ export default function PercoLate({ staff, divisions = [], filters = {}, range =
 
                         {/* Pagination */}
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

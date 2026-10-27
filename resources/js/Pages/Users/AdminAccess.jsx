@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FilterBar, Notice, PageHeader, StatTile, StatusBadge } from '@/components/platform';
+import { FilterBar, Notice, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -130,11 +130,11 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                     </form>
                 </FilterBar>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Администраторы" value={adminUsers.length} tone="teal" icon={ShieldCheck} hint={hasSearch ? 'По текущему поиску' : 'Все с ролью admin / superadmin'} />
                     <StatTile label="Найдено сотрудников" value={hasSearch ? staffUsers.length : '—'} tone="navy" icon={Users} hint={hasSearch ? `Запрос: «${search}»` : 'Введите запрос, чтобы найти сотрудника'} />
                     <StatTile label="Можно выдать admin" value={hasSearch ? staffUsers.filter((user) => user.can_grant_admin).length : '—'} tone="gold" icon={ShieldPlus} />
-                </div>
+                </StatGrid>
 
                 <Card>
                     <CardHeader>
@@ -150,26 +150,26 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[760px] text-sm">
                                     <thead>
-                                        <tr className="border-b border-slate-200 text-left">
-                                            <th className="px-5 py-3">Сотрудник</th>
-                                            <th className="px-3 py-3">Email</th>
-                                            <th className="px-3 py-3">Отдел</th>
-                                            <th className="px-3 py-3">Роль</th>
-                                            <th className="px-5 py-3 text-right">Действие</th>
+                                        <tr>
+                                            <th>Сотрудник</th>
+                                            <th>Email</th>
+                                            <th>Отдел</th>
+                                            <th>Роль</th>
+                                            <th className="text-right">Действие</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-200">
+                                    <tbody>
                                         {adminUsers.map((user) => (
                                             <tr key={user.id} className="align-top hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{user.name ?? '-'}</td>
-                                                <td className="px-3 py-3 text-slate-700">{user.email ?? '-'}</td>
-                                                <td className="px-3 py-3 text-slate-700">{user.department ?? '-'}</td>
-                                                <td className="px-3 py-3">
+                                                <td className="font-medium text-slate-900">{user.name ?? '-'}</td>
+                                                <td className="text-slate-700">{user.email ?? '-'}</td>
+                                                <td className="text-slate-700">{user.department ?? '-'}</td>
+                                                <td>
                                                     <Badge variant={user.role === 'superadmin' ? 'gold' : 'default'}>
                                                         {roleLabels[user.role] ?? user.role ?? '-'}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <Button
                                                         size="sm"
                                                         type="button"
@@ -209,30 +209,30 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[980px] text-sm">
                                     <thead>
-                                        <tr className="border-b border-slate-200 text-left">
-                                            <th className="px-5 py-3">Сотрудник</th>
-                                            <th className="px-3 py-3">Email</th>
-                                            <th className="px-3 py-3">Логин</th>
-                                            <th className="px-3 py-3">Отдел</th>
-                                            <th className="px-3 py-3">Должность</th>
-                                            <th className="px-3 py-3">Текущая роль</th>
-                                            <th className="px-5 py-3 text-right">Действие</th>
+                                        <tr>
+                                            <th>Сотрудник</th>
+                                            <th>Email</th>
+                                            <th>Логин</th>
+                                            <th>Отдел</th>
+                                            <th>Должность</th>
+                                            <th>Текущая роль</th>
+                                            <th className="text-right">Действие</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-200">
+                                    <tbody>
                                         {staffUsers.map((user) => (
                                             <tr key={user.id} className="align-top hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{user.name ?? '-'}</td>
-                                                <td className="px-3 py-3 text-slate-700">{user.email ?? '-'}</td>
-                                                <td className="px-3 py-3 font-mono text-xs text-slate-700">{user.login ?? '-'}</td>
-                                                <td className="px-3 py-3 text-slate-700">{user.department ?? '-'}</td>
-                                                <td className="px-3 py-3 text-slate-700">{user.title ?? '-'}</td>
-                                                <td className="px-3 py-3">
+                                                <td className="font-medium text-slate-900">{user.name ?? '-'}</td>
+                                                <td className="text-slate-700">{user.email ?? '-'}</td>
+                                                <td className="font-mono text-xs text-slate-700">{user.login ?? '-'}</td>
+                                                <td className="text-slate-700">{user.department ?? '-'}</td>
+                                                <td className="text-slate-700">{user.title ?? '-'}</td>
+                                                <td>
                                                     <Badge variant={user.role === 'admin' || user.role === 'superadmin' ? 'default' : 'secondary'}>
                                                         {roleLabels[user.role] ?? user.role ?? '-'}
                                                     </Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <Button
                                                         size="sm"
                                                         type="button"

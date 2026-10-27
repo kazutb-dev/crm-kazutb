@@ -273,7 +273,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                 </FilterBar>
 
                 <DataTable>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 sm:px-6">
                         <div className="flex items-baseline gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
                             Очередь запросов
                             <span className="text-xs font-medium normal-case tracking-normal text-slate-500">
@@ -361,7 +361,7 @@ export default function AccessRequests({ summary = {}, requests = [], pagination
                     </div>
                     )}
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
                         <div className="text-xs font-medium tabular-nums text-slate-500">
                             Показано {pagination.from ?? 0}–{pagination.to ?? 0} из {pagination.total ?? 0}
                         </div>

@@ -136,7 +136,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                         {form.errors.group_id && <p className="text-sm text-red-600">{form.errors.group_id}</p>}
                                     </div>
 
-                                    <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                    <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                         {editingStudent && (
                                             <Button type="button" variant="outline" onClick={startCreate}>
                                                 Отмена
@@ -161,7 +161,7 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                             </CardHeader>
                             <CardContent className="p-0">
                                 {students.length === 0 ? (
-                                    <div className="px-5 py-12 text-center">
+                                    <div className="px-5 py-12 text-center sm:px-6">
                                         <p className="font-display text-lg font-bold text-[#102945]">Студенты еще не добавлены</p>
                                         <p className="mt-1 text-sm text-slate-600">Заполните форму «Добавить студента», чтобы создать первую запись.</p>
                                     </div>
@@ -170,22 +170,22 @@ export default function SurveyStudents({ students = [], groups = [] }) {
                                         <table className="min-w-full text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-200">
-                                                    <th className="px-5 py-3 text-left">ФИО</th>
-                                                    <th className="px-5 py-3 text-left">Student ID</th>
-                                                    <th className="px-5 py-3 text-left">Группа</th>
-                                                    <th className="px-5 py-3 text-left">Email</th>
-                                                    <th className="px-5 py-3 text-right">Действия</th>
+                                                    <th className="whitespace-nowrap text-left">ФИО</th>
+                                                    <th className="whitespace-nowrap text-left">Student ID</th>
+                                                    <th className="whitespace-nowrap text-left">Группа</th>
+                                                    <th className="whitespace-nowrap text-left">Email</th>
+                                                    <th className="whitespace-nowrap text-right">Действия</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {students.map((student) => (
                                                     <tr key={student.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingStudent?.id === student.id ? 'bg-teal-50' : ''}`}>
-                                                        <td className="px-5 py-3 font-medium text-slate-900">{student.full_name}</td>
-                                                        <td className="px-5 py-3 font-mono text-xs text-slate-600">{student.student_id}</td>
-                                                        <td className="px-5 py-3 text-slate-700">{student.group?.name || '—'}</td>
-                                                        <td className="px-5 py-3 text-slate-600">{student.email || '—'}</td>
-                                                        <td className="px-5 py-3 text-right">
-                                                            <div className="inline-flex items-center gap-2">
+                                                        <td className="font-medium text-slate-900">{student.full_name}</td>
+                                                        <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.student_id}</td>
+                                                        <td className="text-slate-700">{student.group?.name || '—'}</td>
+                                                        <td className="text-slate-600">{student.email || '—'}</td>
+                                                        <td className="text-right">
+                                                            <div className="flex justify-end gap-2">
                                                                 <Button type="button" variant="outline" size="sm" onClick={() => startEdit(student)}>
                                                                     <Pencil className="h-3.5 w-3.5" />
                                                                     Редактировать

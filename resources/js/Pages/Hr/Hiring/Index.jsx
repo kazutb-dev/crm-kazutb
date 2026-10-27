@@ -136,7 +136,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                 <FilterBar>
                     <form
                         onSubmit={(event) => { event.preventDefault(); window.clearTimeout(searchTimer.current); apply(form); }}
-                        className="grid items-end gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto]"
+                        className={`grid items-end gap-4 ${hasFilters ? 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)_auto]' : 'md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)]'}`}
                     >
                         <label className="block">
                             <span className="qd-field-label mb-2 block">Поиск</span>
@@ -158,12 +158,12 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                 {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
                             </select>
                         </label>
-                        <fieldset>
+                        <fieldset className="min-w-0">
                             <legend className="qd-field-label mb-2 block">Дата приёма</legend>
                             <div className="flex items-center gap-2">
-                                <input type="date" value={form.date_from} onChange={(event) => change('date_from', event.target.value)} className={inputClassName} aria-label="Дата приёма с" />
+                                <input type="date" value={form.date_from} onChange={(event) => change('date_from', event.target.value)} className={`${inputClassName} min-w-0`} aria-label="Дата приёма с" />
                                 <span className="text-slate-400">—</span>
-                                <input type="date" value={form.date_to} onChange={(event) => change('date_to', event.target.value)} className={inputClassName} aria-label="Дата приёма по" />
+                                <input type="date" value={form.date_to} onChange={(event) => change('date_to', event.target.value)} className={`${inputClassName} min-w-0`} aria-label="Дата приёма по" />
                             </div>
                         </fieldset>
                         {hasFilters && (
@@ -184,19 +184,19 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                         <>
                             <table className="hidden min-w-full text-sm md:table">
                                 <thead className="text-left">
-                                    <tr className="border-b border-slate-200">
-                                        <th className="px-5 py-3">Сотрудник</th>
-                                        <th className="px-4 py-3">Должность</th>
-                                        <th className="px-4 py-3">Дата приёма</th>
-                                        <th className="px-4 py-3">Документы</th>
-                                        <th className="px-4 py-3">Статус</th>
-                                        <th className="px-5 py-3"><span className="sr-only">Действие</span></th>
+                                    <tr>
+                                        <th>Сотрудник</th>
+                                        <th>Должность</th>
+                                        <th>Дата приёма</th>
+                                        <th>Документы</th>
+                                        <th>Статус</th>
+                                        <th className="relative"><span className="sr-only">Действие</span></th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-200">
+                                <tbody>
                                     {rows.map((row) => (
                                         <tr key={row.id} className="group cursor-pointer transition-colors hover:bg-slate-50" onClick={() => router.visit(rowUrl(row))}>
-                                            <td className="px-5 py-3.5 align-top">
+                                            <td className="align-top">
                                                 <Link href={rowUrl(row)} onClick={(event) => event.stopPropagation()} className="font-semibold text-slate-900 group-hover:text-teal-700">
                                                     {row.full_name}
                                                 </Link>
@@ -205,19 +205,19 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                                     {row.id_card_masked && <> · уд. <span className="font-mono">{row.id_card_masked}</span></>}
                                                 </div>
                                             </td>
-                                            <td className="max-w-xs px-4 py-3.5 align-top">
+                                            <td className="max-w-xs align-top">
                                                 <div className="text-slate-800">{row.position || <span className="text-slate-400">не выбрана</span>}</div>
                                                 {row.unit && <div className="mt-0.5 line-clamp-2 text-xs text-slate-500">{row.unit}</div>}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-3.5 align-top tabular-nums text-slate-700">
+                                            <td className="whitespace-nowrap align-top tabular-nums text-slate-700">
                                                 {row.start_date || <span className="text-slate-400">—</span>}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-3.5 align-top">
+                                            <td className="whitespace-nowrap align-top">
                                                 <DocumentPills documents={row.documents} />
                                                 <Numbers row={row} />
                                             </td>
-                                            <td className="px-4 py-3.5 align-top"><StatusBadge status={row.status} label={row.status_label} /></td>
-                                            <td className="whitespace-nowrap px-5 py-3.5 text-right align-top">
+                                            <td className="align-top"><StatusBadge status={row.status} label={row.status_label} /></td>
+                                            <td className="whitespace-nowrap text-right align-top">
                                                 <span className="inline-flex items-center gap-3">
                                                     {row.status === 'draft' && (
                                                         <button
@@ -266,7 +266,7 @@ export default function Index({ hirings, counts = {}, filters, units = [], abili
                                 ))}
                             </ul>
 
-                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 text-xs text-slate-500">
+                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:px-6 text-xs text-slate-500">
                                 <span>
                                     Показаны {hirings.from}–{hirings.to} из {hirings.total}. Документы: серый — ещё не сформирован, синий — сформирован, зелёный — подписан.
                                 </span>

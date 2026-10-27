@@ -508,8 +508,9 @@ export default function Groups() {
                             Список групп
                         </CardTitle>
                     </CardHeader>
-                    <div className="px-5 pt-3">
+                    <div className="border-b border-slate-200 px-5 pt-2 sm:px-6">
                         <UnderlineTabs
+                            className="border-b-0"
                             items={quickChipItems}
                             value={filters.quickChip}
                             onChange={(key) => setFilters((prev) => ({ ...prev, quickChip: key }))}
@@ -517,9 +518,9 @@ export default function Groups() {
                     </div>
                     <CardContent className="p-0">
                         {loading ? (
-                            <div className="p-5"><LoadingState /></div>
+                            <div className="p-5 sm:p-6"><LoadingState /></div>
                         ) : filteredGroups.length === 0 ? (
-                            <div className="px-5 py-12 text-center">
+                            <div className="px-5 py-12 text-center sm:px-6">
                                 <p className="font-display text-lg font-bold text-[#102945]">Группы не найдены</p>
                                 <p className="mt-1 text-sm text-slate-600">Группы по выбранным фильтрам не найдены. Сбросьте фильтры или добавьте группу.</p>
                             </div>
@@ -528,14 +529,14 @@ export default function Groups() {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="px-5 py-3 text-left">Группа</th>
-                                            <th className="px-5 py-3 text-left">Курс</th>
-                                            <th className="px-5 py-3 text-left">Специальность</th>
-                                            <th className="px-5 py-3 text-left">ОП</th>
-                                            <th className="px-5 py-3 text-left">Кафедра</th>
-                                            <th className="px-5 py-3 text-right">Студентов</th>
-                                            <th className="px-5 py-3 text-left">Статус</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="whitespace-nowrap text-left">Группа</th>
+                                            <th className="whitespace-nowrap text-left">Курс</th>
+                                            <th className="whitespace-nowrap text-left">Специальность</th>
+                                            <th className="whitespace-nowrap text-left">ОП</th>
+                                            <th className="whitespace-nowrap text-left">Кафедра</th>
+                                            <th className="whitespace-nowrap text-right">Студентов</th>
+                                            <th className="whitespace-nowrap text-left">Статус</th>
+                                            <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -543,16 +544,16 @@ export default function Groups() {
                                             const groupStudents = studentsByGroup[group.id] || [];
                                             return (
                                                 <tr key={group.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                    <td className="px-5 py-3 font-medium text-slate-900">
+                                                    <td className="whitespace-nowrap font-medium text-slate-900">
                                                         <Link href={route('questionnaire.admin.groups.details', group.id)} className="text-[#102945] hover:text-teal-700 hover:underline">
                                                             {group.name}
                                                         </Link>
                                                     </td>
-                                                    <td className="px-5 py-3 text-slate-700">{group.courseRef?.name || group.course || '—'}</td>
-                                                    <td className="px-5 py-3 text-slate-700">{getSpecialityRef(group)?.name || group.speciality || '—'}</td>
-                                                    <td className="px-5 py-3 text-slate-700">{group.educationalProgramRef?.name || group.educational_program || '—'}</td>
-                                                    <td className="px-5 py-3 text-slate-700">{getSpecialityDepartment(group)?.name || '—'}</td>
-                                                    <td className="px-5 py-3 text-right">
+                                                    <td className="whitespace-nowrap text-slate-700">{group.courseRef?.name || group.course || '—'}</td>
+                                                    <td className="text-slate-700">{getSpecialityRef(group)?.name || group.speciality || '—'}</td>
+                                                    <td className="text-slate-700">{group.educationalProgramRef?.name || group.educational_program || '—'}</td>
+                                                    <td className="text-slate-700">{getSpecialityDepartment(group)?.name || '—'}</td>
+                                                    <td className="text-right">
                                                         <button
                                                             type="button"
                                                             className="inline-flex items-center gap-1 font-semibold tabular-nums text-teal-700 hover:underline"
@@ -563,13 +564,13 @@ export default function Groups() {
                                                             {groupStudents.length}
                                                         </button>
                                                     </td>
-                                                    <td className="px-5 py-3">
+                                                    <td>
                                                         <StatusBadge tone={group.status === 'active' ? 'success' : 'default'}>
                                                             {group.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-5 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEdit(group)}>
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                                 Ред.
@@ -639,7 +640,7 @@ export default function Groups() {
                             </select>
                         </FormField>
 
-                        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button
                                 type="button"
                                 variant="outline"

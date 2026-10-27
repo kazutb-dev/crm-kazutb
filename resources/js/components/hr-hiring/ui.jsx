@@ -7,6 +7,9 @@ export const MissingFieldsContext = createContext(new Set());
 // Qadam field: 10px radius, 40px tall, teal focus ring (matches qdFieldClass from components/platform).
 export const inputClassName = 'min-h-10 w-full rounded-[10px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 hover:border-slate-400 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500';
 
+/** Same field without `w-full`, for controls that set their own width (w-28, w-auto…). */
+export const inputSizedClassName = inputClassName.replace('w-full ', '');
+
 export const buttonClassName = {
     // Qadam buttons: spaced capitals, 10px radius; primary is teal turning navy on hover.
     primary: 'inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-teal-700 px-4 text-xs font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#102945] disabled:cursor-not-allowed disabled:bg-teal-700/50',

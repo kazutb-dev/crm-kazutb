@@ -162,7 +162,7 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
                                 </select>
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4">
                             <span className="text-xs font-medium text-slate-500">
                                 {meta?.total != null ? <>Найдено: <span className="tabular-nums">{meta.total}</span></> : null}
                             </span>
@@ -182,27 +182,27 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
                             Все сотрудники
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[900px] text-sm">
+                                <table className="w-full min-w-[760px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('hiring_date')}>Дата приёма{sortIndicator('hiring_date')}</button>
                                             </th>
-                                            <th className="py-3 pr-6">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('status')}>Статус{sortIndicator('status')}</button>
                                             </th>
                                         </tr>
@@ -210,11 +210,11 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
                                     <tbody>
                                         {displayedItems.map((row) => (
                                             <tr key={row.id} className="border-b border-slate-200 last:border-0">
-                                                <td className="py-3 pl-6 pr-3 font-medium text-slate-900">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-slate-600">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-slate-600">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 tabular-nums text-slate-700">{fmtDate(row.hiring_date)}</td>
-                                                <td className="py-3 pr-6">
+                                                <td className="font-medium text-slate-900">{fullName(row)}</td>
+                                                <td className="text-slate-600">{row.division ?? '—'}</td>
+                                                <td className="text-slate-600">{row.position ?? '—'}</td>
+                                                <td className="tabular-nums text-slate-700">{fmtDate(row.hiring_date)}</td>
+                                                <td>
                                                     {row.is_dismissed ? (
                                                         <StatusBadge tone="danger">
                                                             Уволен{row.dismissed_date ? ' ' + fmtDate(row.dismissed_date) : ''}
@@ -238,7 +238,7 @@ export default function Perco({ staff, divisions = [], filters = {} }) {
 
                         {/* Pagination */}
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

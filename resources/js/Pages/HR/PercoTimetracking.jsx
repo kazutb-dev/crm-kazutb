@@ -265,7 +265,7 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                                 <input type="date" value={toDate} onChange={handleToDateChange} className={qdFieldClass} />
                             </FormField>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="submit">
                                 <Search className="h-4 w-4" />
                                 Найти
@@ -285,45 +285,45 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Clock3 className="shrink-0" />Рабочее время сотрудников</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-6 py-10 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
+                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1200px] text-sm">
                                     <thead>
                                         <tr className="text-left">
-                                            <th className="py-3 pl-6 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('work_date')}>Дата{sortIndicator('work_date')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('full_name')}>ФИО{sortIndicator('full_name')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('division')}>Подразделение{sortIndicator('division')}</button>
                                             </th>
-                                            <th className="py-3 pr-3">
+                                            <th>
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('position')}>Должность{sortIndicator('position')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-center">
+                                            <th className="font-medium text-center">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('first_enter_time')}>Зашел{sortIndicator('first_enter_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-center">
+                                            <th className="font-medium text-center">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('last_exit_time')}>Вышел{sortIndicator('last_exit_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-right">
+                                            <th className="font-medium text-right">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('work_time')}>Отработано{sortIndicator('work_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-right">
+                                            <th className="font-medium text-right">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('absent_time')}>Отсутствие{sortIndicator('absent_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-right">
+                                            <th className="font-medium text-right">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('late_time')}>Опоздание{sortIndicator('late_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-right">
+                                            <th className="font-medium text-right">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('early_time')}>Ранний уход{sortIndicator('early_time')}</button>
                                             </th>
-                                            <th className="py-3 pr-3 font-medium text-right">
+                                            <th className="font-medium text-right">
                                                 <button type="button" className={SORT_BTN} onClick={() => toggleSort('over_time')}>Переработка{sortIndicator('over_time')}</button>
                                             </th>
                                         </tr>
@@ -345,7 +345,7 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                                                 onClick={() => openDayEvents(row)}
                                                 title="Открыть историю проходов за день"
                                             >
-                                                <td className="py-3 pl-6 pr-3">
+                                                <td>
                                                     <div className="tabular-nums text-slate-700">{fmtDate(row.work_date)}</div>
                                                     {row.is_non_working_day && (
                                                         <div className="text-[11px] font-medium text-red-600">
@@ -353,21 +353,21 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="py-3 pr-3 font-medium text-teal-700 underline underline-offset-4">{fullName(row)}</td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.division ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-slate-500">{row.position ?? '—'}</td>
-                                                <td className="py-3 pr-3 text-center font-medium text-emerald-700">{fmtTimeList(row.enter_times, row.first_enter_time)}</td>
-                                                <td className="py-3 pr-3 text-center font-medium text-red-600">
+                                                <td className="font-medium text-teal-700 underline underline-offset-4">{fullName(row)}</td>
+                                                <td className="text-slate-500">{row.division ?? '—'}</td>
+                                                <td className="text-slate-500">{row.position ?? '—'}</td>
+                                                <td className="text-center font-medium text-emerald-700">{fmtTimeList(row.enter_times, row.first_enter_time)}</td>
+                                                <td className="text-center font-medium text-red-600">
                                                     {fmtTimeList(row.exit_times, row.last_exit_time)}
                                                     {eventIssue && (
                                                         <div className="text-[11px] font-normal text-amber-700">{eventIssue}</div>
                                                     )}
                                                 </td>
-                                                <td className="py-3 pr-3 text-right font-semibold text-emerald-700">{fmtDuration(row.work_time)}</td>
-                                                <td className="py-3 pr-3 text-right text-orange-600">{fmtDuration(row.absent_time)}</td>
-                                                <td className="py-3 pr-3 text-right text-red-600">{fmtDuration(row.late_time)}</td>
-                                                <td className="py-3 pr-3 text-right text-amber-700">{fmtDuration(row.early_time)}</td>
-                                                <td className="py-3 pr-6 text-right text-blue-700">{fmtDuration(row.over_time)}</td>
+                                                <td className="text-right font-semibold text-emerald-700">{fmtDuration(row.work_time)}</td>
+                                                <td className="text-right text-orange-600">{fmtDuration(row.absent_time)}</td>
+                                                <td className="text-right text-red-600">{fmtDuration(row.late_time)}</td>
+                                                <td className="text-right text-amber-700">{fmtDuration(row.early_time)}</td>
+                                                <td className="text-right text-blue-700">{fmtDuration(row.over_time)}</td>
                                             </tr>
                                                 );
                                             })()
@@ -378,7 +378,7 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                         )}
 
                         {links.length > 3 && (
-                            <div className="flex flex-wrap gap-2 border-t border-slate-200 px-6 py-4">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-5 py-3 sm:px-6">
                                 {links.map((link, i) => (
                                     <Button
                                         key={`${link.label}-${i}`}

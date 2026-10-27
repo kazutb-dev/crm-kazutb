@@ -67,7 +67,7 @@ export default function UpdatePasswordForm({ className = '', showHeader = true, 
                 </header>
             )}
 
-            <form onSubmit={updatePassword} className={`${showHeader ? 'mt-5' : ''} space-y-5`}>
+            <form onSubmit={updatePassword} className={`${showHeader ? 'mt-5' : ''} space-y-4`}>
                 <div className="space-y-2">
                     <Label htmlFor="current_password" className="block">Текущий пароль</Label>
 
@@ -86,7 +86,7 @@ export default function UpdatePasswordForm({ className = '', showHeader = true, 
                     <FieldError message={errors.current_password} />
                 </div>
 
-                <div className={`grid gap-5 ${compact ? '' : 'md:grid-cols-2'}`}>
+                <div className={`grid gap-4 ${compact ? '' : 'md:grid-cols-2'}`}>
                     <div className="space-y-2">
                         <Label htmlFor="password" className="block">Новый пароль</Label>
 
@@ -121,7 +121,7 @@ export default function UpdatePasswordForm({ className = '', showHeader = true, 
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-4 border-t border-slate-200 pt-5">
+                <div className="mt-2 flex items-center justify-end gap-2 border-t border-slate-200 pt-4">
                     <Transition
                         show={recentlySuccessful}
                         enter="transition ease-in-out"

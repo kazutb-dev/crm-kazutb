@@ -394,6 +394,17 @@
    Qadam panel strip has to look the same on every page.
    ============================================================ */
 
+/* Card body default padding — zero specificity, so any padding utility on the page wins */
+:where(.qd-panel, .qd-scope) :where([data-qd='card-content']) {
+  padding: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  :where(.qd-panel, .qd-scope) :where([data-qd='card-content']) {
+    padding: 1.5rem;
+  }
+}
+
 /* Card header = panel strip: raised background, rule below */
 :is(.qd-panel, .qd-scope) [data-qd='card-header'] {
   gap: 0.25rem;
@@ -496,4 +507,52 @@
   background-repeat: no-repeat;
   background-size: 1.1rem 1.1rem;
   padding-right: 2.25rem;
+}
+
+/* Data tables: one rhythm for every table in the panel. Pages and agents styled cells differently
+   (some without any horizontal padding), so the horizontal padding is pinned here on purpose. */
+:where(.qd-panel, .qd-scope) table {
+  width: 100%;
+}
+
+:where(.qd-panel, .qd-scope) th {
+  text-align: start;
+  vertical-align: middle;
+}
+
+:is(.qd-panel, .qd-scope) table :is(th, td) {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+:is(.qd-panel, .qd-scope) table :is(th, td):first-child {
+  padding-left: 1.25rem;
+}
+
+:is(.qd-panel, .qd-scope) table :is(th, td):last-child {
+  padding-right: 1.25rem;
+}
+
+/* match the card body inset (24px from 640px up) so the first column lines up with card content */
+@media (min-width: 640px) {
+  :is(.qd-panel, .qd-scope) table :is(th, td):first-child {
+    padding-left: 1.5rem;
+  }
+
+  :is(.qd-panel, .qd-scope) table :is(th, td):last-child {
+    padding-right: 1.5rem;
+  }
+}
+
+:where(.qd-panel, .qd-scope) tbody td {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+
+:where(.qd-panel, .qd-scope) tbody tr {
+  border-bottom: 1px solid var(--qd-border);
+}
+
+:where(.qd-panel, .qd-scope) tbody tr:last-child {
+  border-bottom: 0;
 }

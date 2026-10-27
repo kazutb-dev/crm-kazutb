@@ -496,24 +496,24 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                             <table className="w-full min-w-[1200px] text-sm">
                                 <thead className="border-b border-slate-200">
                                     <tr className="text-left">
-                                        <th className="px-4 py-3">Уровень</th>
-                                        <th className="px-4 py-3">Секция</th>
-                                        <th className="px-4 py-3">Структурное подразделение (проверяющее)</th>
-                                        <th className="px-4 py-3">Код</th>
-                                        <th className="px-4 py-3">Название</th>
-                                        <th className="px-4 py-3 text-right">Баллы</th>
-                                        <th className="px-4 py-3">Правила баллов</th>
-                                        <th className="px-4 py-3">Описание</th>
-                                        <th className="px-4 py-3">Статус</th>
-                                        <th className="px-4 py-3 text-right">Действия</th>
+                                        <th>Уровень</th>
+                                        <th>Секция</th>
+                                        <th>Структурное подразделение (проверяющее)</th>
+                                        <th>Код</th>
+                                        <th>Название</th>
+                                        <th className="text-right">Баллы</th>
+                                        <th>Правила баллов</th>
+                                        <th>Описание</th>
+                                        <th>Статус</th>
+                                        <th className="text-right">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.map((indicator) => (
                                         <tr key={indicator.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
-                                            <td className="px-4 py-3"><Badge variant="outline">{entityLabels[indicator.entity_type] ?? indicator.entity_type}</Badge></td>
-                                            <td className="px-4 py-3 text-slate-700">{sectionLabels[indicator.section] ?? indicator.section}</td>
-                                            <td className="px-4 py-3 text-slate-700">
+                                            <td><Badge variant="outline">{entityLabels[indicator.entity_type] ?? indicator.entity_type}</Badge></td>
+                                            <td className="text-slate-700">{sectionLabels[indicator.section] ?? indicator.section}</td>
+                                            <td className="text-slate-700">
                                                 {Array.isArray(indicator.structural_units) && indicator.structural_units.length > 0
                                                     ? indicator.structural_units
                                                         .map((unit) => unit?.name)
@@ -523,13 +523,13 @@ export default function KpiIndicatorsManager({ indicators, filters = {}, options
                                                         ?? options.divisions?.find((div) => String(div.id) === String(indicator.checker_structural_unit_id))?.name
                                                         ?? 'Не указано')}
                                             </td>
-                                            <td className="px-4 py-3 font-mono text-xs text-slate-600">{indicator.code}</td>
-                                            <td className="px-4 py-3"><div className="font-medium text-slate-900">{indicator.name}</div><div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div></td>
-                                            <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
-                                            <td className="max-w-[180px] whitespace-pre-line px-4 py-3 text-slate-500">{indicator.scoring_rules}</td>
-                                            <td className="px-4 py-3 text-slate-600">{indicator.description || '—'}</td>
-                                            <td className="px-4 py-3">{indicator.is_active ? <StatusBadge tone="success">Активен</StatusBadge> : <StatusBadge tone="default">Неактивен</StatusBadge>}</td>
-                                            <td className="px-4 py-3 text-right">
+                                            <td className="whitespace-nowrap font-mono text-xs text-slate-600">{indicator.code}</td>
+                                            <td><div className="font-medium text-slate-900">{indicator.name}</div><div className="text-xs text-slate-500">{indicator.unit || 'без единиц'}</div></td>
+                                            <td className="text-right font-semibold tabular-nums text-[#102945]">{indicator.base_points}</td>
+                                            <td className="max-w-[180px] whitespace-pre-line text-slate-500">{indicator.scoring_rules}</td>
+                                            <td className="text-slate-600">{indicator.description || '—'}</td>
+                                            <td>{indicator.is_active ? <StatusBadge tone="success">Активен</StatusBadge> : <StatusBadge tone="default">Неактивен</StatusBadge>}</td>
+                                            <td className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     {canManage && (
                                                         <>

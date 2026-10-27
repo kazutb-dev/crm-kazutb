@@ -1,7 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, EmptyState, InfoField, Notice, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
+import { EmptyState, InfoField, Notice, PageHeader, StatGrid, StatTile, UnderlineTabs } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -83,7 +84,7 @@ export default function AdminIndex({ requests, counts, filters }) {
                     <Notice tone="success">{flash.success}</Notice>
                 )}
 
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="На рассмотрении" value={counts.pending ?? 0} icon={Clock3} tone="warning" hint="Ждут решения администратора" />
                     <StatTile label="Одобрено" value={counts.approved ?? 0} icon={CircleCheck} tone="success" hint="Должность обновлена" />
                     <StatTile label="Отклонено" value={counts.rejected ?? 0} icon={CircleX} tone="danger" hint="С примечанием для сотрудника" />
@@ -105,92 +106,95 @@ export default function AdminIndex({ requests, counts, filters }) {
                         description={EMPTY_TEXT[statusFilter] ?? 'В этом разделе пока пусто.'}
                     />
                 ) : (
-                    <DataTable>
-                        <table className="w-full min-w-[800px] text-sm">
-                            <thead>
-                                <tr>
-                                    <th className="px-5 text-left">Сотрудник</th>
-                                    <th className="px-5 text-left">Отдел</th>
-                                    <th className="px-5 text-left">Текущая должность</th>
-                                    <th className="px-5 text-left">Запрошена</th>
-                                    <th className="px-5 text-left">Дата заявки</th>
-                                    <th className="px-5 text-left">Статус</th>
-                                    {statusFilter === 'pending' && (
-                                        <th className="px-5 text-right">Действия</th>
-                                    )}
-                                    {statusFilter !== 'pending' && (
-                                        <th className="px-5 text-left">Примечание</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {requests.data.map((r) => (
-                                    <tr key={r.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-5 py-3.5">
-                                            <div className="font-medium text-slate-900">{r.user?.name}</div>
-                                            <div className="text-xs text-slate-500">{r.user?.email}</div>
-                                        </td>
-                                        <td className="px-5 py-3.5 text-slate-600">
-                                            {r.user?.department || '—'}
-                                        </td>
-                                        <td className="px-5 py-3.5 text-slate-700">
-                                            {r.current_position || '—'}
-                                        </td>
-                                        <td className="px-5 py-3.5 font-semibold text-[#102945]">
-                                            {r.requested_position}
-                                        </td>
-                                        <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-600">
-                                            {r.created_at?.slice(0, 10)}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <Badge variant={STATUS_VARIANT[r.status] ?? 'secondary'}>
-                                                {STATUS_LABEL[r.status] ?? r.status}
-                                            </Badge>
-                                        </td>
-                                        {statusFilter === 'pending' && (
-                                            <td className="px-5 py-3.5 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button size="sm" onClick={() => openDialog('approve', r)}>
-                                                        <CheckCircle />
-                                                        Принять
-                                                    </Button>
-                                                    <Button size="sm" variant="outline" onClick={() => openDialog('reject', r)}>
-                                                        <XCircle />
-                                                        Отклонить
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        )}
-                                        {statusFilter !== 'pending' && (
-                                            <td className="px-5 py-3.5 text-slate-600">
-                                                {r.admin_note || '—'}
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </DataTable>
-                )}
-
-                {requests.links?.length > 3 && (
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                        {requests.links.map((link, i) => (
-                            <Button
-                                key={i}
-                                size="sm"
-                                variant={link.active ? 'default' : 'outline'}
-                                disabled={!link.url}
-                                asChild={Boolean(link.url)}
-                            >
-                                {link.url ? (
-                                    <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
-                                ) : (
-                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
-                                )}
-                            </Button>
-                        ))}
-                    </div>
+                    <Card className="overflow-hidden">
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[800px] text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Сотрудник</th>
+                                            <th className="text-left">Отдел</th>
+                                            <th className="text-left">Текущая должность</th>
+                                            <th className="text-left">Запрошена</th>
+                                            <th className="text-left">Дата заявки</th>
+                                            <th className="text-left">Статус</th>
+                                            {statusFilter === 'pending' && (
+                                                <th className="text-right">Действия</th>
+                                            )}
+                                            {statusFilter !== 'pending' && (
+                                                <th className="text-left">Примечание</th>
+                                            )}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {requests.data.map((r) => (
+                                            <tr key={r.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
+                                                <td>
+                                                    <div className="font-medium text-slate-900">{r.user?.name}</div>
+                                                    <div className="text-xs text-slate-500">{r.user?.email}</div>
+                                                </td>
+                                                <td className="text-slate-600">
+                                                    {r.user?.department || '—'}
+                                                </td>
+                                                <td className="text-slate-700">
+                                                    {r.current_position || '—'}
+                                                </td>
+                                                <td className="font-semibold text-[#102945]">
+                                                    {r.requested_position}
+                                                </td>
+                                                <td className="whitespace-nowrap tabular-nums text-slate-600">
+                                                    {r.created_at?.slice(0, 10)}
+                                                </td>
+                                                <td>
+                                                    <Badge variant={STATUS_VARIANT[r.status] ?? 'secondary'}>
+                                                        {STATUS_LABEL[r.status] ?? r.status}
+                                                    </Badge>
+                                                </td>
+                                                {statusFilter === 'pending' && (
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button size="sm" onClick={() => openDialog('approve', r)}>
+                                                                <CheckCircle />
+                                                                Принять
+                                                            </Button>
+                                                            <Button size="sm" variant="outline" onClick={() => openDialog('reject', r)}>
+                                                                <XCircle />
+                                                                Отклонить
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                                {statusFilter !== 'pending' && (
+                                                    <td className="text-slate-600">
+                                                        {r.admin_note || '—'}
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {requests.links?.length > 3 && (
+                                <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-end">
+                                    {requests.links.map((link, i) => (
+                                        <Button
+                                            key={i}
+                                            size="sm"
+                                            variant={link.active ? 'default' : 'outline'}
+                                            disabled={!link.url}
+                                            asChild={Boolean(link.url)}
+                                        >
+                                            {link.url ? (
+                                                <Link href={link.url} dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            ) : (
+                                                <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                            )}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 

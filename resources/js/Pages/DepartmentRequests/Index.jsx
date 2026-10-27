@@ -166,12 +166,12 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr>
-                                            <th className="px-5 text-left">Тема</th>
-                                            <th className="px-5 text-left">Отдел</th>
-                                            <th className="px-5 text-left">Дата отправки</th>
-                                            <th className="px-5 text-left">Дата решения</th>
-                                            <th className="px-5 text-left">Статус</th>
-                                            <th className="px-5 text-left">Ответ</th>
+                                            <th className="text-left">Тема</th>
+                                            <th className="text-left">Отдел</th>
+                                            <th className="text-left">Дата отправки</th>
+                                            <th className="text-left">Дата решения</th>
+                                            <th className="text-left">Статус</th>
+                                            <th className="text-left">Ответ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -180,7 +180,7 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
 
                                             return (
                                                 <tr key={req.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50">
-                                                    <td className="px-5 py-3.5">
+                                                    <td>
                                                         <p className="font-medium text-slate-900">{req.title}</p>
                                                         {req.room && (
                                                             <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-600">
@@ -189,13 +189,13 @@ export default function DepartmentRequestsIndex({ myRequests = [], departments =
                                                             </p>
                                                         )}
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-slate-700">{req.department ?? '—'}</td>
-                                                    <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
-                                                    <td className="whitespace-nowrap px-5 py-3.5 tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
-                                                    <td className="px-5 py-3.5">
+                                                    <td className="text-slate-700">{req.department ?? '—'}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.created_at ?? '—'}</td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{req.closed_at ?? '—'}</td>
+                                                    <td>
                                                         <Badge variant={meta.variant}>{meta.label}</Badge>
                                                     </td>
-                                                    <td className="px-5 py-3.5 text-slate-700">
+                                                    <td className="text-slate-700">
                                                         {req.note ? (
                                                             <div>
                                                                 <p>{req.note}</p>

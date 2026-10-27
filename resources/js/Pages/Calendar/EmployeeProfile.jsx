@@ -95,7 +95,7 @@ function MonthCalendar({ year, month, events, selectedDay, onDayClick, title = n
                     </div>
                 </CardHeader>
             )}
-            <CardContent className="p-0">
+            <CardContent className="p-0 sm:p-0">
                 <div className="grid grid-cols-7 border-b border-slate-200">
                     {WEEKDAYS_SHORT.map((wd, i) => (
                         <div key={wd} className={`py-2 text-center text-[0.6875rem] font-bold uppercase tracking-[0.1em] ${i >= 5 ? 'text-red-600/70' : 'text-slate-500'}`}>
@@ -173,7 +173,7 @@ function DayPanel({ day, year, month, events, onMeeting }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <CardTitle className="flex items-center gap-2">
                         <Clock className="shrink-0" />
-                        <span className="capitalize">{dateLabel}</span>
+                        {dateLabel}
                     </CardTitle>
                     <Button size="sm" variant="outline" onClick={() => onMeeting(day)}>
                         <CalendarPlus className="size-3.5" />

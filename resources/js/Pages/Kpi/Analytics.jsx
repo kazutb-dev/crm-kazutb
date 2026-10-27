@@ -35,23 +35,23 @@ function RankingTable({ title, icon: Icon, rows, emptyMessage }) {
                         <table className="w-full min-w-[420px] text-sm">
                             <thead className="border-b border-slate-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left">#</th>
-                                    <th className="px-4 py-3 text-left">Название</th>
-                                    <th className="px-4 py-3 text-right">Утверждено</th>
-                                    <th className="px-4 py-3 text-right">Итоговый балл</th>
+                                    <th className="text-left">#</th>
+                                    <th className="text-left">Название</th>
+                                    <th className="text-right">Утверждено</th>
+                                    <th className="text-right">Итоговый балл</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {rows.map((row, index) => (
                                     <tr key={row.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                        <td className="px-4 py-3">
+                                        <td>
                                             <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold tabular-nums ${index === 0 ? 'bg-amber-400 text-[#102945]' : 'bg-slate-100 text-slate-600'}`}>
                                                 {index + 1}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 font-medium text-slate-900">{row.entity_name}</td>
-                                        <td className="px-4 py-3 text-right tabular-nums text-slate-600">{row.approved_entries_count}</td>
-                                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-[#102945]">{score(row.total_score)}</td>
+                                        <td className="font-medium text-slate-900">{row.entity_name}</td>
+                                        <td className="text-right tabular-nums text-slate-600">{row.approved_entries_count}</td>
+                                        <td className="text-right font-semibold tabular-nums text-[#102945]">{score(row.total_score)}</td>
                                     </tr>
                                 ))}
                             </tbody>

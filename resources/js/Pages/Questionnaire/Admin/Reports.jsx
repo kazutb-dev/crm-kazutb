@@ -99,21 +99,21 @@ export default function Reports() {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="px-5 py-3 text-left">Анкета</th>
-                                            <th className="px-5 py-3 text-left">Студент</th>
-                                            <th className="px-5 py-3 text-left">Преподаватель</th>
-                                            <th className="px-5 py-3 text-left">Дисциплина</th>
-                                            <th className="px-5 py-3 text-right">Создано</th>
+                                            <th className="whitespace-nowrap text-left">Анкета</th>
+                                            <th className="whitespace-nowrap text-left">Студент</th>
+                                            <th className="whitespace-nowrap text-left">Преподаватель</th>
+                                            <th className="whitespace-nowrap text-left">Дисциплина</th>
+                                            <th className="whitespace-nowrap text-right">Создано</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredResponses.map((row) => (
                                             <tr key={row.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{row.survey?.title || row.survey_id}</td>
-                                                <td className="px-5 py-3 text-slate-700">{row.student?.full_name || row.student_id}</td>
-                                                <td className="px-5 py-3 text-slate-700">{row.teacher?.name || row.teacher?.display_name || row.teacher_id}</td>
-                                                <td className="px-5 py-3 text-slate-700">{row.discipline?.name || row.discipline_id}</td>
-                                                <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums text-slate-600">{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td>
+                                                <td className="font-medium text-slate-900">{row.survey?.title || row.survey_id}</td>
+                                                <td className="text-slate-700">{row.student?.full_name || row.student_id}</td>
+                                                <td className="text-slate-700">{row.teacher?.name || row.teacher?.display_name || row.teacher_id}</td>
+                                                <td className="text-slate-700">{row.discipline?.name || row.discipline_id}</td>
+                                                <td className="whitespace-nowrap text-right tabular-nums text-slate-600">{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>

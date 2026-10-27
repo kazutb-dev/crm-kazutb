@@ -254,7 +254,7 @@ export default function GroupAssignments() {
                                     </select>
                                 </FormField>
 
-                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                                     {editingId && (
                                         <Button type="button" variant="outline" onClick={resetForm}>Отмена</Button>
                                     )}
@@ -274,7 +274,7 @@ export default function GroupAssignments() {
                                 Текущие назначения
                             </CardTitle>
                         </CardHeader>
-                        <div className="border-b border-slate-200 px-5 py-4">
+                        <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
                             <FormField label="Поиск">
                                 <div className="relative w-full sm:max-w-sm">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -289,9 +289,9 @@ export default function GroupAssignments() {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5"><LoadingState /></div>
+                                <div className="p-5 sm:p-6"><LoadingState /></div>
                             ) : filteredItems.length === 0 ? (
-                                <div className="px-5 py-12 text-center">
+                                <div className="px-5 py-12 text-center sm:px-6">
                                     <p className="font-display text-lg font-bold text-[#102945]">Назначения пока не созданы</p>
                                     <p className="mt-1 text-sm text-slate-600">
                                         {items.length === 0 ? 'Заполните форму «Новое назначение», чтобы привязать преподавателя и дисциплину к группе.' : 'По запросу ничего не найдено — измените поиск.'}
@@ -302,32 +302,32 @@ export default function GroupAssignments() {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
-                                                <th className="px-5 py-3 text-left">Группа</th>
-                                                <th className="px-5 py-3 text-left">Преподаватель</th>
-                                                <th className="px-5 py-3 text-left">Дисциплина</th>
-                                                <th className="px-5 py-3 text-left">Период</th>
-                                                <th className="px-5 py-3 text-left">Статус</th>
-                                                <th className="px-5 py-3 text-right">Действия</th>
+                                                <th className="whitespace-nowrap text-left">Группа</th>
+                                                <th className="whitespace-nowrap text-left">Преподаватель</th>
+                                                <th className="whitespace-nowrap text-left">Дисциплина</th>
+                                                <th className="whitespace-nowrap text-left">Период</th>
+                                                <th className="whitespace-nowrap text-left">Статус</th>
+                                                <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredItems.map((item) => (
                                                 <tr key={item.id} className={`border-b border-slate-200 last:border-b-0 hover:bg-slate-50 ${editingId === item.id ? 'bg-teal-50' : ''}`}>
-                                                    <td className="px-5 py-3 font-medium text-slate-900">{item.group?.name || item.group_id}</td>
-                                                    <td className="px-5 py-3 text-slate-700">
+                                                    <td className="whitespace-nowrap font-medium text-slate-900">{item.group?.name || item.group_id}</td>
+                                                    <td className="text-slate-700">
                                                         {item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}
                                                     </td>
-                                                    <td className="px-5 py-3 text-slate-700">
+                                                    <td className="text-slate-700">
                                                         {item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}
                                                     </td>
-                                                    <td className="whitespace-nowrap px-5 py-3 tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
-                                                    <td className="px-5 py-3">
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
+                                                    <td>
                                                         <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
                                                             {item.status}
                                                         </StatusBadge>
                                                     </td>
-                                                    <td className="px-5 py-3 text-right">
-                                                        <div className="inline-flex gap-2">
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
                                                             <Button type="button" variant="outline" size="sm" onClick={() => startEdit(item)}>
                                                                 <Pencil className="h-3.5 w-3.5" />
                                                                 Ред.

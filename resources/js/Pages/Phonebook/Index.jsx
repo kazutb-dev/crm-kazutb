@@ -904,16 +904,16 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                             <DataTable>
                                 <table className="min-w-full text-sm">
                                     <thead className="text-left">
-                                        <tr className="border-b border-slate-200">
-                                            <th className="px-3 py-3">№</th>
-                                            <th className="px-3 py-3">ФИО</th>
-                                            <th className="px-3 py-3">Должность</th>
-                                            <th className="px-3 py-3">Департамент</th>
-                                            <th className="px-3 py-3">Телефон</th>
-                                            <th className="px-3 py-3">Внутренний</th>
-                                            <th className="px-3 py-3">Email</th>
-                                            <th className="px-3 py-3">Кабинет</th>
-                                            {(canManageDirectory || canManagePhotos) && <th className="px-3 py-3 text-right">Действия</th>}
+                                        <tr>
+                                            <th>№</th>
+                                            <th>ФИО</th>
+                                            <th>Должность</th>
+                                            <th>Департамент</th>
+                                            <th>Телефон</th>
+                                            <th>Внутренний</th>
+                                            <th>Email</th>
+                                            <th>Кабинет</th>
+                                            {(canManageDirectory || canManagePhotos) && <th className="text-right">Действия</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -928,7 +928,7 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                 }}
                                                 onDrop={(event) => handleDropOnTableRow(event, item)}
                                             >
-                                                <td className="px-3 py-3 tabular-nums text-slate-500">
+                                                <td className="tabular-nums text-slate-500">
                                                     <div className="flex items-center gap-2">
                                                         {canManageDirectory && (
                                                             <span
@@ -944,20 +944,20 @@ export default function Index({ sections, totalUsers, departments, filters }) {
                                                         <span>{item._globalOrder}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-3">
+                                                <td>
                                                     <div className="font-medium text-slate-900">{item.full_name}</div>
                                                 </td>
-                                                <td className="px-3 py-3 text-slate-600">{item.job_title || '-'}</td>
-                                                <td className="px-3 py-3">
+                                                <td className="text-slate-600">{item.job_title || '-'}</td>
+                                                <td>
                                                     <Badge variant="outline">{item.department?.name || item._sectionName || 'Без департамента'}</Badge>
                                                 </td>
-                                                <td className="whitespace-nowrap px-3 py-3 tabular-nums">{item.phone || '-'}</td>
-                                                <td className="px-3 py-3 tabular-nums">{item.inner_phone || '-'}</td>
-                                                <td className="px-3 py-3">{item.email || '-'}</td>
-                                                <td className="px-3 py-3">{item.office || '-'}</td>
+                                                <td className="whitespace-nowrap tabular-nums">{item.phone || '-'}</td>
+                                                <td className="tabular-nums">{item.inner_phone || '-'}</td>
+                                                <td>{item.email || '-'}</td>
+                                                <td>{item.office || '-'}</td>
 
                                                 {(canManageDirectory || canManagePhotos) && (
-                                                    <td className="px-3 py-3 text-right">
+                                                    <td className="text-right">
                                                         <div className="flex flex-wrap justify-end gap-2">
                                                             {canManageDirectory && (
                                                                 <Button

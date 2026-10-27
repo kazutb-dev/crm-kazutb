@@ -159,7 +159,7 @@ export default function Disciplines() {
                                 <Input className="pl-9" placeholder="Название или код дисциплины" value={search} onChange={(e) => setSearch(e.target.value)} />
                             </div>
                         </FormField>
-                        <p className="text-sm text-slate-500 tabular-nums">Показано: {filteredDisciplines.length} из {disciplines.length}</p>
+                        <p className="text-sm tabular-nums text-slate-500 sm:flex sm:h-10 sm:items-center">Показано: {filteredDisciplines.length} из {disciplines.length}</p>
                     </div>
                 </FilterBar>
 
@@ -189,24 +189,24 @@ export default function Disciplines() {
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
-                                            <th className="px-5 py-3 text-left">Название</th>
-                                            <th className="px-5 py-3 text-left">Код</th>
-                                            <th className="px-5 py-3 text-left">Статус</th>
-                                            <th className="px-5 py-3 text-right">Действия</th>
+                                            <th className="whitespace-nowrap text-left">Название</th>
+                                            <th className="whitespace-nowrap text-left">Код</th>
+                                            <th className="whitespace-nowrap text-left">Статус</th>
+                                            <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredDisciplines.map((discipline) => (
                                             <tr key={discipline.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="px-5 py-3 font-medium text-slate-900">{discipline.name}</td>
-                                                <td className="px-5 py-3 font-mono text-xs text-slate-600">{discipline.code || '—'}</td>
-                                                <td className="px-5 py-3">
+                                                <td className="font-medium text-slate-900">{discipline.name}</td>
+                                                <td className="whitespace-nowrap font-mono text-xs text-slate-600">{discipline.code || '—'}</td>
+                                                <td>
                                                     <StatusBadge tone={discipline.status === 'active' ? 'success' : 'default'}>
                                                         {discipline.status}
                                                     </StatusBadge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
-                                                    <div className="inline-flex gap-2">
+                                                <td className="text-right">
+                                                    <div className="flex justify-end gap-2">
                                                         <Button type="button" variant="outline" size="sm" onClick={() => startEdit(discipline)}>
                                                             <Pencil className="h-3.5 w-3.5" />
                                                             Ред.
@@ -258,7 +258,7 @@ export default function Disciplines() {
                             </select>
                         </FormField>
 
-                        <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-2 flex justify-end gap-2 border-t border-slate-200 pt-4">
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                                 Отмена
                             </Button>

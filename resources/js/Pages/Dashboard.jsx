@@ -1,5 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, PageHeader, StatTile } from '@/components/platform';
+import { PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -151,14 +151,12 @@ function buildActivitySearchText(row) {
 function ChartCard({ icon: Icon, title, aside = null, className = '', children }) {
     return (
         <Card className={`relative z-30 overflow-visible ${className}`}>
-            <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="flex items-center gap-2">
-                        <Icon className="shrink-0" />
-                        {title}
-                    </CardTitle>
-                    {aside}
-                </div>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2">
+                    <Icon className="shrink-0" />
+                    {title}
+                </CardTitle>
+                {aside}
             </CardHeader>
             <CardContent className="overflow-visible">{children}</CardContent>
         </Card>
@@ -242,7 +240,7 @@ export default function Dashboard({
 
             <div className="admin-page-wrap space-y-6">
                 {/* KPI tiles */}
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+                <StatGrid>
                     {overviewCards.map((card) => (
                         <Link
                             key={card.key}
@@ -258,10 +256,10 @@ export default function Dashboard({
                             />
                         </Link>
                     ))}
-                </section>
+                </StatGrid>
 
                 {/* Modules + attention */}
-                <section className="grid gap-6 xl:grid-cols-3">
+                <section className="grid items-start gap-6 xl:grid-cols-3">
                     <Card className="relative z-30 overflow-visible xl:col-span-2">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -307,7 +305,7 @@ export default function Dashboard({
                                 Зоны внимания
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="py-1">
+                        <CardContent>
                             {attention.length === 0 ? (
                                 <p className="py-4 text-sm text-slate-500">Всё в норме — зон внимания нет.</p>
                             ) : (
@@ -316,7 +314,7 @@ export default function Dashboard({
                                         <Link
                                             key={item.key}
                                             href={item.route}
-                                            className="group flex items-start gap-3 py-3.5"
+                                            className="group flex items-start gap-3 py-3 first:pt-0 last:pb-0"
                                         >
                                             <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_DOT[item.severity] ?? 'bg-slate-400'}`} aria-hidden="true" />
                                             <div className="min-w-0 flex-1">
@@ -340,7 +338,7 @@ export default function Dashboard({
                     <ChartCard
                         icon={Activity}
                         title="Динамика активности"
-                        aside={<span className="qd-field-label text-slate-500">за 14 дней</span>}
+                        aside={<span className="qd-field-label leading-none text-slate-500">за 14 дней</span>}
                         className="xl:col-span-2"
                     >
                         <LineChart
@@ -414,19 +412,17 @@ export default function Dashboard({
                 {/* Activity + quick links */}
                 <section className="grid items-stretch gap-6 xl:h-[26rem] xl:grid-cols-3 [&>*]:min-h-0">
                     <Card className="flex h-full min-h-0 flex-col overflow-hidden xl:col-span-2">
-                        <CardHeader>
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <CardTitle className="flex items-center gap-2">
-                                    <History className="shrink-0" />
-                                    Последние действия в системе
-                                </CardTitle>
-                                <span className="whitespace-nowrap text-xs font-medium text-slate-500">
-                                    Показано: <span className="tabular-nums">{filteredActivityFeed.length}</span> из <span className="tabular-nums">{activityFeed.length}</span>
-                                </span>
-                            </div>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <History className="shrink-0" />
+                                Последние действия в системе
+                            </CardTitle>
+                            <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
+                                Показано: <span className="tabular-nums">{filteredActivityFeed.length}</span> из <span className="tabular-nums">{activityFeed.length}</span>
+                            </span>
                         </CardHeader>
-                        <div className="border-b border-slate-200 px-5 py-3 sm:px-6">
-                            <label className="relative block max-w-sm">
+                        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
+                            <label className="relative block w-full max-w-sm">
                                 <span className="sr-only">Поиск по последним действиям</span>
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
@@ -440,15 +436,18 @@ export default function Dashboard({
                         </div>
                         <div className="min-h-0 flex-1 overflow-hidden">
                             {filteredActivityFeed.length === 0 ? (
-                                <div className="p-5">
-                                    <EmptyState
-                                        title="Лента активности пока пуста"
-                                        description={activityFeed.length > 0 ? 'Ничего не найдено — измените запрос поиска.' : 'Действия пользователей и записи аудита появятся здесь.'}
-                                    />
+                                <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                        <History className="h-6 w-6" />
+                                    </div>
+                                    <p className="font-display text-lg font-bold text-[#102945]">Лента активности пока пуста</p>
+                                    <p className="max-w-md text-sm text-slate-600">
+                                        {activityFeed.length > 0 ? 'Ничего не найдено — измените запрос поиска.' : 'Действия пользователей и записи аудита появятся здесь.'}
+                                    </p>
                                 </div>
                             ) : (
-                                <div className="h-full min-h-0 overflow-y-auto overflow-x-hidden">
-                                    <table className="w-full table-fixed text-xs leading-snug">
+                                <div className="h-full max-h-[28rem] min-h-0 overflow-auto xl:max-h-none">
+                                    <table className="w-full min-w-[860px] table-fixed text-xs leading-snug">
                                         <colgroup>
                                             <col className="w-[14%]" />
                                             <col className="w-[8%]" />
@@ -460,40 +459,40 @@ export default function Dashboard({
                                         </colgroup>
                                         <thead className="sticky top-0 z-10">
                                             <tr>
-                                                <th className="px-3 text-left">Дата/время</th>
-                                                <th className="px-3 text-left">Источник</th>
-                                                <th className="px-3 text-left">Модуль</th>
-                                                <th className="px-3 text-left">Пользователь</th>
-                                                <th className="px-3 text-left">Событие</th>
-                                                <th className="px-3 text-left">Сущность</th>
-                                                <th className="px-3 text-left">IP</th>
+                                                <th className="text-left">Дата/время</th>
+                                                <th className="text-left">Источник</th>
+                                                <th className="text-left">Модуль</th>
+                                                <th className="text-left">Пользователь</th>
+                                                <th className="text-left">Событие</th>
+                                                <th className="text-left">Сущность</th>
+                                                <th className="text-left">IP</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {filteredActivityFeed.map((row) => (
                                                 <tr key={row.id} className={`border-b border-slate-200 align-top last:border-0 hover:bg-slate-50 ${SEVERITY_ROW_BG[row.severity] || ''}`}>
-                                                    <td className="break-words px-3 py-2.5 font-mono text-[11px] tabular-nums text-slate-500">{formatDate(row.created_at)}</td>
-                                                    <td className="px-3 py-2.5">
+                                                    <td className="break-words font-mono text-[11px] tabular-nums text-slate-500">{formatDate(row.created_at)}</td>
+                                                    <td>
                                                         <Badge variant={row.source === 'audit' ? 'info' : 'secondary'}>{row.source}</Badge>
                                                     </td>
-                                                    <td className="px-3 py-2.5">
+                                                    <td>
                                                         <ModuleBadge module={row.module} label={row.module_label} />
                                                     </td>
-                                                    <td className="px-3 py-2.5">
+                                                    <td>
                                                         <div className="break-words font-medium text-slate-900">{row.actor_name}</div>
                                                         <div className="break-all text-[11px] text-slate-500">{row.actor_email ?? '—'}</div>
                                                     </td>
-                                                    <td className="px-3 py-2.5">
+                                                    <td>
                                                         <div className="flex items-center gap-1.5 break-words text-slate-700">
                                                             {row.severity && row.severity !== 'low' && <SeverityDot severity={row.severity} />}
                                                             {row.event_label}
                                                         </div>
                                                     </td>
-                                                    <td className="px-3 py-2.5">
+                                                    <td>
                                                         <div className="break-words font-medium text-slate-900">{row.subject_name}</div>
                                                         <div className="break-words text-[11px] text-slate-500">{row.subject_label ?? '—'}</div>
                                                     </td>
-                                                    <td className="break-all px-3 py-2.5 font-mono text-[11px] tabular-nums text-slate-500">{row.ip_address ?? '—'}</td>
+                                                    <td className="break-all font-mono text-[11px] tabular-nums text-slate-500">{row.ip_address ?? '—'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -510,7 +509,7 @@ export default function Dashboard({
                                 Быстрые переходы
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="min-h-0 flex-1 overflow-auto py-1">
+                        <CardContent className="min-h-0 flex-1 overflow-auto">
                             {quickLinks.length === 0 ? (
                                 <p className="py-4 text-sm text-slate-500">Быстрые переходы не настроены.</p>
                             ) : (
@@ -521,7 +520,7 @@ export default function Dashboard({
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
-                                                className="group flex items-center justify-between gap-3 py-3"
+                                                className="group flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                                             >
                                                 <span className="flex items-center gap-3">
                                                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700 transition-colors group-hover:bg-teal-700 group-hover:text-white">

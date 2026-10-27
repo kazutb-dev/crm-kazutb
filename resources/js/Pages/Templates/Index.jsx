@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Notice, PageHeader, Segmented, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
-import { CheckCircle2, ExternalLink, FilePlus2, Image as ImageIcon, Layers, LayoutTemplate, Plus } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Inbox, FilePlus2, Image as ImageIcon, Layers, LayoutTemplate, Plus } from 'lucide-react';
 
 // Chrome classes for raw fields around the editor (the editor stage itself keeps its own styling).
 const fieldClass = qdFieldClass;
@@ -760,10 +760,11 @@ export default function TemplatesIndex({ templates = [] }) {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {templates.length === 0 && (
-                            <div className="rounded-[14px] border border-dashed border-slate-300 px-4 py-10 text-center">
-                                <p className="font-display text-base font-bold text-[#102945]">Шаблонов пока нет</p>
-                                <p className="mt-1 text-sm text-slate-600">Создайте первый шаблон в форме выше.</p>
-                            </div>
+                            <InlineEmpty
+                                icon={LayoutTemplate}
+                                title="Шаблонов пока нет"
+                                description="Создайте первый шаблон в форме выше."
+                            />
                         )}
 
                         {templates.map((template) => (
@@ -959,7 +960,7 @@ export default function TemplatesIndex({ templates = [] }) {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 mt-2">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -987,5 +988,20 @@ export default function TemplatesIndex({ templates = [] }) {
                 }}
             />
         </AuthenticatedLayout>
+    );
+}
+
+function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-6 w-6" />
+            </span>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
     );
 }

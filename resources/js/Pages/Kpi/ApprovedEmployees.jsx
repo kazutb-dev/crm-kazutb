@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, FilterBar, FormField, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
+import { FilterBar, FormField, PageHeader, StatGrid, StatTile, UnderlineTabs, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Head, router } from '@inertiajs/react';
-import { CheckCircle2, Search, Users } from 'lucide-react';
+import { CheckCircle2, Inbox, Search, Users } from 'lucide-react';
 import { useRef } from 'react';
 
 const entityTypeLabels = {
@@ -19,6 +19,22 @@ function formatDate(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+}
+
+// Empty state for use inside a card (the platform EmptyState is itself a card).
+function InlineEmpty({ title, description = null, action = null }) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-6 w-6" />
+            </div>
+            <div className="max-w-md space-y-1">
+                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
+            </div>
+            {action}
+        </div>
+    );
 }
 
 export default function ApprovedEmployees({ employees = [], filters = {}, academicYears = [], periods = [] }) {
@@ -57,7 +73,7 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
             <Head title="KPI — Прошедшие полную проверку" />
 
             <div className="admin-page-wrap space-y-6">
-                <StatGrid className="xl:grid-cols-3">
+                <StatGrid>
                     <StatTile label="Сотрудников" value={employees.length} tone="success" icon={CheckCircle2} hint={entityTypeLabels[filters.entity_type] ?? 'Все категории'} />
                     <StatTile label="Утверждённых записей" value={approvedTotal} tone="teal" icon={Users} hint="Суммарно по списку" />
                 </StatGrid>
@@ -124,48 +140,46 @@ export default function ApprovedEmployees({ employees = [], filters = {}, academ
                     </CardHeader>
                     <CardContent className="p-0">
                         {employees.length === 0 ? (
-                            <div className="p-5">
-                                <EmptyState
-                                    title="Список пуст"
-                                    description="Нет сотрудников с утверждёнными KPI-записями по выбранным фильтрам"
-                                />
-                            </div>
+                            <InlineEmpty
+                                title="Список пуст"
+                                description="Нет сотрудников с утверждёнными KPI-записями по выбранным фильтрам"
+                            />
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead className="border-b border-slate-200">
                                         <tr>
-                                            <th className="px-5 py-3 text-left">#</th>
-                                            <th className="px-5 py-3 text-left">Сотрудник</th>
-                                            <th className="px-5 py-3 text-left">Кафедра / Факультет</th>
-                                            <th className="px-5 py-3 text-right">Утверждённых записей</th>
-                                            <th className="px-5 py-3 text-right">Итого баллов</th>
-                                            <th className="px-5 py-3 text-right">Последнее утверждение</th>
+                                            <th className="text-left">#</th>
+                                            <th className="text-left">Сотрудник</th>
+                                            <th className="text-left">Кафедра / Факультет</th>
+                                            <th className="text-right">Утверждённых записей</th>
+                                            <th className="text-right">Итого баллов</th>
+                                            <th className="text-right">Последнее утверждение</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {employees.map((emp, index) => (
                                             <tr key={`${emp.user_id}-${emp.kpi_period_id}`} className="border-b border-slate-200 last:border-0 transition-colors hover:bg-slate-50">
-                                                <td className="px-5 py-3 tabular-nums text-slate-500">{index + 1}</td>
-                                                <td className="px-5 py-3">
+                                                <td className="tabular-nums text-slate-500">{index + 1}</td>
+                                                <td>
                                                     <div className="font-medium text-slate-900">{emp.name}</div>
                                                     <div className="text-xs text-slate-500">{emp.email}</div>
                                                     {emp.ad_title && (
                                                         <div className="text-xs text-slate-500">{emp.ad_title}</div>
                                                     )}
                                                 </td>
-                                                <td className="px-5 py-3 text-slate-600">
+                                                <td className="text-slate-600">
                                                     {emp.department ?? emp.faculty ?? emp.ad_department ?? '—'}
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <Badge variant="secondary" className="tabular-nums">{emp.approved_count}</Badge>
                                                 </td>
-                                                <td className="px-5 py-3 text-right">
+                                                <td className="text-right">
                                                     <span className="font-display text-base font-bold tabular-nums text-emerald-700">
                                                         {Number(emp.total_points).toFixed(2)}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3 text-right text-xs tabular-nums text-slate-500">
+                                                <td className="text-right text-xs tabular-nums text-slate-500">
                                                     {formatDate(emp.last_approved_at)}
                                                 </td>
                                             </tr>
