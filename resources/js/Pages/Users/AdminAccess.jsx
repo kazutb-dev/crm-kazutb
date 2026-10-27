@@ -96,6 +96,8 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
         [users],
     );
     const hasSearch = String(search ?? '').trim() !== '';
+    const grantTableShown = hasSearch && staffUsers.length > 0;
+    const superadminCount = adminUsers.filter((user) => user.role === 'superadmin').length;
 
     return (
         <AuthenticatedLayout
@@ -110,8 +112,9 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
         >
             <Head title="Права администратора" />
 
-            <div className="admin-page-wrap space-y-6">
-                <FilterBar>
+            <div className="admin-page-wrap space-y-4">
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+                <FilterBar className="flex flex-col justify-center">
                     <form className="flex flex-wrap items-end gap-3" onSubmit={submitSearch}>
                         <label className="relative block min-w-[16rem] flex-1 space-y-2">
                             <span className="qd-field-label block">Поиск сотрудника</span>
@@ -133,9 +136,11 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                 <StatGrid>
                     <StatTile label="Администраторы" value={adminUsers.length} tone="teal" icon={ShieldCheck} hint={hasSearch ? 'По текущему поиску' : 'Все с ролью admin / superadmin'} />
                     <StatTile label="Найдено сотрудников" value={hasSearch ? staffUsers.length : '—'} tone="navy" icon={Users} hint={hasSearch ? `Запрос: «${search}»` : 'Введите запрос, чтобы найти сотрудника'} />
-                    <StatTile label="Можно выдать admin" value={hasSearch ? staffUsers.filter((user) => user.can_grant_admin).length : '—'} tone="gold" icon={ShieldPlus} />
+                    <StatTile label="Можно выдать admin" value={hasSearch ? staffUsers.filter((user) => user.can_grant_admin).length : '—'} tone="gold" icon={ShieldPlus} hint={superadminCount > 0 ? `Суперадминистраторов: ${superadminCount}` : null} />
                 </StatGrid>
+                </div>
 
+                <div className={`grid items-start gap-4 [&>*]:min-w-0 ${grantTableShown ? '' : '2xl:grid-cols-2'}`}>
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -148,7 +153,7 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                             <Notice tone="info">Администраторы не найдены по текущему поиску.</Notice>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full min-w-[760px] text-sm">
+                                <table className="w-full min-w-[640px] text-sm">
                                     <thead>
                                         <tr>
                                             <th>Сотрудник</th>
@@ -252,6 +257,7 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
                         )}
                     </CardContent>
                 </Card>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
@@ -260,9 +266,9 @@ export default function AdminAccess({ users = [], search = '', permissions = {} 
 /** Empty state inside a card (the platform EmptyState is a card of its own). */
 function EmptyStateInline({ icon: Icon, title, description }) {
     return (
-        <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Icon className="h-6 w-6" /></span>
-            <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Icon className="h-5 w-5" /></span>
+            <p className="text-base font-bold text-[#102945]">{title}</p>
             <p className="max-w-md text-sm text-slate-600">{description}</p>
         </div>
     );

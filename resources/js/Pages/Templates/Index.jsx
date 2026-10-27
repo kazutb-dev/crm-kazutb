@@ -607,18 +607,20 @@ export default function TemplatesIndex({ templates = [] }) {
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
                             Новый шаблон
                         </CardTitle>
+                        <span className="text-xs text-slate-500">
+                            Если загрузить фон при создании, система автоматически создаст версию v1.
+                        </span>
                     </CardHeader>
-                    <CardContent className="space-y-5">
-                        <p className="text-sm text-slate-600">
-                            Если загрузить фон при создании, система автоматически создаст версию шаблона v1.
-                        </p>
-
-                        <form onSubmit={submitTemplate} className="grid gap-4 md:grid-cols-4">
+                    <CardContent className="space-y-4">
+                        <form
+                            onSubmit={submitTemplate}
+                            className="grid items-start gap-4 md:grid-cols-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_auto]"
+                        >
                             <div className="space-y-2">
                                 <label className="qd-field-label block">Название</label>
                                 <input
@@ -645,7 +647,7 @@ export default function TemplatesIndex({ templates = [] }) {
                                 )}
                             </div>
 
-                            <div className="space-y-2 md:col-span-2">
+                            <div className="space-y-2 md:col-span-2 xl:col-span-1">
                                 <label className="qd-field-label block">Фон шаблона</label>
                                 <input
                                     type="file"
@@ -662,7 +664,7 @@ export default function TemplatesIndex({ templates = [] }) {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3 md:col-span-2">
+                            <div className="grid grid-cols-3 gap-3 md:col-span-2 xl:col-span-1">
                                 <div className="space-y-2">
                                     <label className="qd-field-label block">Ширина</label>
                                     <input
@@ -696,7 +698,7 @@ export default function TemplatesIndex({ templates = [] }) {
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-end justify-end gap-3 md:col-span-2">
+                            <div className="flex flex-wrap items-end justify-end gap-3 self-end md:col-span-2 xl:col-span-1">
                                 <label className="inline-flex h-10 items-center gap-2 text-sm text-slate-700">
                                     <input
                                         type="checkbox"
@@ -715,7 +717,7 @@ export default function TemplatesIndex({ templates = [] }) {
                             </div>
                         </form>
 
-                        <div className="space-y-4 border-t border-slate-200 pt-5">
+                        <div className="space-y-4 border-t border-slate-200 pt-4">
                             <TemplateLayoutEditor
                                 backgroundUrl={templateBackgroundPreview}
                                 canvasWidth={createTemplateForm.data.canvas_width}
@@ -752,13 +754,16 @@ export default function TemplatesIndex({ templates = [] }) {
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <LayoutTemplate className="h-4 w-4" />
                             Список шаблонов
                         </CardTitle>
+                        <span className="text-xs font-medium tabular-nums text-slate-500">
+                            {templates.length} шабл. · {versionsCount} верс.
+                        </span>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className={templates.length > 1 ? 'grid items-start gap-4 2xl:grid-cols-2' : 'space-y-4'}>
                         {templates.length === 0 && (
                             <InlineEmpty
                                 icon={LayoutTemplate}
@@ -769,17 +774,22 @@ export default function TemplatesIndex({ templates = [] }) {
 
                         {templates.map((template) => (
                             <div key={template.id} className="rounded-[14px] border border-slate-200 bg-white">
-                                <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="font-display text-lg font-bold text-[#102945]">{template.name}</h3>
+                                            <h3 className="text-base font-bold text-[#102945]">{template.name}</h3>
                                             <Badge variant="outline" className="font-mono">{template.code}</Badge>
                                             <Badge variant={template.is_active ? 'success' : 'secondary'}>
                                                 {template.is_active ? 'Активен' : 'Неактивен'}
                                             </Badge>
                                         </div>
-                                        <p className="mt-1 text-xs text-slate-500">
+                                        <p className="mt-1 text-xs tabular-nums text-slate-500">
                                             Создан: {template.created_at_human ?? '-'}
+                                            {' · '}версий: {template.versions.length}
+                                            {(() => {
+                                                const published = template.versions.find((version) => version.is_published);
+                                                return published ? ` · опубликована v${published.version}` : ' · нет опубликованной';
+                                            })()}
                                         </p>
                                     </div>
 
@@ -864,7 +874,7 @@ export default function TemplatesIndex({ templates = [] }) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={submitVersion} className="grid gap-5">
+                            <form onSubmit={submitVersion} className="grid gap-4">
                                 <div className="grid gap-4 md:grid-cols-4">
                                     <div className="space-y-2">
                                         <label className="qd-field-label block">Ширина</label>
@@ -920,10 +930,11 @@ export default function TemplatesIndex({ templates = [] }) {
                                     onLayoutJsonChange={(value) => createVersionForm.setData('layout_json', value)}
                                 />
 
+                                <div className="grid gap-4 xl:grid-cols-3">
                                 <div className="space-y-2">
                                     <label className="qd-field-label block">layout_json</label>
                                     <textarea
-                                        className={`${jsonFieldClass} min-h-48`}
+                                        className={`${jsonFieldClass} min-h-36`}
                                         value={createVersionForm.data.layout_json}
                                         onChange={(event) =>
                                             createVersionForm.setData('layout_json', event.target.value)
@@ -936,7 +947,6 @@ export default function TemplatesIndex({ templates = [] }) {
                                     )}
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <label className="qd-field-label block">text_rules_json</label>
                                         <textarea
@@ -993,12 +1003,12 @@ export default function TemplatesIndex({ templates = [] }) {
 
 function InlineEmpty({ icon: Icon = Inbox, title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-5 w-5" />
             </span>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-lg font-bold text-[#102945]">{title}</p>
+                <p className="font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}

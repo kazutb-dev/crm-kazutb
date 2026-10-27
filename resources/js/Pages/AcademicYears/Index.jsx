@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { EmptyState, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -19,6 +19,23 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { CalendarCheck, CalendarDays, CalendarRange, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
+const PHASE_LABEL = { past: 'Прошедший', current: 'Текущий', future: 'Будущий', unknown: 'Период' };
+
+// The academic year starts in September: before it, the current year is the previous one.
+const today = new Date();
+const currentStart = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
+
+function yearPhase(item) {
+    const start = Number(item.start_year ?? String(item.name ?? '').slice(0, 4));
+    if (!Number.isFinite(start) || start === 0) {
+        return 'unknown';
+    }
+    if (start === currentStart) {
+        return 'current';
+    }
+    return start < currentStart ? 'past' : 'future';
+}
+
 export default function Index({ academicYears }) {
     const items = academicYears?.data ?? [];
     const links = academicYears?.links ?? [];
@@ -27,6 +44,11 @@ export default function Index({ academicYears }) {
     const [createOpen, setCreateOpen] = useState(false);
 
     const activeYear = items.find((item) => item.is_active) ?? null;
+    const phaseCounts = items.reduce((acc, item) => {
+        const phase = yearPhase(item);
+        acc[phase] = (acc[phase] ?? 0) + 1;
+        return acc;
+    }, { past: 0, current: 0, future: 0 });
 
     const form = useForm({
         start_year: '',
@@ -128,7 +150,7 @@ export default function Index({ academicYears }) {
         >
             <Head title="Учебные годы" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Учебных годов" value={total} icon={CalendarDays} tone="teal" hint="Во всём справочнике" />
                     <StatTile
@@ -139,6 +161,13 @@ export default function Index({ academicYears }) {
                         hint={activeYear ? 'Используется по умолчанию' : 'Среди показанных нет активного'}
                     />
                     <StatTile label="Неактивных" value={items.filter((item) => !item.is_active).length} icon={CalendarRange} tone="neutral" hint="Среди показанных" />
+                    <StatTile
+                        label="Текущий по календарю"
+                        value={`${currentStart}/${currentStart + 1}`}
+                        icon={CalendarDays}
+                        tone="info"
+                        hint={items.some((item) => yearPhase(item) === 'current') ? 'Есть в справочнике' : 'Не найден среди показанных'}
+                    />
                 </StatGrid>
 
                 {items.length === 0 ? (
@@ -154,38 +183,44 @@ export default function Index({ academicYears }) {
                     />
                 ) : (
                     <Card className="overflow-hidden">
-                        <CardContent className="p-0">
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[560px] text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th className="text-left">Период</th>
-                                            <th className="text-left">Статус</th>
-                                            <th className="text-right">Действия</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.map((item) => (
-                                            <tr key={item.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
-                                                <td className="font-medium tabular-nums text-slate-900">{item.name}</td>
-                                                <td>
-                                                    {item.is_active ? (
-                                                        <Badge variant="success">Активный</Badge>
-                                                    ) : (
-                                                        <Badge variant="secondary">Неактивный</Badge>
-                                                    )}
-                                                </td>
-                                                <td className="text-right">
-                                                    <Button variant="destructive" size="sm" onClick={() => handleDelete(item)}>
-                                                        <Trash2 />
-                                                        Удалить
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle>Периоды · <span className="tabular-nums">{items.length}</span></CardTitle>
+                            <span className="text-xs font-medium leading-none text-slate-500">
+                                Сейчас идёт {currentStart}/{currentStart + 1} · прошедших {phaseCounts.past} · текущий {phaseCounts.current} · будущих {phaseCounts.future}
+                            </span>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                                {items.map((item) => {
+                                    const phase = yearPhase(item);
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            className={`flex flex-col gap-2 rounded-xl border px-3.5 py-3 ${item.is_active ? 'border-emerald-300 bg-emerald-50/60' : phase === 'current' ? 'border-teal-300 bg-white' : 'border-slate-200 bg-white'}`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-lg font-bold tabular-nums leading-none text-[#102945]">{item.name}</span>
+                                                {item.is_active ? (
+                                                    <Badge variant="success">Активный</Badge>
+                                                ) : (
+                                                    <Badge variant="secondary">Неактивный</Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className={`text-xs ${phase === 'current' ? 'font-semibold text-teal-700' : 'text-slate-500'}`}>
+                                                    {PHASE_LABEL[phase]}
+                                                </span>
+                                                <Button variant="ghost" size="sm" className="h-7 px-2 text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => handleDelete(item)}>
+                                                    <Trash2 />
+                                                    Удалить
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
+                        </CardContent>
+                        <CardContent className="p-0">
                             {links.length > 3 && (
                                 <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 px-5 py-3 sm:px-6 justify-end">
                                     {links.map((link, index) => (

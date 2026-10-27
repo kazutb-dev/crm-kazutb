@@ -79,12 +79,19 @@ export default function AdminIndex({ requests, counts, filters }) {
         >
             <Head title="Заявки на изменение должности" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 {flash.success && (
                     <Notice tone="success">{flash.success}</Notice>
                 )}
 
                 <StatGrid>
+                    <StatTile
+                        label="Всего заявок"
+                        value={(counts.pending ?? 0) + (counts.approved ?? 0) + (counts.rejected ?? 0)}
+                        icon={CheckCircle}
+                        tone="navy"
+                        hint={`Показано на странице: ${requests.data.length}`}
+                    />
                     <StatTile label="На рассмотрении" value={counts.pending ?? 0} icon={Clock3} tone="warning" hint="Ждут решения администратора" />
                     <StatTile label="Одобрено" value={counts.approved ?? 0} icon={CircleCheck} tone="success" hint="Должность обновлена" />
                     <StatTile label="Отклонено" value={counts.rejected ?? 0} icon={CircleX} tone="danger" hint="С примечанием для сотрудника" />

@@ -49,6 +49,45 @@ const stageLabels = {
     review: 'Рассмотрение',
 };
 
+const sectionLabels = {
+    teaching: 'УМР · Учебно-методическая работа',
+    science: 'НИР · Научно-исследовательская работа',
+    social: 'СВР · Социально-воспитательная работа',
+    qualification: 'УПК · Профессиональная квалификация',
+    survey: 'К5 · Анкетирование',
+};
+
+const entityLabels = {
+    teacher: 'ППС',
+    department_head: 'Заведующий кафедрой',
+    dean: 'Декан',
+    structural_division: 'Структурное подразделение',
+};
+
+function formatDate(value) {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+}
+
+function formatNumber(value) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) ? parsed.toFixed(2) : String(value);
+}
+
 const actionLabels = {
     submit: 'Отправка на рассмотрение',
     return: 'Возврат исполнителю',
@@ -214,12 +253,12 @@ function resolveEntryStructuralConfirmations(entry) {
 
 function InlineEmpty({ icon: Icon, title, description = null }) {
     return (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Icon className="h-5 w-5" />
+        <div className="flex flex-col items-center gap-2 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Icon className="h-4 w-4" />
             </div>
             <div className="max-w-sm space-y-1">
-                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                <p className="text-sm font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm text-slate-600">{description}</p> : null}
             </div>
         </div>
@@ -351,17 +390,31 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                         tone="teal"
                         icon={CalendarRange}
                     />
-                    <StatTile label="Баллы" value={resolvePoints(entry)} tone="gold" icon={Award} />
+                    <StatTile
+                        label="Баллы"
+                        value={resolvePoints(entry)}
+                        tone="gold"
+                        icon={Award}
+                        hint={`Расчёт ${formatNumber(entry.calculated_points)} · вручную ${formatNumber(entry.manual_points)}`}
+                    />
+                    <StatTile
+                        label="План / факт"
+                        value={<span className="tabular-nums">{entry.plan_value ?? '—'} / {entry.fact_value ?? '—'}</span>}
+                        tone="info"
+                        icon={Calculator}
+                        hint={entry.indicator?.unit ? `Ед.: ${entry.indicator.unit}` : null}
+                    />
                     <StatTile
                         label="Последнее изменение"
                         value={<span className="block min-w-0 text-base leading-snug [overflow-wrap:anywhere] sm:text-xl">{formatDateTime(entry.updated_at)}</span>}
                         tone="neutral"
                         icon={Clock3}
+                        hint={`Создано ${formatDateTime(entry.created_at)}`}
                     />
                 </StatGrid>
 
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
-                    <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+                    <div className="space-y-4">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
@@ -369,14 +422,30 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                     Детали записи
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-5">
-                                <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
                                     <InfoField label="Код показателя">{entry.indicator?.code ?? '—'}</InfoField>
+                                    <InfoField label="Раздел">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</InfoField>
+                                    <InfoField label="Категория">{entityLabels[entry.entity_type] ?? entry.entity_type ?? '—'}</InfoField>
                                     <InfoField label="Единица измерения">{entry.indicator?.unit ?? '—'}</InfoField>
+                                    <InfoField label="Плановое значение"><span className="tabular-nums">{entry.plan_value ?? '—'}</span></InfoField>
                                     <InfoField label="Фактическое значение"><span className="tabular-nums">{entry.fact_value ?? '—'}</span></InfoField>
-                                    <InfoField label="Факультет">{entry.faculty?.name ?? '—'}</InfoField>
-                                    <InfoField label="Кафедра" className="md:col-span-2">{entry.department?.name ?? '—'}</InfoField>
-                                    <InfoField label="Комментарий исполнителя" className="border-b-0 pb-0 md:col-span-2">
+                                    <InfoField label="Базовые баллы"><span className="tabular-nums">{formatNumber(entry.indicator?.base_points)}</span></InfoField>
+                                    <InfoField label="Подтверждающий файл">{entry.indicator?.requires_file ? 'Обязателен' : 'Не требуется'}</InfoField>
+                                    <InfoField label="Учебный год">{entry.academic_year?.name ?? '—'}</InfoField>
+                                    <InfoField label="Окно периода"><span className="tabular-nums">{formatDate(entry.period?.start_date)} – {formatDate(entry.period?.end_date)}</span></InfoField>
+                                    <InfoField label="Факультет" className="xl:col-span-2">{entry.faculty?.name ?? '—'}</InfoField>
+                                    <InfoField label="Кафедра" className="xl:col-span-2">{entry.department?.name ?? '—'}</InfoField>
+                                    <InfoField label="Отправлено"><span className="tabular-nums">{formatDateTime(entry.submitted_at)}</span></InfoField>
+                                    <InfoField label="Проверено"><span className="tabular-nums">{formatDateTime(entry.reviewed_at)}</span></InfoField>
+                                    <InfoField label="Утверждено"><span className="tabular-nums">{formatDateTime(entry.approved_at)}</span></InfoField>
+                                    <InfoField label="Создано"><span className="tabular-nums">{formatDateTime(entry.created_at)}</span></InfoField>
+                                    {entry.indicator?.description ? (
+                                        <InfoField label="Описание показателя" className="sm:col-span-2">
+                                            <span className="whitespace-pre-wrap text-sm font-normal text-slate-800">{entry.indicator.description}</span>
+                                        </InfoField>
+                                    ) : null}
+                                    <InfoField label="Комментарий исполнителя" className={`border-b-0 pb-0 sm:col-span-2 ${entry.indicator?.description ? 'xl:col-span-4' : ''}`}>
                                         <span className={`whitespace-pre-wrap text-sm ${entry.comment ? 'font-normal text-slate-800' : 'font-normal text-slate-500'}`}>
                                             {entry.comment || 'Комментарий отсутствует.'}
                                         </span>
@@ -409,7 +478,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                             <Calculator className="h-4 w-4 text-teal-700" />
                                             Детали расчета баллов
                                         </div>
-                                        <div className="grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2">
+                                        <div className="grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
                                             {calculationRows.map((row, index) => (
                                                 <div key={`${row.label}-${index}`}>
                                                     <p className="qd-field-label text-slate-500">{row.label}</p>
@@ -422,56 +491,20 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText />
-                                    Подтверждающие файлы
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {files.length === 0 ? (
-                                    <InlineEmpty icon={FileText} title="Файлы не прикреплены" description="Подтверждающие документы к этой записи не загружены." />
-                                ) : (
-                                    <div className="divide-y divide-slate-200">
-                                        {files.map((file) => (
-                                            <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                                                <div className="flex min-w-0 items-center gap-3">
-                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700">
-                                                        <FileText className="h-4 w-4" />
-                                                    </span>
-                                                    <div className="min-w-0">
-                                                        <p className="truncate font-medium text-slate-900">{file.file_name}</p>
-                                                        <p className="text-xs text-slate-500">
-                                                            {file.file_type || 'Неизвестный тип'} • {file.file_size ? `${Math.max(file.file_size / 1024, 1).toFixed(1)} КБ` : 'Размер неизвестен'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button asChild size="sm" variant="outline">
-                                                    <a href={file.file_url} target="_blank" rel="noreferrer">
-                                                        <Download className="h-4 w-4" />
-                                                        Открыть
-                                                    </a>
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                                 <CardTitle className="flex items-center gap-2">
                                     <History />
                                     История статусов
                                 </CardTitle>
+                                <Badge variant="outline" className="tabular-nums">{statusLogs.length}</Badge>
                             </CardHeader>
                             <CardContent>
                                 {statusLogs.length === 0 ? (
                                     <InlineEmpty icon={History} title="История изменений пока пуста" description="Здесь появятся отправка, проверки и решения по записи." />
                                 ) : (
-                                    <ol className="relative space-y-5 border-l border-slate-200 pl-6">
+                                    <ol className="relative space-y-3 border-l border-slate-200 pl-6">
                                         {statusLogs.map((log) => (
                                             <li key={log.id} className="relative">
                                                 <span className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-teal-600 ring-1 ring-teal-600" aria-hidden="true" />
@@ -479,7 +512,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                     <p className="font-semibold text-[#102945]">{actionLabels[log.action] ?? log.action}</p>
                                                     <p className="text-xs tabular-nums text-slate-500">{formatDateTime(log.created_at)}</p>
                                                 </div>
-                                                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                                                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                                                     <Badge variant={statusVariants[log.from_status] ?? 'outline'}>
                                                         {statusLabels[log.from_status] ?? log.from_status ?? '—'}
                                                     </Badge>
@@ -488,11 +521,11 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                         {statusLabels[log.to_status] ?? log.to_status ?? '—'}
                                                     </Badge>
                                                 </div>
-                                                <p className="mt-2 text-sm text-slate-600">
+                                                <p className="mt-1 text-sm text-slate-600">
                                                     Исполнитель действия: <span className="font-medium text-slate-900">{log.actor?.name ?? 'Система'}</span>
                                                 </p>
                                                 {log.comment && (
-                                                    <p className="mt-2 whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">{log.comment}</p>
+                                                    <p className="mt-1.5 whitespace-pre-wrap rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">{log.comment}</p>
                                                 )}
                                             </li>
                                         ))}
@@ -512,7 +545,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                 <CardContent>
                                     <div className="divide-y divide-slate-200">
                                         {structuralConfirmations.map((item) => (
-                                            <div key={`sp-confirm-${item.structural_unit_id}`} className="py-4 first:pt-0 last:pb-0">
+                                            <div key={`sp-confirm-${item.structural_unit_id}`} className="py-2.5 first:pt-0 last:pb-0">
                                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                                     <p className="font-medium text-slate-900">{item.name}</p>
                                                     <Badge variant={spStatusVariants[item.status] ?? 'outline'}>
@@ -524,7 +557,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                                     {' · '}
                                                     <span className="tabular-nums">{formatDateTime(item.confirmed_at)}</span>
                                                 </p>
-                                                <p className={`mt-2 whitespace-pre-wrap text-sm ${item.comment ? 'text-slate-800' : 'text-slate-500'}`}>
+                                                <p className={`mt-1 whitespace-pre-wrap text-sm ${item.comment ? 'text-slate-800' : 'text-slate-500'}`}>
                                                     {item.comment || 'Комментарий отсутствует.'}
                                                 </p>
                                             </div>
@@ -535,8 +568,8 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                         )}
                     </div>
 
-                    <div className="space-y-6">
-                        <Card className="xl:sticky xl:top-6">
+                    <div className="space-y-4">
+                        <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Gavel />
@@ -547,7 +580,7 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                 <label className="block space-y-2">
                                     <span className="qd-field-label block">Комментарий</span>
                                     <Textarea
-                                        className="min-h-32"
+                                        className="min-h-24"
                                         value={form.data.comment}
                                         onChange={(event) => form.setData('comment', event.target.value)}
                                         placeholder="Комментарий к утверждению или отклонению"
@@ -640,6 +673,48 @@ export default function EntryShow({ entry, permissions = {}, moderationContext =
                                 </div>
                             </CardContent>
                         </Card>
+
+                        <div className="space-y-4">
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <FileText />
+                                    Подтверждающие файлы
+                                </CardTitle>
+                                <Badge variant="outline" className="tabular-nums">{files.length}</Badge>
+                            </CardHeader>
+                            <CardContent>
+                                {files.length === 0 ? (
+                                    <InlineEmpty icon={FileText} title="Файлы не прикреплены" description="Подтверждающие документы к этой записи не загружены." />
+                                ) : (
+                                    <div className="divide-y divide-slate-200">
+                                        {files.map((file) => (
+                                            <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                                                <div className="flex min-w-0 items-center gap-3">
+                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700">
+                                                        <FileText className="h-4 w-4" />
+                                                    </span>
+                                                    <div className="min-w-0">
+                                                        <p className="truncate font-medium text-slate-900">{file.file_name}</p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {file.file_type || 'Неизвестный тип'} • {file.file_size ? `${Math.max(file.file_size / 1024, 1).toFixed(1)} КБ` : 'Размер неизвестен'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button asChild size="sm" variant="outline">
+                                                    <a href={file.file_url} target="_blank" rel="noreferrer">
+                                                        <Download className="h-4 w-4" />
+                                                        Открыть
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        </div>
                     </div>
                 </div>
             </div>

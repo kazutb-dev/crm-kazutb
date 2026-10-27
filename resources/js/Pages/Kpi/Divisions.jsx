@@ -1,11 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { DataTable, FilterBar, FormField, FormGrid, PageHeader, StatGrid, StatTile } from '@/components/platform';
+import { FormField, PageHeader, StatGrid, StatTile } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Head, router } from '@inertiajs/react';
-import { Building2, Edit2, ListChecks, Plus, Search, Trash2, Users } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Building2, Edit2, ListChecks, Plus, Search, Trash2, UserX, Users } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Divisions({ divisions }) {
@@ -65,6 +65,8 @@ export default function Divisions({ divisions }) {
 
     const indicatorsTotal = divisions.reduce((sum, d) => sum + (Number(d.indicators_count) || 0), 0);
     const usersTotal = divisions.reduce((sum, d) => sum + (Number(d.users_count) || 0), 0);
+    const withoutUsers = divisions.filter((d) => !(Number(d.users_count) > 0)).length;
+    const withoutIndicators = divisions.filter((d) => !(Number(d.indicators_count) > 0)).length;
 
     return (
         <AuthenticatedLayout
@@ -89,11 +91,12 @@ export default function Divisions({ divisions }) {
         >
             <Head title="Управление подразделениями" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
-                    <StatTile label="Подразделений" value={divisions.length} tone="teal" icon={Building2} />
-                    <StatTile label="Привязано индикаторов" value={indicatorsTotal} tone="info" icon={ListChecks} />
+                    <StatTile label="Подразделений" value={divisions.length} tone="teal" icon={Building2} hint={`С кодом: ${divisions.filter((d) => d.code).length}`} />
+                    <StatTile label="Привязано индикаторов" value={indicatorsTotal} tone="info" icon={ListChecks} hint={`Без индикаторов: ${withoutIndicators}`} />
                     <StatTile label="Сотрудников" value={usersTotal} tone="gold" icon={Users} />
+                    <StatTile label="Без сотрудников" value={withoutUsers} tone={withoutUsers > 0 ? 'warning' : 'neutral'} icon={UserX} hint="Подразделения без назначенных сотрудников" />
                 </StatGrid>
 
                 {formOpen && (
@@ -104,8 +107,7 @@ export default function Divisions({ divisions }) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                <FormGrid>
+                            <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto] md:items-end">
                                     <FormField label="Код (опционально)">
                                         <Input
                                             type="text"
@@ -122,8 +124,7 @@ export default function Divisions({ divisions }) {
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         />
                                     </FormField>
-                                </FormGrid>
-                                <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+                                <div className="flex justify-end gap-2">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -140,29 +141,33 @@ export default function Divisions({ divisions }) {
                     </Card>
                 )}
 
-                <FilterBar>
-                    <label className="block space-y-2">
-                        <span className="qd-field-label block">Поиск</span>
-                        <div className="relative">
+                <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <Building2 />
+                            Справочник подразделений
+                            <Badge variant="outline" className="tabular-nums">{filteredDivisions.length} из {divisions.length}</Badge>
+                        </CardTitle>
+                        <div className="relative w-full sm:w-80">
                             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <Input
                                 placeholder="Поиск по названию или коду..."
+                                aria-label="Поиск"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9"
+                                className="h-9 pl-9"
                             />
                         </div>
-                    </label>
-                </FilterBar>
-
-                <DataTable>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                    <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="border-b border-slate-200">
                             <tr>
                                 <th className="text-left">Название</th>
                                 <th className="text-left">Код</th>
-                                <th className="text-center">Индикаторов</th>
-                                <th className="text-center">Сотрудников</th>
+                                <th className="text-right">Индикаторов</th>
+                                <th className="text-right">Сотрудников</th>
                                 <th className="text-right">Действия</th>
                             </tr>
                         </thead>
@@ -170,15 +175,15 @@ export default function Divisions({ divisions }) {
                             {filteredDivisions.length === 0 ? (
                                 <tr className="hover:bg-transparent">
                                     <td colSpan="5">
-                                        <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-                                            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                                <Building2 className="h-6 w-6" />
+                                        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                                <Building2 className="h-4 w-4" />
                                             </div>
                                             <div className="max-w-md space-y-1">
-                                                <p className="font-display text-base font-bold text-[#102945]">Подразделения не найдены</p>
+                                                <p className="text-sm font-semibold text-[#102945]">Подразделения не найдены</p>
                                                 <p className="text-sm text-slate-600">Измените запрос поиска или создайте новое подразделение.</p>
                                             </div>
-                                            <Button onClick={handleCreate}>
+                                            <Button size="sm" onClick={handleCreate}>
                                                 <Plus className="h-4 w-4" />
                                                 Новое подразделение
                                             </Button>
@@ -196,12 +201,12 @@ export default function Divisions({ divisions }) {
                                                 '—'
                                             )}
                                         </td>
-                                        <td className="text-center">
+                                        <td className="text-right">
                                             <Badge variant="secondary" className="tabular-nums">
                                                 {division.indicators_count ?? 0}
                                             </Badge>
                                         </td>
-                                        <td className="text-center">
+                                        <td className="text-right">
                                             <Badge variant="outline" className="tabular-nums">
                                                 {division.users_count ?? 0}
                                             </Badge>
@@ -217,12 +222,14 @@ export default function Divisions({ divisions }) {
                                                     <Edit2 className="h-4 w-4" />
                                                 </Button>
                                                 <Button
+                                                    asChild
                                                     size="sm"
                                                     variant="ghost"
-                                                    href={`/kpi/divisions/${division.id}/employees`}
                                                     title="Управлять сотрудниками"
                                                 >
-                                                    <Users className="h-4 w-4" />
+                                                    <Link href={`/kpi/divisions/${division.id}/employees`}>
+                                                        <Users className="h-4 w-4" />
+                                                    </Link>
                                                 </Button>
                                                 <Button
                                                     size="sm"
@@ -240,7 +247,9 @@ export default function Divisions({ divisions }) {
                             )}
                         </tbody>
                     </table>
-                </DataTable>
+                    </div>
+                    </CardContent>
+                </Card>
             </div>
         </AuthenticatedLayout>
     );

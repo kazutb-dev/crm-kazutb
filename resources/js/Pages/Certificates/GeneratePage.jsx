@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -25,7 +25,7 @@ import {
 } from './rendering';
 
 const inputClassName = qdFieldClass;
-const panelClassName = 'border-t border-slate-200 pt-4';
+const panelClassName = 'border-t border-slate-200 pt-3';
 const waitForPaint = () => new Promise((resolve) => {
     requestAnimationFrame(() => requestAnimationFrame(resolve));
 });
@@ -457,16 +457,13 @@ export default function CertificatesGenerate({ templates = [] }) {
             <Head title="Сертификаты" />
 
             <div className="admin-page-wrap space-y-6">
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.95fr)] xl:items-start">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start">
                     <Card className="overflow-hidden">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <LayoutTemplate className="h-4 w-4" />
                                 1. Выбор шаблона
                             </CardTitle>
-                            <CardDescription>
-                                Выберите опубликованный шаблон. Тема сертификата будет подставлена автоматически из названия выбранного шаблона.
-                            </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {templates.length === 0 ? (
@@ -474,8 +471,8 @@ export default function CertificatesGenerate({ templates = [] }) {
                                     Нет опубликованных шаблонов. Сначала опубликуйте хотя бы одну версию в разделе шаблонов.
                                 </Notice>
                             ) : (
-                                <div className="space-y-6">
-                                    <div className="max-w-2xl space-y-2">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
                                         <label className="qd-field-label block">Шаблон сертификата</label>
                                         <select
                                             className={inputClassName}
@@ -490,12 +487,12 @@ export default function CertificatesGenerate({ templates = [] }) {
                                             ))}
                                         </select>
                                         <p className="text-xs text-slate-500">
-                                            После выбора шаблона появится его предпросмотр и автоматически определится тема сертификата.
+                                            После выбора появится предпросмотр; тема подставится автоматически из названия шаблона.
                                         </p>
                                     </div>
 
                                     {selectedTemplate ? (
-                                        <div className="grid gap-4 2xl:grid-cols-[minmax(0,560px)_300px] xl:grid-cols-[minmax(0,1fr)_290px] xl:items-start">
+                                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
                                             <div
                                                 className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm"
                                                 style={{
@@ -543,12 +540,12 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-4 rounded-[14px] border border-slate-200 bg-white p-4">
+                                            <div className="space-y-3 rounded-[14px] border border-slate-200 bg-white p-4">
                                                 <div>
                                                     <p className="qd-kicker">
                                                         Предпросмотр
                                                     </p>
-                                                    <h3 className="mt-2 font-display text-xl font-bold text-[#102945]">
+                                                    <h3 className="mt-1.5 text-lg font-bold text-[#102945]">
                                                         {selectedTemplate.template_name}
                                                     </h3>
                                                     <p className="mt-1 text-sm text-slate-500">
@@ -587,7 +584,7 @@ export default function CertificatesGenerate({ templates = [] }) {
                                                         </Button>
                                                     </div>
 
-                                                    <div className="mt-4 space-y-4">
+                                                    <div className="mt-3 space-y-3">
                                                         {Object.entries(layoutFieldLabels).map(([fieldKey, fieldLabel]) => {
                                                             const field = previewLayout?.[fieldKey];
                                                             if (!field) {
@@ -596,7 +593,7 @@ export default function CertificatesGenerate({ templates = [] }) {
 
                                                             return (
                                                                 <div key={fieldKey} className="rounded-xl border border-slate-200 bg-white p-3">
-                                                                    <div className="mb-3 text-sm font-semibold text-[#102945]">{fieldLabel}</div>
+                                                                    <div className="mb-2 text-sm font-semibold text-[#102945]">{fieldLabel}</div>
                                                                     <div className="grid gap-2 sm:grid-cols-2">
                                                                         <label className="text-xs text-slate-500">
                                                                             Размер шрифта
@@ -669,17 +666,16 @@ export default function CertificatesGenerate({ templates = [] }) {
                         </CardContent>
                     </Card>
 
+                    <div className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <UserRound className="h-4 w-4" />
                                 2. Одиночная генерация
                             </CardTitle>
-                            <CardDescription>
-                                Для одного получателя. Тема и шаблон уже закреплены выбором выше.
-                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            <p className="text-xs text-slate-500">Для одного получателя. Тема и шаблон закреплены выбором слева.</p>
                             <div className="space-y-2">
                                 <label className="qd-field-label block">ФИО получателя</label>
                                 <input
@@ -714,6 +710,50 @@ export default function CertificatesGenerate({ templates = [] }) {
                             )}
                         </CardContent>
                     </Card>
+
+                    {templates.length > 0 && (
+                        <Card>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <ListChecks className="h-4 w-4" />
+                                    Опубликованные шаблоны
+                                </CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">{templates.length}</span>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <ul className="max-h-[420px] divide-y divide-slate-200 overflow-y-auto">
+                                    {templates.map((template) => {
+                                        const active = String(template.id) === selectedTemplateVersionId;
+
+                                        return (
+                                            <li key={template.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleTemplateSelect(template.id)}
+                                                    className={cn(
+                                                        'flex w-full items-center justify-between gap-3 px-5 py-2.5 text-left text-sm transition-colors hover:bg-slate-50',
+                                                        active && 'bg-teal-50',
+                                                    )}
+                                                >
+                                                    <span className="min-w-0">
+                                                        <span className={cn('block truncate font-medium', active ? 'text-teal-800' : 'text-slate-900')}>
+                                                            {template.template_name}
+                                                        </span>
+                                                        <span className="block truncate font-mono text-xs text-slate-500">{template.template_code}</span>
+                                                    </span>
+                                                    <span className="shrink-0 text-xs tabular-nums text-slate-500">
+                                                        v{template.version}
+                                                        {template.canvas_width ? ` · ${template.canvas_width}×${template.canvas_height}` : ''}
+                                                    </span>
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    )}
+                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>

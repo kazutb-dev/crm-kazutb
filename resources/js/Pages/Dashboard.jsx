@@ -148,6 +148,14 @@ function buildActivitySearchText(row) {
         .toLowerCase();
 }
 
+function linkPath(href) {
+    try {
+        return new URL(href, window.location.origin).pathname;
+    } catch {
+        return href;
+    }
+}
+
 function ChartCard({ icon: Icon, title, aside = null, className = '', children }) {
     return (
         <Card className={`relative z-30 overflow-visible ${className}`}>
@@ -217,6 +225,31 @@ export default function Dashboard({
 
     const attentionOpen = attention.filter((item) => item.severity === 'high' || item.severity === 'medium').length;
 
+    const sumCounts = (rows) => rows.reduce((acc, item) => acc + (Number(item.count) || 0), 0);
+    const kpiTotal = sumCounts(kpiByStatus);
+    const ticketsTotal = sumCounts(ticketsByStatus);
+    const calendarTotal = sumCounts(calendarByStatus);
+    const rolesTotal = sumCounts(usersByRole);
+    const modulesPending = modules.reduce((acc, module) => acc + (Number(module.pending) || 0), 0);
+    const trendTotals = trend.reduce(
+        (acc, day) => ({
+            activity: acc.activity + (Number(day.activity) || 0),
+            audit: acc.audit + (Number(day.audit) || 0),
+            tickets: acc.tickets + (Number(day.tickets) || 0),
+        }),
+        { activity: 0, audit: 0, tickets: 0 },
+    );
+
+    // Per-module counts of the loaded feed, most frequent first.
+    const activitySummary = useMemo(() => {
+        const counts = new Map();
+        activityFeed.forEach((row) => {
+            const key = row.module_label || row.module || row.source || '—';
+            counts.set(key, (counts.get(key) ?? 0) + 1);
+        });
+        return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    }, [activityFeed]);
+
     return (
         <AuthenticatedLayout
             header={(
@@ -238,7 +271,7 @@ export default function Dashboard({
         >
             <Head title="Панель управления" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 {/* KPI tiles */}
                 <StatGrid>
                     {overviewCards.map((card) => (
@@ -258,119 +291,143 @@ export default function Dashboard({
                     ))}
                 </StatGrid>
 
-                {/* Modules + attention */}
-                <section className="grid items-start gap-6 xl:grid-cols-3">
-                    <Card className="relative z-30 overflow-visible xl:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <LayoutDashboard className="shrink-0" />
-                                Модули CRM
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {modules.length === 0 ? (
-                                <p className="text-sm text-slate-500">Модули пока не подключены.</p>
-                            ) : (
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {modules.map((module) => (
-                                        <Link
-                                            key={module.key}
-                                            href={module.route}
-                                            className="group flex flex-col rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-teal-400"
-                                        >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <h3 className="font-semibold text-[#102945]">{module.title}</h3>
-                                                <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400 transition-colors group-hover:text-teal-700" />
-                                            </div>
-                                            <div className="mt-3 flex items-baseline gap-2">
-                                                <span className="font-display text-[1.75rem] font-bold leading-none tabular-nums text-[#102945]">{module.total}</span>
-                                                <span className="qd-field-label text-slate-500">Всего</span>
-                                            </div>
-                                            <div className="mt-2 text-sm text-slate-600">{module.secondary}</div>
-                                            <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-200 pt-3 text-sm">
-                                                <span className="text-slate-600">Ожидает/внимание</span>
-                                                <Badge variant={Number(module.pending) > 0 ? 'warning' : 'secondary'}>{module.pending}</Badge>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="relative z-20 overflow-visible">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <AlertTriangle className="shrink-0" />
-                                Зоны внимания
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {attention.length === 0 ? (
-                                <p className="py-4 text-sm text-slate-500">Всё в норме — зон внимания нет.</p>
-                            ) : (
-                                <div className="divide-y divide-slate-200">
-                                    {attention.map((item) => (
-                                        <Link
-                                            key={item.key}
-                                            href={item.route}
-                                            className="group flex items-start gap-3 py-3 first:pt-0 last:pb-0"
-                                        >
-                                            <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_DOT[item.severity] ?? 'bg-slate-400'}`} aria-hidden="true" />
-                                            <div className="min-w-0 flex-1">
+                {/* Modules + trend | attention + roles */}
+                <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+                    <div className="flex min-w-0 flex-col gap-4">
+                        <Card className="relative z-30 overflow-visible">
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <LayoutDashboard className="shrink-0" />
+                                    Модули CRM
+                                </CardTitle>
+                                {modules.length > 0 ? (
+                                    <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
+                                        Модулей: <span className="tabular-nums">{modules.length}</span> · ожидают внимания: <span className="tabular-nums">{modulesPending}</span>
+                                    </span>
+                                ) : null}
+                            </CardHeader>
+                            <CardContent>
+                                {modules.length === 0 ? (
+                                    <p className="text-sm text-slate-500">Модули пока не подключены.</p>
+                                ) : (
+                                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+                                        {modules.map((module) => (
+                                            <Link
+                                                key={module.key}
+                                                href={module.route}
+                                                className="group flex min-w-0 flex-col gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-3 transition-colors hover:border-teal-400"
+                                            >
                                                 <div className="flex items-center justify-between gap-2">
-                                                    <span className="font-medium text-slate-900 group-hover:text-teal-700">{item.title}</span>
-                                                    <Badge variant={severityVariant[item.severity] ?? 'outline'} className="tabular-nums">{item.value}</Badge>
+                                                    <h3 className="truncate text-sm font-semibold text-[#102945]">{module.title}</h3>
+                                                    <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-colors group-hover:text-teal-700" />
                                                 </div>
-                                                <div className="mt-0.5 text-xs text-slate-500">{severityLabel[item.severity] ?? 'Норма'} · {item.hint}</div>
-                                            </div>
-                                            <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 group-hover:text-teal-700" />
-                                        </Link>
-                                    ))}
-                                </div>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className="text-2xl font-bold leading-none tabular-nums text-[#102945]">{module.total}</span>
+                                                    <span className="qd-field-label text-slate-500">Всего</span>
+                                                    <span className="ml-auto flex items-center gap-1.5 text-xs text-slate-500" title="Ожидает/внимание">
+                                                        Ожидает
+                                                        <Badge variant={Number(module.pending) > 0 ? 'warning' : 'secondary'} className="tabular-nums">{module.pending}</Badge>
+                                                    </span>
+                                                </div>
+                                                <div className="truncate text-xs text-slate-600" title={module.secondary}>{module.secondary}</div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <ChartCard
+                            icon={Activity}
+                            title="Динамика активности"
+                            aside={(
+                                <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
+                                    За 14 дней: действия <span className="tabular-nums">{trendTotals.activity}</span> · аудит <span className="tabular-nums">{trendTotals.audit}</span> · тикеты <span className="tabular-nums">{trendTotals.tickets}</span>
+                                </span>
                             )}
-                        </CardContent>
-                    </Card>
+                            className="flex-1"
+                        >
+                            <LineChart
+                                dataset={trend}
+                                xAxis={[{ scaleType: 'point', dataKey: 'day' }]}
+                                series={[
+                                    { dataKey: 'activity', label: 'Activity', color: '#102945' },
+                                    { dataKey: 'audit', label: 'Audit', color: '#067A75' },
+                                    { dataKey: 'tickets', label: 'Тикеты', color: '#E2B53E' },
+                                ]}
+                                slotProps={CHART_TOOLTIP_SLOT_PROPS}
+                                height={250}
+                            />
+                        </ChartCard>
+                    </div>
+
+                    <div className="flex min-w-0 flex-col gap-4">
+                        <Card className="relative z-20 overflow-visible">
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                <CardTitle className="flex items-center gap-2">
+                                    <AlertTriangle className="shrink-0" />
+                                    Зоны внимания
+                                </CardTitle>
+                                {attention.length > 0 ? (
+                                    <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
+                                        Открыто: <span className="tabular-nums">{attentionOpen}</span> из <span className="tabular-nums">{attention.length}</span>
+                                    </span>
+                                ) : null}
+                            </CardHeader>
+                            <CardContent>
+                                {attention.length === 0 ? (
+                                    <p className="text-sm text-slate-500">Всё в норме — зон внимания нет.</p>
+                                ) : (
+                                    <div className="divide-y divide-slate-200">
+                                        {attention.map((item) => (
+                                            <Link
+                                                key={item.key}
+                                                href={item.route}
+                                                className="group flex items-start gap-3 py-2.5 first:pt-0 last:pb-0"
+                                            >
+                                                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${ATTENTION_DOT[item.severity] ?? 'bg-slate-400'}`} aria-hidden="true" />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700">{item.title}</span>
+                                                        <Badge variant={severityVariant[item.severity] ?? 'outline'} className="tabular-nums">{item.value}</Badge>
+                                                    </div>
+                                                    <div className="mt-0.5 text-xs text-slate-500">{severityLabel[item.severity] ?? 'Норма'} · {item.hint}</div>
+                                                </div>
+                                                <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-slate-300 group-hover:text-teal-700" />
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <ChartCard
+                            icon={Users}
+                            title="Роли пользователей"
+                            aside={<span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">Всего: <span className="tabular-nums">{rolesTotal}</span></span>}
+                            className="flex-1"
+                        >
+                            <BarChart
+                                dataset={roleBar}
+                                yAxis={[{ scaleType: 'band', dataKey: 'role', tickLabelStyle: { fontSize: 11 } }]}
+                                series={[{ dataKey: 'count', label: 'Кол-во', color: '#067A75' }]}
+                                layout="horizontal"
+                                slotProps={CHART_TOOLTIP_SLOT_PROPS}
+                                height={250}
+                            />
+                        </ChartCard>
+                    </div>
                 </section>
 
-                {/* Trend + roles */}
-                <section className="grid gap-6 xl:grid-cols-3">
+                {/* Status breakdowns + quick links */}
+                <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                     <ChartCard
-                        icon={Activity}
-                        title="Динамика активности"
-                        aside={<span className="qd-field-label leading-none text-slate-500">за 14 дней</span>}
-                        className="xl:col-span-2"
+                        icon={Briefcase}
+                        title="KPI статусы"
+                        aside={<span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">Всего: <span className="tabular-nums">{kpiTotal}</span></span>}
                     >
-                        <LineChart
-                            dataset={trend}
-                            xAxis={[{ scaleType: 'point', dataKey: 'day' }]}
-                            series={[
-                                { dataKey: 'activity', label: 'Activity', color: '#102945' },
-                                { dataKey: 'audit', label: 'Audit', color: '#067A75' },
-                                { dataKey: 'tickets', label: 'Тикеты', color: '#E2B53E' },
-                            ]}
-                            slotProps={CHART_TOOLTIP_SLOT_PROPS}
-                            height={300}
-                        />
-                    </ChartCard>
-
-                    <ChartCard icon={Users} title="Роли пользователей">
-                        <BarChart
-                            dataset={roleBar}
-                            yAxis={[{ scaleType: 'band', dataKey: 'role', tickLabelStyle: { fontSize: 11 } }]}
-                            series={[{ dataKey: 'count', label: 'Кол-во', color: '#067A75' }]}
-                            layout="horizontal"
-                            slotProps={CHART_TOOLTIP_SLOT_PROPS}
-                            height={300}
-                        />
-                    </ChartCard>
-                </section>
-
-                {/* Status breakdowns */}
-                <section className="grid gap-6 xl:grid-cols-3">
-                    <ChartCard icon={Briefcase} title="KPI статусы">
                         {kpiPieData.length === 0 ? (
-                            <p className="py-10 text-center text-sm text-slate-500">По KPI пока нет данных.</p>
+                            <p className="py-8 text-center text-sm text-slate-500">По KPI пока нет данных.</p>
                         ) : (
                             <PieChart
                                 colors={QD_CHART_COLORS}
@@ -379,139 +436,53 @@ export default function Dashboard({
                                         ...d,
                                         label: KPI_STATUS_LABELS[d.label] || d.label,
                                     })),
-                                    innerRadius: 50,
-                                    outerRadius: 110,
+                                    innerRadius: 42,
+                                    outerRadius: 84,
                                 }]}
                                 slotProps={CHART_TOOLTIP_SLOT_PROPS}
-                                height={280}
+                                height={210}
                             />
                         )}
                     </ChartCard>
 
-                    <ChartCard icon={Ticket} title="Тикеты по статусам">
+                    <ChartCard
+                        icon={Ticket}
+                        title="Тикеты по статусам"
+                        aside={<span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">Всего: <span className="tabular-nums">{ticketsTotal}</span></span>}
+                    >
                         <BarChart
                             dataset={ticketsBar}
                             xAxis={[{ scaleType: 'band', dataKey: 'status' }]}
                             series={[{ dataKey: 'count', label: 'Тикеты', color: '#E2B53E' }]}
                             slotProps={CHART_TOOLTIP_SLOT_PROPS}
-                            height={280}
+                            height={210}
                         />
                     </ChartCard>
 
-                    <ChartCard icon={CalendarDays} title="Календарь по статусам">
+                    <ChartCard
+                        icon={CalendarDays}
+                        title="Календарь по статусам"
+                        aside={<span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">Всего: <span className="tabular-nums">{calendarTotal}</span></span>}
+                    >
                         <BarChart
                             dataset={calendarBar}
                             xAxis={[{ scaleType: 'band', dataKey: 'status' }]}
                             series={[{ dataKey: 'count', label: 'События', color: '#102945' }]}
                             slotProps={CHART_TOOLTIP_SLOT_PROPS}
-                            height={280}
+                            height={210}
                         />
                     </ChartCard>
-                </section>
 
-                {/* Activity + quick links */}
-                <section className="grid items-stretch gap-6 xl:h-[26rem] xl:grid-cols-3 [&>*]:min-h-0">
-                    <Card className="flex h-full min-h-0 flex-col overflow-hidden xl:col-span-2">
-                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-                            <CardTitle className="flex items-center gap-2">
-                                <History className="shrink-0" />
-                                Последние действия в системе
-                            </CardTitle>
-                            <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
-                                Показано: <span className="tabular-nums">{filteredActivityFeed.length}</span> из <span className="tabular-nums">{activityFeed.length}</span>
-                            </span>
-                        </CardHeader>
-                        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
-                            <label className="relative block w-full max-w-sm">
-                                <span className="sr-only">Поиск по последним действиям</span>
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                    value={activitySearch}
-                                    onChange={(e) => setActivitySearch(e.target.value)}
-                                    placeholder="Поиск по таблице"
-                                    className="pl-9"
-                                    aria-label="Поиск по последним действиям"
-                                />
-                            </label>
-                        </div>
-                        <div className="min-h-0 flex-1 overflow-hidden">
-                            {filteredActivityFeed.length === 0 ? (
-                                <div className="flex flex-col items-center gap-3 px-5 py-12 text-center">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                        <History className="h-6 w-6" />
-                                    </div>
-                                    <p className="font-display text-lg font-bold text-[#102945]">Лента активности пока пуста</p>
-                                    <p className="max-w-md text-sm text-slate-600">
-                                        {activityFeed.length > 0 ? 'Ничего не найдено — измените запрос поиска.' : 'Действия пользователей и записи аудита появятся здесь.'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="h-full max-h-[28rem] min-h-0 overflow-auto xl:max-h-none">
-                                    <table className="w-full min-w-[860px] table-fixed text-xs leading-snug">
-                                        <colgroup>
-                                            <col className="w-[14%]" />
-                                            <col className="w-[8%]" />
-                                            <col className="w-[13%]" />
-                                            <col className="w-[22%]" />
-                                            <col className="w-[15%]" />
-                                            <col className="w-[18%]" />
-                                            <col className="w-[10%]" />
-                                        </colgroup>
-                                        <thead className="sticky top-0 z-10">
-                                            <tr>
-                                                <th className="text-left">Дата/время</th>
-                                                <th className="text-left">Источник</th>
-                                                <th className="text-left">Модуль</th>
-                                                <th className="text-left">Пользователь</th>
-                                                <th className="text-left">Событие</th>
-                                                <th className="text-left">Сущность</th>
-                                                <th className="text-left">IP</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredActivityFeed.map((row) => (
-                                                <tr key={row.id} className={`border-b border-slate-200 align-top last:border-0 hover:bg-slate-50 ${SEVERITY_ROW_BG[row.severity] || ''}`}>
-                                                    <td className="break-words font-mono text-[11px] tabular-nums text-slate-500">{formatDate(row.created_at)}</td>
-                                                    <td>
-                                                        <Badge variant={row.source === 'audit' ? 'info' : 'secondary'}>{row.source}</Badge>
-                                                    </td>
-                                                    <td>
-                                                        <ModuleBadge module={row.module} label={row.module_label} />
-                                                    </td>
-                                                    <td>
-                                                        <div className="break-words font-medium text-slate-900">{row.actor_name}</div>
-                                                        <div className="break-all text-[11px] text-slate-500">{row.actor_email ?? '—'}</div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="flex items-center gap-1.5 break-words text-slate-700">
-                                                            {row.severity && row.severity !== 'low' && <SeverityDot severity={row.severity} />}
-                                                            {row.event_label}
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="break-words font-medium text-slate-900">{row.subject_name}</div>
-                                                        <div className="break-words text-[11px] text-slate-500">{row.subject_label ?? '—'}</div>
-                                                    </td>
-                                                    <td className="break-all font-mono text-[11px] tabular-nums text-slate-500">{row.ip_address ?? '—'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-
-                    <Card className="flex h-full min-h-0 flex-col overflow-hidden">
+                    <Card className="flex min-h-0 flex-col overflow-hidden">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Database className="shrink-0" />
                                 Быстрые переходы
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="min-h-0 flex-1 overflow-auto">
+                        <CardContent className="min-h-0 flex-1">
                             {quickLinks.length === 0 ? (
-                                <p className="py-4 text-sm text-slate-500">Быстрые переходы не настроены.</p>
+                                <p className="text-sm text-slate-500">Быстрые переходы не настроены.</p>
                             ) : (
                                 <div className="divide-y divide-slate-200">
                                     {quickLinks.map((link) => {
@@ -520,13 +491,16 @@ export default function Dashboard({
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
-                                                className="group flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                                                className="group flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
                                             >
-                                                <span className="flex items-center gap-3">
-                                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700 transition-colors group-hover:bg-teal-700 group-hover:text-white">
+                                                <span className="flex min-w-0 items-center gap-3">
+                                                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-teal-50 text-teal-700 transition-colors group-hover:bg-teal-700 group-hover:text-white">
                                                         <IconComponent className="h-4 w-4" />
                                                     </span>
-                                                    <span className="text-sm font-medium text-slate-900 group-hover:text-teal-700">{link.title}</span>
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-sm font-medium text-slate-900 group-hover:text-teal-700">{link.title}</span>
+                                                        <span className="block truncate text-[11px] text-slate-500">{linkPath(link.href)}</span>
+                                                    </span>
                                                 </span>
                                                 <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-teal-700" />
                                             </Link>
@@ -537,6 +511,107 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </section>
+
+                {/* Activity feed */}
+                <Card className="flex min-h-0 flex-col overflow-hidden">
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="shrink-0" />
+                            Последние действия в системе
+                        </CardTitle>
+                        <span className="whitespace-nowrap text-xs font-medium leading-none text-slate-500">
+                            Показано: <span className="tabular-nums">{filteredActivityFeed.length}</span> из <span className="tabular-nums">{activityFeed.length}</span>
+                        </span>
+                    </CardHeader>
+                    <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-2.5">
+                        <label className="relative block w-full max-w-sm">
+                            <span className="sr-only">Поиск по последним действиям</span>
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                value={activitySearch}
+                                onChange={(e) => setActivitySearch(e.target.value)}
+                                placeholder="Поиск по таблице"
+                                className="pl-9"
+                                aria-label="Поиск по последним действиям"
+                            />
+                        </label>
+                        {activitySummary.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                                {activitySummary.map(([key, count]) => (
+                                    <span key={key} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5">
+                                        <span className="font-medium text-slate-700">{key}</span>
+                                        <span className="tabular-nums">{count}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
+                    {filteredActivityFeed.length === 0 ? (
+                        <div className="flex flex-col items-center gap-2 px-5 py-8 text-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                <History className="h-5 w-5" />
+                            </div>
+                            <p className="font-display text-base font-bold text-[#102945]">Лента активности пока пуста</p>
+                            <p className="max-w-md text-sm text-slate-600">
+                                {activityFeed.length > 0 ? 'Ничего не найдено — измените запрос поиска.' : 'Действия пользователей и записи аудита появятся здесь.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="max-h-[32rem] min-h-0 overflow-auto">
+                            <table className="w-full min-w-[860px] table-fixed text-xs leading-snug">
+                                <colgroup>
+                                    <col className="w-[11%]" />
+                                    <col className="w-[7%]" />
+                                    <col className="w-[12%]" />
+                                    <col className="w-[22%]" />
+                                    <col className="w-[18%]" />
+                                    <col className="w-[21%]" />
+                                    <col className="w-[9%]" />
+                                </colgroup>
+                                <thead className="sticky top-0 z-10">
+                                    <tr>
+                                        <th className="text-left">Дата/время</th>
+                                        <th className="text-left">Источник</th>
+                                        <th className="text-left">Модуль</th>
+                                        <th className="text-left">Пользователь</th>
+                                        <th className="text-left">Событие</th>
+                                        <th className="text-left">Сущность</th>
+                                        <th className="text-left">IP</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredActivityFeed.map((row) => (
+                                        <tr key={row.id} className={`border-b border-slate-200 align-top last:border-0 hover:bg-slate-50 ${SEVERITY_ROW_BG[row.severity] || ''}`}>
+                                            <td className="break-words font-mono text-[11px] tabular-nums text-slate-500">{formatDate(row.created_at)}</td>
+                                            <td>
+                                                <Badge variant={row.source === 'audit' ? 'info' : 'secondary'}>{row.source}</Badge>
+                                            </td>
+                                            <td>
+                                                <ModuleBadge module={row.module} label={row.module_label} />
+                                            </td>
+                                            <td>
+                                                <div className="break-words font-medium text-slate-900">{row.actor_name}</div>
+                                                <div className="break-all text-[11px] text-slate-500">{row.actor_email ?? '—'}</div>
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center gap-1.5 break-words text-slate-700">
+                                                    {row.severity && row.severity !== 'low' && <SeverityDot severity={row.severity} />}
+                                                    {row.event_label}
+                                                </div>
+                                                {row.description && row.description !== row.event_label ? <div className="mt-0.5 line-clamp-2 break-words text-[11px] text-slate-500" title={row.description}>{row.description}</div> : null}
+                                            </td>
+                                            <td>
+                                                <div className="break-words font-medium text-slate-900">{row.subject_name}</div>
+                                                <div className="break-words text-[11px] text-slate-500">{row.subject_label ?? '—'}</div>
+                                            </td>
+                                            <td className="break-all font-mono text-[11px] tabular-nums text-slate-500">{row.ip_address ?? '—'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </Card>
             </div>
         </AuthenticatedLayout>
     );

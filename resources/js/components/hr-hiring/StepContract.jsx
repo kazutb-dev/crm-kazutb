@@ -14,9 +14,9 @@ export default function StepContract({ state, set, errors, options, hiringId, on
     const address = [e.city && `г. ${e.city}`, e.street, e.house && `д. ${e.house}`, e.apartment && `кв. ${e.apartment}`].filter(Boolean).join(', ');
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Section title="Номер и срок договора" description="Номер подсказывается по счётчику договоров этого года." feeds={['contract', 'order']}>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
                     <Field id={fieldId('contract.number')} label="Номер договора" error={errors['contract.number']}>
                         <TextInput id={fieldId('contract.number')} value={c.number} onChange={(value) => set('contract.number', value)} className="font-mono" maxLength={30} placeholder="412" />
                         <NumberHint kind="contract" date={c.date} value={c.number} hiringId={hiringId} onApply={(value) => set('contract.number', value)} />
@@ -24,14 +24,14 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                     <Field id={fieldId('contract.date')} label="Дата договора" error={errors['contract.date']}>
                         <TextInput id={fieldId('contract.date')} type="date" value={c.date} onChange={(value) => set('contract.date', value)} />
                     </Field>
+                    <Field id={fieldId('contract.term')} label="Срок трудового договора" error={errors['contract.term']}>
+                        <SelectInput id={fieldId('contract.term')} value={c.term} onChange={(value) => set('contract.term', value)} options={options.terms} placeholder="Выберите" />
+                    </Field>
                 </div>
-                <Field id={fieldId('contract.term')} label="Срок трудового договора" error={errors['contract.term']} className="sm:max-w-sm">
-                    <SelectInput id={fieldId('contract.term')} value={c.term} onChange={(value) => set('contract.term', value)} options={options.terms} placeholder="Выберите" />
-                </Field>
             </Section>
 
             <Section title="Оплата и режим работы" description="Отпуск и график подставляются по категории персонала — их можно изменить." feeds={['contract']}>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,1.6fr)]">
                     <Field id={fieldId('contract.salary')} label="Должностной оклад, ₸" error={errors['contract.salary']}>
                         <TextInput
                             id={fieldId('contract.salary')}
@@ -57,19 +57,20 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                             className="font-mono"
                         />
                     </Field>
+                    <Field id={fieldId('contract.schedule')} label="График работы (пункт 3.1)" error={errors['contract.schedule']} className="sm:col-span-2 2xl:col-span-1">
+                        <SelectInput id={fieldId('contract.schedule')} value={c.schedule} onChange={(value) => set('contract.schedule', value)} options={options.schedules} placeholder="Выберите" />
+                    </Field>
                 </div>
-                <Field id={fieldId('contract.schedule')} label="График работы (пункт 3.1)" error={errors['contract.schedule']}>
-                    <SelectInput id={fieldId('contract.schedule')} value={c.schedule} onChange={(value) => set('contract.schedule', value)} options={options.schedules} placeholder="Выберите" />
-                </Field>
+                <div className="grid items-start gap-4 sm:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
                 {!isShift && (
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <>
                         <Field id={fieldId('contract.break_start')} label="Перерыв с (п. 3.1.3)" error={errors['contract.break_start']}>
                             <TextInput id={fieldId('contract.break_start')} value={c.break_start} onChange={(value) => set('contract.break_start', value)} placeholder="12.30" className="font-mono" maxLength={5} />
                         </Field>
                         <Field id={fieldId('contract.break_end')} label="Перерыв до" error={errors['contract.break_end']}>
                             <TextInput id={fieldId('contract.break_end')} value={c.break_end} onChange={(value) => set('contract.break_end', value)} placeholder="13.30" className="font-mono" maxLength={5} />
                         </Field>
-                    </div>
+                    </>
                 )}
                 <Field id={fieldId('contract.employment')} label="Вид работы">
                     <ChoiceGroup
@@ -80,10 +81,11 @@ export default function StepContract({ state, set, errors, options, hiringId, on
                         options={options.employments}
                     />
                 </Field>
+                </div>
             </Section>
 
             <Section title="Проверьте данные сотрудника" note="Только просмотр: так эти данные попадут в договор.">
-                <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 2xl:grid-cols-3">
                     <div className="flex flex-col gap-1 border-b border-slate-200 pb-3">
                         <dt className="qd-field-label text-slate-500">ИИН</dt>
                         <dd className="font-mono text-[0.9375rem] font-medium text-slate-900">{iin.valid ? e.iin : '—'}</dd>

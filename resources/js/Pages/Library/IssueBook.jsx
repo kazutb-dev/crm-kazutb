@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { InfoField, LoadingState, Notice, PageHeader } from '@/components/platform';
-import { BookOpen, CalendarDays, History, Search, UserRound } from 'lucide-react';
+import { InfoField, LoadingState, Notice, PageHeader, StatGrid, StatTile } from '@/components/platform';
+import { Badge } from '@/components/ui/badge';
+import { AlarmClock, BookOpen, CalendarCheck, CalendarDays, History, Search, TriangleAlert, UserRound } from 'lucide-react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useCallback, useRef, useState } from 'react';
 
@@ -17,6 +18,22 @@ function buildDefaultDueDate() {
     date.setDate(date.getDate() + 14);
 
     return formatDate(date);
+}
+
+function dueStatus(dueAt, today, soonLimit) {
+    if (!dueAt) {
+        return null;
+    }
+
+    if (dueAt < today) {
+        return { label: 'Просрочена', variant: 'destructive' };
+    }
+
+    if (dueAt <= soonLimit) {
+        return { label: 'Скоро срок', variant: 'warning' };
+    }
+
+    return { label: 'В срок', variant: 'success' };
 }
 
 function getCsrfToken() {
@@ -174,6 +191,16 @@ export default function IssueBook({ recentLoans = [] }) {
         });
     };
 
+    const today = formatDate(new Date());
+    const soonLimit = (() => {
+        const date = new Date();
+        date.setDate(date.getDate() + 7);
+        return formatDate(date);
+    })();
+    const overdueLoans = recentLoans.filter((loan) => loan.due_at && loan.due_at < today).length;
+    const soonLoans = recentLoans.filter((loan) => loan.due_at && loan.due_at >= today && loan.due_at <= soonLimit).length;
+    const todayLoans = recentLoans.filter((loan) => loan.issued_at === today).length;
+
     const dropdownClassName = 'absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-[12px] border border-slate-200 bg-white py-1 shadow-[0_12px_32px_-12px_rgba(16,41,69,0.25)]';
 
     return (
@@ -193,7 +220,14 @@ export default function IssueBook({ recentLoans = [] }) {
                     <Notice tone="success">{flash.success}</Notice>
                 )}
 
-                <form className="grid grid-cols-1 gap-6 lg:grid-cols-2" onSubmit={submit}>
+                <StatGrid>
+                    <StatTile label="Последние выдачи" value={recentLoans.length} icon={History} tone="teal" hint="В таблице ниже" />
+                    <StatTile label="Выдано сегодня" value={todayLoans} icon={CalendarCheck} tone="navy" hint={today} />
+                    <StatTile label="Скоро вернуть" value={soonLoans} icon={AlarmClock} tone="warning" hint="Срок в ближайшие 7 дней" />
+                    <StatTile label="Просрочены" value={overdueLoans} icon={TriangleAlert} tone={overdueLoans > 0 ? 'danger' : 'success'} hint="Среди последних выдач" />
+                </StatGrid>
+
+                <form className="grid grid-cols-1 gap-4 lg:grid-cols-2" onSubmit={submit}>
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -201,7 +235,7 @@ export default function IssueBook({ recentLoans = [] }) {
                                 Книга и получатель
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-5">
+                        <CardContent className="space-y-4">
                             <div className="relative space-y-2">
                                 <label className="qd-field-label block">Книга</label>
                                 <div className="relative">
@@ -267,7 +301,7 @@ export default function IssueBook({ recentLoans = [] }) {
                                 )}
                             </SelectionBox>
 
-                            <div className="relative space-y-2 border-t border-slate-200 pt-5">
+                            <div className="relative space-y-2 border-t border-slate-200 pt-4">
                                 <label className="qd-field-label block">Пользователь</label>
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -326,7 +360,7 @@ export default function IssueBook({ recentLoans = [] }) {
                                 Сроки и итог
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-5">
+                        <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <label className="qd-field-label block">Дата выдачи</label>
@@ -352,7 +386,7 @@ export default function IssueBook({ recentLoans = [] }) {
                             <div className="space-y-2">
                                 <label className="qd-field-label block">Примечание</label>
                                 <Textarea
-                                    className="min-h-32"
+                                    className="min-h-20"
                                     value={form.data.notes}
                                     onChange={(event) => form.setData('notes', event.target.value)}
                                     placeholder="Например: выдача для работы в читальном зале"
@@ -360,9 +394,9 @@ export default function IssueBook({ recentLoans = [] }) {
                                 {form.errors.notes && <div className="text-xs text-red-700">{form.errors.notes}</div>}
                             </div>
 
-                            <div className="space-y-3 border-t border-slate-200 pt-5">
+                            <div className="space-y-3 border-t border-slate-200 pt-4">
                                 <p className="qd-field-label text-[#102945]">Итог выдачи</p>
-                                <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
                                     <InfoField label="Книга">{form.data.book_title || 'не выбрана'}</InfoField>
                                     <InfoField label="Получатель">{selectedUser?.name || 'не выбран'}</InfoField>
                                     <InfoField label="Дата выдачи"><span className="tabular-nums">{form.data.issued_at || '-'}</span></InfoField>
@@ -370,7 +404,7 @@ export default function IssueBook({ recentLoans = [] }) {
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-5">
+                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                                 <Button type="button" variant="outline" disabled={form.processing} onClick={resetForm}>
                                     Очистить
                                 </Button>
@@ -383,14 +417,14 @@ export default function IssueBook({ recentLoans = [] }) {
                 </form>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <History className="h-4 w-4" />
                             Последние выдачи
                         </CardTitle>
-                        <CardDescription>
-                            Недавно оформленные выдачи книг из локальной базы приложения.
-                        </CardDescription>
+                        <span className="text-xs text-slate-500">
+                            Недавно оформленные выдачи из локальной базы приложения
+                        </span>
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
@@ -401,6 +435,7 @@ export default function IssueBook({ recentLoans = [] }) {
                                         <th className="text-left">Пользователь</th>
                                         <th className="text-left">Дата выдачи</th>
                                         <th className="text-left">Вернуть до</th>
+                                        <th className="text-left">Срок</th>
                                         <th className="text-left">Оформил</th>
                                     </tr>
                                 </thead>
@@ -417,13 +452,19 @@ export default function IssueBook({ recentLoans = [] }) {
                                             </td>
                                             <td className="align-top tabular-nums text-slate-700">{loan.issued_at ?? '-'}</td>
                                             <td className="align-top tabular-nums text-slate-700">{loan.due_at ?? '-'}</td>
+                                            <td className="align-top">
+                                                {(() => {
+                                                    const status = dueStatus(loan.due_at, today, soonLimit);
+                                                    return status ? <Badge variant={status.variant}>{status.label}</Badge> : <span className="text-slate-400">—</span>;
+                                                })()}
+                                            </td>
                                             <td className="align-top text-slate-700">{loan.issuer ?? '-'}</td>
                                         </tr>
                                     ))}
 
                                     {recentLoans.length === 0 && (
                                         <tr>
-                                            <td className="py-12 text-center text-slate-500" colSpan={5}>
+                                            <td className="py-8 text-center text-slate-500" colSpan={6}>
                                                 Выдач пока нет.
                                             </td>
                                         </tr>
@@ -440,16 +481,16 @@ export default function IssueBook({ recentLoans = [] }) {
 
 function SelectionBox({ icon: Icon, title, empty, filled, children }) {
     return (
-        <div className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${filled ? 'border-teal-200 bg-teal-50' : 'border-dashed border-slate-300 bg-white'}`}>
+        <div className={`flex items-start gap-3 rounded-xl border p-3 text-sm ${filled ? 'border-teal-200 bg-teal-50' : 'border-dashed border-slate-300 bg-white'}`}>
             <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${filled ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 <Icon className="h-4 w-4" />
             </span>
             <div className="min-w-0">
                 <div className="qd-field-label text-slate-500">{title}</div>
                 {filled ? (
-                    <div className="mt-1.5 space-y-0.5 text-slate-600">{children}</div>
+                    <div className="mt-1 space-y-0.5 text-slate-600">{children}</div>
                 ) : (
-                    <div className="mt-1.5 text-slate-500">{empty}</div>
+                    <div className="mt-1 text-slate-500">{empty}</div>
                 )}
             </div>
         </div>

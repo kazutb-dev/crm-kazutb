@@ -89,6 +89,12 @@ const buildSmoothPath = (points) => {
     return pathParts.join(' ');
 };
 
+const KIND_LABELS = {
+    cabinet: 'Кабинет',
+    staff: 'Сотрудник',
+    department: 'Отдел',
+};
+
 export default function AdminRoutes({ navigationRoutes }) {
     const items = navigationRoutes?.data ?? [];
     const links = navigationRoutes?.links ?? [];
@@ -383,7 +389,8 @@ export default function AdminRoutes({ navigationRoutes }) {
                     </CardHeader>
                     <CardContent>
 
-                        <form onSubmit={submit} className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                        <form onSubmit={submit} className="grid grid-cols-1 gap-x-6 gap-y-4 xl:grid-cols-2">
+                            <div className="grid grid-cols-1 content-start gap-4 md:grid-cols-2 2xl:grid-cols-4">
                             <div>
                                 <label className="qd-field-label mb-2 block">Badge</label>
                                 <input
@@ -419,7 +426,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                             </div>
 
                             {form.data.kind === 'staff' && (
-                                <div className="md:col-span-2 relative">
+                                <div className="relative md:col-span-2 2xl:col-span-4">
                                     <label className="qd-field-label mb-2 block">Поиск сотрудника</label>
                                     <input
                                         className={qdFieldClass}
@@ -458,7 +465,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                             )}
 
                             {form.data.kind === 'cabinet' && (
-                                <div className="md:col-span-2 relative">
+                                <div className="relative md:col-span-2 2xl:col-span-4">
                                     <label className="qd-field-label mb-2 block">Прикрепленные сотрудники к кабинету</label>
                                     <input
                                         className={qdFieldClass}
@@ -514,7 +521,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                 </div>
                             )}
 
-                            <div className="md:col-span-2">
+                            <div className="md:col-span-2 2xl:order-first">
                                 <label className="qd-field-label mb-2 block">Название</label>
                                 <input
                                     className={qdFieldClass}
@@ -584,14 +591,17 @@ export default function AdminRoutes({ navigationRoutes }) {
                             <div className="md:col-span-2">
                                 <label className="qd-field-label mb-2 block">Шаги маршрута (каждый шаг с новой строки)</label>
                                 <textarea
-                                    className={`${qdFieldClass} h-auto min-h-[140px] py-2`}
+                                    className={`${qdFieldClass} h-auto min-h-[104px] py-2`}
                                     value={form.data.steps_text}
                                     onChange={(event) => form.setData('steps_text', event.target.value)}
                                 />
                                 {form.errors.steps_text && <div className="mt-1.5 text-xs text-red-700">{form.errors.steps_text}</div>}
                             </div>
 
-                            <div className="md:col-span-2">
+                            </div>
+
+                            <div className="min-w-0 space-y-4">
+                            <div>
                                 <label className="qd-field-label mb-2 block">Загрузка картинки плана этажа</label>
                                 <input
                                     type="file"
@@ -608,10 +618,10 @@ export default function AdminRoutes({ navigationRoutes }) {
                                 {form.errors.map_image && <div className="mt-1.5 text-xs text-red-700">{form.errors.map_image}</div>}
                             </div>
 
-                            <div className="md:col-span-2">
+                            <div>
                                 <label className="qd-field-label mb-2 block">Линия маршрута (координаты X,Y в %, каждая точка с новой строки)</label>
                                 <textarea
-                                    className={`${qdFieldClass} h-auto min-h-[120px] py-2 font-mono text-xs`}
+                                    className={`${qdFieldClass} h-auto min-h-[96px] py-2 font-mono text-xs`}
                                     placeholder={"10,15\n22,18\n35,30\n61,54"}
                                     value={form.data.map_polyline_text}
                                     onChange={(event) => form.setData('map_polyline_text', event.target.value)}
@@ -621,7 +631,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                 </div>
                                 {form.errors.map_polyline_text && <div className="mt-1.5 text-xs text-red-700">{form.errors.map_polyline_text}</div>}
 
-                                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                                         <p className="text-sm text-slate-600">
                                             Визуальный редактор: кликните по картинке, чтобы добавить точку маршрута.
@@ -797,7 +807,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="flex h-64 w-full items-center justify-center text-sm text-slate-500">
+                                            <div className="flex h-40 w-full items-center justify-center text-sm text-slate-500">
                                                 Сначала укажите путь к картинке плана этажа.
                                             </div>
                                         )}
@@ -809,7 +819,9 @@ export default function AdminRoutes({ navigationRoutes }) {
                                 </div>
                             </div>
 
-                            <div className="md:col-span-2 flex items-center gap-3">
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 xl:col-span-2">
                                 <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-800">
                                     <input
                                         type="checkbox"
@@ -819,9 +831,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                     />
                                     Активен
                                 </label>
-                            </div>
-
-                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4 md:col-span-2">
+                                <div className="flex flex-wrap justify-end gap-2">
                                 <Button type="submit" disabled={form.processing}>
                                     {editingId ? 'Сохранить изменения' : 'Добавить маршрут'}
                                 </Button>
@@ -830,6 +840,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                         Отменить редактирование
                                     </Button>
                                 )}
+                                </div>
                             </div>
                         </form>
                     </CardContent>
@@ -841,9 +852,9 @@ export default function AdminRoutes({ navigationRoutes }) {
                     </CardHeader>
                     <CardContent className={items.length === 0 ? '' : 'p-0'}>
                         {items.length === 0 ? (
-                            <div className="flex flex-col items-center gap-3 py-10 text-center">
-                                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Route className="h-6 w-6" /></span>
-                                <p className="font-display text-lg font-bold text-[#102945]">Маршрутов пока нет.</p>
+                            <div className="flex flex-col items-center gap-2 py-8 text-center">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700"><Route className="h-5 w-5" /></span>
+                                <p className="font-semibold text-[#102945]">Маршрутов пока нет.</p>
                                 <p className="max-w-md text-sm text-slate-600">Заполните форму выше, чтобы добавить первую точку навигации.</p>
                             </div>
                         ) : (
@@ -855,7 +866,7 @@ export default function AdminRoutes({ navigationRoutes }) {
                                             <th>Badge</th>
                                             <th>Название</th>
                                             <th>Тип</th>
-                                            <th>Meta</th>
+                                            <th>Meta / расположение</th>
                                             <th>Сотрудники</th>
                                             <th>Шаги</th>
                                             <th>Статус</th>
@@ -868,17 +879,37 @@ export default function AdminRoutes({ navigationRoutes }) {
                                                 <td className="tabular-nums text-slate-500">#{item.id}</td>
                                                 <td>{item.badge ? <Badge variant="secondary">{item.badge}</Badge> : null}</td>
                                                 <td className="font-medium text-slate-900">{item.title}</td>
-                                                <td className="text-slate-700">{item.kind}</td>
-                                                <td className="text-slate-600">{item.meta}</td>
+                                                <td className="text-slate-700">{KIND_LABELS[item.kind] ?? item.kind}</td>
                                                 <td className="text-slate-600">
-                                                    {Array.isArray(item.attached_users) && item.attached_users.length > 0
-                                                        ? item.attached_users.slice(0, 2).map((user) => user.name).join(', ')
-                                                        : '—'}
+                                                    <div>{item.meta || '—'}</div>
+                                                    <div className="text-xs text-slate-500">
+                                                        {[
+                                                            item.building ? `корп. ${item.building}` : null,
+                                                            item.floor !== null && item.floor !== undefined && item.floor !== '' ? `${item.floor} эт.` : null,
+                                                            item.room ? `каб. ${item.room}` : null,
+                                                        ].filter(Boolean).join(' · ') || null}
+                                                        {Array.isArray(item.map_polyline) && item.map_polyline.length > 0
+                                                            ? ` · линия: ${item.map_polyline.length} т.`
+                                                            : ''}
+                                                    </div>
+                                                </td>
+                                                <td className="text-slate-600">
+                                                    {Array.isArray(item.attached_users) && item.attached_users.length > 0 ? (
+                                                        <>
+                                                            {item.attached_users.slice(0, 2).map((user) => user.name).join(', ')}
+                                                            {item.attached_users.length > 2 ? (
+                                                                <span className="text-xs text-slate-500"> +{item.attached_users.length - 2}</span>
+                                                            ) : null}
+                                                        </>
+                                                    ) : '—'}
                                                 </td>
                                                 <td className="whitespace-pre-line text-slate-600">
                                                     {Array.isArray(item.steps) && item.steps.length > 0
                                                         ? item.steps.slice(0, 2).map((step, idx) => `${idx + 1}. ${step}`).join('\n')
                                                         : 'Нет шагов'}
+                                                    {Array.isArray(item.steps) && item.steps.length > 2 ? (
+                                                        <div className="text-xs text-slate-500">ещё {item.steps.length - 2}</div>
+                                                    ) : null}
                                                 </td>
                                                 <td>
                                                     <Badge variant={item.is_active ? 'success' : 'outline'}>

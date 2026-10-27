@@ -19,19 +19,23 @@ export default function Error403({ message = 'Доступ запрещен.' })
             <Head title="403 — Доступ запрещен" />
 
             <div className="admin-page-wrap">
-                <Card className="mx-auto max-w-2xl border-dashed border-slate-300">
-                    <CardContent className="flex flex-col items-center gap-5 py-12 text-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-700">
-                            <ShieldAlert className="h-7 w-7" />
+                <Card className="border-dashed border-slate-300">
+                    <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-700">
+                                <ShieldAlert className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                                <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <span className="text-3xl font-bold tabular-nums text-[#102945]">403</span>
+                                    <span className="text-base font-bold text-[#102945]">{message}</span>
+                                </p>
+                                <p className="text-sm leading-relaxed text-slate-600">
+                                    Если доступ нужен для работы, обратитесь к администратору платформы — он может выдать нужную роль или право.
+                                </p>
+                            </div>
                         </div>
-                        <div className="max-w-md space-y-2">
-                            <p className="font-display text-5xl font-bold tabular-nums text-[#102945]">403</p>
-                            <p className="font-display text-lg font-bold text-[#102945]">{message}</p>
-                            <p className="text-sm leading-relaxed text-slate-600">
-                                Если доступ нужен для работы, обратитесь к администратору платформы — он может выдать нужную роль или право.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-2 border-t border-slate-200 pt-5">
+                        <div className="flex shrink-0 flex-wrap gap-2">
                             <Button variant="outline" type="button" onClick={() => window.history.back()}>
                                 <ArrowLeft />
                                 Назад

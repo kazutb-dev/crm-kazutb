@@ -146,6 +146,7 @@ export default function SurveyGroups({ groups = [], students = [] }) {
     };
 
     const boundStudentsCount = students.filter((student) => student.group_id).length;
+    const groupStudentsTotal = groups.reduce((sum, group) => sum + (Number(group.students_count) || 0), 0);
     const emptyGroupsCount = groups.filter((group) => !Number(group.students_count)).length;
 
     return (
@@ -173,7 +174,8 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                     <StatTile label="Групп" value={groups.length} tone="teal" icon={Users} />
                     <StatTile label="Студентов" value={students.length} tone="navy" icon={GraduationCap} />
                     <StatTile label="Привязаны к группе" value={boundStudentsCount} tone="success" icon={Link2} />
-                    <StatTile label="Группы без студентов" value={emptyGroupsCount} tone="warning" />
+                    <StatTile label="Без группы" value={students.length - boundStudentsCount} tone="gold" icon={GraduationCap} hint="студенты без привязки" />
+                    <StatTile label="Группы без студентов" value={emptyGroupsCount} tone="warning" icon={Users} hint={groups.length ? `В среднем ${(groupStudentsTotal / groups.length).toFixed(1)} студ. на группу` : null} />
                 </StatGrid>
 
                 {groups.length === 0 ? (
@@ -189,12 +191,16 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                     />
                 ) : (
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2">
                                 <Users />
                                 Список групп
                                 <Badge variant="secondary" className="ml-1 tabular-nums">{groups.length}</Badge>
                             </CardTitle>
+                            <Button type="button" size="sm" variant="outline" onClick={openCreate}>
+                                <Plus className="h-3.5 w-3.5" />
+                                Новая группа
+                            </Button>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
@@ -205,6 +211,7 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                                             <th className="whitespace-nowrap text-left">Код</th>
                                             <th className="whitespace-nowrap text-left">Описание</th>
                                             <th className="whitespace-nowrap text-right">Студентов</th>
+                                            <th className="whitespace-nowrap">Доля</th>
                                             <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
@@ -213,8 +220,16 @@ export default function SurveyGroups({ groups = [], students = [] }) {
                                             <tr key={group.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
                                                 <td className="font-medium text-slate-900">{group.name}</td>
                                                 <td className="whitespace-nowrap font-mono text-xs text-slate-600">{group.code}</td>
-                                                <td className="text-slate-600">{group.description || '—'}</td>
+                                                <td className="max-w-[420px] text-slate-600"><span className="line-clamp-2">{group.description || '—'}</span></td>
                                                 <td className="text-right font-semibold tabular-nums text-[#102945]">{group.students_count || 0}</td>
+                                                <td>
+                                                    <div className="flex w-32 items-center gap-2">
+                                                        <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+                                                            <div className="h-1.5 rounded-full bg-teal-500" style={{ width: `${groupStudentsTotal ? Math.min(100, ((Number(group.students_count) || 0) / groupStudentsTotal) * 100) : 0}%` }} />
+                                                        </div>
+                                                        <span className="text-xs tabular-nums text-slate-500">{groupStudentsTotal ? Math.round(((Number(group.students_count) || 0) / groupStudentsTotal) * 100) : 0}%</span>
+                                                    </div>
+                                                </td>
                                                 <td>
                                                     <div className="flex justify-end gap-2">
                                                         <Button type="button" variant="secondary" size="sm" onClick={() => openBinding(group)}>

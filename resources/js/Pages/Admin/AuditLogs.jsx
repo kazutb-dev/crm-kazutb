@@ -113,7 +113,7 @@ function ExpandedRow({ item }) {
     const meta = Object.entries(details).filter(([k]) => !['ip', 'path', 'route', 'method'].includes(k));
 
     return (
-        <td colSpan={7}>
+        <td colSpan={8}>
             <div className="mt-1 rounded-xl border border-slate-200 bg-white p-4">
                 <div className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
                     {pairs.map(([k, v]) => (
@@ -146,6 +146,7 @@ function ExpandedRow({ item }) {
 export default function AuditLogs({ logs, summary, filters, options }) {
     const [expandedRow, setExpandedRow] = useState(null);
 
+    const importantOnPage = (logs?.data || []).filter((item) => ['critical', 'high'].includes(item.severity)).length;
     const activeFilters = Object.entries(filters || {}).filter(([k, v]) => v && v !== 'all' && k !== 'source');
 
     function applyFilter(newFilters) {
@@ -205,17 +206,15 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                     <StatTile label="За сегодня" value={(summary?.today_count || 0).toLocaleString('ru-RU')} tone="teal" icon={CalendarClock} />
                     <StatTile label="Записи аудита" value={(summary?.audit_count || 0).toLocaleString('ru-RU')} tone="info" icon={Database} />
                     <StatTile label="События системы" value={(summary?.activity_count || 0).toLocaleString('ru-RU')} tone="neutral" icon={Activity} />
+                    <StatTile label="Важные и критичные" value={importantOnPage} tone={importantOnPage ? 'danger' : 'neutral'} icon={AlertTriangle} hint={`на странице из ${(logs?.data || []).length}`} />
                 </StatGrid>
 
                 <FilterBar>
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
-                            <Filter className="h-4 w-4 text-teal-700" /> Фильтры
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[auto_repeat(4,minmax(0,1fr))_minmax(0,1.4fr)] xl:items-end">
+                        <div className="space-y-2 md:col-span-2 xl:col-span-1">
+                            <span className="qd-field-label flex items-center gap-1.5"><Filter className="h-3.5 w-3.5 text-teal-700" /> Источник</span>
+                            <Segmented items={sourceItems} value={filters?.source || 'all'} onChange={(value) => applyFilter({ source: value })} />
                         </div>
-                        <Segmented items={sourceItems} value={filters?.source || 'all'} onChange={(value) => applyFilter({ source: value })} />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                         <FormField label="Модуль">
                             <select className={qdFieldClass} value={filters?.module || ''} onChange={e => applyFilter({ module: e.target.value || null })}>
                                 <option value="">Все модули</option>
@@ -265,7 +264,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                     </div>
 
                     {activeFilters.length > 0 && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
+                        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3">
                             <span className="qd-field-label text-slate-500">Активные</span>
                             {activeFilters.map(([key, val]) => (
                                 <button
@@ -299,6 +298,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                     <th>Событие</th>
                                     <th>Пользователь</th>
                                     <th>Сущность</th>
+                                    <th>IP / маршрут</th>
                                     <th className="relative w-8"><span className="sr-only">Подробнее</span></th>
                                 </tr>
                             </thead>
@@ -318,24 +318,24 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                                             <td><SourceBadge source={item.source} /></td>
                                             <td><ModuleBadge module={item.module} label={item.module_label} /></td>
                                             <td>
-                                                <div className="flex flex-col items-start gap-1">
+                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                                                     <span className="font-medium text-slate-900">{item.event_label || item.event_key}</span>
                                                     <SeverityBadge severity={item.severity} label={item.severity_label} />
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-slate-800">{item.actor_name}</span>
-                                                    {item.actor_email && <span className="text-xs text-slate-500">{item.actor_email}</span>}
-                                                </div>
+                                                <span className="font-medium text-slate-800">{item.actor_name}</span>
+                                                {item.actor_email && <span className="ml-2 text-xs text-slate-500">{item.actor_email}</span>}
                                             </td>
                                             <td>
-                                                <div className="flex flex-col">
-                                                    <span className="text-slate-700">{item.subject_name || '—'}</span>
-                                                    {item.subject_label && (
-                                                        <span className="font-mono text-xs text-slate-500">{item.subject_label}</span>
-                                                    )}
-                                                </div>
+                                                <span className="text-slate-700">{item.subject_name || '—'}</span>
+                                                {item.subject_label && (
+                                                    <span className="ml-2 font-mono text-xs text-slate-500">{item.subject_label}</span>
+                                                )}
+                                            </td>
+                                            <td className="max-w-[240px] truncate font-mono text-xs text-slate-500" title={[item.method, item.route || item.path].filter(Boolean).join(' ') || undefined}>
+                                                {item.ip_address || '—'}
+                                                {(item.route || item.path) ? <span className="ml-2 text-slate-400">{item.method ? `${item.method} ` : ''}{item.route || item.path}</span> : null}
                                             </td>
                                             <td className="text-teal-700">
                                                 {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -359,6 +359,7 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3 sm:px-6">
                             <p className="text-xs font-medium tabular-nums text-slate-500">
                                 Показано {logs.from}–{logs.to} из {(logs.total || 0).toLocaleString('ru-RU')} записей
+                                <span className="ml-2 text-slate-400">· Данные из <code>audit_logs</code> + Spatie <code>activity_log</code></span>
                             </p>
                             <div className="flex gap-2 items-center">
                                 {logs.prev_page_url && (
@@ -378,9 +379,11 @@ export default function AuditLogs({ logs, summary, filters, options }) {
                 </DataTable>
                 )}
 
-                <p className="text-center text-xs text-slate-500">
-                    DEV-среда · Данные из <code>audit_logs</code> + Spatie <code>activity_log</code>
-                </p>
+                {!(logs?.last_page > 1) && (
+                    <p className="text-center text-xs text-slate-500">
+                        DEV-среда · Данные из <code>audit_logs</code> + Spatie <code>activity_log</code>
+                    </p>
+                )}
             </div>
         </AuthenticatedLayout>
     );

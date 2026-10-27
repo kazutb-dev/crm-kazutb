@@ -40,7 +40,7 @@ export default function Create() {
             <Head title="Новая кафедра" />
 
             <div className="admin-page-wrap">
-                <Card className="max-w-3xl">
+                <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Building2 className="shrink-0" />
@@ -49,7 +49,7 @@ export default function Create() {
                     </CardHeader>
                     <CardContent>
                         <form className="space-y-4" onSubmit={submit}>
-                            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
+                            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px] xl:grid-cols-[minmax(0,1fr)_200px_minmax(0,1.4fr)]">
                                 <div>
                                     <FormField label="Название">
                                         <Input
@@ -70,17 +70,17 @@ export default function Create() {
                                     </FormField>
                                     {errors.code && <p className="mt-1.5 text-sm text-red-700">{errors.code}</p>}
                                 </div>
-                            </div>
-
-                            <div>
-                                <FormField label="Описание">
-                                    <Textarea
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        placeholder="Краткое описание кафедры"
-                                    />
-                                </FormField>
-                                {errors.description && <p className="mt-1.5 text-sm text-red-700">{errors.description}</p>}
+                                <div className="md:col-span-2 xl:col-span-1">
+                                    <FormField label="Описание">
+                                        <Textarea
+                                            rows={2}
+                                            value={data.description}
+                                            onChange={(e) => setData('description', e.target.value)}
+                                            placeholder="Краткое описание кафедры"
+                                        />
+                                    </FormField>
+                                    {errors.description && <p className="mt-1.5 text-sm text-red-700">{errors.description}</p>}
+                                </div>
                             </div>
 
                             <div className="mt-2 flex items-center justify-end gap-2 border-t border-slate-200 pt-4">

@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { EmptyState, PageHeader, StatGrid, StatTile, qdFieldClass } from '@/components/platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -115,6 +115,21 @@ export default function Index({ programs, departments, academicYears, degreeOpti
 
         return option?.label ?? value;
     };
+
+    const departmentBreakdown = useMemo(() => {
+        const counts = new Map();
+        (departments ?? []).forEach((department) => counts.set(String(department.id), { key: String(department.id), label: department.name, count: 0 }));
+        items.forEach((program) => {
+            const id = String(program.department?.id ?? program.department_id ?? '');
+            if (!id) {
+                return;
+            }
+            const row = counts.get(id) ?? { key: id, label: program.department?.name ?? '—', count: 0 };
+            row.count += 1;
+            counts.set(id, row);
+        });
+        return [...counts.values()].sort((a, b) => b.count - a.count || String(a.label).localeCompare(String(b.label), 'ru'));
+    }, [departments, items]);
 
     const degreeSummary = useMemo(() => degreeOptions
         .map((option) => ({ label: option.label, count: items.filter((program) => program.degree === option.value).length }))
@@ -255,7 +270,7 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                 </DialogContent>
             </Dialog>
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Всего программ" value={total} icon={GraduationCap} tone="teal" hint="Во всём справочнике" />
                     <StatTile label="На странице" value={items.length} icon={Layers} tone="navy" hint={degreeSummary || 'По степеням — нет данных'} />
@@ -263,6 +278,8 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                     <StatTile label="Учебных лет" value={(academicYears ?? []).length} icon={CalendarDays} tone="gold" hint="Доступны для привязки" />
                 </StatGrid>
 
+                <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="min-w-0">
                 {items.length === 0 ? (
                     <EmptyState
                         title="Пока нет образовательных программ"
@@ -351,6 +368,54 @@ export default function Index({ programs, departments, academicYears, degreeOpti
                         </CardContent>
                     </Card>
                 )}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-1">
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle>По кафедрам</CardTitle>
+                            <span className="text-xs font-medium leading-none text-slate-500">Программ на странице</span>
+                        </CardHeader>
+                        <CardContent>
+                            {departmentBreakdown.length === 0 ? (
+                                <p className="text-sm text-slate-500">Кафедры не заведены.</p>
+                            ) : (
+                                <div className="divide-y divide-slate-200">
+                                    {departmentBreakdown.map((row) => (
+                                        <div key={row.key} className="flex items-center justify-between gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                                            <span className="min-w-0 truncate text-slate-700" title={row.label}>{row.label}</span>
+                                            <span className={`shrink-0 tabular-nums ${row.count > 0 ? 'font-semibold text-[#102945]' : 'text-slate-400'}`}>{row.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle>Учебные годы</CardTitle>
+                            <span className="text-xs font-medium leading-none text-slate-500">Доступны для привязки</span>
+                        </CardHeader>
+                        <CardContent>
+                            {(academicYears ?? []).length === 0 ? (
+                                <p className="text-sm text-slate-500">Учебные годы не заведены.</p>
+                            ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {(academicYears ?? []).map((year) => {
+                                        const count = items.filter((program) => String(program.academic_year?.id ?? program.academic_year_id ?? '') === String(year.id)).length;
+                                        return (
+                                            <span key={year.id} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs tabular-nums text-slate-700">
+                                                {year.name}
+                                                {count > 0 ? <span className="font-semibold text-teal-700">{count}</span> : null}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                </div>
             </div>
             <ConfirmDialog
                 open={confirmState.open}

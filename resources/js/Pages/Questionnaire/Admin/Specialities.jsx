@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { DataTable, EmptyState, FilterBar, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
+import { DataTable, FormField, LoadingState, Notice, PageHeader, StatGrid, StatTile, StatusBadge, qdFieldClass } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -289,6 +289,13 @@ export default function Specialities() {
 
     const activeSpecialities = specialities.filter((item) => item.status === 'active').length;
     const filtersActive = search.trim() !== '' || departmentFilter !== 'all';
+    const programsBySpeciality = programs.reduce((acc, program) => {
+        const key = String(program.group_speciality_id ?? '');
+        (acc[key] = acc[key] || []).push(program);
+        return acc;
+    }, {});
+    const activePrograms = programs.filter((program) => program.status === 'active').length;
+    const withoutPrograms = specialities.filter((item) => !(programsBySpeciality[String(item.id)]?.length || item.educational_programs_count)).length;
 
     return (
         <AuthenticatedLayout
@@ -310,10 +317,12 @@ export default function Specialities() {
 
             <div className="admin-page-wrap space-y-6">
                 {!loading && (
-                    <StatGrid>
-                        <StatTile label="Специальностей" value={specialities.length} tone="teal" icon={GraduationCap} />
+                    <StatGrid className="xl:max-2xl:[grid-template-columns:repeat(3,minmax(0,1fr))]">
+                        <StatTile label="Специальностей" value={specialities.length} tone="teal" icon={GraduationCap} hint={`Неактивных: ${specialities.length - activeSpecialities}`} />
                         <StatTile label="Активные" value={activeSpecialities} tone="success" />
-                        <StatTile label="Образовательных программ" value={programs.length} tone="navy" icon={BookOpenText} />
+                        <StatTile label="Образовательных программ" value={programs.length} tone="navy" icon={BookOpenText} hint={`Активных: ${activePrograms}`} />
+                        <StatTile label="ОП на специальность" value={specialities.length ? (programs.length / specialities.length).toFixed(1) : '—'} tone="info" hint="В среднем" />
+                        <StatTile label="Без ОП" value={withoutPrograms} tone={withoutPrograms ? 'warning' : 'neutral'} hint="Специальности без программ" />
                         <StatTile label="Кафедр" value={departmentOptions.length} tone="gold" />
                     </StatGrid>
                 )}
@@ -321,99 +330,103 @@ export default function Specialities() {
                 {error && <Notice tone="danger" title="Ошибка">{error}</Notice>}
                 {success && <Notice tone="success">{success}</Notice>}
 
-                <FilterBar>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-                        <FormField label="Поиск">
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input className="pl-9" placeholder="Поиск специальности" value={search} onChange={(e) => setSearch(e.target.value)} />
-                            </div>
-                        </FormField>
-                        <FormField label="Кафедра">
-                            <select className={qdFieldClass} value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
-                                <option value="all">Все кафедры</option>
-                                {departmentOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                            </select>
-                        </FormField>
-                    </div>
-                    {filtersActive && (
-                        <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
-                            <p className="text-sm tabular-nums text-slate-500">Найдено: {filtered.length} из {specialities.length}</p>
-                            <Button type="button" variant="outline" size="sm" onClick={() => { setSearch(''); setDepartmentFilter('all'); }}>
-                                Сбросить
-                            </Button>
+                <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
+                        <CardTitle className="flex items-center gap-2">
+                            <GraduationCap />
+                            Список специальностей
+                        </CardTitle>
+                        <span className="text-sm tabular-nums text-slate-500">Найдено: {filtered.length} из {specialities.length}</span>
+                    </CardHeader>
+                    <div className="grid gap-3 border-b border-slate-200 px-5 py-3 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,18rem)_auto]">
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input className="pl-9" placeholder="Поиск специальности" aria-label="Поиск" value={search} onChange={(e) => setSearch(e.target.value)} />
                         </div>
-                    )}
-                </FilterBar>
-
-                {loading ? (
-                    <LoadingState />
-                ) : filtered.length === 0 ? (
-                    <EmptyState
-                        title={specialities.length === 0 ? 'Специальности еще не добавлены' : 'Ничего не найдено'}
-                        description={specialities.length === 0 ? 'Добавьте первую специальность, затем привяжите к ней образовательные программы.' : 'Измените поиск или выберите другую кафедру.'}
-                        action={specialities.length === 0 ? (
-                            <Button type="button" onClick={openCreateDialog}>
-                                <Plus className="h-4 w-4" />
-                                Добавить специальность
-                            </Button>
-                        ) : null}
-                    />
-                ) : (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <GraduationCap />
-                                Список специальностей
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
+                        <select className={qdFieldClass} aria-label="Кафедра" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
+                            <option value="all">Все кафедры</option>
+                            {departmentOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                        </select>
+                        <Button type="button" variant="outline" disabled={!filtersActive} onClick={() => { setSearch(''); setDepartmentFilter('all'); }}>
+                            Сбросить
+                        </Button>
+                    </div>
+                    <CardContent className="p-0">
+                        {loading ? (
+                            <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
+                        ) : filtered.length === 0 ? (
+                            <div className="flex flex-col items-center gap-2 px-5 py-8 text-center sm:px-6">
+                                <p className="font-semibold text-[#102945]">{specialities.length === 0 ? 'Специальности еще не добавлены' : 'Ничего не найдено'}</p>
+                                <p className="text-sm text-slate-600">{specialities.length === 0 ? 'Добавьте первую специальность, затем привяжите к ней образовательные программы.' : 'Измените поиск или выберите другую кафедру.'}</p>
+                                {specialities.length === 0 && (
+                                    <Button type="button" size="sm" className="mt-1" onClick={openCreateDialog}>
+                                        <Plus className="h-4 w-4" />
+                                        Добавить специальность
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
                             <div className="overflow-x-auto">
                                 <table className="min-w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-200">
+                                            <th className="w-12 whitespace-nowrap text-right">Пор.</th>
                                             <th className="whitespace-nowrap text-left">Название</th>
                                             <th className="whitespace-nowrap text-left">Кафедра</th>
                                             <th className="whitespace-nowrap text-right">ОП</th>
+                                            <th className="whitespace-nowrap text-left">Образовательные программы</th>
                                             <th className="whitespace-nowrap text-left">Статус</th>
                                             <th className="whitespace-nowrap text-right">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filtered.map((item) => (
-                                            <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="font-medium text-slate-900">{item.name}</td>
-                                                <td className="text-slate-700">{getDepartmentName(item)}</td>
-                                                <td className="text-right tabular-nums text-slate-700">{item.educational_programs_count ?? 0}</td>
-                                                <td>
-                                                    <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
-                                                        {item.status}
-                                                    </StatusBadge>
-                                                </td>
-                                                <td className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button type="button" variant="secondary" size="sm" onClick={() => openSpecialityPrograms(item)}>
-                                                            <BookOpenText className="h-3.5 w-3.5" />
-                                                            ОП
-                                                        </Button>
-                                                        <Button type="button" variant="outline" size="sm" onClick={() => startEdit(item)}>
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                            Ред.
-                                                        </Button>
-                                                        <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(item.id)}>
-                                                            <Trash2 className="h-3.5 w-3.5" />
-                                                            Удалить
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {filtered.map((item) => {
+                                            const itemPrograms = programsBySpeciality[String(item.id)] || [];
+                                            return (
+                                                <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                    <td className="text-right tabular-nums text-slate-400">{item.sort_order ?? '—'}</td>
+                                                    <td className="font-medium text-slate-900">{item.name}</td>
+                                                    <td className="text-slate-700">{getDepartmentName(item)}</td>
+                                                    <td className="text-right tabular-nums text-slate-700">{item.educational_programs_count ?? itemPrograms.length}</td>
+                                                    <td className="max-w-[28rem] text-xs text-slate-600">
+                                                        {itemPrograms.length === 0 ? (
+                                                            <span className="text-slate-400">—</span>
+                                                        ) : (
+                                                            <span className="line-clamp-2" title={itemPrograms.map((program) => program.name).join(', ')}>
+                                                                {itemPrograms.map((program) => program.name).join(' · ')}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
+                                                            {item.status}
+                                                        </StatusBadge>
+                                                    </td>
+                                                    <td className="text-right">
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button type="button" variant="secondary" size="sm" onClick={() => openSpecialityPrograms(item)}>
+                                                                <BookOpenText className="h-3.5 w-3.5" />
+                                                                ОП
+                                                            </Button>
+                                                            <Button type="button" variant="outline" size="sm" onClick={() => startEdit(item)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                                Ред.
+                                                            </Button>
+                                                            <Button type="button" variant="ghost" size="sm" className="text-red-700 hover:bg-red-50 hover:text-red-800" onClick={() => remove(item.id)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                Удалить
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
-                        </CardContent>
-                    </Card>
-                )}
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog
@@ -481,11 +494,11 @@ export default function Specialities() {
                         </SheetDescription>
                     </SheetHeader>
 
-                    <div className="mt-5 space-y-5">
+                    <div className="mt-4 space-y-4">
                         <section className="rounded-[14px] border border-slate-200 bg-white p-4">
                             <p className="qd-field-label mb-3 text-slate-500">{programEditingId ? 'Редактирование ОП' : 'Новая ОП'}</p>
-                            <form className="space-y-4" onSubmit={submitProgram}>
-                                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+                            <form className="space-y-3" onSubmit={submitProgram}>
+                                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
                                     <FormField label="Название">
                                         <Input placeholder="Название образовательной программы" value={programForm.name} onChange={(e) => setProgramForm((prev) => ({ ...prev, name: e.target.value }))} />
                                     </FormField>

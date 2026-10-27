@@ -2,7 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { EmptyState, PageHeader, Segmented, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Users } from 'lucide-react';
+import { BarChart3, Plane, Users } from 'lucide-react';
 
 const PERIODS = [
     { value: 'week',  label: 'Неделя' },
@@ -38,7 +38,9 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
     }
 
     const displayStats = isAdmin && adminStats ? adminStats : stats;
-    const tripTotal = Math.max(displayStats.vacationDays + displayStats.businessTripDays, 1);
+    const tripTotal = Math.max((displayStats.vacationDays ?? 0) + (displayStats.businessTripDays ?? 0), 1);
+    const otherCount = Math.max((displayStats.total ?? 0) - (displayStats.completed ?? 0) - (displayStats.cancelled ?? 0) - (displayStats.pending ?? 0), 0);
+    const hasUserTable = isAdmin && adminStats?.userStats && adminStats.userStats.length > 0;
 
     return (
         <AuthenticatedLayout
@@ -96,80 +98,120 @@ export default function CalendarAnalytics({ stats, adminStats, period = 'month',
                     />
                 )}
 
-                {/* Completion rate */}
-                {displayStats.total > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BarChart3 className="shrink-0" />
-                                Показатели
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {[
-                                { label: 'Завершено', value: displayStats.completed, color: 'bg-emerald-600' },
-                                { label: 'Отменено',  value: displayStats.cancelled, color: 'bg-red-600' },
-                                { label: 'Ожидают',   value: displayStats.pending,   color: 'bg-amber-500' },
-                            ].map(row => {
-                                const pct = Math.round((row.value / displayStats.total) * 100);
-                                return (
-                                    <div key={row.label}>
-                                        <div className="mb-1.5 flex justify-between text-sm">
-                                            <span className="font-medium text-slate-800">{row.label}</span>
-                                            <span className="tabular-nums text-slate-500">{row.value} ({pct}%)</span>
-                                        </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                                            <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }}/>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </CardContent>
-                    </Card>
-                )}
+                {(displayStats.total > 0 || hasUserTable) && (
+                    <div className={`grid gap-4 ${!(displayStats.total > 0) ? '' : hasUserTable ? 'xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] xl:items-start' : 'lg:grid-cols-2'}`}>
+                        {displayStats.total > 0 && (
+                        <div className={hasUserTable ? 'space-y-4' : 'contents'}>
+                            <Card>
+                                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <BarChart3 className="shrink-0" />
+                                        Исход встреч
+                                    </CardTitle>
+                                    <span className="text-xs font-semibold tabular-nums text-slate-500">Всего: {displayStats.total}</span>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {[
+                                        { label: 'Завершено', value: displayStats.completed, color: 'bg-emerald-600' },
+                                        { label: 'Отменено',  value: displayStats.cancelled, color: 'bg-red-600' },
+                                        { label: 'Ожидают',   value: displayStats.pending,   color: 'bg-amber-500' },
+                                        { label: 'Прочие',    value: otherCount,             color: 'bg-slate-400' },
+                                    ].filter(row => row.label !== 'Прочие' || row.value > 0).map(row => {
+                                        const pct = Math.round((row.value / displayStats.total) * 100);
+                                        return (
+                                            <div key={row.label}>
+                                                <div className="mb-1 flex justify-between text-sm">
+                                                    <span className="font-medium text-slate-800">{row.label}</span>
+                                                    <span className="tabular-nums text-slate-500"><span className="font-semibold text-[#102945]">{row.value}</span> · {pct}%</span>
+                                                </div>
+                                                <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                                    <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }}/>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </CardContent>
+                            </Card>
 
-                {/* Admin breakdown by user */}
-                {isAdmin && adminStats?.userStats && adminStats.userStats.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Users className="shrink-0" />
-                                Статистика по сотрудникам
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 sm:p-0">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-slate-200">
-                                            <th>Сотрудник</th>
-                                            <th className="text-right">Встреч</th>
-                                            <th className="text-right">Завершено</th>
-                                            <th className="text-right">Отпуск</th>
-                                            <th className="text-right">Командировка</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {adminStats.userStats.map((user, idx) => (
-                                            <tr key={idx} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                <td className="font-medium text-slate-900">{user.name}</td>
-                                                <td className="text-right font-semibold tabular-nums text-[#102945]">{user.total}</td>
-                                                <td className="text-right tabular-nums">
-                                                    <span className="text-emerald-700">{user.completed}</span>
-                                                </td>
-                                                <td className="text-right tabular-nums">
-                                                    <span className="text-teal-700">{user.vacationDays} дн.</span>
-                                                </td>
-                                                <td className="text-right tabular-nums">
-                                                    <span className="text-orange-700">{user.businessTripDays} дн.</span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Plane className="shrink-0" />
+                                        Отсутствия
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {[
+                                        { label: 'Отпуск', value: displayStats.vacationDays ?? 0, color: 'bg-teal-600' },
+                                        { label: 'Командировки', value: displayStats.businessTripDays ?? 0, color: 'bg-orange-600' },
+                                    ].map(row => {
+                                        const pct = Math.round((row.value / tripTotal) * 100);
+                                        return (
+                                            <div key={row.label}>
+                                                <div className="mb-1 flex justify-between text-sm">
+                                                    <span className="font-medium text-slate-800">{row.label}</span>
+                                                    <span className="tabular-nums text-slate-500"><span className="font-semibold text-[#102945]">{row.value}</span> дн. · {pct}%</span>
+                                                </div>
+                                                <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                                    <div className={`h-full rounded-full ${row.color}`} style={{ width: `${pct}%` }}/>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <p className="border-t border-slate-200 pt-3 text-xs text-slate-500">Всего дней отсутствия: <span className="font-semibold tabular-nums text-[#102945]">{(displayStats.vacationDays ?? 0) + (displayStats.businessTripDays ?? 0)}</span></p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        )}
+
+                        {hasUserTable && (
+                            <Card>
+                                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users className="shrink-0" />
+                                        Статистика по сотрудникам
+                                    </CardTitle>
+                                    <span className="text-xs font-semibold tabular-nums text-slate-500">{adminStats.userStats.length}</span>
+                                </CardHeader>
+                                <CardContent className="p-0 sm:p-0">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-slate-200">
+                                                    <th>Сотрудник</th>
+                                                    <th className="text-right">Встреч</th>
+                                                    <th className="text-right">Завершено</th>
+                                                    <th className="text-right">% заверш.</th>
+                                                    <th className="text-right">Отпуск</th>
+                                                    <th className="text-right">Командировка</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {adminStats.userStats.map((user, idx) => (
+                                                    <tr key={idx} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
+                                                        <td className="font-medium text-slate-900">{user.name}</td>
+                                                        <td className="text-right font-semibold tabular-nums text-[#102945]">{user.total}</td>
+                                                        <td className="text-right tabular-nums">
+                                                            <span className="text-emerald-700">{user.completed}</span>
+                                                        </td>
+                                                        <td className="text-right tabular-nums text-slate-600">
+                                                            {user.total > 0 ? `${Math.round((user.completed / user.total) * 100)}%` : '—'}
+                                                        </td>
+                                                        <td className="text-right tabular-nums">
+                                                            <span className="text-teal-700">{user.vacationDays} дн.</span>
+                                                        </td>
+                                                        <td className="text-right tabular-nums">
+                                                            <span className="text-orange-700">{user.businessTripDays} дн.</span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 )}
             </div>
         </AuthenticatedLayout>

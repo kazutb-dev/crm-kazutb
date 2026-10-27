@@ -78,23 +78,24 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
             )}
         >
             <div className="admin-page-wrap">
-                <div className="mx-auto max-w-4xl space-y-6">
+                <div className="space-y-4">
                     {flashSuccess ? (
                         <Notice tone="success" title="Заявка успешно отправлена">
                             Спасибо, {user?.name ?? 'студент'}. Ваша заявка зарегистрирована и передана на рассмотрение.
                         </Notice>
                     ) : null}
 
+                    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                     <Card>
-                        <CardContent className="space-y-6 pt-6">
+                        <CardContent className="space-y-4">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex items-center gap-4">
-                                    <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${statusMeta.iconClassName}`}>
-                                        <StatusIcon className="h-7 w-7" />
+                                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${statusMeta.iconClassName}`}>
+                                        <StatusIcon className="h-5 w-5" />
                                     </span>
                                     <div className="min-w-0 space-y-0.5">
                                         <p className="qd-field-label tabular-nums text-slate-500">Номер заявки: #{application?.id}</p>
-                                        <h2 className="font-display text-xl font-bold text-[#102945]">{user?.name}</h2>
+                                        <h2 className="text-lg font-bold text-[#102945]">{user?.name}</h2>
                                         <p className="text-sm text-slate-600">{user?.email}</p>
                                     </div>
                                 </div>
@@ -105,7 +106,7 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
 
                             <p className="text-sm text-slate-600">{statusMeta.description}</p>
 
-                            <ol className="grid gap-3 border-y border-slate-200 py-4 sm:grid-cols-3">
+                            <ol className="grid gap-3 border-y border-slate-200 py-3 sm:grid-cols-3">
                                 {steps.map((step) => {
                                     const done = step.key <= statusMeta.step;
                                     return (
@@ -119,7 +120,7 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
                                 })}
                             </ol>
 
-                            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 2xl:grid-cols-4">
                                 <InfoField label="Телефон">{application?.phone ?? '—'}</InfoField>
                                 <InfoField label="Группа">{application?.student_group ?? '—'}</InfoField>
                                 <InfoField label="Дата подачи">{application?.created_at ?? '—'}</InfoField>
@@ -139,18 +140,20 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
                         </CardContent>
                     </Card>
 
+                    <div className="space-y-4">
                     {(application?.document_files?.length ?? 0) > 0 ? (
                         <Card>
-                            <CardHeader>
+                            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                                 <CardTitle className="flex items-center gap-2">
                                     <Plane className="shrink-0" />
                                     Файлы заявки
                                 </CardTitle>
+                                <span className="text-xs font-medium tabular-nums text-slate-500">{application.document_files.length} файлов</span>
                             </CardHeader>
                             <CardContent>
                                 <ul className="divide-y divide-slate-200 text-sm text-slate-700">
                                     {(application.document_files ?? []).map((file) => (
-                                        <li key={file.path} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+                                        <li key={file.path} className="flex flex-wrap items-center gap-3 py-2 first:pt-0 last:pb-0">
                                             <FileText className="h-4 w-4 shrink-0 text-teal-700" />
                                             <span className="font-medium text-slate-900">{file.document_type}</span>
                                             <a
@@ -181,6 +184,16 @@ export default function StudentStatusPage({ application, user, can_resubmit = fa
                             </CardContent>
                         </Card>
                     ) : null}
+
+                    {(application?.document_files?.length ?? 0) === 0 && !application?.review_notes ? (
+                        <Card>
+                            <CardContent className="py-8 text-center text-sm text-slate-500">
+                                Файлы и комментарий сотрудника появятся здесь после обработки заявки.
+                            </CardContent>
+                        </Card>
+                    ) : null}
+                    </div>
+                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>

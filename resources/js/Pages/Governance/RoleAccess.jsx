@@ -222,14 +222,20 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
 
             <div className="admin-page-wrap space-y-6">
                 {canManageFoundation ? (
-                    <Notice tone="danger" title="Суперадмин-управление">
-                        Редактирование, создание, удаление и принудительное переопределение выполняются через проверяемые процессы с обязательной причиной.
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('users.students'))}>Студенты</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы согласования</Button>
-                            <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
-                        </div>
+                    <Notice
+                        tone="danger"
+                        className="flex-wrap"
+                        action={(
+                            <div className="flex max-w-full flex-wrap gap-2 self-center">
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.index'))}>Сотрудники</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('users.students'))}>Студенты</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.access-requests'))}>Запросы согласования</Button>
+                                <Button size="sm" variant="outline" onClick={() => router.visit(route('governance.authority-ledger'))}>Журнал полномочий</Button>
+                            </div>
+                        )}
+                    >
+                        <span className="font-semibold text-red-800">Суперадмин-управление.</span>{' '}
+                        Редактирование, создание, удаление и принудительное переопределение — через проверяемые процессы с обязательной причиной.
                     </Notice>
                 ) : null}
 
@@ -241,18 +247,22 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" />Профиль доступа</CardTitle>
+                        <span className="text-xs font-medium tabular-nums text-slate-500">
+                            Риски: {(summary.suspicious ?? 0).toLocaleString('ru-RU')} из {(summary.total_users ?? 0).toLocaleString('ru-RU')}
+                            {summary.total_users ? ` · ${Math.round(((summary.suspicious ?? 0) / summary.total_users) * 100)}%` : ''}
+                        </span>
                     </CardHeader>
                     <CardContent>
-                        <dl className="grid gap-x-8 sm:grid-cols-2 xl:grid-cols-3">
+                        <dl className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                             {breakdown.map((item) => (
-                                <div key={item.label} className="flex items-center justify-between gap-3 border-b border-slate-200 py-2.5">
+                                <div key={item.label} className="flex items-center justify-between gap-3 border-b border-slate-200 py-1.5">
                                     <dt className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
                                         <span className={`h-2 w-2 shrink-0 rounded-full ${item.tone}`} aria-hidden="true" />
                                         <span className="truncate">{item.label}</span>
                                     </dt>
-                                    <dd className="font-display text-lg font-bold tabular-nums text-[#102945]">{(item.value ?? 0).toLocaleString('ru-RU')}</dd>
+                                    <dd className="text-base font-bold tabular-nums text-[#102945]">{(item.value ?? 0).toLocaleString('ru-RU')}</dd>
                                 </div>
                             ))}
                         </dl>
@@ -260,15 +270,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                 </Card>
 
                 <FilterBar>
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-[0.75rem] font-bold uppercase tracking-[0.1em] text-[#102945]">
-                            <Filter className="h-4 w-4 text-teal-700" />
-                            Фильтры и обзор
-                        </div>
-                        <StatusBadge tone="default">Активно фильтров: {activeFilterCount}</StatusBadge>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6 xl:items-end">
                         <label className="relative block space-y-2 md:col-span-2">
                             <span className="qd-field-label block">Поиск</span>
                             <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
@@ -346,9 +348,12 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 <option value="1">Только подозрительные</option>
                             </select>
                         </FormField>
-                    </div>
-                    <div className="mt-4 flex justify-end border-t border-slate-200 pt-4">
-                        <Button variant="outline" size="sm" onClick={clearFilters}>Сброс</Button>
+
+                        <div className="flex h-10 items-center gap-2 md:col-span-2 xl:col-span-1">
+                            <Filter className="h-4 w-4 shrink-0 text-teal-700" aria-hidden="true" />
+                            <StatusBadge tone="default">Активно: {activeFilterCount}</StatusBadge>
+                            <Button variant="outline" size="sm" onClick={clearFilters}>Сброс</Button>
+                        </div>
                     </div>
                 </FilterBar>
 
@@ -364,16 +369,14 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="min-w-[1300px]">
+                        <table className="min-w-[1240px]">
                                 <thead>
                                     <tr>
-                                        <th>Пользователь</th>
+                                        <th className="min-w-[230px]">Пользователь</th>
                                         <th>Роль</th>
-                                        <th>Привязка к орг.</th>
-                                        <th>Структурные</th>
+                                        <th className="min-w-[220px]">Привязка к орг. / структурные</th>
                                         <th>Должность / титул</th>
-                                        <th>Права</th>
-                                        <th>Активный / повышенный</th>
+                                        <th>Права · активный / повышенный</th>
                                         <th>Маркеры риска</th>
                                         <th className="text-right">Действия</th>
                                     </tr>
@@ -381,7 +384,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 <tbody>
                                     {users.length === 0 ? (
                                         <tr>
-                                            <td colSpan={9} className="text-center text-sm text-muted-foreground">
+                                            <td colSpan={7} className="text-center text-sm text-muted-foreground">
                                                 Нет данных по заданным фильтрам.
                                             </td>
                                         </tr>
@@ -389,9 +392,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                         <tr key={user.id} className="align-top">
                                             <td>
                                                 <div className="font-medium text-slate-900">{user.full_name}</div>
-                                                <div className="mt-0.5 text-xs text-muted-foreground">{user.email || '—'}</div>
-                                                <div className="mt-0.5 text-xs text-muted-foreground">Логин: {user.ad_login || '—'}</div>
-                                                <div className="mt-1 text-[11px] text-slate-500">Последний вход: {formatDate(user.last_login_at)}</div>
+                                                <div className="mt-0.5 truncate text-xs text-muted-foreground" title={user.email || undefined}>{user.email || '—'}</div>
+                                                <div className="mt-0.5 text-[11px] text-slate-500">Логин: {user.ad_login || '—'} · Вход: {formatDate(user.last_login_at)}</div>
                                             </td>
                                             <td>
                                                 <div className="flex flex-wrap gap-1.5">
@@ -407,8 +409,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="text-sm">Факультет: {user.faculty?.name || '—'}</div>
-                                                <div className="text-sm">Кафедра: {user.department?.name || '—'}</div>
+                                                <div className="text-sm leading-snug"><span className="text-xs text-slate-500">Фак.:</span> {user.faculty?.name || '—'}</div>
+                                                <div className="text-sm leading-snug"><span className="text-xs text-slate-500">Каф.:</span> {user.department?.name || '—'}</div>
                                                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                                     <Badge
                                                         variant="outline"
@@ -425,10 +427,8 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                 {user.missing_binding ? (
                                                     <Badge variant="outline" className="mt-1 border-amber-200 bg-amber-50 text-amber-800">Привязка отсутствует</Badge>
                                                 ) : null}
-                                            </td>
-                                            <td>
                                                 {user.structural_units?.length ? (
-                                                    <div className="flex flex-wrap gap-1">
+                                                    <div className="mt-1 flex flex-wrap gap-1">
                                                         {user.structural_units.slice(0, 2).map((unit) => (
                                                             <Badge key={unit.id} variant="outline" className="border-cyan-200 bg-cyan-50 text-cyan-800">
                                                                 {unit.name}
@@ -438,32 +438,26 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                                             <Badge variant="outline">+{user.structural_units.length - 2}</Badge>
                                                         ) : null}
                                                     </div>
-                                                ) : (
-                                                    <span className="text-sm text-muted-foreground">—</span>
-                                                )}
+                                                ) : null}
                                             </td>
                                             <td>
                                                 <div className="text-sm text-slate-900">{user.position || '—'}</div>
                                                 <div className="text-xs text-muted-foreground">AD-титул: {user.ad_title || '—'}</div>
                                             </td>
                                             <td>
-                                                {user.grants?.length ? (
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {user.grants.slice(0, 3).map((grant) => (
-                                                            <Badge key={grant.id} variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">
-                                                                {grant.label}
-                                                            </Badge>
-                                                        ))}
-                                                        {user.grants.length > 3 ? (
-                                                            <Badge variant="outline">+{user.grants.length - 3}</Badge>
-                                                        ) : null}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-muted-foreground">—</span>
-                                                )}
-                                            </td>
-                                            <td>
                                                 <div className="space-y-1">
+                                                    {user.grants?.length ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {user.grants.slice(0, 3).map((grant) => (
+                                                                <Badge key={grant.id} variant="outline" className="border-blue-200 bg-blue-50 text-blue-800">
+                                                                    {grant.label}
+                                                                </Badge>
+                                                            ))}
+                                                            {user.grants.length > 3 ? (
+                                                                <Badge variant="outline">+{user.grants.length - 3}</Badge>
+                                                            ) : null}
+                                                        </div>
+                                                    ) : null}
                                                     <StatusBadge tone={user.is_elevated ? 'danger' : 'success'}>
                                                         {user.is_elevated ? 'Повышенный доступ' : 'Стандартный доступ'}
                                                     </StatusBadge>
@@ -542,7 +536,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
             </div>
 
             <Dialog open={Boolean(selectedUser)} onOpenChange={(open) => !open && setSelectedUser(null)}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
                     {selectedUser ? (
                         <>
                             <DialogHeader>
@@ -552,7 +546,7 @@ export default function RoleAccess({ summary = {}, users = [], filters = {}, pag
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Идентичность</CardTitle>

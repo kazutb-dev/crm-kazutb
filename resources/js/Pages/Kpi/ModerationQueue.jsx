@@ -490,6 +490,16 @@ export default function ModerationQueue({
     const decisionCount = items.filter((entry) => showApproveAction(entry) || showRejectAction(entry)).length;
     const inactiveCount = items.filter((entry) => !isEntryScopeActive(entry)).length;
     const searchActive = normalizeSearchText(quickSearch) !== '';
+    const pagePointsTotal = filteredItems.reduce((sum, entry) => sum + (Number(resolvePoints(entry)) || 0), 0);
+    const sectionCounts = filteredItems.reduce((acc, entry) => {
+        const key = sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—';
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+    }, {});
+    const statusCounts = filteredItems.reduce((acc, entry) => {
+        acc[entry.status] = (acc[entry.status] ?? 0) + 1;
+        return acc;
+    }, {});
 
     const tabItems = [
         { key: 'scope', label: reviewScope?.type === 'department' ? 'Моя кафедра' : 'Мой факультет' },
@@ -531,12 +541,8 @@ export default function ModerationQueue({
                 )}
 
                 <FilterBar>
-                    <form className="space-y-4" onSubmit={applyFilters}>
-                        <div className="flex items-center gap-2 text-sm font-semibold text-[#102945]">
-                            <Filter className="h-4 w-4 text-teal-700" />
-                            Фильтры очереди
-                        </div>
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <form onSubmit={applyFilters}>
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(0,1fr))_auto]">
                             <label className="block space-y-2">
                                 <span className="qd-field-label block">Учебный год</span>
                                 <select
@@ -620,42 +626,66 @@ export default function ModerationQueue({
                                     <option value="oldest">От старого до нового</option>
                                 </select>
                             </label>
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                            <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
-                            <Button type="submit">Применить</Button>
+                            <div className="flex items-end justify-end gap-2 md:col-span-2 xl:col-span-3 2xl:col-span-1">
+                                <Button type="button" variant="outline" onClick={resetFilters}>Сбросить</Button>
+                                <Button type="submit">
+                                    <Filter className="h-4 w-4" />
+                                    Применить
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2">
                             <ClipboardList />
                             Список KPI-записей
+                            <Badge variant="outline" className="tabular-nums">{filteredItems.length} из {total}</Badge>
                         </CardTitle>
+                        <div className="relative w-full sm:w-[28rem]">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                className="h-9 pl-9"
+                                value={quickSearch}
+                                onChange={(event) => setQuickSearch(event.target.value)}
+                                placeholder="Поиск: сотрудник, показатель, период, статус…"
+                                aria-label="Быстрый поиск: сотрудник, показатель, период, структура, привязка, баллы, статус, действия"
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 sm:px-6">
-                            <div className="relative w-full">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <Input
-                                    className="pl-9"
-                                    value={quickSearch}
-                                    onChange={(event) => setQuickSearch(event.target.value)}
-                                    placeholder="Быстрый поиск: сотрудник, показатель, период, структура, привязка, баллы, статус, действия"
-                                />
+                        {filteredItems.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-200 px-5 py-2.5 text-xs text-slate-600 sm:px-6">
+                                <span className="qd-field-label text-slate-500">Разделы</span>
+                                {Object.entries(sectionCounts).map(([label, count]) => (
+                                    <span key={label} className="inline-flex items-center gap-1.5">
+                                        <Badge variant="secondary">{label}</Badge>
+                                        <span className="tabular-nums">{count}</span>
+                                    </span>
+                                ))}
+                                <span className="qd-field-label ml-2 text-slate-500">Статусы</span>
+                                {Object.entries(statusCounts).map(([status, count]) => (
+                                    <span key={status} className="inline-flex items-center gap-1.5">
+                                        <Badge variant={statusVariants[status] ?? 'outline'}>{statusLabels[status] ?? status}</Badge>
+                                        <span className="tabular-nums">{count}</span>
+                                    </span>
+                                ))}
+                                <span className="ml-auto tabular-nums">
+                                    Сумма баллов на странице: <span className="font-semibold text-[#102945]">{pagePointsTotal.toFixed(2)}</span>
+                                </span>
                             </div>
-                        </div>
+                        )}
 
                         {filteredItems.length === 0 ? (
-                            <div className="flex flex-col items-center gap-4 px-5 py-12 text-center sm:px-6">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                                    <Inbox className="h-6 w-6" />
+                            <div className="flex flex-col items-center gap-3 px-5 py-8 text-center sm:px-6">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                                    <Inbox className="h-5 w-5" />
                                 </div>
-                                <div className="max-w-md space-y-1.5">
-                                    <p className="font-display text-lg font-bold text-[#102945]">Записи не найдены</p>
+                                <div className="max-w-md space-y-1">
+                                    <p className="text-base font-semibold text-[#102945]">Записи не найдены</p>
                                     <p className="text-sm leading-relaxed text-slate-600">Измените фильтры, очистите быстрый поиск или дождитесь новых KPI-записей в очереди.</p>
                                 </div>
                                 {searchActive && (
@@ -672,7 +702,7 @@ export default function ModerationQueue({
                                                 <th className="min-w-[180px]">Показатель</th>
                                                 <th className="min-w-[140px]">Период</th>
                                                 <th className="min-w-[150px]">Структура</th>
-                                                {showBindingColumn && <th className="min-w-[220px]">Привязка / подтверждение</th>}
+                                                {showBindingColumn && <th className="min-w-[200px]">Привязка / подтверждение</th>}
                                                 <th className="text-right">Баллы</th>
                                                 <th>Статус</th>
                                                 <th className="text-right">Действия</th>
@@ -683,22 +713,25 @@ export default function ModerationQueue({
                                                 <tr key={entry.id} className="border-b border-slate-200 align-top last:border-0 hover:bg-slate-50/60">
                                                     <td className="break-words">
                                                         <div className="font-medium leading-6 text-slate-900">{entry.user?.name ?? '—'}</div>
-                                                        <div className="mt-1 break-all text-xs text-slate-500">{entry.user?.email ?? 'Без email'}</div>
-                                                        <div className="mt-1 text-xs text-slate-500">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
+                                                        <div className="break-all text-xs text-slate-500">{entry.user?.email ?? 'Без email'}</div>
+                                                        <div className="text-xs text-slate-500">{entityLabels[entry.entity_type] ?? entry.entity_type}</div>
                                                     </td>
                                                     <td className="break-words">
                                                         <div className="font-medium leading-6">{entry.indicator?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-slate-500">{entry.indicator?.code ?? '—'}</div>
+                                                        <div className="text-xs text-slate-500">
+                                                            {entry.indicator?.code ?? '—'}
+                                                            {entry.indicator?.base_points != null ? ` · база ${entry.indicator.base_points}` : ''}
+                                                        </div>
                                                     </td>
                                                     <td className="break-words">
                                                         <div className="font-medium">{entry.period?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-slate-500">
+                                                        <div className="text-xs text-slate-500">
                                                             {stageLabels[entry.period?.stage] ?? entry.period?.stage ?? '—'} • {formatDate(entry.period?.start_date)} - {formatDate(entry.period?.end_date)}
                                                         </div>
                                                     </td>
                                                     <td className="break-words">
                                                         <div>{entry.faculty?.name ?? '—'}</div>
-                                                        <div className="mt-1 text-xs text-slate-500">{entry.department?.name ?? '—'}</div>
+                                                        <div className="text-xs text-slate-500">{entry.department?.name ?? '—'}</div>
                                                     </td>
                                                     {showBindingColumn && (
                                                         <td className="break-words">
@@ -708,12 +741,13 @@ export default function ModerationQueue({
 
                                                                 return (
                                                                     <>
-                                                                        <div className="qd-field-label text-slate-500">Раздел KPI</div>
-                                                                        <div className="font-medium">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</div>
-                                                                        <div className="qd-field-label mt-2 text-slate-500">Привязан к подразделению</div>
-                                                                        <div className="break-words">{unitNames.length > 0 ? unitNames.join(', ') : 'Не назначено'}</div>
-                                                                        <div className="qd-field-label mt-2 text-slate-500">Кто подтверждает</div>
-                                                                        <div className="font-medium break-words">{resolveResponsibleReviewer(entry, mode)}</div>
+                                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                                            <Badge variant="secondary" title="Раздел KPI">{sectionLabels[entry.indicator?.section] ?? entry.indicator?.section ?? '—'}</Badge>
+                                                                            <span className="font-medium break-words">{resolveResponsibleReviewer(entry, mode)}</span>
+                                                                        </div>
+                                                                        <div className="mt-1 break-words text-xs text-slate-500">
+                                                                            Подразделение: <span className="text-slate-700">{unitNames.length > 0 ? unitNames.join(', ') : 'не назначено'}</span>
+                                                                        </div>
                                                                         {mode === 'structural' && confirmations.length > 0 && (
                                                                             <div className="mt-2 space-y-1.5">
                                                                                 {confirmations.map((item) => (
@@ -739,11 +773,17 @@ export default function ModerationQueue({
                                                             })()}
                                                         </td>
                                                     )}
-                                                    <td className="text-right font-display text-base font-bold tabular-nums whitespace-nowrap text-[#102945]">{resolvePoints(entry)}</td>
+                                                    <td className="whitespace-nowrap text-right">
+                                                        <div className="text-base font-bold tabular-nums text-[#102945]">{resolvePoints(entry)}</div>
+                                                        <div className="mt-0.5 text-xs tabular-nums text-slate-500" title="План / факт">{entry.plan_value ?? '—'} / {entry.fact_value ?? '—'}</div>
+                                                    </td>
                                                     <td>
                                                         <Badge variant={statusVariants[entry.status] ?? 'outline'}>
                                                             {statusLabels[entry.status] ?? entry.status}
                                                         </Badge>
+                                                        {entry.submitted_at && (
+                                                            <div className="mt-1 whitespace-nowrap text-xs tabular-nums text-slate-500">Отпр. {formatDate(entry.submitted_at)}</div>
+                                                        )}
                                                     </td>
                                                     <td className="whitespace-nowrap text-right">
                                                         <div className="flex justify-end gap-2">

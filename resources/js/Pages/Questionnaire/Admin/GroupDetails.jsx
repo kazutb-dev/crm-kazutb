@@ -237,6 +237,20 @@ export default function GroupDetails({ groupId }) {
         return groupDisciplines.filter((item) => Number(item.group_id) === Number(groupId));
     }, [groupDisciplines, groupId]);
 
+    const groupStudentsAll = useMemo(() => students.filter((item) => Number(item.group_id) === Number(groupId)), [students, groupId]);
+
+    const groupTeachersCount = useMemo(() => new Set(
+        assignmentsOfGroup
+            .map((item) => item.teacher_discipline?.teacher_id ?? item.teacher_discipline?.teacher?.id)
+            .filter(Boolean),
+    ).size, [assignmentsOfGroup]);
+
+    const groupPeriods = useMemo(() => Array.from(new Set(
+        assignmentsOfGroup
+            .filter((item) => item.academic_year)
+            .map((item) => `${item.academic_year}${item.semester ? ` · ${item.semester} сем.` : ''}`),
+    )).sort(), [assignmentsOfGroup]);
+
     const filteredAssignmentsOfGroup = useMemo(() => {
         const term = assignmentSearch.trim().toLowerCase();
         if (!term) {
@@ -467,8 +481,9 @@ export default function GroupDetails({ groupId }) {
                 {success && <Notice tone="success">{success}</Notice>}
 
                 <StatGrid>
-                    <StatTile label="Студентов" value={studentsOfGroup.length} tone="teal" icon={Users} />
-                    <StatTile label="Дисциплин" value={disciplines.length} tone="navy" icon={BookOpenText} />
+                    <StatTile label="Студентов" value={groupStudentsAll.length} tone="teal" icon={Users} hint={`Активных: ${groupStudentsAll.filter((item) => item.status === 'active').length}`} />
+                    <StatTile label="Дисциплин" value={disciplines.length} tone="navy" icon={BookOpenText} hint={`Назначений: ${assignmentsOfGroup.length} · активных: ${assignmentsOfGroup.filter((item) => item.status === 'active').length}`} />
+                    <StatTile label="Преподавателей" value={groupTeachersCount} tone="info" icon={UserPlus} />
                     <StatTile label="Курс" value={getGroupCourseRef(group)?.name || group?.course || '—'} tone="gold" icon={GraduationCap} />
                     <StatTile label="Статус" value={group?.status || '—'} tone={group?.status === 'active' ? 'success' : 'neutral'} icon={Building2} />
                 </StatGrid>
@@ -481,10 +496,11 @@ export default function GroupDetails({ groupId }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+                        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
                             <InfoField label="Специальность">{getGroupSpecialityRef(group)?.name || group?.speciality || '—'}</InfoField>
                             <InfoField label="Образовательная программа">{getGroupProgramRef(group)?.name || group?.educational_program || '—'}</InfoField>
                             <InfoField label="Кафедра">{getGroupDepartment(group)?.name || '—'}</InfoField>
+                            <InfoField label="Учебные периоды">{groupPeriods.length ? groupPeriods.join(', ') : '—'}</InfoField>
                         </div>
                     </CardContent>
                 </Card>
@@ -584,16 +600,17 @@ export default function GroupDetails({ groupId }) {
                     </DialogContent>
                 </Dialog>
 
-                <div className="grid grid-cols-1 items-start gap-6 2xl:grid-cols-2">
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                             <CardTitle className="flex items-center gap-2">
                                 <BookOpenText />
                                 Дисциплины группы
                             </CardTitle>
+                            <span className="text-sm tabular-nums text-slate-500">{filteredAssignmentsOfGroup.length} из {assignmentsOfGroup.length}</span>
                         </CardHeader>
-                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
-                            <div className="relative w-full sm:max-w-xs">
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-3 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-sm">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     className="pl-9"
@@ -610,10 +627,10 @@ export default function GroupDetails({ groupId }) {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5 sm:p-6"><LoadingState /></div>
+                                <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                             ) : filteredAssignmentsOfGroup.length === 0 ? (
-                                <div className="px-5 py-12 text-center sm:px-6">
-                                    <p className="font-display text-base font-bold text-[#102945]">Нет назначенных дисциплин</p>
+                                <div className="px-5 py-8 text-center sm:px-6">
+                                    <p className="font-semibold text-[#102945]">Нет назначенных дисциплин</p>
                                     <p className="mt-1 text-sm text-slate-600">У группы пока нет назначенных дисциплин. Нажмите «Назначить дисциплину».</p>
                                 </div>
                             ) : (
@@ -623,7 +640,8 @@ export default function GroupDetails({ groupId }) {
                                             <tr className="border-b border-slate-200">
                                                 <th className="whitespace-nowrap text-left">Преподаватель</th>
                                                 <th className="whitespace-nowrap text-left">Дисциплина</th>
-                                                <th className="whitespace-nowrap text-left">Период</th>
+                                                <th className="whitespace-nowrap text-left">Учебный год</th>
+                                                <th className="whitespace-nowrap text-right">Сем.</th>
                                                 <th className="whitespace-nowrap text-left">Статус</th>
                                                 <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
@@ -632,8 +650,12 @@ export default function GroupDetails({ groupId }) {
                                             {filteredAssignmentsOfGroup.map((item) => (
                                                 <tr key={item.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
                                                     <td className="font-medium text-slate-900">{item.teacher_discipline?.teacher?.display_name || item.teacher_discipline?.teacher?.name || item.teacher_discipline?.teacher_id}</td>
-                                                    <td className="text-slate-700">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</td>
-                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{item.academic_year} · {item.semester}</td>
+                                                    <td className="text-slate-700">
+                                                        <span className="block">{item.teacher_discipline?.discipline?.name || item.teacher_discipline?.discipline_id}</span>
+                                                        {item.teacher_discipline?.discipline?.code && <span className="block font-mono text-xs text-slate-500">{item.teacher_discipline.discipline.code}</span>}
+                                                    </td>
+                                                    <td className="whitespace-nowrap tabular-nums text-slate-700">{item.academic_year || '—'}</td>
+                                                    <td className="text-right tabular-nums text-slate-700">{item.semester || '—'}</td>
                                                     <td>
                                                         <StatusBadge tone={item.status === 'active' ? 'success' : 'default'}>
                                                             {item.status}
@@ -659,14 +681,15 @@ export default function GroupDetails({ groupId }) {
                     </Card>
 
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
                             <CardTitle className="flex items-center gap-2">
                                 <Users />
                                 Студенты группы
                             </CardTitle>
+                            <span className="text-sm tabular-nums text-slate-500">{studentsOfGroup.length} из {groupStudentsAll.length}</span>
                         </CardHeader>
-                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
-                            <div className="relative w-full sm:max-w-xs">
+                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-3 sm:flex-row sm:px-6 sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-sm">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <Input
                                     className="pl-9"
@@ -683,10 +706,10 @@ export default function GroupDetails({ groupId }) {
                         </div>
                         <CardContent className="p-0">
                             {loading ? (
-                                <div className="p-5 sm:p-6"><LoadingState /></div>
+                                <div className="px-5 py-4 sm:px-6"><LoadingState /></div>
                             ) : studentsOfGroup.length === 0 ? (
-                                <div className="px-5 py-12 text-center sm:px-6">
-                                    <p className="font-display text-base font-bold text-[#102945]">Нет студентов</p>
+                                <div className="px-5 py-8 text-center sm:px-6">
+                                    <p className="font-semibold text-[#102945]">Нет студентов</p>
                                     <p className="mt-1 text-sm text-slate-600">В этой группе нет студентов. Нажмите «Привязать студента».</p>
                                 </div>
                             ) : (
@@ -694,16 +717,25 @@ export default function GroupDetails({ groupId }) {
                                     <table className="min-w-full text-sm">
                                         <thead>
                                             <tr className="border-b border-slate-200">
+                                                <th className="w-12 whitespace-nowrap text-right">№</th>
                                                 <th className="whitespace-nowrap text-left">Студент</th>
                                                 <th className="whitespace-nowrap text-left">Логин</th>
+                                                <th className="whitespace-nowrap text-left">Статус</th>
                                                 <th className="whitespace-nowrap text-right">Действия</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {studentsOfGroup.map((student) => (
+                                            {studentsOfGroup.map((student, index) => (
                                                 <tr key={student.id} className="border-b border-slate-200 last:border-b-0 hover:bg-slate-50">
-                                                    <td className="font-medium text-slate-900">{student.full_name}</td>
+                                                    <td className="text-right tabular-nums text-slate-400">{index + 1}</td>
+                                                    <td className="font-medium text-slate-900">
+                                                        <span className="block">{student.full_name}</span>
+                                                        {student.user?.email && <span className="block text-xs font-normal text-slate-500">{student.user.email}</span>}
+                                                    </td>
                                                     <td className="whitespace-nowrap font-mono text-xs text-slate-600">{student.login || student.user?.ad_login || '—'}</td>
+                                                    <td>
+                                                        <StatusBadge tone={student.status === 'active' ? 'success' : 'default'}>{student.status || '—'}</StatusBadge>
+                                                    </td>
                                                     <td className="text-right">
                                                         <Button
                                                             type="button"

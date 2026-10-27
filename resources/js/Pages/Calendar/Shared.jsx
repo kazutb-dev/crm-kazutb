@@ -43,37 +43,60 @@ export default function SharedCalendar({ managedCalendars = [], selectedOwnerId 
                         description="Попросите администратора назначить вас секретарём"
                     />
                 ) : (
-                    <Card className="max-w-2xl">
-                        <CardHeader>
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="shrink-0" />
                                 Выбор календаря для управления
                             </CardTitle>
+                            <span className="text-xs font-semibold tabular-nums text-slate-500">Доступно календарей: {managedCalendars.length}</span>
                         </CardHeader>
-                        <CardContent className="space-y-5">
-                            <div className="space-y-2">
-                                <Label>Календарь владельца</Label>
-                                <NativeSelect
-                                    value={selectedId}
-                                    onValueChange={setSelectedId}
-                                    options={[
-                                        { value: '', label: 'Выберите календарь...' },
-                                        ...managedCalendars.map(emp => ({
-                                            value: emp.id.toString(),
-                                            label: emp.title ? `${emp.name} (${emp.title})` : emp.name,
-                                        })),
-                                    ]}
-                                />
-                                <p className="text-xs text-slate-500">Доступно календарей: {managedCalendars.length}</p>
-                            </div>
-
-                            <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+                        <CardContent className="space-y-0 p-0 sm:p-0">
+                            <div className="grid gap-3 border-b border-slate-200 px-5 py-4 sm:grid-cols-[minmax(0,32rem)_auto] sm:items-end sm:px-6">
+                                <div className="space-y-2">
+                                    <Label>Календарь владельца</Label>
+                                    <NativeSelect
+                                        value={selectedId}
+                                        onValueChange={setSelectedId}
+                                        options={[
+                                            { value: '', label: 'Выберите календарь...' },
+                                            ...managedCalendars.map(emp => ({
+                                                value: emp.id.toString(),
+                                                label: emp.title ? `${emp.name} (${emp.title})` : emp.name,
+                                            })),
+                                        ]}
+                                    />
+                                </div>
                                 <Button
                                     onClick={openCalendar}
                                     disabled={!selectedId}
                                 >
                                     Открыть
                                 </Button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-200">
+                                            <th>Владелец</th>
+                                            <th>Должность</th>
+                                            <th className="text-right"><span className="sr-only">Действия</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {managedCalendars.map(emp => (
+                                            <tr key={emp.id} className={`border-b border-slate-200 last:border-b-0 ${String(emp.id) === selectedId ? 'bg-teal-50/60' : 'hover:bg-slate-50'}`}>
+                                                <td className="font-medium text-slate-900">{emp.name}</td>
+                                                <td className="text-slate-600">{emp.title || '—'}</td>
+                                                <td className="text-right">
+                                                    <Button size="sm" variant="outline" onClick={() => router.get(route('calendar.index'), { calendar_owner_id: emp.id })}>
+                                                        Открыть календарь
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </CardContent>
                     </Card>

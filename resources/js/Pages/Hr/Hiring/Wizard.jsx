@@ -355,9 +355,9 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                                 role="tab"
                                 aria-selected={active}
                                 onClick={() => changeStep(item.value)}
-                                className={`-mb-px flex flex-col items-center gap-1.5 border-b-[3px] border-l border-l-slate-200 px-2 py-3 text-center transition-colors first:border-l-0 sm:flex-row sm:gap-3 sm:px-5 sm:py-4 sm:text-left ${active ? 'border-b-teal-600 bg-teal-50/60' : 'border-b-transparent hover:bg-slate-50'}`}
+                                className={`-mb-px flex flex-col items-center gap-1.5 border-b-[3px] border-l border-l-slate-200 px-2 py-3 text-center transition-colors first:border-l-0 sm:flex-row sm:gap-3 sm:px-5 sm:py-3 sm:text-left ${active ? 'border-b-teal-600 bg-teal-50/60' : 'border-b-transparent hover:bg-slate-50'}`}
                             >
-                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-base font-bold ${active ? 'bg-teal-700 text-white' : count === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-sm font-bold ${active ? 'bg-teal-700 text-white' : count === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
                                     {count === 0 && !active ? <Check className="h-4 w-4" /> : item.value}
                                 </span>
                                 <span className="min-w-0">
@@ -378,8 +378,8 @@ export default function Wizard({ hiring, options, abilities, previewAvailable })
                     </span>
                 </p>
 
-                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
-                    <section aria-label="Данные приёма" className="min-w-0 space-y-6">
+                <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(400px,0.8fr)]">
+                    <section aria-label="Данные приёма" className="min-w-0 space-y-4">
                         <MissingFieldsContext.Provider value={missingIds}>
                             {step === 1 && (
                                 <StepEmployee

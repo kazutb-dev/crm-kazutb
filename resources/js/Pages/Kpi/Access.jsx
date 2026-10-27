@@ -98,12 +98,12 @@ function UserSearchRow({ user, permissions_list, permission_labels, grantedPerms
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Inbox className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-4 w-4" />
             </div>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                <p className="text-sm font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}
@@ -219,6 +219,11 @@ export default function Access({ grants = [], users = [], search = '', permissio
     };
 
     const activeGrantsCount = grants.filter((grant) => grant.is_active).length;
+    const grantsByPermission = permissions_list.map((permission) => ({
+        permission,
+        total: grants.filter((grant) => grant.permission === permission).length,
+        active: grants.filter((grant) => grant.permission === permission && grant.is_active).length,
+    }));
 
     return (
         <AuthenticatedLayout
@@ -233,27 +238,23 @@ export default function Access({ grants = [], users = [], search = '', permissio
         >
             <Head title="Доступ к KPI-модулям" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
-                    <StatTile label="Выдано доступов" value={grants.length} tone="teal" icon={ShieldCheck} hint={`Активных: ${activeGrantsCount}`} />
+                    <StatTile label="Выдано доступов" value={grants.length} tone="teal" icon={ShieldCheck} hint={`Активных: ${activeGrantsCount} · отключено: ${grants.length - activeGrantsCount}`} />
                     <StatTile label="Сотрудников с доступом" value={grouped.length} tone="navy" icon={Users} />
                     <StatTile label="Модулей" value={permissions_list.length} tone="info" icon={ShieldPlus} />
                     <StatTile label="Подразделений проверки" value={structural_divisions.length} tone="gold" icon={Building2} />
                 </StatGrid>
 
-                <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
                     <Card>
                         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                             <CardTitle className="flex items-center gap-2"><UserPlus className="h-4 w-4" />Выдать доступ</CardTitle>
                             <StatusBadge tone="default">{permissions_list.length} модулей</StatusBadge>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-sm text-slate-600">
-                                Найдите сотрудника по имени, email или подразделению и выдайте доступ к нужному модулю KPI.
-                            </p>
-
-                            <label className="block max-w-xl space-y-2">
-                                <span className="qd-field-label block">Сотрудник</span>
+                        <CardContent className="space-y-3">
+                            <label className="block space-y-2">
+                                <span className="qd-field-label block">Сотрудник — имя, email или подразделение</span>
                                 <div className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <Input
@@ -305,10 +306,22 @@ export default function Access({ grants = [], users = [], search = '', permissio
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Building2 className="h-4 w-4" />
-                                Подразделения проверки
+                                Модули и подразделения
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
+                            {grantsByPermission.length > 0 && (
+                                <div className="divide-y divide-slate-200 border-b border-slate-200 pb-1">
+                                    {grantsByPermission.map((row) => (
+                                        <div key={row.permission} className="flex items-center justify-between gap-3 py-1.5 text-sm">
+                                            <span className="min-w-0 truncate text-slate-700">{permission_labels[row.permission] ?? row.permission}</span>
+                                            <span className="shrink-0 tabular-nums text-xs text-slate-500">
+                                                <span className="font-semibold text-[#102945]">{row.active}</span> / {row.total}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <p className="text-xs text-slate-500">
                                 Подразделения из индикаторов KPI (для структурной проверки)
                             </p>

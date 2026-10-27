@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, router } from '@inertiajs/react';
-import { CalendarDays, Clock3, Download, Search, Users } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock3, Download, Search, Timer, Users } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function PercoTimetracking({ staff, divisions = [], filters = {}, summary = {}, range = {} }) {
@@ -174,6 +174,13 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
     const totalPresence = fmtDuration(summary?.total_presence ?? 0);
     const totalAbsent = fmtDuration(summary?.total_absent ?? 0);
 
+    const pageSum = (key) => items.reduce((acc, row) => acc + (Number(row[key] ?? 0) || 0), 0);
+    const pageLate = pageSum('late_time');
+    const pageEarly = pageSum('early_time');
+    const pageOver = pageSum('over_time');
+    const pageNonWorking = items.filter((row) => row.is_non_working_day).length;
+    const pageIssues = items.filter((row) => getEventIssue(row)).length;
+
     const rangeLabel = range.from && range.to
         ? `${fmtDate(range.from)} — ${fmtDate(range.to)}`
         : null;
@@ -206,7 +213,7 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                 <PageHeader
                     eyebrow="HR · PERCo"
                     title="Рабочее время"
-                    description="Табель по данным проходов: время входа и выхода, отработанное время, отсутствие, опоздания, ранний уход и переработка. Строка открывает историю проходов за день."
+                    description="Табель по проходам: вход и выход, отработано, отсутствие, опоздания, ранний уход, переработка. Строка открывает историю проходов за день."
                     meta={(
                         <>
                             {rangeLabel && <StatusBadge tone="info">{rangeLabel}</StatusBadge>}
@@ -224,10 +231,10 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
         >
             <Head title="HR / Рабочее время" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <FilterBar>
-                    <form onSubmit={handleSearch} className="space-y-4">
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+                    <form onSubmit={handleSearch}>
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_auto]">
                             <label className="relative block space-y-2">
                                 <span className="qd-field-label block">Поиск</span>
                                 <Search className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 text-slate-400" />
@@ -264,30 +271,47 @@ export default function PercoTimetracking({ staff, divisions = [], filters = {},
                             <FormField label="По дату">
                                 <input type="date" value={toDate} onChange={handleToDateChange} className={qdFieldClass} />
                             </FormField>
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-4">
-                            <Button type="submit">
-                                <Search className="h-4 w-4" />
-                                Найти
-                            </Button>
+                            <div className="flex items-end justify-end">
+                                <Button type="submit">
+                                    <Search className="h-4 w-4" />
+                                    Найти
+                                </Button>
+                            </div>
                         </div>
                     </form>
                 </FilterBar>
 
                 <StatGrid>
-                    <StatTile label="Сотрудников" value={totalPeople} icon={Users} tone="info" />
-                    <StatTile label="Рабочих дней" value={totalWorkDays} icon={CalendarDays} tone="navy" />
+                    <StatTile label="Сотрудников" value={totalPeople} icon={Users} tone="info" hint={rangeLabel} />
+                    <StatTile label="Рабочих дней" value={totalWorkDays} icon={CalendarDays} tone="navy" hint={totalPeople > 0 ? `${(totalWorkDays / totalPeople).toFixed(1)} на сотрудника` : null} />
                     <StatTile label="Всего отработано" value={<span className="text-2xl">{totalPresence}</span>} icon={Clock3} tone="success" />
                     <StatTile label="Суммарное отсутствие" value={<span className="text-2xl">{totalAbsent}</span>} icon={Clock3} tone="copper" />
+                    <StatTile
+                        label="Опоздания / ранний уход"
+                        value={<span className="text-xl">{fmtDuration(pageLate)}</span>}
+                        icon={AlertTriangle}
+                        tone="danger"
+                        hint={`Ранний уход: ${fmtDuration(pageEarly)} · по строкам страницы`}
+                    />
+                    <StatTile
+                        label="Переработка"
+                        value={<span className="text-xl">{fmtDuration(pageOver)}</span>}
+                        icon={Timer}
+                        tone="info"
+                        hint={`По строкам страницы · выходных: ${pageNonWorking} · без прохода: ${pageIssues}`}
+                    />
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                         <CardTitle className="flex items-center gap-2"><Clock3 className="shrink-0" />Рабочее время сотрудников</CardTitle>
+                        <span className="text-xs tabular-nums text-slate-500">
+                            На странице: {items.length}{meta?.total != null ? ` · всего ${meta.total}` : ''}
+                        </span>
                     </CardHeader>
                     <CardContent className="p-0 sm:p-0">
                         {items.length === 0 ? (
-                            <p className="px-5 py-12 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500">Нет данных за выбранный период.</p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full min-w-[1200px] text-sm">

@@ -16,17 +16,17 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Building2, Eye, Inbox, ListChecks, PencilIcon, Plus, Trash2, Users } from 'lucide-react';
+import { Building2, Eye, Inbox, ListChecks, PencilIcon, Plus, Search, Trash2, Unlink, Users } from 'lucide-react';
 
 // Empty state for use inside a card (the platform EmptyState is itself a card).
 function InlineEmpty({ title, description = null, action = null }) {
     return (
-        <div className="flex flex-col items-center justify-center gap-3 px-5 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                <Inbox className="h-6 w-6" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                <Inbox className="h-4 w-4" />
             </div>
             <div className="max-w-md space-y-1">
-                <p className="font-display text-base font-bold text-[#102945]">{title}</p>
+                <p className="text-sm font-semibold text-[#102945]">{title}</p>
                 {description ? <p className="text-sm leading-relaxed text-slate-600">{description}</p> : null}
             </div>
             {action}
@@ -39,6 +39,7 @@ export default function StructuralUnitsManager() {
     const [open, setOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [deleteId, setDeleteId] = useState(null);
+    const [search, setSearch] = useState('');
 
     const { data, setData, post, put, reset, errors, processing } = useForm({
         code: '',
@@ -98,6 +99,15 @@ export default function StructuralUnitsManager() {
 
     const recordsTotal = units.reduce((sum, unit) => sum + (Number(unit.records_count) || 0), 0);
     const usersTotal = units.reduce((sum, unit) => sum + (Number(unit.users_count) || 0), 0);
+    const unusedUnits = units.filter((unit) => !(Number(unit.records_count) > 0) && !(Number(unit.users_count) > 0)).length;
+    const searchQuery = search.trim().toLowerCase();
+    const visibleUnits = searchQuery === ''
+        ? units
+        : units.filter((unit) => [unit.code, unit.name, unit.description]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
+            .includes(searchQuery));
 
     return (
         <AuthenticatedLayout
@@ -117,16 +127,33 @@ export default function StructuralUnitsManager() {
         >
             <Head title="Управление структурами" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
                 <StatGrid>
                     <StatTile label="Структур" value={units.length} tone="teal" icon={Building2} />
-                    <StatTile label="Индикаторов" value={recordsTotal} tone="info" icon={ListChecks} />
-                    <StatTile label="Пользователей" value={usersTotal} tone="gold" icon={Users} />
+                    <StatTile label="Индикаторов" value={recordsTotal} tone="info" icon={ListChecks} hint="Привязано ко всем структурам" />
+                    <StatTile label="Пользователей" value={usersTotal} tone="gold" icon={Users} hint="Ответственных сотрудников" />
+                    <StatTile label="Без привязок" value={unusedUnits} tone={unusedUnits > 0 ? 'warning' : 'neutral'} icon={Unlink} hint="Нет индикаторов и пользователей — можно удалить" />
                 </StatGrid>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle>Список структур</CardTitle>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <Building2 />
+                            Список структур
+                            <Badge variant="outline" className="tabular-nums">{visibleUnits.length} из {units.length}</Badge>
+                        </CardTitle>
+                        {units.length > 0 && (
+                            <div className="relative w-full sm:w-80">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Поиск по коду, названию, описанию"
+                                    aria-label="Поиск по структурам"
+                                    className="h-9 pl-9"
+                                />
+                            </div>
+                        )}
                     </CardHeader>
                     <CardContent className="p-0">
                         {units.length > 0 ? (
@@ -143,7 +170,12 @@ export default function StructuralUnitsManager() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {units.map((unit) => (
+                                        {visibleUnits.length === 0 && (
+                                            <tr className="hover:bg-transparent">
+                                                <td colSpan={6} className="py-6 text-center text-sm text-slate-500">По запросу ничего не найдено.</td>
+                                            </tr>
+                                        )}
+                                        {visibleUnits.map((unit) => (
                                             <tr key={unit.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
                                                 <td>
                                                     <Badge variant="outline" className="font-mono">{unit.code}</Badge>

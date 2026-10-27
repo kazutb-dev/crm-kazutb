@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Button, Card, CardContent, EmptyState, FilterBar, FormField, FormGrid, Input, PageHeader, StatusBadge } from '@/components/platform';
+import { Button, Card, CardContent, EmptyState, FilterBar, FormField, FormGrid, Input, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, ChevronLeft, ChevronRight, GripVertical, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Award, ChevronLeft, ChevronRight, GripVertical, Hash, ListChecks, Pencil, Plus, Search, Target, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 function createEmptyOptions() {
@@ -35,6 +35,8 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
     useEffect(() => {
         setLocalQuestions(questions);
     }, [questions]);
+
+    const pointsOnPage = localQuestions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
 
     const activeFilterCount = useMemo(() => [search].filter((value) => String(value ?? '').trim() !== '').length, [search]);
 
@@ -191,7 +193,9 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                 <PageHeader
                     eyebrow="Проверка знаний языка"
                     title={`Вопросы: ${test?.name ?? ''}`}
-                    description="Управляйте банком вопросов, вариантами ответов и порядком показа через drag & drop."
+                    description={test?.description
+                        ? `${test.description} · Банк вопросов, варианты ответов и порядок показа через drag & drop.`
+                        : 'Управляйте банком вопросов, вариантами ответов и порядком показа через drag & drop.'}
                     actions={(
                         <div className="flex flex-wrap items-center gap-2">
                             <Button asChild variant="outline" className="gap-2">
@@ -220,9 +224,22 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
             <Head title="Проверка знаний языка — Вопросы" />
 
             <div className="admin-page-wrap space-y-6">
+                <StatGrid>
+                    <StatTile label="Вопросов в банке" value={test?.questions_count ?? pagination.total ?? localQuestions.length} tone="teal" icon={ListChecks} />
+                    <StatTile
+                        label="Лимит выдачи"
+                        value={test?.total_questions ?? '—'}
+                        tone="navy"
+                        icon={Hash}
+                        hint={(test?.questions_count ?? 0) < (test?.total_questions ?? 0) ? 'В банке меньше вопросов, чем лимит' : 'вопросов за прохождение'}
+                    />
+                    <StatTile label="Проходной балл" value={`${test?.passing_score ?? 0}%`} tone="gold" icon={Target} />
+                    <StatTile label="Баллов на странице" value={pointsOnPage} tone="neutral" icon={Award} hint={`${localQuestions.length} вопросов`} />
+                </StatGrid>
+
                 <FilterBar>
                     <form
-                        className="space-y-4"
+                        className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"
                         onSubmit={(event) => {
                             event.preventDefault();
                             applyFilters();
@@ -234,12 +251,10 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                 <Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Введите текст вопроса" />
                             </div>
                         </FormField>
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4 mt-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <StatusBadge tone="default">Активных фильтров: {activeFilterCount}</StatusBadge>
-                            <div className="ml-auto flex items-center gap-2">
-                                <Button type="submit">Применить</Button>
-                                <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
-                            </div>
+                            <Button type="submit">Применить</Button>
+                            <Button type="button" variant="outline" onClick={clearFilters}>Сбросить</Button>
                         </div>
                     </form>
                 </FilterBar>
@@ -280,16 +295,16 @@ export default function LanguageTestingQuestionsIndex({ test, questions = [], fi
                                                     onDragStart={(event) => handleDragStart(event, question.id)}
                                                     onDragEnd={() => setDraggingQuestionId(null)}
                                                     aria-label="Перетащить для изменения порядка"
-                                                    className="cursor-grab rounded-[10px] border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 active:cursor-grabbing"
+                                                    className="cursor-grab rounded-[8px] border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 active:cursor-grabbing"
                                                 >
                                                     <GripVertical className="h-4 w-4" />
                                                 </button>
                                             ) : null}
                                         </td>
                                         <td>
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 <p className="font-medium text-slate-900">{question.question}</p>
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-1.5">
                                                     {(question.options ?? []).map((option) => (
                                                         <span key={option.id} className={`rounded-full border px-2.5 py-0.5 text-xs ${option.is_correct ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
                                                             {option.text}

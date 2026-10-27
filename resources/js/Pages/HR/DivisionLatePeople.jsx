@@ -1,10 +1,10 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { EmptyState, PageHeader, StatusBadge } from '@/components/platform';
+import { EmptyState, PageHeader, StatGrid, StatTile, StatusBadge } from '@/components/platform';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exportToExcelCsv } from '@/lib/exportCsv';
 import { Head, router } from '@inertiajs/react';
-import { ArrowLeft, Download, Users } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock3, Download, Timer, TrendingDown, UserRound, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 function formatDate(value) {
@@ -65,6 +65,22 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
         return sorted;
     }, [rows, sortConfig]);
 
+    const totalLateSeconds = rows.reduce((acc, row) => acc + (Number(row.late_minutes ?? 0) || 0), 0);
+    const maxLateSeconds = rows.reduce((acc, row) => Math.max(acc, Number(row.late_minutes ?? 0) || 0), 0);
+    const uniqueDays = new Set(rows.map((row) => row.late_date).filter(Boolean)).size;
+    const byPerson = useMemo(() => {
+        const map = new Map();
+        rows.forEach((row) => {
+            const key = row.name ?? '—';
+            const entry = map.get(key) ?? { name: key, position: row.position, count: 0, seconds: 0 };
+            entry.count += 1;
+            entry.seconds += Number(row.late_minutes ?? 0) || 0;
+            map.set(key, entry);
+        });
+        return Array.from(map.values()).sort((a, b) => b.count - a.count || b.seconds - a.seconds);
+    }, [rows]);
+    const maxPersonCount = byPerson.reduce((acc, row) => Math.max(acc, row.count), 0);
+
     const handleExport = () => {
         exportToExcelCsv({
             fileName: 'hr_division_late_people.csv',
@@ -106,7 +122,17 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
         >
             <Head title="Опоздавшие сотрудники" />
 
-            <div className="admin-page-wrap space-y-6">
+            <div className="admin-page-wrap space-y-4">
+                {rows.length > 0 && (
+                    <StatGrid>
+                        <StatTile label="Опозданий" value={rows.length} icon={TrendingDown} tone="danger" />
+                        <StatTile label="Сотрудников" value={byPerson.length} icon={Users} tone="info" hint={byPerson.length > 0 ? `${(rows.length / byPerson.length).toFixed(1)} опоздания на сотрудника` : null} />
+                        <StatTile label="Дней с опозданиями" value={uniqueDays} icon={CalendarDays} tone="navy" />
+                        <StatTile label="Суммарно" value={formatLate(totalLateSeconds)} icon={Clock3} tone="copper" />
+                        <StatTile label="Среднее / максимум" value={formatLate(rows.length > 0 ? totalLateSeconds / rows.length : 0)} icon={Timer} tone="gold" hint={`Максимум: ${formatLate(maxLateSeconds)}`} />
+                    </StatGrid>
+                )}
+
                 {rows.length === 0 ? (
                     <EmptyState
                         title="Нет опоздавших сотрудников за выбранный период"
@@ -119,6 +145,7 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
                         )}
                     />
                 ) : (
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -144,7 +171,10 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
                                             <tr key={person.id} className="border-b border-slate-200 last:border-0">
                                                 <td className="tabular-nums text-slate-400">{idx + 1}</td>
                                                 <td className="tabular-nums text-slate-700">{formatDate(person.late_date)}</td>
-                                                <td className="font-medium text-slate-900">{person.name}</td>
+                                                <td>
+                                                    <div className="font-medium text-slate-900">{person.name}</div>
+                                                    {person.tabel_number ? <div className="text-xs tabular-nums text-slate-500">Таб. № {person.tabel_number}</div> : null}
+                                                </td>
                                                 <td className="text-slate-600">{person.position || '—'}</td>
                                                 <td className="font-semibold tabular-nums text-[#102945]">{formatTime(person.first_enter_time)}</td>
                                                 <td className="text-right">
@@ -157,6 +187,30 @@ export default function DivisionLatePeople({ rows = [], divisionName = 'Подр
                             </div>
                         </CardContent>
                     </Card>
+
+                    <Card>
+                        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+                            <CardTitle className="flex items-center gap-2">
+                                <UserRound className="shrink-0" />
+                                По сотрудникам
+                            </CardTitle>
+                            <span className="text-xs tabular-nums text-slate-500">{byPerson.length}</span>
+                        </CardHeader>
+                        <CardContent className="max-h-[70vh] space-y-3 overflow-auto">
+                            {byPerson.map((person) => (
+                                <div key={person.name}>
+                                    <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                                        <span className="min-w-0 truncate font-medium text-slate-900" title={person.position || undefined}>{person.name}</span>
+                                        <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-slate-500">{person.count} раз · {formatLate(person.seconds)}</span>
+                                    </div>
+                                    <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                        <div className="h-1.5 rounded-full bg-red-500" style={{ width: `${maxPersonCount > 0 ? Math.max(6, (person.count / maxPersonCount) * 100) : 0}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                    </div>
                 )}
             </div>
         </AuthenticatedLayout>

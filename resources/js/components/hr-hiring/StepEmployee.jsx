@@ -16,7 +16,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
     const updateRow = (key, index, patch) => setList(key, (e[key] ?? []).map((row, i) => (i === index ? { ...row, ...patch } : row)));
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             <Section
                 title="Личные данные"
                 description="Дата рождения и пол подставятся из ИИН автоматически."
@@ -82,6 +82,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 </div>
             </Section>
 
+            <div className="grid items-start gap-4 2xl:grid-cols-[22rem_minmax(0,1fr)] [&>section]:min-w-0">
             <PhotoSection hiringId={hiringId} photoUrl={photoUrl} onPhotoChange={onPhotoChange} />
 
             <Section title="Удостоверение личности" feeds={['contract', 'card']}>
@@ -97,6 +98,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                     </Field>
                 </div>
             </Section>
+            </div>
 
             <Section title="Адрес и телефон" description="Адрес проживания — так, как он будет написан в договоре." feeds={['contract', 'card']}>
                 <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
@@ -120,6 +122,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                 </div>
             </Section>
 
+            <div className="grid items-start gap-4 2xl:grid-cols-2 [&>section]:min-w-0">
             <Section title="Семья" feeds={['card']}>
                 <Field id={fieldId('employee.marital_status')} label="Семейное положение" className="sm:max-w-xs">
                     <SelectInput id={fieldId('employee.marital_status')} value={e.marital_status} onChange={(value) => set('employee.marital_status', value)} options={maritalOptions} placeholder="Выберите" />
@@ -182,6 +185,7 @@ export default function StepEmployee({ state, set, errors, options, abilities, h
                     <Plus className="h-4 w-4" /> Добавить образование
                 </button>
             </Section>
+            </div>
 
             <Section title="Воинский учёт и социальный статус" feeds={['card']}>
                 <Field id={fieldId('employee.military_status')} label="Воинский учёт" className="sm:max-w-xs">
@@ -248,7 +252,7 @@ function PhotoSection({ hiringId, photoUrl, onPhotoChange }) {
 
     return (
         <Section title="Фото 3×4" description="JPG или PNG до 5 МБ." feeds={['card']} id={fieldId('employee.photo')}>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4">
                 <div className="flex h-28 w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-dashed border-slate-300 bg-slate-50">
                     {photoUrl ? <img src={photoUrl} alt="Фото сотрудника" className="h-full w-full object-cover" /> : <ImageUp className="h-6 w-6 text-teal-600/50" />}
                 </div>
