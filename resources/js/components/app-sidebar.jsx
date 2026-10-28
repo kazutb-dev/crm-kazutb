@@ -367,6 +367,15 @@ export function AppSidebar() {
             icon: UserCog,
             active: route().current('profile.*'),
         }] : []),
+        // Ведёт в AI Student (чат-ассистент студентов на этом же домене, вход по сессии CRM): полная загрузка страницы.
+        // Всем, а не только роли student: CRM пока выдаёт новым входам через AD роль teacher, студентам тоже.
+        ...(!isHrRole ? [{
+            title: 'Ассистент студента',
+            href: '/ai-students/',
+            external: true,
+            icon: Sparkles,
+            active: false,
+        }] : []),
         ...(isAdminRole ? [{
             title: 'Панель управления',
             href: route('dashboard'),
