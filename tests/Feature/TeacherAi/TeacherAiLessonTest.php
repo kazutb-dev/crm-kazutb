@@ -193,8 +193,24 @@ class TeacherAiLessonTest extends TestCase
         }
     }
 
+    public function test_index_opens_ai_tutors(): void
+    {
+        $teacher = User::factory()->create(['role' => 'teacher']);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher-ai.lessons.index'))
+            ->assertRedirect('/ai-tutors/');
+
+        // a click in the sidebar of the Inertia app: a full page load of AI Tutors
+        $this->actingAs($teacher)
+            ->get(route('teacher-ai.lessons.index'), ['X-Inertia' => 'true'])
+            ->assertStatus(409)
+            ->assertHeader('X-Inertia-Location', '/ai-tutors/');
+    }
+
     public function test_index_lists_the_teachers_lessons_and_prefills_the_cover_fields(): void
     {
+        config()->set('services.teacher_ai.redirect_to', '');
         $facultyId = DB::table('faculties')->insertGetId(['name' => 'Факультет экономики и бизнеса', 'created_at' => now(), 'updated_at' => now()]);
         $departmentId = DB::table('departments')->insertGetId(['faculty_id' => $facultyId, 'name' => 'Финансы и учет', 'created_at' => now(), 'updated_at' => now()]);
         $teacher = User::factory()->create(['role' => 'dean', 'faculty_id' => $facultyId, 'department_id' => $departmentId]);
@@ -297,6 +313,7 @@ class TeacherAiLessonTest extends TestCase
     public function test_disabled_assistant_rejects_new_lessons(): void
     {
         config()->set('services.teacher_ai.enabled', false);
+        config()->set('services.teacher_ai.redirect_to', '');
         $teacher = User::factory()->create(['role' => 'teacher']);
 
         $this->actingAs($teacher)

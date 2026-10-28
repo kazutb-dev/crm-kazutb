@@ -18,7 +18,6 @@ import {
     Award,
     BarChart3,
     BookOpenText,
-    Bot,
     BriefcaseBusiness,
     Building2,
     Building,
@@ -749,12 +748,14 @@ export function AppSidebar() {
     ];
 
     // AI-ассистент — всем, кто преподаёт (роли совпадают с TeacherAiReviewController / TeacherAiLessonController).
-    // «Ассистент преподавателя» генерирует лекции и презентации, «Проверка документов» — рецензирует загруженные файлы.
+    // «Ассистент преподавателя» открывает AI Tutors (лекции, презентации, силлабусы), «Проверка документов» — рецензирует загруженные файлы.
     const canAccessTeacherAi = isTeacherRole || isHodRole || isDeanRole || isAdminRole;
     const teacherAiItems = canAccessTeacherAi ? [
         {
+            // Ведёт в AI Tutors (отдельная система на этом же домене, вход по сессии CRM): полная загрузка страницы.
             title: 'Ассистент преподавателя',
-            href: route('teacher-ai.lessons.index'),
+            href: '/ai-tutors/',
+            external: true,
             icon: Sparkles,
             active: route().current('teacher-ai.lessons.*'),
         },
@@ -763,14 +764,6 @@ export function AppSidebar() {
             href: route('teacher-ai.reviews.index'),
             icon: FileCheck,
             active: route().current('teacher-ai.reviews.*'),
-        },
-        {
-            // AI Tutors — отдельная система на этом же домене (вход по сессии CRM), открывается полной загрузкой страницы.
-            title: 'AI-Tutors',
-            href: '/ai-tutors/',
-            icon: Bot,
-            active: false,
-            external: true,
         },
     ] : [];
 
