@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class TeacherAiLessonController extends Controller
 {
@@ -30,9 +31,15 @@ class TeacherAiLessonController extends Controller
 
     public function __construct(private readonly TeacherAiLessonService $service) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|SymfonyResponse
     {
         $user = $this->authorizeTeacher($request);
+
+        // The assistant moved to AI Tutors: a full page load there (an Inertia visit gets 409 + X-Inertia-Location).
+        $redirectTo = (string) config('services.teacher_ai.redirect_to');
+        if ($redirectTo !== '') {
+            return Inertia::location($redirectTo);
+        }
 
         return Inertia::render('TeacherAi/Lessons/Index', [
             'lessons' => $this->service->listForUser($user),

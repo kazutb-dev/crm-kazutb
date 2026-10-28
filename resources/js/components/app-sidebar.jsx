@@ -748,12 +748,14 @@ export function AppSidebar() {
     ];
 
     // AI-ассистент — всем, кто преподаёт (роли совпадают с TeacherAiReviewController / TeacherAiLessonController).
-    // «Ассистент преподавателя» генерирует лекции и презентации, «Проверка документов» — рецензирует загруженные файлы.
+    // «Ассистент преподавателя» открывает AI Tutors (лекции, презентации, силлабусы), «Проверка документов» — рецензирует загруженные файлы.
     const canAccessTeacherAi = isTeacherRole || isHodRole || isDeanRole || isAdminRole;
     const teacherAiItems = canAccessTeacherAi ? [
         {
+            // Ведёт в AI Tutors (отдельная система на этом же домене, вход по сессии CRM): полная загрузка страницы.
             title: 'Ассистент преподавателя',
-            href: route('teacher-ai.lessons.index'),
+            href: '/ai-tutors/',
+            external: true,
             icon: Sparkles,
             active: route().current('teacher-ai.lessons.*'),
         },
@@ -999,10 +1001,17 @@ export function AppSidebar() {
                                     {items.map((item) => (
                                         <SidebarMenuItem key={item.title}>
                                             <SidebarMenuButton asChild isActive={item.active} tooltip={item.title}>
-                                                <Link href={item.href}>
-                                                    <item.icon />
-                                                    <span>{item.title}</span>
-                                                </Link>
+                                                {item.external ? (
+                                                    <a href={item.href}>
+                                                        <item.icon />
+                                                        <span>{item.title}</span>
+                                                    </a>
+                                                ) : (
+                                                    <Link href={item.href}>
+                                                        <item.icon />
+                                                        <span>{item.title}</span>
+                                                    </Link>
+                                                )}
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>
                                     ))}

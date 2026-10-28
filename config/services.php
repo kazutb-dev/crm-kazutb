@@ -54,6 +54,9 @@ return [
         'pdftotext_binary' => env('TEACHER_AI_PDFTOTEXT_BINARY', 'pdftotext'),
         // Lesson generator (lectures + presentations). Shares endpoint/key with reviews.
         'lesson_daily_limit' => env('TEACHER_AI_LESSON_DAILY_LIMIT', 10),
+        // «Ассистент преподавателя» opens AI Tutors (same domain, signed in by the CRM session);
+        // an empty value brings back the built-in lesson generator page.
+        'redirect_to' => env('TEACHER_AI_REDIRECT_TO', '/ai-tutors/'),
         'lesson_timeout' => env('TEACHER_AI_LESSON_TIMEOUT', 90),
         'lesson_model' => env('TEACHER_AI_LESSON_MODEL'),
         'lesson_concurrency' => env('TEACHER_AI_LESSON_CONCURRENCY', 4),
